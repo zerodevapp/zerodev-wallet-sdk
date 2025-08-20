@@ -1,0 +1,30 @@
+{
+  "name": "doorway-sdk",
+  "version": "0.0.1",
+  "description": "Monorepo for Doorway SDK",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --recursive run build",
+    "dev": "pnpm --recursive run dev",
+    "typecheck": "pnpm --recursive run typecheck",
+    "clean": "pnpm --recursive run clean",
+    "lint": "pnpm --recursive run lint",
+    "test": "pnpm --recursive run test"
+  },
+  "keywords": [
+    "monorepo",
+    "kms",
+    "wallet",
+    "turnkey",
+    "viem",
+    "account-abstraction",
+    "eip7702"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

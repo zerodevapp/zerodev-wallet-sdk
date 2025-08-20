@@ -1,0 +1,23 @@
+dist
+_cjs
+_esm
+_types
+*.local
+.DS_Store
+.eslintcache
+.next
+bench
+cache
+coverage
+node_modules
+tsconfig*.tsbuildinfo
+esbuild-why-permissionless*
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.envrc
+.vscode

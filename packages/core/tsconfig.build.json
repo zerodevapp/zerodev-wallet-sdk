@@ -1,0 +1,9 @@
+{
+  "extends": "../../templates/typescript/tsconfig.build.json",
+  "exclude": ["./**/*.test.ts", "./**/*.test-d.ts", "./**/*.bench.ts", "node_modules", "dist"],
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "rootDir": "./src",
+    "baseUrl": "./src",
+  }
+}
