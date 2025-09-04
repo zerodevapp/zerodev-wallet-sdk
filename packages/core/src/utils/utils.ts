@@ -30,3 +30,7 @@ export function parseSession(token: string | Session): Session {
     token: publicKey,
   };
 }
+
+export function normalizeTimestamp(timestamp: number): number {
+  return timestamp < 1e10 ? timestamp * 1_000 : timestamp;
+}

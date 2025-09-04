@@ -12,7 +12,7 @@ import {
   storeSession,
 } from "../utils/storage.js";
 import { DEFAULT_IFRAME_CONTAINER_ID, DEFAULT_IFRAME_ELEMENT_ID, DEFAULT_ORGANIZATION_ID, DEFAULT_SESSION_EXPIRATION_IN_SECONDS } from "../constants.js";
-import { parseSession } from "../utils/utils.js";
+import { parseSession, normalizeTimestamp } from "../utils/utils.js";
 import { DoorwayClient } from "../client/DoorwayClient.js";
 
 export interface DoorwayConfig {
@@ -103,8 +103,8 @@ export async function createDoorway(
     switch (authClient) {
       case AuthClient.Iframe:
         if (typeof session === "object") {
-          let expiry = session.expiry || 0;
-          if (expiry * 1000 > Date.now() && session.token) {
+          let expiry = normalizeTimestamp(session.expiry) || 0;
+          if (expiry > Date.now() && session.token) {
             try {
               await (
                 authIframeClient.stamper as IframeStamper
@@ -119,8 +119,8 @@ export async function createDoorway(
       case AuthClient.IndexedDb:
         if (typeof session === "string") {
           let _session = parseSession(session)
-          let expiry = _session.expiry || 0;
-          if (expiry * 1000 > Date.now() && _session.token) {
+          let expiry = normalizeTimestamp(_session.expiry) || 0;
+          if (expiry > Date.now() && _session.token) {
             currentClient = indexedDbClient;
           }
         }
@@ -138,7 +138,7 @@ export async function createDoorway(
     } else {
       session = currentSession;
     }
-    if (session && session.expiry * 1000 > Date.now()) {
+    if (session && normalizeTimestamp(session.expiry) > Date.now()) {
       return session;
     }
     await removeStorageValue(StorageKeys.Session);
