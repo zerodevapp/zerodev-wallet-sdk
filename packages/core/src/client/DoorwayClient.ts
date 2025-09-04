@@ -1,4 +1,5 @@
 import { TurnkeyClient } from "@turnkey/http";
+import type { Stamper } from "../stampers/types.js";
 
 type TurnkeyClientConfig = ConstructorParameters<typeof TurnkeyClient>[0];
 
@@ -6,15 +7,19 @@ interface DoorwayClientConfig extends TurnkeyClientConfig {
   proxyBaseUrl: string;
 }
 
-export class DoorwayClient extends TurnkeyClient {
+export class DoorwayClient<TStamper extends Stamper = Stamper> extends TurnkeyClient {
   private proxyBaseUrl: string;
 
   constructor(
     config: DoorwayClientConfig,
-    stamper: ConstructorParameters<typeof TurnkeyClient>[1]
+    stamper: TStamper
   ) {
     super(config, stamper);
     this.proxyBaseUrl = config.proxyBaseUrl;
+  }
+
+  getStamper() {
+    return this.stamper as TStamper;
   }
 
   async requestProxy(path: string, body: any, apiKey?: string) {

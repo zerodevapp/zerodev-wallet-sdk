@@ -1,7 +1,5 @@
 import type { LocalAccount } from "viem/accounts";
 import { toViemAccount } from "../adapters/viem.js";
-import { IframeStamper } from "@turnkey/iframe-stamper";
-import { IndexedDbStamper } from "@turnkey/indexed-db-stamper";
 import {
   AuthClient,
   getStorageValue,
@@ -11,10 +9,16 @@ import {
   StorageKeys,
   storeSession,
 } from "../utils/storage.js";
-import { DEFAULT_IFRAME_CONTAINER_ID, DEFAULT_IFRAME_ELEMENT_ID, DEFAULT_ORGANIZATION_ID, DEFAULT_SESSION_EXPIRATION_IN_SECONDS } from "../constants.js";
+import {
+  DEFAULT_IFRAME_CONTAINER_ID,
+  DEFAULT_IFRAME_ELEMENT_ID,
+  DEFAULT_ORGANIZATION_ID,
+  DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
+} from "../constants.js";
 import { parseSession } from "../utils/utils.js";
 import { DoorwayClient } from "../client/DoorwayClient.js";
-
+import { createIframeStamper } from "../stampers/iframeStamper.js";
+import { createIndexedDbStamper } from "../stampers/indexedDbStamper.js";
 export interface DoorwayConfig {
   organizationId?: string;
   proxyBaseUrl?: string;
@@ -62,20 +66,15 @@ export async function createDoorway(
 ): Promise<DoorwaySDK> {
   const { appId, apiKey } = config;
 
-  const iframeStamper = new IframeStamper({
+  const iframeStamper = await createIframeStamper({
     iframeContainer:
       config.iframeContainer ||
       document.getElementById(DEFAULT_IFRAME_CONTAINER_ID),
     iframeUrl: config.iframeUrl || "https://auth.turnkey.com",
-    iframeElementId:
-      config.iframeElementId || DEFAULT_IFRAME_ELEMENT_ID,
+    iframeElementId: config.iframeElementId || DEFAULT_IFRAME_ELEMENT_ID,
   });
-  if (!iframeStamper.iframePublicKey) {
-    await iframeStamper.init();
-  }
 
-  const indexedDbStamper = new IndexedDbStamper();
-  await indexedDbStamper.init();
+  const indexedDbStamper = await createIndexedDbStamper();
 
   let currentClient: DoorwayClient | null = null;
 
@@ -106,9 +105,9 @@ export async function createDoorway(
           let expiry = session.expiry || 0;
           if (expiry * 1000 > Date.now() && session.token) {
             try {
-              await (
-                authIframeClient.stamper as IframeStamper
-              ).injectCredentialBundle(session.token);
+              await authIframeClient
+                .getStamper()
+                .injectCredentialBundle(session.token);
               currentClient = authIframeClient;
             } catch (error) {
               console.error("Failed to inject credential bundle:", error);
@@ -118,7 +117,7 @@ export async function createDoorway(
         break;
       case AuthClient.IndexedDb:
         if (typeof session === "string") {
-          let _session = parseSession(session)
+          let _session = parseSession(session);
           let expiry = _session.expiry || 0;
           if (expiry * 1000 > Date.now() && _session.token) {
             currentClient = indexedDbClient;
@@ -154,9 +153,7 @@ export async function createDoorway(
   return {
     client: currentClient,
     async getPublicKeys() {
-      const publicKey = await (
-        authIframeClient.stamper as IframeStamper
-      ).getEmbeddedPublicKey();
+      const publicKey = await iframeStamper.getPublicKey();
       const compressedPublicKey = await indexedDbStamper.getPublicKey();
       return {
         publicKey,
@@ -171,9 +168,9 @@ export async function createDoorway(
           if (type === "email" && "email" in params) {
             const { email } = params;
 
-            const targetPublicKey = await (
-              authIframeClient.stamper as IframeStamper
-            ).getEmbeddedPublicKey();
+            const targetPublicKey = await authIframeClient
+              .getStamper()
+              .getPublicKey();
 
             const data = await authIframeClient.requestProxy(
               "auth/email-magic",
@@ -188,9 +185,7 @@ export async function createDoorway(
             return data;
           } else if ("bundle" in params) {
             const { bundle } = params;
-            await (
-              authIframeClient.stamper as IframeStamper
-            ).injectCredentialBundle(bundle);
+            await authIframeClient.getStamper().injectCredentialBundle(bundle);
 
             const whoAmI = await authIframeClient.getWhoami({
               organizationId: config.organizationId || DEFAULT_ORGANIZATION_ID,
