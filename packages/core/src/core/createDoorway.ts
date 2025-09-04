@@ -25,10 +25,17 @@ export interface DoorwayConfig {
   apiKey: string;
 }
 
+export type EmailCustomization = {
+  /** @description A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
+  magicLinkTemplate?: string;
+}
+
+
 export type AuthParams =
   | {
       type: "email";
       email: string;
+      emailCustomization?: EmailCustomization
     }
   | {
       type: "email";
@@ -169,7 +176,7 @@ export async function createDoorway(
           const { type } = params;
 
           if (type === "email" && "email" in params) {
-            const { email } = params;
+            const { email, emailCustomization } = params;
 
             const targetPublicKey = await (
               authIframeClient.stamper as IframeStamper
@@ -179,6 +186,7 @@ export async function createDoorway(
               "auth/email-magic",
               {
                 email,
+                emailCustomization,
                 targetPublicKey,
                 appId,
               },
