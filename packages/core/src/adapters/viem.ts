@@ -9,7 +9,6 @@ import {
 import { toAccount } from "viem/accounts";
 import { hashAuthorization } from "viem/utils";
 import type {
-  Address,
   SignAuthorizationParameters,
   SignAuthorizationReturnType,
 } from "viem/accounts";
