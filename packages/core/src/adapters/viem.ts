@@ -9,7 +9,6 @@ import {
 import { toAccount } from "viem/accounts";
 import { hashAuthorization } from "viem/utils";
 import type {
-  Address,
   SignAuthorizationParameters,
   SignAuthorizationReturnType,
 } from "viem/accounts";
@@ -28,20 +27,10 @@ export async function toViemAccount(
   let address: Hex = zeroAddress;
 
   try {
-    const walletsResponse = await client.getWallets({ organizationId });
-    if (walletsResponse.wallets.length > 0) {
-      // Get accounts for the first wallet
-      const firstWallet = walletsResponse.wallets[0];
-      const accountsResponse = await client.getWalletAccounts({
-        walletId: firstWallet.walletId,
-        organizationId,
-      });
-
-      if (accountsResponse.accounts.length > 0) {
-        // Use the first account's address
-        address = accountsResponse.accounts[0].address as Address;
-      }
-    }
+    const walletResponse = await client.requestProxy("user-wallet", {
+      organizationId,
+    })
+    address = walletResponse.walletAddress;
   } catch {
     address = zeroAddress;
   }
