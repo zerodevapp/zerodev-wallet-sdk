@@ -52,7 +52,7 @@
     "@turnkey/indexed-db-stamper": "^1.1.1"
   },
   "peerDependencies": {
-    "viem": "~2.37.0"
+    "viem": "2.37.6"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
