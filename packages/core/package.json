@@ -47,7 +47,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@turnkey/http": "^3.9.0",
     "@turnkey/iframe-stamper": "^2.5.0",
     "@turnkey/indexed-db-stamper": "^1.1.1"
   },

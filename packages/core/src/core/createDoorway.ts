@@ -9,32 +9,36 @@ import {
   StorageKeys,
   storeSession,
 } from "../utils/storage.js";
-import { DEFAULT_IFRAME_CONTAINER_ID, DEFAULT_IFRAME_ELEMENT_ID, DEFAULT_ORGANIZATION_ID, DEFAULT_SESSION_EXPIRATION_IN_SECONDS } from "../constants.js";
+import {
+  DEFAULT_IFRAME_CONTAINER_ID,
+  DEFAULT_IFRAME_ELEMENT_ID,
+  DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
+} from "../constants.js";
 import { parseSession, normalizeTimestamp } from "../utils/utils.js";
-import { DoorwayClient } from "../client/DoorwayClient.js";
 import { createIframeStamper } from "../stampers/iframeStamper.js";
 import { createIndexedDbStamper } from "../stampers/indexedDbStamper.js";
+import { createClient, doorwayTransport } from "../client/createClient.js";
+import type { Client } from "../client/types.js";
+import type { IframeStamper } from "../stampers/types.js";
 export interface DoorwayConfig {
   organizationId?: string;
   proxyBaseUrl?: string;
   iframeUrl?: string;
   iframeContainer?: HTMLElement | null;
   iframeElementId?: string;
-  appId: string;
-  apiKey: string;
+  projectId: string;
 }
 
 export type EmailCustomization = {
   /** @description A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
   magicLinkTemplate?: string;
-}
-
+};
 
 export type AuthParams =
   | {
       type: "email";
       email: string;
-      emailCustomization?: EmailCustomization
+      emailCustomization?: EmailCustomization;
     }
   | {
       type: "email";
@@ -48,7 +52,7 @@ export type AuthParams =
     };
 
 export interface DoorwaySDK {
-  client: DoorwayClient | null;
+  client: Client | null;
   auth: (params: AuthParams) => Promise<any>;
 
   getPublicKeys: () => Promise<{
@@ -66,7 +70,7 @@ export interface DoorwaySDK {
 export async function createDoorway(
   config: DoorwayConfig
 ): Promise<DoorwaySDK> {
-  const { appId, apiKey } = config;
+  const { projectId } = config;
 
   const iframeStamper = await createIframeStamper({
     iframeContainer:
@@ -78,22 +82,35 @@ export async function createDoorway(
 
   const indexedDbStamper = await createIndexedDbStamper();
 
-  let currentClient: DoorwayClient | null = null;
+  let currentClient: Client | null = null;
 
-  let authIframeClient = new DoorwayClient(
-    {
-      proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
-      baseUrl: "https://api.turnkey.com",
-    },
-    iframeStamper
-  );
-  let indexedDbClient = new DoorwayClient(
-    {
-      proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
-      baseUrl: "https://api.turnkey.com",
-    },
-    indexedDbStamper
-  );
+  let authIframeClient = createClient({
+    stamper: iframeStamper,
+    transport: doorwayTransport({
+      baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+    }),
+  });
+  let indexedDbClient = createClient({
+    stamper: indexedDbStamper,
+    transport: doorwayTransport({
+      baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+    }),
+  });
+
+  // let authIframeClient = new DoorwayClient(
+  //   {
+  //     proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+  //     baseUrl: "https://api.turnkey.com",
+  //   },
+  //   iframeStamper
+  // );
+  // let indexedDbClient = new DoorwayClient(
+  //   {
+  //     proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+  //     baseUrl: "https://api.turnkey.com",
+  //   },
+  //   indexedDbStamper
+  // );
 
   const session = await getStorageValue(StorageKeys.Session);
   console.log("session", session);
@@ -107,9 +124,9 @@ export async function createDoorway(
           let expiry = normalizeTimestamp(session.expiry) || 0;
           if (expiry > Date.now() && session.token) {
             try {
-              await authIframeClient
-                .getStamper()
-                .injectCredentialBundle(session.token);
+              await (
+                authIframeClient.stamper as IframeStamper
+              ).injectCredentialBundle(session.token);
               currentClient = authIframeClient;
             } catch (error) {
               console.error("Failed to inject credential bundle:", error);
@@ -119,7 +136,7 @@ export async function createDoorway(
         break;
       case AuthClient.IndexedDb:
         if (typeof session === "string") {
-          let _session = parseSession(session)
+          let _session = parseSession(session);
           let expiry = normalizeTimestamp(_session.expiry) || 0;
           if (expiry > Date.now() && _session.token) {
             currentClient = indexedDbClient;
@@ -170,29 +187,38 @@ export async function createDoorway(
           if (type === "email" && "email" in params) {
             const { email, emailCustomization } = params;
 
-            const targetPublicKey = await authIframeClient
-              .getStamper()
-              .getPublicKey();
+            const targetPublicKey =
+              await authIframeClient.stamper.getPublicKey();
 
-            const data = await authIframeClient.requestProxy(
-              "auth/email-magic",
-              {
+            const data = await authIframeClient.request({
+              path: `${projectId}/auth/email-magic`,
+              method: "POST",
+              body: {
                 email,
                 emailCustomization,
                 targetPublicKey,
-                appId,
+                projectId,
               },
-              apiKey
-            );
+            });
 
             return data;
           } else if ("bundle" in params) {
             const { bundle } = params;
-            await authIframeClient.getStamper().injectCredentialBundle(bundle);
+            await (
+              authIframeClient.stamper as IframeStamper
+            ).injectCredentialBundle(bundle);
 
-            const whoAmI = await authIframeClient.getWhoami({
-              organizationId: config.organizationId || DEFAULT_ORGANIZATION_ID,
+            const whoAmI = await authIframeClient.request({
+              path: `${projectId}/whoami`,
+              method: "POST",
+              body: {
+                body: {
+                  organizationId: config.organizationId,
+                }
+              },
+              stamp: true,
             });
+            console.log({ whoAmI });
             const session: Session = {
               sessionType: SessionType.READ_WRITE,
               userId: whoAmI.userId,
@@ -211,16 +237,16 @@ export async function createDoorway(
           const { credential } = params;
           const compressedPublicKey = await indexedDbStamper.getPublicKey();
           console.log("compressedPublicKey in sdk", compressedPublicKey);
-          const data = await indexedDbClient.requestProxy(
-            "auth/oauth",
-            {
+          const data = await indexedDbClient.request({
+            path: `${projectId}/auth/oauth`,
+            method: "POST",
+            body: {
               oidcToken: credential,
               provider: "google",
               targetPublicKey: compressedPublicKey,
-              appId,
+              projectId,
             },
-            apiKey
-          );
+          });
 
           console.log("data.turnkeySession", data.turnkeySession);
           if (data.turnkeySession) {
@@ -252,6 +278,7 @@ export async function createDoorway(
       return toViemAccount({
         client: currentClient,
         organizationId: session.organizationId,
+        projectId,
       });
     },
   };

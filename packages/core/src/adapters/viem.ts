@@ -12,46 +12,51 @@ import type {
   SignAuthorizationParameters,
   SignAuthorizationReturnType,
 } from "viem/accounts";
-import { DoorwayClient } from "../client/DoorwayClient.js";
+import type { Client } from "../client/types.js";
 
 export interface ToViemAccountParams {
-  client: DoorwayClient;
+  client: Client;
   organizationId: string;
+  projectId: string;
 }
 
 export async function toViemAccount(
   params: ToViemAccountParams
 ): Promise<LocalAccount> {
-  const { client, organizationId } = params;
+  const { client, organizationId, projectId } = params;
 
   let address: Hex = zeroAddress;
 
   try {
-    const walletResponse = await client.requestProxy("user-wallet", {
-      organizationId,
-    })
+    const walletResponse = await client.request({
+      path: `${projectId}/user-wallet`,
+      body: {
+        organizationId,
+      },
+    });
     address = walletResponse.walletAddress;
   } catch {
     address = zeroAddress;
   }
   const signRawPayload = async (messageHash: Hex) => {
-    const stampResponse = await client.stampSignRawPayload({
-      type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2",
-      timestampMs: new Date().getTime().toString(),
-      organizationId,
-      parameters: {
-        signWith: address,
-        payload: messageHash.replace(/^0x/, ""),
-        encoding: "PAYLOAD_ENCODING_HEXADECIMAL",
-        hashFunction: "HASH_FUNCTION_NO_OP",
-      },
-    });
 
-    const data = await client.requestProxy("sign/raw-payload", {
-      body: stampResponse?.body,
-      stamp: stampResponse?.stamp,
-      apiUrl: stampResponse?.url,
-      operationType: "raw_payload",
+    const data = await client.request({
+      path: `${projectId}/sign/raw-payload`,
+      body: {
+        body: {
+          type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2",
+          timestampMs: new Date().getTime().toString(),
+          organizationId,
+          parameters: {
+            signWith: address,
+            payload: messageHash.replace(/^0x/, ""),
+            encoding: "PAYLOAD_ENCODING_HEXADECIMAL",
+            hashFunction: "HASH_FUNCTION_NO_OP",
+          },
+        },
+        apiUrl: "https://api.turnkey.com/public/v1/submit/sign_raw_payload",
+      },
+      stamp: true,
     });
 
     return data.signature;

@@ -5,7 +5,9 @@ export type {
   AuthParams,
 } from "./core/createDoorway.js";
 
-export { DoorwayClient } from "./client/DoorwayClient.js";
+
+export { createClient, doorwayTransport } from "./client/index.js";
+export type { Client, ClientConfig, Transport } from "./client/index.js";
 
 export { toViemAccount } from "./adapters/viem.js";
 export type { ToViemAccountParams } from "./adapters/viem.js";
