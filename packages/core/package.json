@@ -16,6 +16,11 @@
       "types": "./dist/_types/adapters/viem.d.ts",
       "import": "./dist/_esm/adapters/viem.js",
       "require": "./dist/_cjs/adapters/viem.js"
+    },
+    "./actions": {
+      "types": "./dist/_types/actions/index.d.ts",
+      "import": "./dist/_esm/actions/index.js",
+      "require": "./dist/_cjs/actions/index.js"
     }
   },
   "files": [

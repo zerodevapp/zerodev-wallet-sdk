@@ -12,10 +12,10 @@ import type {
   SignAuthorizationParameters,
   SignAuthorizationReturnType,
 } from "viem/accounts";
-import type { Client } from "../client/types.js";
+import type { DoorwayClient } from "../client/index.js";
 
 export interface ToViemAccountParams {
-  client: Client;
+  client: DoorwayClient;
   organizationId: string;
   projectId: string;
 }
@@ -28,38 +28,23 @@ export async function toViemAccount(
   let address: Hex = zeroAddress;
 
   try {
-    const walletResponse = await client.request({
-      path: `${projectId}/user-wallet`,
-      body: {
-        organizationId,
-      },
+    const walletResponse = await client.getUserWallet({
+      organizationId,
+      projectId,
     });
     address = walletResponse.walletAddress;
   } catch {
     address = zeroAddress;
   }
-  const signRawPayload = async (messageHash: Hex) => {
-
-    const data = await client.request({
-      path: `${projectId}/sign/raw-payload`,
-      body: {
-        body: {
-          type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2",
-          timestampMs: new Date().getTime().toString(),
-          organizationId,
-          parameters: {
-            signWith: address,
-            payload: messageHash.replace(/^0x/, ""),
-            encoding: "PAYLOAD_ENCODING_HEXADECIMAL",
-            hashFunction: "HASH_FUNCTION_NO_OP",
-          },
-        },
-        apiUrl: "https://api.turnkey.com/public/v1/submit/sign_raw_payload",
-      },
-      stamp: true,
+  const signRawPayloadInternal = async (messageHash: Hex) => {
+    const result = await client.signRawPayload({
+      organizationId,
+      projectId,
+      address,
+      payload: messageHash.replace(/^0x/, ""),
     });
 
-    return data.signature;
+    return result.signature;
   };
 
   return toAccount({
@@ -67,7 +52,7 @@ export async function toViemAccount(
 
     async signMessage({ message }: { message: SignableMessage }): Promise<Hex> {
       const hashedMessage = hashMessage(message);
-      return signRawPayload(hashedMessage);
+      return signRawPayloadInternal(hashedMessage);
     },
 
     signTransaction: async () => {
@@ -93,7 +78,7 @@ export async function toViemAccount(
         nonce,
       });
 
-      const signature = await signRawPayload(hashedAuthorization);
+      const signature = await signRawPayloadInternal(hashedAuthorization);
 
       const parsedSignature = parseSignature(signature);
 

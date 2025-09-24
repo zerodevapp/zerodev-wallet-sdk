@@ -17,9 +17,9 @@ import {
 import { parseSession, normalizeTimestamp } from "../utils/utils.js";
 import { createIframeStamper } from "../stampers/iframeStamper.js";
 import { createIndexedDbStamper } from "../stampers/indexedDbStamper.js";
-import { createClient, doorwayTransport } from "../client/createClient.js";
-import type { Client } from "../client/types.js";
+import { createClient, doorwayTransport, type DoorwayClient } from "../client/createClient.js";
 import type { IframeStamper } from "../stampers/types.js";
+import type { EmailCustomization } from "../actions/auth/index.js";
 export interface DoorwayConfig {
   organizationId?: string;
   proxyBaseUrl?: string;
@@ -29,10 +29,8 @@ export interface DoorwayConfig {
   projectId: string;
 }
 
-export type EmailCustomization = {
-  /** @description A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
-  magicLinkTemplate?: string;
-};
+// Re-export EmailCustomization for convenience
+export type { EmailCustomization } from "../actions/auth/index.js";
 
 export type AuthParams =
   | {
@@ -52,7 +50,7 @@ export type AuthParams =
     };
 
 export interface DoorwaySDK {
-  client: Client | null;
+  client: DoorwayClient | null;
   auth: (params: AuthParams) => Promise<any>;
 
   getPublicKeys: () => Promise<{
@@ -82,7 +80,7 @@ export async function createDoorway(
 
   const indexedDbStamper = await createIndexedDbStamper();
 
-  let currentClient: Client | null = null;
+  let currentClient: DoorwayClient | null = null;
 
   let authIframeClient = createClient({
     stamper: iframeStamper,
@@ -90,27 +88,13 @@ export async function createDoorway(
       baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
     }),
   });
+
   let indexedDbClient = createClient({
     stamper: indexedDbStamper,
     transport: doorwayTransport({
       baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
     }),
   });
-
-  // let authIframeClient = new DoorwayClient(
-  //   {
-  //     proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
-  //     baseUrl: "https://api.turnkey.com",
-  //   },
-  //   iframeStamper
-  // );
-  // let indexedDbClient = new DoorwayClient(
-  //   {
-  //     proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
-  //     baseUrl: "https://api.turnkey.com",
-  //   },
-  //   indexedDbStamper
-  // );
 
   const session = await getStorageValue(StorageKeys.Session);
   console.log("session", session);
@@ -190,15 +174,15 @@ export async function createDoorway(
             const targetPublicKey =
               await authIframeClient.stamper.getPublicKey();
 
-            const data = await authIframeClient.request({
-              path: `${projectId}/auth/email-magic`,
-              method: "POST",
-              body: {
-                email,
-                emailCustomization,
-                targetPublicKey,
-                projectId,
-              },
+            if (!targetPublicKey) {
+              throw new Error("Failed to get public key");
+            }
+
+            const data = await authIframeClient.authenticateWithEmail({
+              email,
+              ...(emailCustomization && { emailCustomization }),
+              targetPublicKey,
+              projectId,
             });
 
             return data;
@@ -208,15 +192,9 @@ export async function createDoorway(
               authIframeClient.stamper as IframeStamper
             ).injectCredentialBundle(bundle);
 
-            const whoAmI = await authIframeClient.request({
-              path: `${projectId}/whoami`,
-              method: "POST",
-              body: {
-                body: {
-                  organizationId: config.organizationId,
-                }
-              },
-              stamp: true,
+            const whoAmI = await authIframeClient.getWhoami({
+              organizationId: config.organizationId || "",
+              projectId,
             });
             console.log({ whoAmI });
             const session: Session = {
@@ -230,22 +208,24 @@ export async function createDoorway(
             };
             await storeSession(session, AuthClient.Iframe);
             currentClient = authIframeClient;
+            return whoAmI;
           }
-          break;
+          throw new Error("Email authentication requires either email or bundle parameter");
         }
         case "oauth": {
           const { credential } = params;
-          const compressedPublicKey = await indexedDbStamper.getPublicKey();
-          console.log("compressedPublicKey in sdk", compressedPublicKey);
-          const data = await indexedDbClient.request({
-            path: `${projectId}/auth/oauth`,
-            method: "POST",
-            body: {
-              oidcToken: credential,
-              provider: "google",
-              targetPublicKey: compressedPublicKey,
-              projectId,
-            },
+          const targetPublicKey = await indexedDbStamper.getPublicKey();
+          console.log("compressedPublicKey in sdk", targetPublicKey);
+
+          if (!targetPublicKey) {
+            throw new Error("Failed to get public key");
+          }
+
+          const data = await indexedDbClient.authenticateWithOAuth({
+            oidcToken: credential,
+            provider: "google",
+            targetPublicKey,
+            projectId,
           });
 
           console.log("data.turnkeySession", data.turnkeySession);
@@ -253,7 +233,7 @@ export async function createDoorway(
             await storeSession(data.turnkeySession, AuthClient.IndexedDb);
           }
           currentClient = indexedDbClient;
-          break;
+          return data;
         }
         default:
           throw new Error(`Unknown auth type: ${(params as any).type}`);
