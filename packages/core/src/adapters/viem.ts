@@ -5,6 +5,7 @@ import {
   type SignableMessage,
   zeroAddress,
   parseSignature,
+  serializeTypedData,
 } from "viem";
 import { toAccount } from "viem/accounts";
 import { hashAuthorization } from "viem/utils";
@@ -13,6 +14,7 @@ import type {
   SignAuthorizationReturnType,
 } from "viem/accounts";
 import type { DoorwayClient } from "../client/index.js";
+import { signRawPayload } from "../actions/index.js";
 
 export interface ToViemAccountParams {
   client: DoorwayClient;
@@ -36,12 +38,18 @@ export async function toViemAccount(
   } catch {
     address = zeroAddress;
   }
-  const signRawPayloadInternal = async (messageHash: Hex) => {
+  const signRawPayloadInternal = async (
+    payload: Hex,
+    encoding: Parameters<
+      typeof signRawPayload
+    >[1]["encoding"] = "PAYLOAD_ENCODING_HEXADECIMAL"
+  ) => {
     const result = await client.signRawPayload({
       organizationId,
       projectId,
       address,
-      payload: messageHash.replace(/^0x/, ""),
+      payload,
+      encoding,
     });
 
     return result.signature;
@@ -58,8 +66,12 @@ export async function toViemAccount(
     signTransaction: async () => {
       throw new Error("Not implemented");
     },
-    signTypedData: async () => {
-      throw new Error("Not implemented");
+    signTypedData: async (typedData) => {
+      const serializedTypedData = serializeTypedData(typedData);
+      return signRawPayloadInternal(
+        serializedTypedData as Hex,
+        "PAYLOAD_ENCODING_EIP712"
+      );
     },
 
     async signAuthorization(

@@ -11,7 +11,7 @@ export type SignRawPayloadParameters = {
   /** The payload hash to sign (without 0x prefix) */
   payload: string;
   /** The encoding type */
-  encoding?: "PAYLOAD_ENCODING_HEXADECIMAL";
+  encoding?: "PAYLOAD_ENCODING_HEXADECIMAL" | "PAYLOAD_ENCODING_EIP712";
   /** The hash function type */
   hashFunction?: "HASH_FUNCTION_NO_OP";
 };
