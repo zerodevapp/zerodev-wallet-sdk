@@ -6,6 +6,10 @@ import {
   zeroAddress,
   parseSignature,
   serializeTypedData,
+  type TransactionSerializable,
+  type SerializeTransactionFn,
+  serializeTransaction,
+  parseTransaction,
 } from "viem";
 import { toAccount } from "viem/accounts";
 import { hashAuthorization } from "viem/utils";
@@ -39,20 +43,56 @@ export async function toViemAccount(
     address = zeroAddress;
   }
   const signRawPayloadInternal = async (
-    payload: Hex,
+    payload: string,
     encoding: Parameters<
       typeof signRawPayload
     >[1]["encoding"] = "PAYLOAD_ENCODING_HEXADECIMAL"
   ) => {
-    const result = await client.signRawPayload({
+    return await client.signRawPayload({
       organizationId,
       projectId,
       address,
       payload,
       encoding,
     });
+  };
 
-    return result.signature;
+  // Modified from: https://github.com/tkhq/sdk/blob/4e439bf2973ea13b51d981d7c24a4841d4e5fd5f/packages/viem/src/index.ts#L419-L461
+  const signTransactionInternal = async <
+    TTransactionSerializable extends TransactionSerializable
+  >(
+    transaction: TTransactionSerializable,
+    serializer: SerializeTransactionFn<TTransactionSerializable>
+  ): Promise<Hex> => {
+    // Note: for Type 3 transactions, we are specifically handling parsing for payloads containing only the transaction payload body, without any wrappers around blobs, commitments, or proofs.
+    // See more: https://github.com/wevm/viem/blob/3ef19eac4963014fb20124d1e46d1715bed5509f/src/accounts/utils/signTransaction.ts#L54-L55
+    const signableTransaction =
+      transaction.type === "eip4844"
+        ? { ...transaction, sidecars: false }
+        : transaction;
+
+    const serializedTx = serializer(signableTransaction);
+    const nonHexPrefixedSerializedTx = serializedTx.replace(/^0x/, "");
+    const signature = await client.signTransaction({
+      organizationId,
+      projectId,
+      address,
+      unsignedTransaction: nonHexPrefixedSerializedTx,
+    });
+
+    if (transaction.type === "eip4844") {
+      // Grab components of the signature
+      const { r, s, v } = parseTransaction(signature);
+
+      // Recombine with the original transaction
+      return serializeTransaction(transaction, {
+        r: r!,
+        s: s!,
+        v: v!,
+      });
+    }
+
+    return signature;
   };
 
   return toAccount({
@@ -63,13 +103,25 @@ export async function toViemAccount(
       return signRawPayloadInternal(hashedMessage);
     },
 
-    signTransaction: async () => {
-      throw new Error("Not implemented");
+    signTransaction: async <
+      TTransactionSerializable extends TransactionSerializable
+    >(
+      transaction: TTransactionSerializable,
+      options?: {
+        serializer?:
+          | SerializeTransactionFn<TTransactionSerializable>
+          | undefined;
+      }
+    ) => {
+      const serializer: SerializeTransactionFn<TTransactionSerializable> =
+        options?.serializer ??
+        (serializeTransaction as SerializeTransactionFn<TTransactionSerializable>);
+      return signTransactionInternal(transaction, serializer);
     },
     signTypedData: async (typedData) => {
       const serializedTypedData = serializeTypedData(typedData);
       return signRawPayloadInternal(
-        serializedTypedData as Hex,
+        serializedTypedData,
         "PAYLOAD_ENCODING_EIP712"
       );
     },

@@ -16,10 +16,7 @@ export type SignRawPayloadParameters = {
   hashFunction?: "HASH_FUNCTION_NO_OP";
 };
 
-export type SignRawPayloadReturnType = {
-  /** The signature */
-  signature: Hex;
-};
+export type SignRawPayloadReturnType =  Hex;
 
 /**
  * Signs a raw payload with the user's wallet
@@ -52,7 +49,7 @@ export async function signRawPayload(
     hashFunction = "HASH_FUNCTION_NO_OP"
   } = params;
 
-  return await client.request({
+  const {signature} = await client.request({
     path: `${projectId}/sign/raw-payload`,
     body: {
       body: {
@@ -70,4 +67,5 @@ export async function signRawPayload(
     },
     stamp: true,
   });
+  return signature as Hex;
 }
