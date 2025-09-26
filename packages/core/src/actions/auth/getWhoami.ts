@@ -44,9 +44,7 @@ export async function getWhoami(
     path: `${projectId}/whoami`,
     method: "POST",
     body: {
-      body: {
-        organizationId,
-      }
+      organizationId,
     },
     stamp: true,
   });

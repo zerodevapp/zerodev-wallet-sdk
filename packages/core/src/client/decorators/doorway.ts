@@ -16,6 +16,7 @@ import {
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
 } from "../../actions/index.js";
+import { signTransaction, type SignTransactionParameters, type SignTransactionReturnType } from "../../actions/wallet/signTransaction.js";
 
 /**
  * Doorway-specific actions that can be performed with a client
@@ -57,6 +58,13 @@ export type DoorwayActions = {
   signRawPayload: (
     params: SignRawPayloadParameters
   ) => Promise<SignRawPayloadReturnType>;
+
+  /**
+   * Signs a transaction with the user's wallet
+   */
+  signTransaction: (
+    params: SignTransactionParameters
+  ) => Promise<SignTransactionReturnType>;
 };
 
 /**
@@ -91,5 +99,6 @@ export function doorwayActions(client: Client): DoorwayActions {
     // Wallet actions
     getUserWallet: (params) => getUserWallet(client, params),
     signRawPayload: (params) => signRawPayload(client, params),
+    signTransaction: (params) => signTransaction(client, params),
   };
 }

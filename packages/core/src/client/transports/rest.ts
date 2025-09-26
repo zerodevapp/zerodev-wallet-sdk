@@ -54,7 +54,7 @@ export function rest(
       // Handle stamping if requested
       if (args.stamp && cfg.stamper) {
         const { body, apiUrl } = args.body;
-        const bodyString = JSON.stringify(body ?? args.body);
+        const bodyString = JSON.stringify(body ?? args.body) + '\n';
         console.log({bodyString})
         const stamp = await cfg.stamper.stamp(bodyString);
 
