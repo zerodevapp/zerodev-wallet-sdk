@@ -17,9 +17,6 @@ importers:
 
   packages/core:
     dependencies:
-      '@turnkey/http':
-        specifier: ^3.9.0
-        version: 3.9.0
       '@turnkey/iframe-stamper':
         specifier: ^2.5.0
         version: 2.5.0
@@ -75,20 +72,12 @@ packages:
     resolution: {integrity: sha512-nRlKRQa6B5/xltGUKN1iKo4h4YC/0iFz0fAuFFZevc+YGDj7ddAP/3HkWmVvLmdoicUgs9rxvWbLRlgqPkbwzQ==}
     engines: {node: '>=18.0.0'}
 
-  '@turnkey/http@3.9.0':
-    resolution: {integrity: sha512-M2eV+ZBVt7L5lpELDxDy41dmro9hvQBUI5RBhI19tqxDuLcn1f2sMk8fEJm8yboTXyAqX8yxtp/5HCxedxAQLA==}
-    engines: {node: '>=18.0.0'}
-
   '@turnkey/iframe-stamper@2.5.0':
     resolution: {integrity: sha512-XjntbA5CNjxGRH+loceAlVLL9PG9Q4Y7p5zjBm4DeKclhD6lpUl9h8INArMEXIFbfLwLjjS6Q+SmQG4BHvNY6A==}
     engines: {node: '>=18.0.0'}
 
   '@turnkey/indexed-db-stamper@1.1.1':
     resolution: {integrity: sha512-pKEMTCTg6Kn76nvYu3vq3HfsdkZ7BmO5MSrXqk7K2TJ4griL/oEzIhlSNAnihpohIRTmIkSCxOAgyIe43oB+Cg==}
-    engines: {node: '>=18.0.0'}
-
-  '@turnkey/webauthn-stamper@0.5.1':
-    resolution: {integrity: sha512-eBwceTStSSettBQsLo3X5eJEarcK9f20cGUdi6jOesXOP86iYEIgR4+aH2qyCQ3eaovj+Hl44UGngXueIm/tKg==}
     engines: {node: '>=18.0.0'}
 
   '@types/node@20.19.11':
@@ -105,9 +94,6 @@ packages:
       zod:
         optional: true
 
-  cross-fetch@3.2.0:
-    resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
-
   eventemitter3@5.0.1:
     resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
 
@@ -115,15 +101,6 @@ packages:
     resolution: {integrity: sha512-I1fSfDCZL5P0v33sVqeTDSpcstAg/N+wF5HS033mogOVIp4B+oHC7oOCsA3axAbBSGTJ8QubbNmnIRN/h8U7hg==}
     peerDependencies:
       ws: '*'
-
-  node-fetch@2.7.0:
-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
-    engines: {node: 4.x || >=6.0.0}
-    peerDependencies:
-      encoding: ^0.1.0
-    peerDependenciesMeta:
-      encoding:
-        optional: true
 
   ox@0.9.3:
     resolution: {integrity: sha512-KzyJP+fPV4uhuuqrTZyok4DC7vFzi7HLUFiUNEmpbyh59htKWkOC98IONC1zgXJPbHAhQgqs6B0Z6StCGhmQvg==}
@@ -135,9 +112,6 @@ packages:
 
   sha256-uint8array@0.10.7:
     resolution: {integrity: sha512-1Q6JQU4tX9NqsDGodej6pkrUVQVNapLZnvkwIhddH/JqzBZF1fSaxSWNY6sziXBE8aEa2twtGkXUrwzGeZCMpQ==}
-
-  tr46@0.0.3:
-    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
   typescript@5.9.2:
     resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
@@ -154,12 +128,6 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
-
-  webidl-conversions@3.0.1:
-    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
-
-  whatwg-url@5.0.0:
-    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
   ws@8.18.3:
     resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
@@ -210,25 +178,12 @@ snapshots:
 
   '@turnkey/encoding@0.5.0': {}
 
-  '@turnkey/http@3.9.0':
-    dependencies:
-      '@turnkey/api-key-stamper': 0.4.7
-      '@turnkey/encoding': 0.5.0
-      '@turnkey/webauthn-stamper': 0.5.1
-      cross-fetch: 3.2.0
-    transitivePeerDependencies:
-      - encoding
-
   '@turnkey/iframe-stamper@2.5.0': {}
 
   '@turnkey/indexed-db-stamper@1.1.1':
     dependencies:
       '@turnkey/api-key-stamper': 0.4.7
       '@turnkey/encoding': 0.5.0
-
-  '@turnkey/webauthn-stamper@0.5.1':
-    dependencies:
-      sha256-uint8array: 0.10.7
 
   '@types/node@20.19.11':
     dependencies:
@@ -238,21 +193,11 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.2
 
-  cross-fetch@3.2.0:
-    dependencies:
-      node-fetch: 2.7.0
-    transitivePeerDependencies:
-      - encoding
-
   eventemitter3@5.0.1: {}
 
   isows@1.0.7(ws@8.18.3):
     dependencies:
       ws: 8.18.3
-
-  node-fetch@2.7.0:
-    dependencies:
-      whatwg-url: 5.0.0
 
   ox@0.9.3(typescript@5.9.2):
     dependencies:
@@ -270,8 +215,6 @@ snapshots:
       - zod
 
   sha256-uint8array@0.10.7: {}
-
-  tr46@0.0.3: {}
 
   typescript@5.9.2: {}
 
@@ -293,12 +236,5 @@ snapshots:
       - bufferutil
       - utf-8-validate
       - zod
-
-  webidl-conversions@3.0.1: {}
-
-  whatwg-url@5.0.0:
-    dependencies:
-      tr46: 0.0.3
-      webidl-conversions: 3.0.1
 
   ws@8.18.3: {}

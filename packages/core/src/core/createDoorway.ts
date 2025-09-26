@@ -1,7 +1,5 @@
 import type { LocalAccount } from "viem/accounts";
 import { toViemAccount } from "../adapters/viem.js";
-import { IframeStamper } from "@turnkey/iframe-stamper";
-import { IndexedDbStamper } from "@turnkey/indexed-db-stamper";
 import {
   AuthClient,
   getStorageValue,
@@ -11,31 +9,34 @@ import {
   StorageKeys,
   storeSession,
 } from "../utils/storage.js";
-import { DEFAULT_IFRAME_CONTAINER_ID, DEFAULT_IFRAME_ELEMENT_ID, DEFAULT_ORGANIZATION_ID, DEFAULT_SESSION_EXPIRATION_IN_SECONDS } from "../constants.js";
+import {
+  DEFAULT_IFRAME_CONTAINER_ID,
+  DEFAULT_IFRAME_ELEMENT_ID,
+  DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
+} from "../constants.js";
 import { parseSession, normalizeTimestamp } from "../utils/utils.js";
-import { DoorwayClient } from "../client/DoorwayClient.js";
-
+import { createIframeStamper } from "../stampers/iframeStamper.js";
+import { createIndexedDbStamper } from "../stampers/indexedDbStamper.js";
+import { createClient, doorwayTransport, type DoorwayClient } from "../client/createClient.js";
+import type { IframeStamper } from "../stampers/types.js";
+import type { EmailCustomization } from "../actions/auth/index.js";
 export interface DoorwayConfig {
   organizationId?: string;
   proxyBaseUrl?: string;
   iframeUrl?: string;
   iframeContainer?: HTMLElement | null;
   iframeElementId?: string;
-  appId: string;
-  apiKey: string;
+  projectId: string;
 }
 
-export type EmailCustomization = {
-  /** @description A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
-  magicLinkTemplate?: string;
-}
-
+// Re-export EmailCustomization for convenience
+export type { EmailCustomization } from "../actions/auth/index.js";
 
 export type AuthParams =
   | {
       type: "email";
       email: string;
-      emailCustomization?: EmailCustomization
+      emailCustomization?: EmailCustomization;
     }
   | {
       type: "email";
@@ -67,39 +68,33 @@ export interface DoorwaySDK {
 export async function createDoorway(
   config: DoorwayConfig
 ): Promise<DoorwaySDK> {
-  const { appId, apiKey } = config;
+  const { projectId } = config;
 
-  const iframeStamper = new IframeStamper({
+  const iframeStamper = await createIframeStamper({
     iframeContainer:
       config.iframeContainer ||
       document.getElementById(DEFAULT_IFRAME_CONTAINER_ID),
     iframeUrl: config.iframeUrl || "https://auth.turnkey.com",
-    iframeElementId:
-      config.iframeElementId || DEFAULT_IFRAME_ELEMENT_ID,
+    iframeElementId: config.iframeElementId || DEFAULT_IFRAME_ELEMENT_ID,
   });
-  if (!iframeStamper.iframePublicKey) {
-    await iframeStamper.init();
-  }
 
-  const indexedDbStamper = new IndexedDbStamper();
-  await indexedDbStamper.init();
+  const indexedDbStamper = await createIndexedDbStamper();
 
   let currentClient: DoorwayClient | null = null;
 
-  let authIframeClient = new DoorwayClient(
-    {
-      proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
-      baseUrl: "https://api.turnkey.com",
-    },
-    iframeStamper
-  );
-  let indexedDbClient = new DoorwayClient(
-    {
-      proxyBaseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
-      baseUrl: "https://api.turnkey.com",
-    },
-    indexedDbStamper
-  );
+  let authIframeClient = createClient({
+    stamper: iframeStamper,
+    transport: doorwayTransport({
+      baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+    }),
+  });
+
+  let indexedDbClient = createClient({
+    stamper: indexedDbStamper,
+    transport: doorwayTransport({
+      baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+    }),
+  });
 
   const session = await getStorageValue(StorageKeys.Session);
   console.log("session", session);
@@ -125,7 +120,7 @@ export async function createDoorway(
         break;
       case AuthClient.IndexedDb:
         if (typeof session === "string") {
-          let _session = parseSession(session)
+          let _session = parseSession(session);
           let expiry = normalizeTimestamp(_session.expiry) || 0;
           if (expiry > Date.now() && _session.token) {
             currentClient = indexedDbClient;
@@ -161,9 +156,7 @@ export async function createDoorway(
   return {
     client: currentClient,
     async getPublicKeys() {
-      const publicKey = await (
-        authIframeClient.stamper as IframeStamper
-      ).getEmbeddedPublicKey();
+      const publicKey = await iframeStamper.getPublicKey();
       const compressedPublicKey = await indexedDbStamper.getPublicKey();
       return {
         publicKey,
@@ -178,20 +171,19 @@ export async function createDoorway(
           if (type === "email" && "email" in params) {
             const { email, emailCustomization } = params;
 
-            const targetPublicKey = await (
-              authIframeClient.stamper as IframeStamper
-            ).getEmbeddedPublicKey();
+            const targetPublicKey =
+              await authIframeClient.stamper.getPublicKey();
 
-            const data = await authIframeClient.requestProxy(
-              "auth/email-magic",
-              {
-                email,
-                emailCustomization,
-                targetPublicKey,
-                appId,
-              },
-              apiKey
-            );
+            if (!targetPublicKey) {
+              throw new Error("Failed to get public key");
+            }
+
+            const data = await authIframeClient.authenticateWithEmail({
+              email,
+              ...(emailCustomization && { emailCustomization }),
+              targetPublicKey,
+              projectId,
+            });
 
             return data;
           } else if ("bundle" in params) {
@@ -201,8 +193,10 @@ export async function createDoorway(
             ).injectCredentialBundle(bundle);
 
             const whoAmI = await authIframeClient.getWhoami({
-              organizationId: config.organizationId || DEFAULT_ORGANIZATION_ID,
+              organizationId: config.organizationId || "",
+              projectId,
             });
+            console.log({ whoAmI });
             const session: Session = {
               sessionType: SessionType.READ_WRITE,
               userId: whoAmI.userId,
@@ -214,30 +208,32 @@ export async function createDoorway(
             };
             await storeSession(session, AuthClient.Iframe);
             currentClient = authIframeClient;
+            return whoAmI;
           }
-          break;
+          throw new Error("Email authentication requires either email or bundle parameter");
         }
         case "oauth": {
           const { credential } = params;
-          const compressedPublicKey = await indexedDbStamper.getPublicKey();
-          console.log("compressedPublicKey in sdk", compressedPublicKey);
-          const data = await indexedDbClient.requestProxy(
-            "auth/oauth",
-            {
-              oidcToken: credential,
-              provider: "google",
-              targetPublicKey: compressedPublicKey,
-              appId,
-            },
-            apiKey
-          );
+          const targetPublicKey = await indexedDbStamper.getPublicKey();
+          console.log("compressedPublicKey in sdk", targetPublicKey);
+
+          if (!targetPublicKey) {
+            throw new Error("Failed to get public key");
+          }
+
+          const data = await indexedDbClient.authenticateWithOAuth({
+            oidcToken: credential,
+            provider: "google",
+            targetPublicKey,
+            projectId,
+          });
 
           console.log("data.turnkeySession", data.turnkeySession);
           if (data.turnkeySession) {
             await storeSession(data.turnkeySession, AuthClient.IndexedDb);
           }
           currentClient = indexedDbClient;
-          break;
+          return data;
         }
         default:
           throw new Error(`Unknown auth type: ${(params as any).type}`);
@@ -262,6 +258,7 @@ export async function createDoorway(
       return toViemAccount({
         client: currentClient,
         organizationId: session.organizationId,
+        projectId,
       });
     },
   };
