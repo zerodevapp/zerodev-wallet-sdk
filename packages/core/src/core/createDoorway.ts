@@ -1,25 +1,26 @@
 import type { LocalAccount } from "viem/accounts";
 import { toViemAccount } from "../adapters/viem.js";
-import {
-  AuthClient,
-  getStorageValue,
-  removeStorageValue,
-  type Session,
-  SessionType,
-  StorageKeys,
-  storeSession,
-} from "../utils/storage.js";
+import { SessionType, type DoorwaySession } from "../types/session.js";
 import {
   DEFAULT_IFRAME_CONTAINER_ID,
   DEFAULT_IFRAME_ELEMENT_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
 } from "../constants.js";
-import { parseSession, normalizeTimestamp } from "../utils/utils.js";
+import { parseSession } from "../utils/utils.js";
 import { createIframeStamper } from "../stampers/iframeStamper.js";
 import { createIndexedDbStamper } from "../stampers/indexedDbStamper.js";
-import { createClient, doorwayTransport, type DoorwayClient } from "../client/createClient.js";
+import {
+  createClient,
+  doorwayTransport,
+  type DoorwayClient,
+} from "../client/createClient.js";
 import type { IframeStamper } from "../stampers/types.js";
 import type { EmailCustomization } from "../actions/auth/index.js";
+import {
+  createStorageManager,
+  type StorageAdapter,
+} from "../storage/manager.js";
+import { createWebStorageAdapter } from "../storage/adapters.js";
 export interface DoorwayConfig {
   organizationId?: string;
   proxyBaseUrl?: string;
@@ -27,10 +28,15 @@ export interface DoorwayConfig {
   iframeContainer?: HTMLElement | null;
   iframeElementId?: string;
   projectId: string;
+  sessionStorage?: StorageAdapter;
 }
 
 // Re-export EmailCustomization for convenience
 export type { EmailCustomization } from "../actions/auth/index.js";
+
+// Re-export new session types
+export type { DoorwaySession, StamperType } from "../types/session.js";
+export type { StorageManager, StorageAdapter } from "../storage/manager.js";
 
 export type AuthParams =
   | {
@@ -58,7 +64,11 @@ export interface DoorwaySDK {
     compressedPublicKey: string | null;
   }>;
 
-  getSession: () => Promise<Session | undefined>;
+  getSession: () => Promise<DoorwaySession | undefined>;
+  getAllSessions: () => Promise<Record<string, DoorwaySession>>;
+  switchSession: (sessionId: string) => Promise<DoorwaySession | undefined>;
+  clearSession: (sessionId: string) => Promise<void>;
+  clearAllSessions: () => Promise<void>;
 
   logout: () => Promise<boolean>;
 
@@ -68,7 +78,11 @@ export interface DoorwaySDK {
 export async function createDoorway(
   config: DoorwayConfig
 ): Promise<DoorwaySDK> {
-  const { projectId } = config;
+  const { projectId, sessionStorage } = config;
+
+  const sessionStorageManager = createStorageManager(
+    sessionStorage || createWebStorageAdapter()
+  );
 
   const iframeStamper = await createIframeStamper({
     iframeContainer:
@@ -96,62 +110,23 @@ export async function createDoorway(
     }),
   });
 
-  const session = await getStorageValue(StorageKeys.Session);
-  console.log("session", session);
-  const authClient = await getStorageValue(StorageKeys.Client);
-  console.log("authClient", authClient);
+  // Restore active session on initialization
+  const activeSession = await sessionStorageManager.getActiveSession();
 
-  if (session && authClient) {
-    switch (authClient) {
-      case AuthClient.Iframe:
-        if (typeof session === "object") {
-          let expiry = normalizeTimestamp(session.expiry) || 0;
-          if (expiry > Date.now() && session.token) {
-            try {
-              await (
-                authIframeClient.stamper as IframeStamper
-              ).injectCredentialBundle(session.token);
-              currentClient = authIframeClient;
-            } catch (error) {
-              console.error("Failed to inject credential bundle:", error);
-            }
-          }
-        }
-        break;
-      case AuthClient.IndexedDb:
-        if (typeof session === "string") {
-          let _session = parseSession(session);
-          let expiry = normalizeTimestamp(_session.expiry) || 0;
-          if (expiry > Date.now() && _session.token) {
-            currentClient = indexedDbClient;
-          }
-        }
-        break;
-      default:
-        break;
+  if (activeSession) {
+    try {
+      if (activeSession.stamperType === "iframe" && activeSession.token) {
+        await (iframeStamper as IframeStamper).injectCredentialBundle(
+          activeSession.token
+        );
+        currentClient = authIframeClient;
+      } else if (activeSession.stamperType === "indexedDb") {
+        currentClient = indexedDbClient;
+      }
+    } catch (error) {
+      console.error("Failed to restore session:", error);
     }
   }
-
-  const getSession = async () => {
-    const currentSession = await getStorageValue(StorageKeys.Session);
-    let session;
-    if (typeof currentSession === "string") {
-      session = parseSession(currentSession);
-    } else {
-      session = currentSession;
-    }
-    if (session && normalizeTimestamp(session.expiry) > Date.now()) {
-      return session;
-    }
-    await removeStorageValue(StorageKeys.Session);
-    return undefined;
-  };
-
-  const logout = async () => {
-    await removeStorageValue(StorageKeys.Client);
-    await removeStorageValue(StorageKeys.Session);
-    return true;
-  };
 
   return {
     client: currentClient,
@@ -163,6 +138,60 @@ export async function createDoorway(
         compressedPublicKey,
       };
     },
+
+    async getSession() {
+      return sessionStorageManager.getActiveSession();
+    },
+
+    async getAllSessions() {
+      const sessions = await sessionStorageManager.listSessions();
+      const sessionMap: Record<string, DoorwaySession> = {};
+      for (const session of sessions) {
+        sessionMap[session.id] = session;
+      }
+      return sessionMap;
+    },
+
+    async switchSession(sessionId: string) {
+      await sessionStorageManager.setActiveSession(sessionId);
+      const session = await sessionStorageManager.getActiveSession();
+
+      if (session) {
+        // Update current client based on session's stamper type
+        let stamper;
+        if (session.stamperType === "iframe") {
+          stamper = iframeStamper;
+          if (session.token) {
+            await (stamper as IframeStamper).injectCredentialBundle(
+              session.token
+            );
+          }
+        } else if (session.stamperType === "indexedDb") {
+          stamper = indexedDbStamper;
+        }
+
+        if (stamper) {
+          currentClient = createClient({
+            stamper,
+            transport: doorwayTransport({
+              baseUrl: config.proxyBaseUrl || "http://localhost:3001/api/v1",
+            }),
+          });
+        }
+      }
+
+      return session;
+    },
+
+    async clearSession(sessionId: string) {
+      await sessionStorageManager.clearSession(sessionId);
+    },
+
+    async clearAllSessions() {
+      await sessionStorageManager.clearAllSessions();
+      currentClient = null;
+    },
+
     async auth(params: AuthParams) {
       switch (params.type) {
         case "email": {
@@ -196,26 +225,29 @@ export async function createDoorway(
               organizationId: config.organizationId || "",
               projectId,
             });
-            console.log({ whoAmI });
-            const session: Session = {
-              sessionType: SessionType.READ_WRITE,
+            const session: DoorwaySession = {
+              id: `session_iframe_${Date.now()}`,
               userId: whoAmI.userId,
               organizationId: whoAmI.organizationId,
+              stamperType: "iframe",
+              sessionType: SessionType.READ_WRITE,
+              token: bundle,
               expiry:
                 Date.now() +
                 Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
-              token: bundle,
+              createdAt: Date.now(),
             };
-            await storeSession(session, AuthClient.Iframe);
+            await sessionStorageManager.storeSession(session, session.id);
             currentClient = authIframeClient;
             return whoAmI;
           }
-          throw new Error("Email authentication requires either email or bundle parameter");
+          throw new Error(
+            "Email authentication requires either email or bundle parameter"
+          );
         }
         case "oauth": {
           const { credential } = params;
           const targetPublicKey = await indexedDbStamper.getPublicKey();
-          console.log("compressedPublicKey in sdk", targetPublicKey);
 
           if (!targetPublicKey) {
             throw new Error("Failed to get public key");
@@ -228,9 +260,21 @@ export async function createDoorway(
             projectId,
           });
 
-          console.log("data.turnkeySession", data.turnkeySession);
           if (data.turnkeySession) {
-            await storeSession(data.turnkeySession, AuthClient.IndexedDb);
+            // Parse the JWT to get session data
+            const parsedSession = parseSession(data.turnkeySession);
+            const session: DoorwaySession = {
+              id: `session_oauth_${Date.now()}`,
+              userId: parsedSession.userId,
+              organizationId: parsedSession.organizationId,
+              stamperType: "indexedDb",
+              sessionType: parsedSession.sessionType || SessionType.READ_WRITE,
+              token: data.turnkeySession,
+              expiry: parsedSession.expiry,
+              createdAt: Date.now(),
+              publicKey: targetPublicKey,
+            };
+            await sessionStorageManager.storeSession(session, session.id);
           }
           currentClient = indexedDbClient;
           return data;
@@ -240,20 +284,20 @@ export async function createDoorway(
       }
     },
 
-    getSession,
-
-    logout,
+    async logout() {
+      await sessionStorageManager.clearAllSessions();
+      currentClient = null;
+      return true;
+    },
 
     async toAccount(): Promise<LocalAccount> {
-      const session = await getSession();
+      const session = await sessionStorageManager.getActiveSession();
       if (!session) {
         throw new Error("No active session");
       }
-      console.log("session", session);
       if (!currentClient) {
         throw new Error("No client");
       }
-      console.log("currentCLient", currentClient);
 
       return toViemAccount({
         client: currentClient,

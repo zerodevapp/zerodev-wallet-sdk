@@ -1,6 +1,7 @@
-import type { Session } from "./storage.js";
+import type { PartialBy } from "viem";
+import type { DoorwaySession } from "../types/session.js";
 
-export function parseSession(token: string | Session): Session {
+export function parseSession(token: string | DoorwaySession): PartialBy<DoorwaySession, 'createdAt' | 'id' | 'stamperType'> {
   if (typeof token !== "string") {
     return token;
   }
