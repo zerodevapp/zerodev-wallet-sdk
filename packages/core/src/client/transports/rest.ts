@@ -55,7 +55,6 @@ export function rest(
       if (args.stamp && cfg.stamper) {
         const { body, apiUrl } = args.body;
         const bodyString = JSON.stringify(body ?? args.body) + '\n';
-        console.log({bodyString})
         const stamp = await cfg.stamper.stamp(bodyString);
 
         // Restructure request body to match backend expectation
@@ -78,7 +77,6 @@ export function rest(
           };
         }
       }
-      console.log({requestBody})
 
       const init: RequestInit = {
         ...cfg.fetchOptions,
