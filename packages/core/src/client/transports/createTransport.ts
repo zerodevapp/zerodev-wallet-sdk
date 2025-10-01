@@ -1,16 +1,16 @@
-import type { Transport } from "../types.js";
-import { rest } from "./rest.js";
+import type { Transport } from '../types.js'
+import { rest } from './rest.js'
 
 export type CreateTransportOptions = {
   /** Base URL for the API */
-  baseUrl: string;
+  baseUrl: string
   /** Request timeout in milliseconds */
-  timeoutMs?: number;
+  timeoutMs?: number
   /** Transport key identifier */
-  key?: string;
+  key?: string
   /** Transport name */
-  name?: string;
-};
+  name?: string
+}
 
 /**
  * Creates a transport for the Doorway client.
@@ -20,9 +20,9 @@ export function doorwayTransport(options: CreateTransportOptions): Transport {
   const {
     baseUrl,
     timeoutMs = 10_000,
-    key = "doorway",
-    name = "Doorway Transport",
-  } = options;
+    key = 'doorway',
+    name = 'Doorway Transport',
+  } = options
 
   return ({ stamper }) => {
     // Create REST transport with stamper
@@ -31,7 +31,7 @@ export function doorwayTransport(options: CreateTransportOptions): Transport {
       key,
       name,
       stamper,
-    });
+    })
 
     return {
       config: {
@@ -39,12 +39,12 @@ export function doorwayTransport(options: CreateTransportOptions): Transport {
         key,
         url: baseUrl,
         timeoutMs,
-        type: "doorway",
+        type: 'doorway',
       },
       request: transport.request,
       value: {
         stamper,
       },
-    };
-  };
+    }
+  }
 }

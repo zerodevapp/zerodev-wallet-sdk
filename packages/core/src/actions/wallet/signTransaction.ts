@@ -1,18 +1,18 @@
-import type { Client } from "../../client/types.js";
-import type { Hex } from "viem";
+import type { Hex } from 'viem'
+import type { Client } from '../../client/types.js'
 
 export type SignTransactionParameters = {
   /** The organization ID */
-  organizationId: string;
+  organizationId: string
   /** The project ID for the request */
-  projectId: string;
+  projectId: string
   /** The address to sign with */
-  address: Hex;
+  address: Hex
   /** The unsigned transaction to sign */
-  unsignedTransaction: string;
-};
+  unsignedTransaction: string
+}
 
-export type SignTransactionReturnType =  Hex;
+export type SignTransactionReturnType = Hex
 
 /**
  * Signs a raw transaction with the user's wallet
@@ -34,27 +34,27 @@ export type SignTransactionReturnType =  Hex;
  */
 export async function signTransaction(
   client: Client,
-  params: SignTransactionParameters
+  params: SignTransactionParameters,
 ): Promise<SignTransactionReturnType> {
-  const { organizationId, projectId, address, unsignedTransaction } = params;
+  const { organizationId, projectId, address, unsignedTransaction } = params
 
-  const {signature} = await client.request({
+  const { signature } = await client.request({
     path: `${projectId}/sign/transaction`,
     body: {
       body: {
-        type: "ACTIVITY_TYPE_SIGN_TRANSACTION_V2",
-        timestampMs: new Date().getTime().toString(),
+        type: 'ACTIVITY_TYPE_SIGN_TRANSACTION_V2',
+        timestampMs: Date.now().toString(),
         organizationId,
         parameters: {
           signWith: address,
-          type: "TRANSACTION_TYPE_ETHEREUM",
+          type: 'TRANSACTION_TYPE_ETHEREUM',
           unsignedTransaction,
         },
       },
-      apiUrl: "https://api.turnkey.com/public/v1/submit/sign_transaction",
+      apiUrl: 'https://api.turnkey.com/public/v1/submit/sign_transaction',
     },
     stamp: true,
-  });
+  })
 
-  return `0x${signature}` as Hex;
+  return `0x${signature}` as Hex
 }

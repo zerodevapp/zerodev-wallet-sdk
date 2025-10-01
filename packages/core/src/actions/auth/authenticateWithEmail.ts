@@ -1,33 +1,33 @@
-import type { Client } from "../../client/types.js";
+import type { Client } from '../../client/types.js'
 
 export type EmailCustomization = {
   /** A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
-  magicLinkTemplate?: string;
-};
+  magicLinkTemplate?: string
+}
 
 export type AuthenticateWithEmailParameters = {
   /** The email address to authenticate */
-  email: string;
+  email: string
   /** The project ID for the request */
-  projectId: string;
+  projectId: string
   /** Target public key for authentication */
-  targetPublicKey: string;
+  targetPublicKey: string
   /** Optional email customization settings */
-  emailCustomization?: EmailCustomization;
-};
+  emailCustomization?: EmailCustomization
+}
 
 export type AuthenticateWithEmailReturnType = {
   /** The user ID */
-  userId?: string;
+  userId?: string
   /** The wallet address */
-  walletAddress?: string;
+  walletAddress?: string
   /** The sub-organization ID */
-  subOrganizationId?: string;
+  subOrganizationId?: string
   /** Whether magic link is required */
-  requiresMagicLink?: boolean;
+  requiresMagicLink?: boolean
   /** The Turnkey session if available */
-  turnkeySession?: string;
-};
+  turnkeySession?: string
+}
 
 /**
  * Authenticates a user with their email address
@@ -50,18 +50,18 @@ export type AuthenticateWithEmailReturnType = {
  */
 export async function authenticateWithEmail(
   client: Client,
-  params: AuthenticateWithEmailParameters
+  params: AuthenticateWithEmailParameters,
 ): Promise<AuthenticateWithEmailReturnType> {
-  const { email, projectId, targetPublicKey, emailCustomization } = params;
+  const { email, projectId, targetPublicKey, emailCustomization } = params
 
   return await client.request({
     path: `${projectId}/auth/email-magic`,
-    method: "POST",
+    method: 'POST',
     body: {
       email,
       emailCustomization,
       targetPublicKey,
       projectId,
     },
-  });
+  })
 }

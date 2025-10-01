@@ -39,7 +39,7 @@
     "build:esm": "tsc --project ./tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
     "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
     "clean": "rm -rf dist"
   },
   "keywords": [

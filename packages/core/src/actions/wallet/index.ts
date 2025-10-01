@@ -1,11 +1,17 @@
 export {
-  getUserWallet,
   type GetUserWalletParameters,
   type GetUserWalletReturnType,
-} from "./getUserWallet.js";
+  getUserWallet,
+} from './getUserWallet.js'
 
 export {
-  signRawPayload,
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
-} from "./signRawPayload.js";
+  signRawPayload,
+} from './signRawPayload.js'
+
+export {
+  type SignTransactionParameters,
+  type SignTransactionReturnType,
+  signTransaction,
+} from './signTransaction.js'

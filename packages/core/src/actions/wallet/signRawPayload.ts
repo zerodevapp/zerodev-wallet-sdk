@@ -1,22 +1,22 @@
-import type { Client } from "../../client/types.js";
-import type { Hex } from "viem";
+import type { Hex } from 'viem'
+import type { Client } from '../../client/types.js'
 
 export type SignRawPayloadParameters = {
   /** The organization ID */
-  organizationId: string;
+  organizationId: string
   /** The project ID for the request */
-  projectId: string;
+  projectId: string
   /** The address to sign with */
-  address: Hex;
+  address: Hex
   /** The payload hash to sign (without 0x prefix) */
-  payload: string;
+  payload: string
   /** The encoding type */
-  encoding?: "PAYLOAD_ENCODING_HEXADECIMAL" | "PAYLOAD_ENCODING_EIP712";
+  encoding?: 'PAYLOAD_ENCODING_HEXADECIMAL' | 'PAYLOAD_ENCODING_EIP712'
   /** The hash function type */
-  hashFunction?: "HASH_FUNCTION_NO_OP";
-};
+  hashFunction?: 'HASH_FUNCTION_NO_OP'
+}
 
-export type SignRawPayloadReturnType =  Hex;
+export type SignRawPayloadReturnType = Hex
 
 /**
  * Signs a raw payload with the user's wallet
@@ -38,23 +38,23 @@ export type SignRawPayloadReturnType =  Hex;
  */
 export async function signRawPayload(
   client: Client,
-  params: SignRawPayloadParameters
+  params: SignRawPayloadParameters,
 ): Promise<SignRawPayloadReturnType> {
   const {
     organizationId,
     projectId,
     address,
     payload,
-    encoding = "PAYLOAD_ENCODING_HEXADECIMAL",
-    hashFunction = "HASH_FUNCTION_NO_OP"
-  } = params;
+    encoding = 'PAYLOAD_ENCODING_HEXADECIMAL',
+    hashFunction = 'HASH_FUNCTION_NO_OP',
+  } = params
 
-  const {signature} = await client.request({
+  const { signature } = await client.request({
     path: `${projectId}/sign/raw-payload`,
     body: {
       body: {
-        type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2",
-        timestampMs: new Date().getTime().toString(),
+        type: 'ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2',
+        timestampMs: Date.now().toString(),
         organizationId,
         parameters: {
           signWith: address,
@@ -63,9 +63,9 @@ export async function signRawPayload(
           hashFunction,
         },
       },
-      apiUrl: "https://api.turnkey.com/public/v1/submit/sign_raw_payload",
+      apiUrl: 'https://api.turnkey.com/public/v1/submit/sign_raw_payload',
     },
     stamp: true,
-  });
-  return signature as Hex;
+  })
+  return signature as Hex
 }

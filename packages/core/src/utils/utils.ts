@@ -1,26 +1,28 @@
-import type { PartialBy } from "viem";
-import type { DoorwaySession } from "../types/session.js";
+import type { PartialBy } from 'viem'
+import type { DoorwaySession } from '../types/session.js'
 
-export function parseSession(token: string | DoorwaySession): PartialBy<DoorwaySession, 'createdAt' | 'id' | 'stamperType'> {
-  if (typeof token !== "string") {
-    return token;
+export function parseSession(
+  token: string | DoorwaySession,
+): PartialBy<DoorwaySession, 'createdAt' | 'id' | 'stamperType'> {
+  if (typeof token !== 'string') {
+    return token
   }
-  const [, payload] = token.split(".");
+  const [, payload] = token.split('.')
   if (!payload) {
-    throw new Error("Invalid JWT: Missing payload");
+    throw new Error('Invalid JWT: Missing payload')
   }
 
-  const decoded = JSON.parse(atob(payload));
+  const decoded = JSON.parse(atob(payload))
   const {
     exp,
     public_key: publicKey,
     session_type: sessionType,
     user_id: userId,
     organization_id: organizationId,
-  } = decoded;
+  } = decoded
 
   if (!exp || !publicKey || !sessionType || !userId || !organizationId) {
-    throw new Error("JWT payload missing required fields");
+    throw new Error('JWT payload missing required fields')
   }
 
   return {
@@ -29,9 +31,9 @@ export function parseSession(token: string | DoorwaySession): PartialBy<DoorwayS
     organizationId,
     expiry: exp,
     token: publicKey,
-  };
+  }
 }
 
 export function normalizeTimestamp(timestamp: number): number {
-  return timestamp < 1e10 ? timestamp * 1_000 : timestamp;
+  return timestamp < 1e10 ? timestamp * 1_000 : timestamp
 }

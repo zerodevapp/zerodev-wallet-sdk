@@ -1,18 +1,18 @@
 export {
-  authenticateWithEmail,
   type AuthenticateWithEmailParameters,
   type AuthenticateWithEmailReturnType,
+  authenticateWithEmail,
   type EmailCustomization,
-} from "./authenticateWithEmail.js";
+} from './authenticateWithEmail.js'
 
 export {
-  authenticateWithOAuth,
   type AuthenticateWithOAuthParameters,
   type AuthenticateWithOAuthReturnType,
-} from "./authenticateWithOAuth.js";
+  authenticateWithOAuth,
+} from './authenticateWithOAuth.js'
 
 export {
-  getWhoami,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
-} from "./getWhoami.js";
+  getWhoami,
+} from './getWhoami.js'
