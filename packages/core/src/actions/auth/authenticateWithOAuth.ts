@@ -1,26 +1,26 @@
-import type { Client } from "../../client/types.js";
+import type { Client } from '../../client/types.js'
 
 export type AuthenticateWithOAuthParameters = {
   /** The OAuth credential/token */
-  oidcToken: string;
+  oidcToken: string
   /** The OAuth provider (e.g., 'google') */
-  provider: string;
+  provider: string
   /** The project ID for the request */
-  projectId: string;
+  projectId: string
   /** Target public key for authentication */
-  targetPublicKey: string;
-};
+  targetPublicKey: string
+}
 
 export type AuthenticateWithOAuthReturnType = {
   /** The user ID */
-  userId?: string;
+  userId?: string
   /** The wallet address */
-  walletAddress?: string;
+  walletAddress?: string
   /** The sub-organization ID */
-  subOrganizationId?: string;
+  subOrganizationId?: string
   /** The Turnkey session */
-  turnkeySession?: string;
-};
+  turnkeySession?: string
+}
 
 /**
  * Authenticates a user with OAuth credentials
@@ -41,18 +41,18 @@ export type AuthenticateWithOAuthReturnType = {
  */
 export async function authenticateWithOAuth(
   client: Client,
-  params: AuthenticateWithOAuthParameters
+  params: AuthenticateWithOAuthParameters,
 ): Promise<AuthenticateWithOAuthReturnType> {
-  const { oidcToken, provider, projectId, targetPublicKey } = params;
+  const { oidcToken, provider, projectId, targetPublicKey } = params
 
   return await client.request({
     path: `${projectId}/auth/oauth`,
-    method: "POST",
+    method: 'POST',
     body: {
       oidcToken,
       provider,
       targetPublicKey,
       projectId,
     },
-  });
+  })
 }

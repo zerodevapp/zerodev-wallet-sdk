@@ -1,23 +1,23 @@
-import type { Client } from "../../client/types.js";
+import type { Client } from '../../client/types.js'
 
 export type EmailCustomization = {
   /** A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
-  magicLinkTemplate?: string;
-};
+  magicLinkTemplate?: string
+}
 
 export type LoginWithStampParameters = {
   /** The project ID for the request */
-  projectId: string;
+  projectId: string
   /** The organization ID for the request */
-  organizationId: string;
+  organizationId: string
   /** The encoded public key for the request */
-  targetPublicKey: string;
-};
+  targetPublicKey: string
+}
 
 export type LoginWithStampReturnType = {
   /** The session */
-  session: string;
-};
+  session: string
+}
 
 /**
  * Logs in a user with a stamp
@@ -37,33 +37,32 @@ export type LoginWithStampReturnType = {
  */
 export async function loginWithStamp(
   client: Client,
-  params: LoginWithStampParameters
+  params: LoginWithStampParameters,
 ): Promise<LoginWithStampReturnType> {
-  const { projectId, targetPublicKey, organizationId } = params;
+  const { projectId, targetPublicKey, organizationId } = params
 
-  const timestampMs = Date.now();
-  const timestampMsString = timestampMs.toString();
-  const timestampIso = new Date(timestampMs).toISOString();
+  const timestampMs = Date.now()
+  const timestampMsString = timestampMs.toString()
+  const timestampIso = new Date(timestampMs).toISOString()
 
-  const stampPayload =
-    JSON.stringify({
-      organizationId,
-      parameters: {
-        publicKey: targetPublicKey,
-      },
-      timestampMs: timestampMsString,
-      type: "ACTIVITY_TYPE_STAMP_LOGIN",
-    }) + "\n";
-  const stamp = await client.stamper.stamp(stampPayload);
+  const stampPayload = `${JSON.stringify({
+    organizationId,
+    parameters: {
+      publicKey: targetPublicKey,
+    },
+    timestampMs: timestampMsString,
+    type: 'ACTIVITY_TYPE_STAMP_LOGIN',
+  })} + \n`
+  const stamp = await client.stamper.stamp(stampPayload)
 
   return client.request({
     path: `${projectId}/auth/login/passkey`,
-    method: "POST",
+    method: 'POST',
     body: {
       subOrganizationId: organizationId,
       targetPublicKey,
       timestamp: timestampIso,
       stamp,
     },
-  });
+  })
 }

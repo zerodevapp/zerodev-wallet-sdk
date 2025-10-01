@@ -1,52 +1,52 @@
 import {
-  hashMessage,
   type Hex,
+  hashMessage,
   type LocalAccount,
-  type SignableMessage,
-  zeroAddress,
   parseSignature,
+  parseTransaction,
+  type SerializeTransactionFn,
+  type SignableMessage,
+  serializeTransaction,
   serializeTypedData,
   type TransactionSerializable,
-  type SerializeTransactionFn,
-  serializeTransaction,
-  parseTransaction,
-} from "viem";
-import { toAccount } from "viem/accounts";
-import { hashAuthorization } from "viem/utils";
+  zeroAddress,
+} from 'viem'
 import type {
   SignAuthorizationParameters,
   SignAuthorizationReturnType,
-} from "viem/accounts";
-import type { DoorwayClient } from "../client/index.js";
-import { signRawPayload } from "../actions/index.js";
+} from 'viem/accounts'
+import { toAccount } from 'viem/accounts'
+import { hashAuthorization } from 'viem/utils'
+import type { signRawPayload } from '../actions/index.js'
+import type { DoorwayClient } from '../client/index.js'
 
 export interface ToViemAccountParams {
-  client: DoorwayClient;
-  organizationId: string;
-  projectId: string;
+  client: DoorwayClient
+  organizationId: string
+  projectId: string
 }
 
 export async function toViemAccount(
-  params: ToViemAccountParams
+  params: ToViemAccountParams,
 ): Promise<LocalAccount> {
-  const { client, organizationId, projectId } = params;
+  const { client, organizationId, projectId } = params
 
-  let address: Hex = zeroAddress;
+  let address: Hex = zeroAddress
 
   try {
     const walletResponse = await client.getUserWallet({
       organizationId,
       projectId,
-    });
-    address = walletResponse.walletAddress;
+    })
+    address = walletResponse.walletAddress
   } catch {
-    address = zeroAddress;
+    address = zeroAddress
   }
   const signRawPayloadInternal = async (
     payload: string,
     encoding: Parameters<
       typeof signRawPayload
-    >[1]["encoding"] = "PAYLOAD_ENCODING_HEXADECIMAL"
+    >[1]['encoding'] = 'PAYLOAD_ENCODING_HEXADECIMAL',
   ) => {
     return await client.signRawPayload({
       organizationId,
@@ -54,97 +54,97 @@ export async function toViemAccount(
       address,
       payload,
       encoding,
-    });
-  };
+    })
+  }
 
   // Modified from: https://github.com/tkhq/sdk/blob/4e439bf2973ea13b51d981d7c24a4841d4e5fd5f/packages/viem/src/index.ts#L419-L461
   const signTransactionInternal = async <
-    TTransactionSerializable extends TransactionSerializable
+    TTransactionSerializable extends TransactionSerializable,
   >(
     transaction: TTransactionSerializable,
-    serializer: SerializeTransactionFn<TTransactionSerializable>
+    serializer: SerializeTransactionFn<TTransactionSerializable>,
   ): Promise<Hex> => {
     // Note: for Type 3 transactions, we are specifically handling parsing for payloads containing only the transaction payload body, without any wrappers around blobs, commitments, or proofs.
     // See more: https://github.com/wevm/viem/blob/3ef19eac4963014fb20124d1e46d1715bed5509f/src/accounts/utils/signTransaction.ts#L54-L55
     const signableTransaction =
-      transaction.type === "eip4844"
+      transaction.type === 'eip4844'
         ? { ...transaction, sidecars: false }
-        : transaction;
+        : transaction
 
-    const serializedTx = serializer(signableTransaction);
-    const nonHexPrefixedSerializedTx = serializedTx.replace(/^0x/, "");
+    const serializedTx = serializer(signableTransaction)
+    const nonHexPrefixedSerializedTx = serializedTx.replace(/^0x/, '')
     const signature = await client.signTransaction({
       organizationId,
       projectId,
       address,
       unsignedTransaction: nonHexPrefixedSerializedTx,
-    });
+    })
 
-    if (transaction.type === "eip4844") {
+    if (transaction.type === 'eip4844') {
       // Grab components of the signature
-      const { r, s, v } = parseTransaction(signature);
+      const { r, s, v } = parseTransaction(signature)
 
       // Recombine with the original transaction
       return serializeTransaction(transaction, {
         r: r!,
         s: s!,
         v: v!,
-      });
+      })
     }
 
-    return signature;
-  };
+    return signature
+  }
 
   return toAccount({
     address,
 
     async signMessage({ message }: { message: SignableMessage }): Promise<Hex> {
-      const hashedMessage = hashMessage(message);
-      return signRawPayloadInternal(hashedMessage);
+      const hashedMessage = hashMessage(message)
+      return signRawPayloadInternal(hashedMessage)
     },
 
     signTransaction: async <
-      TTransactionSerializable extends TransactionSerializable
+      TTransactionSerializable extends TransactionSerializable,
     >(
       transaction: TTransactionSerializable,
       options?: {
         serializer?:
           | SerializeTransactionFn<TTransactionSerializable>
-          | undefined;
-      }
+          | undefined
+      },
     ) => {
       const serializer: SerializeTransactionFn<TTransactionSerializable> =
         options?.serializer ??
-        (serializeTransaction as SerializeTransactionFn<TTransactionSerializable>);
-      return signTransactionInternal(transaction, serializer);
+        (serializeTransaction as SerializeTransactionFn<TTransactionSerializable>)
+      return signTransactionInternal(transaction, serializer)
     },
     signTypedData: async (typedData) => {
-      const serializedTypedData = serializeTypedData(typedData);
+      const serializedTypedData = serializeTypedData(typedData)
       return signRawPayloadInternal(
         serializedTypedData,
-        "PAYLOAD_ENCODING_EIP712"
-      );
+        'PAYLOAD_ENCODING_EIP712',
+      )
     },
 
     async signAuthorization(
-      parameters: Omit<SignAuthorizationParameters, "privateKey">
+      parameters: Omit<SignAuthorizationParameters, 'privateKey'>,
     ): Promise<SignAuthorizationReturnType> {
-      const { chainId, nonce } = parameters;
-      const authAddress = parameters.contractAddress ?? parameters.address;
+      const { chainId, nonce } = parameters
+      const authAddress = parameters.contractAddress ?? parameters.address
 
       if (!authAddress) {
-        throw new Error("Unable to sign authorization: address is undefined");
+        throw new Error('Unable to sign authorization: address is undefined')
       }
 
       const hashedAuthorization = hashAuthorization({
         address: authAddress,
         chainId,
         nonce,
-      });
+      })
 
-      const signature = await signRawPayloadInternal(hashedAuthorization);
+      const signature = await signRawPayloadInternal(hashedAuthorization)
 
-      const parsedSignature = parseSignature(signature);
+      const parsedSignature = parseSignature(signature)
 
       return {
         address: authAddress,
@@ -152,7 +152,7 @@ export async function toViemAccount(
         nonce,
         ...parsedSignature,
         yParity: parsedSignature.v === BigInt(27) ? 0 : 1,
-      } as SignAuthorizationReturnType;
+      } as SignAuthorizationReturnType
     },
-  });
+  })
 }

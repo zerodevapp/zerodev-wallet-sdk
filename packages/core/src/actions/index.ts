@@ -1,26 +1,29 @@
 // Auth actions
 export {
-  authenticateWithEmail,
   type AuthenticateWithEmailParameters,
   type AuthenticateWithEmailReturnType,
-  type EmailCustomization,
-  authenticateWithOAuth,
   type AuthenticateWithOAuthParameters,
   type AuthenticateWithOAuthReturnType,
-  getWhoami,
+  authenticateWithEmail,
+  authenticateWithOAuth,
+  type EmailCustomization,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
-  registerWithPasskey,
+  getWhoami,
   type RegisterWithPasskeyParameters,
   type RegisterWithPasskeyReturnType,
-} from "./auth/index.js";
+  registerWithPasskey,
+} from './auth/index.js'
 
 // Wallet actions
 export {
-  getUserWallet,
   type GetUserWalletParameters,
   type GetUserWalletReturnType,
-  signRawPayload,
+  getUserWallet,
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
-} from "./wallet/index.js";
+  type SignTransactionParameters,
+  type SignTransactionReturnType,
+  signRawPayload,
+  signTransaction,
+} from './wallet/index.js'

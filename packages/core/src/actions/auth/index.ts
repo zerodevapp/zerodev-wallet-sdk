@@ -1,30 +1,28 @@
 export {
-  authenticateWithEmail,
   type AuthenticateWithEmailParameters,
   type AuthenticateWithEmailReturnType,
+  authenticateWithEmail,
   type EmailCustomization,
-} from "./authenticateWithEmail.js";
+} from './authenticateWithEmail.js'
 
 export {
-  authenticateWithOAuth,
   type AuthenticateWithOAuthParameters,
   type AuthenticateWithOAuthReturnType,
-} from "./authenticateWithOAuth.js";
+  authenticateWithOAuth,
+} from './authenticateWithOAuth.js'
 
 export {
-  getWhoami,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
-} from "./getWhoami.js";
-
+  getWhoami,
+} from './getWhoami.js'
 export {
-  registerWithPasskey,
-  type RegisterWithPasskeyParameters,
-  type RegisterWithPasskeyReturnType,
-} from "./registerWithPasskey.js";
-
-export {
-  loginWithStamp,
   type LoginWithStampParameters,
   type LoginWithStampReturnType,
-} from "./loginWithStamp.js";
+  loginWithStamp,
+} from './loginWithStamp.js'
+export {
+  type RegisterWithPasskeyParameters,
+  type RegisterWithPasskeyReturnType,
+  registerWithPasskey,
+} from './registerWithPasskey.js'

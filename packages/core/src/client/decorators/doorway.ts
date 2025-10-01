@@ -1,26 +1,34 @@
-import type { Client } from "../types.js";
 import {
-  authenticateWithEmail,
+  type LoginWithStampParameters,
+  type LoginWithStampReturnType,
+  loginWithStamp,
+} from '../../actions/auth/loginWithStamp.js'
+import {
   type AuthenticateWithEmailParameters,
   type AuthenticateWithEmailReturnType,
-  authenticateWithOAuth,
   type AuthenticateWithOAuthParameters,
   type AuthenticateWithOAuthReturnType,
-  getWhoami,
+  authenticateWithEmail,
+  authenticateWithOAuth,
+  type GetUserWalletParameters,
+  type GetUserWalletReturnType,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getUserWallet,
-  type GetUserWalletParameters,
-  type GetUserWalletReturnType,
-  signRawPayload,
+  getWhoami,
+  type RegisterWithPasskeyParameters,
+  type RegisterWithPasskeyReturnType,
+  registerWithPasskey,
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
-  type RegisterWithPasskeyReturnType,
-  type RegisterWithPasskeyParameters,
-  registerWithPasskey,
-} from "../../actions/index.js";
-import { signTransaction, type SignTransactionParameters, type SignTransactionReturnType } from "../../actions/wallet/signTransaction.js";
-import { loginWithStamp, type LoginWithStampParameters, type LoginWithStampReturnType } from "../../actions/auth/loginWithStamp.js";
+  signRawPayload,
+} from '../../actions/index.js'
+import {
+  type SignTransactionParameters,
+  type SignTransactionReturnType,
+  signTransaction,
+} from '../../actions/wallet/signTransaction.js'
+import type { Client } from '../types.js'
 
 /**
  * Doorway-specific actions that can be performed with a client
@@ -31,59 +39,57 @@ export type DoorwayActions = {
    * Authenticates a user with their email address
    */
   authenticateWithEmail: (
-    params: AuthenticateWithEmailParameters
-  ) => Promise<AuthenticateWithEmailReturnType>;
+    params: AuthenticateWithEmailParameters,
+  ) => Promise<AuthenticateWithEmailReturnType>
 
   /**
    * Authenticates a user with OAuth credentials
    */
   authenticateWithOAuth: (
-    params: AuthenticateWithOAuthParameters
-  ) => Promise<AuthenticateWithOAuthReturnType>;
+    params: AuthenticateWithOAuthParameters,
+  ) => Promise<AuthenticateWithOAuthReturnType>
 
   /**
    * Gets the current user information
    */
-  getWhoami: (
-    params: GetWhoamiParameters
-  ) => Promise<GetWhoamiReturnType>;
+  getWhoami: (params: GetWhoamiParameters) => Promise<GetWhoamiReturnType>
 
   // Wallet actions
   /**
    * Gets the user's wallet information
    */
   getUserWallet: (
-    params: GetUserWalletParameters
-  ) => Promise<GetUserWalletReturnType>;
+    params: GetUserWalletParameters,
+  ) => Promise<GetUserWalletReturnType>
 
   /**
    * Signs a raw payload with the user's wallet
    */
   signRawPayload: (
-    params: SignRawPayloadParameters
-  ) => Promise<SignRawPayloadReturnType>;
+    params: SignRawPayloadParameters,
+  ) => Promise<SignRawPayloadReturnType>
 
   /**
    * Signs a transaction with the user's wallet
    */
   signTransaction: (
-    params: SignTransactionParameters
-  ) => Promise<SignTransactionReturnType>;
+    params: SignTransactionParameters,
+  ) => Promise<SignTransactionReturnType>
 
   /**
    * Registers a passkey with the user's wallet
    */
   registerWithPasskey: (
-    params: RegisterWithPasskeyParameters
-  ) => Promise<RegisterWithPasskeyReturnType>;
+    params: RegisterWithPasskeyParameters,
+  ) => Promise<RegisterWithPasskeyReturnType>
 
   /**
    * Logs in a user with a stamp
    */
   loginWithStamp: (
-    params: LoginWithStampParameters
-  ) => Promise<LoginWithStampReturnType>;
-};
+    params: LoginWithStampParameters,
+  ) => Promise<LoginWithStampReturnType>
+}
 
 /**
  * Decorator function that adds Doorway-specific actions to a client
@@ -120,5 +126,5 @@ export function doorwayActions(client: Client): DoorwayActions {
     signTransaction: (params) => signTransaction(client, params),
     registerWithPasskey: (params) => registerWithPasskey(client, params),
     loginWithStamp: (params) => loginWithStamp(client, params),
-  };
+  }
 }

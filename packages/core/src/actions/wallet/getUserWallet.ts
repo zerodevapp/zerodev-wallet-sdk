@@ -1,19 +1,19 @@
-import type { Client } from "../../client/types.js";
-import type { Hex } from "viem";
+import type { Hex } from 'viem'
+import type { Client } from '../../client/types.js'
 
 export type GetUserWalletParameters = {
   /** The organization ID */
-  organizationId: string;
+  organizationId: string
   /** The project ID for the request */
-  projectId: string;
-};
+  projectId: string
+}
 
 export type GetUserWalletReturnType = {
   /** The wallet address */
-  walletAddress: Hex;
+  walletAddress: Hex
   /** The user ID */
-  userId?: string;
-};
+  userId?: string
+}
 
 /**
  * Gets the user's wallet information
@@ -33,14 +33,14 @@ export type GetUserWalletReturnType = {
  */
 export async function getUserWallet(
   client: Client,
-  params: GetUserWalletParameters
+  params: GetUserWalletParameters,
 ): Promise<GetUserWalletReturnType> {
-  const { organizationId, projectId } = params;
+  const { organizationId, projectId } = params
 
   return await client.request({
     path: `${projectId}/user-wallet`,
     body: {
       organizationId,
     },
-  });
+  })
 }

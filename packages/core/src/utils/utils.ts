@@ -1,5 +1,5 @@
-import type { PartialBy } from "viem";
-import type { DoorwaySession } from "../types/session.js";
+import type { PartialBy } from 'viem'
+import type { DoorwaySession } from '../types/session.js'
 
 /**
  * Parses a session from a JWT.
@@ -8,27 +8,27 @@ import type { DoorwaySession } from "../types/session.js";
  * @returns {PartialBy<DoorwaySession, "createdAt" | "id" | "stamperType">} - The parsed session.
  */
 export function parseSession(
-  token: string | DoorwaySession
-): PartialBy<DoorwaySession, "createdAt" | "id" | "stamperType"> {
-  if (typeof token !== "string") {
-    return token;
+  token: string | DoorwaySession,
+): PartialBy<DoorwaySession, 'createdAt' | 'id' | 'stamperType'> {
+  if (typeof token !== 'string') {
+    return token
   }
-  const [, payload] = token.split(".");
+  const [, payload] = token.split('.')
   if (!payload) {
-    throw new Error("Invalid JWT: Missing payload");
+    throw new Error('Invalid JWT: Missing payload')
   }
 
-  const decoded = JSON.parse(atob(payload));
+  const decoded = JSON.parse(atob(payload))
   const {
     exp,
     public_key: publicKey,
     session_type: sessionType,
     user_id: userId,
     organization_id: organizationId,
-  } = decoded;
+  } = decoded
 
   if (!exp || !publicKey || !sessionType || !userId || !organizationId) {
-    throw new Error("JWT payload missing required fields");
+    throw new Error('JWT payload missing required fields')
   }
 
   return {
@@ -37,7 +37,7 @@ export function parseSession(
     organizationId,
     expiry: exp,
     token: publicKey,
-  };
+  }
 }
 
 /**
@@ -47,7 +47,7 @@ export function parseSession(
  * @returns {number} - The normalized timestamp.
  */
 export function normalizeTimestamp(timestamp: number): number {
-  return timestamp < 1e10 ? timestamp * 1_000 : timestamp;
+  return timestamp < 1e10 ? timestamp * 1_000 : timestamp
 }
 
 /**
@@ -56,10 +56,10 @@ export function normalizeTimestamp(timestamp: number): number {
  * @returns {ArrayBuffer} - The random buffer.
  */
 export const generateRandomBuffer = (): ArrayBuffer => {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return arr.buffer;
-};
+  const arr = new Uint8Array(32)
+  crypto.getRandomValues(arr)
+  return arr.buffer
+}
 
 /**
  * Encodes a challenge in base64url format.
@@ -69,11 +69,11 @@ export const generateRandomBuffer = (): ArrayBuffer => {
  */
 export const base64UrlEncode = (challenge: ArrayBuffer): string => {
   return Buffer.from(challenge)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-};
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '')
+}
 
 /**
  * Compresses an uncompressed P-256 public key into its 33-byte compressed form.
@@ -84,22 +84,22 @@ export const base64UrlEncode = (challenge: ArrayBuffer): string => {
  */
 export function pointEncode(raw: Uint8Array): Uint8Array {
   if (raw.length !== 65 || raw[0] !== 0x04) {
-    throw new Error("Invalid uncompressed P-256 key");
+    throw new Error('Invalid uncompressed P-256 key')
   }
 
-  const x = raw.slice(1, 33);
-  const y = raw.slice(33, 65);
+  const x = raw.slice(1, 33)
+  const y = raw.slice(33, 65)
 
   if (x.length !== 32 || y.length !== 32) {
-    throw new Error("Invalid x or y length");
+    throw new Error('Invalid x or y length')
   }
 
-  const prefix = (y[31]! & 1) === 0 ? 0x02 : 0x03;
+  const prefix = (y[31]! & 1) === 0 ? 0x02 : 0x03
 
-  const compressed = new Uint8Array(33);
-  compressed[0] = prefix;
-  compressed.set(x, 1);
-  return compressed;
+  const compressed = new Uint8Array(33)
+  compressed[0] = prefix
+  compressed.set(x, 1)
+  return compressed
 }
 
 /**
@@ -110,9 +110,9 @@ export function pointEncode(raw: Uint8Array): Uint8Array {
  */
 export function uint8ArrayToHexString(input: Uint8Array): string {
   return input.reduce(
-    (result, x) => result + x.toString(16).padStart(2, "0"),
-    ""
-  );
+    (result, x) => result + x.toString(16).padStart(2, '0'),
+    '',
+  )
 }
 
 /**
@@ -120,11 +120,13 @@ export function uint8ArrayToHexString(input: Uint8Array): string {
  *
  * @returns {Promise<string>} - The compressed public key.
  */
-export async function generateCompressedPublicKeyFromKeyPair(keyPair: CryptoKeyPair): Promise<string> {
+export async function generateCompressedPublicKeyFromKeyPair(
+  keyPair: CryptoKeyPair,
+): Promise<string> {
   const rawPubKey = new Uint8Array(
-    await crypto.subtle.exportKey("raw", keyPair.publicKey)
-  );
-  const compressedPubKey = pointEncode(rawPubKey);
-  const compressedHex = uint8ArrayToHexString(compressedPubKey);
-  return compressedHex;
+    await crypto.subtle.exportKey('raw', keyPair.publicKey),
+  )
+  const compressedPubKey = pointEncode(rawPubKey)
+  const compressedHex = uint8ArrayToHexString(compressedPubKey)
+  return compressedHex
 }
