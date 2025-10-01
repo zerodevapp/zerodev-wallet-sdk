@@ -9,8 +9,13 @@
     "dev": "pnpm --recursive run dev",
     "typecheck": "pnpm --recursive run typecheck",
     "clean": "pnpm --recursive run clean",
-    "lint": "pnpm --recursive run lint",
-    "test": "pnpm --recursive run test"
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "ci": "biome ci .",
+    "test": "pnpm --recursive run test",
+    "prepare": "husky"
   },
   "keywords": [
     "monorepo",
@@ -23,8 +28,19 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
     "@types/node": "^20.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
     "typescript": "~5.9.0"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a",
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "biome check --write --files-ignore-unknown=true"
+    ],
+    "*.{json,jsonc}": [
+      "biome format --write"
+    ]
+  }
 }

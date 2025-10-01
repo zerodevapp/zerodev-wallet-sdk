@@ -1,51 +1,54 @@
-// Core functionality
-export { createDoorway } from "./core/createDoorway.js";
-export type {
-  DoorwaySDK,
-  DoorwayConfig,
-  AuthParams,
-  EmailCustomization,
-} from "./core/createDoorway.js";
-
-// Client
-export {
-  createClient,
-  createBaseClient,
-  doorwayTransport,
-  type DoorwayClient
-} from "./client/index.js";
-export type { Client, ClientConfig, Transport } from "./client/index.js";
-
-// Client decorators
-export { doorwayActions } from "./client/decorators/doorway.js";
-export type { DoorwayActions } from "./client/decorators/doorway.js";
-
-// Actions
-export {
-  // Auth actions
-  authenticateWithEmail,
-  authenticateWithOAuth,
-  getWhoami,
-  // Wallet actions
-  getUserWallet,
-  signRawPayload,
-} from "./actions/index.js";
-
 export type {
   // Auth types
   AuthenticateWithEmailParameters,
   AuthenticateWithEmailReturnType,
   AuthenticateWithOAuthParameters,
   AuthenticateWithOAuthReturnType,
-  GetWhoamiParameters,
-  GetWhoamiReturnType,
+  EmailCustomization,
   // Wallet types
   GetUserWalletParameters,
   GetUserWalletReturnType,
+  GetWhoamiParameters,
+  GetWhoamiReturnType,
   SignRawPayloadParameters,
   SignRawPayloadReturnType,
-} from "./actions/index.js";
+  SignTransactionParameters,
+  SignTransactionReturnType,
+} from './actions/index.js'
 
+// Actions
+export {
+  // Auth actions
+  authenticateWithEmail,
+  authenticateWithOAuth,
+  // Wallet actions
+  getUserWallet,
+  getWhoami,
+  signRawPayload,
+  signTransaction,
+} from './actions/index.js'
+export type { ToViemAccountParams } from './adapters/viem.js'
 // Adapters
-export { toViemAccount } from "./adapters/viem.js";
-export type { ToViemAccountParams } from "./adapters/viem.js";
+export { toViemAccount } from './adapters/viem.js'
+export type { DoorwayActions } from './client/decorators/doorway.js'
+// Client decorators
+export { doorwayActions } from './client/decorators/doorway.js'
+export type { Client, ClientConfig, Transport } from './client/index.js'
+// Client
+export {
+  createBaseClient,
+  createClient,
+  type DoorwayClient,
+  doorwayTransport,
+} from './client/index.js'
+export type {
+  AuthParams,
+  DoorwayConfig,
+  DoorwaySDK,
+} from './core/createDoorway.js'
+// Core
+export { createDoorway } from './core/createDoorway.js'
+// Storage
+export type { StorageAdapter, StorageManager } from './storage/manager.js'
+// Session types
+export type { DoorwaySession, StamperType } from './types/session.js'

@@ -1,22 +1,22 @@
-import type { Client } from "../../client/types.js";
+import type { Client } from '../../client/types.js'
 
 export type GetWhoamiParameters = {
   /** The organization ID to query */
-  organizationId: string;
+  organizationId: string
   /** The project ID for the request */
-  projectId: string;
-};
+  projectId: string
+}
 
 export type GetWhoamiReturnType = {
   /** The user's ID */
-  userId: string;
+  userId: string
   /** The organization ID */
-  organizationId: string;
+  organizationId: string
   /** The organization name */
-  organizationName?: string;
+  organizationName?: string
   /** The username */
-  username?: string;
-};
+  username?: string
+}
 
 /**
  * Gets the current user information
@@ -36,16 +36,16 @@ export type GetWhoamiReturnType = {
  */
 export async function getWhoami(
   client: Client,
-  params: GetWhoamiParameters
+  params: GetWhoamiParameters,
 ): Promise<GetWhoamiReturnType> {
-  const { organizationId, projectId } = params;
+  const { organizationId, projectId } = params
 
   return await client.request({
     path: `${projectId}/whoami`,
-    method: "POST",
+    method: 'POST',
     body: {
       organizationId,
     },
     stamp: true,
-  });
+  })
 }
