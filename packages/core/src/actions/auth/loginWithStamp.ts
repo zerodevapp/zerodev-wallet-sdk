@@ -52,7 +52,7 @@ export async function loginWithStamp(
     },
     timestampMs: timestampMsString,
     type: 'ACTIVITY_TYPE_STAMP_LOGIN',
-  })} + \n`
+  })}\n`
   const stamp = await client.stamper.stamp(stampPayload)
 
   return client.request({
