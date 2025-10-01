@@ -22,11 +22,11 @@ export type Transport = (options: { stamper: Stamper }) => {
   value?: Record<string, unknown>;
 };
 
-export type ClientConfig = {
+export type ClientConfig<TStamper extends Stamper = Stamper> = {
   /** Transport for the client */
   transport: Transport;
   /** Stamper for authenticated requests */
-  stamper: Stamper;
+  stamper: TStamper;
   /** Organization ID */
   organizationId?: string;
   /** A key for the client. */
@@ -35,13 +35,13 @@ export type ClientConfig = {
   name?: string;
 };
 
-export type Client<extended extends Extended | undefined = undefined> = {
+export type Client<extended extends Extended | undefined = undefined, TStamper extends Stamper = Stamper> = {
   /** Transport configuration */
   transport: TransportConfig & Record<string, unknown>;
   /** Request function from transport */
   request: RestRequestFn;
   /** Stamper for authenticated requests */
-  stamper: Stamper;
+  stamper: TStamper;
   /** Organization ID */
   organizationId?: string;
   /** A key for the client */

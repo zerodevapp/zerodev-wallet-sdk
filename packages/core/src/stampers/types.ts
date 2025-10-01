@@ -18,4 +18,7 @@ export type IframeStamper = Stamper & {
   injectCredentialBundle(bundle: string): Promise<boolean>
 };
 
-export type IndexedDbStamper = Stamper;
+export type IndexedDbStamper = Stamper & {
+  resetKeyPair: (externalKeyPair?: CryptoKeyPair) => Promise<void>;
+};
+export type WebauthnStamper = Stamper;

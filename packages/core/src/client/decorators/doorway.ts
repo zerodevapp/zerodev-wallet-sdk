@@ -15,8 +15,12 @@ import {
   signRawPayload,
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
+  type RegisterWithPasskeyReturnType,
+  type RegisterWithPasskeyParameters,
+  registerWithPasskey,
 } from "../../actions/index.js";
 import { signTransaction, type SignTransactionParameters, type SignTransactionReturnType } from "../../actions/wallet/signTransaction.js";
+import { loginWithStamp, type LoginWithStampParameters, type LoginWithStampReturnType } from "../../actions/auth/loginWithStamp.js";
 
 /**
  * Doorway-specific actions that can be performed with a client
@@ -65,6 +69,20 @@ export type DoorwayActions = {
   signTransaction: (
     params: SignTransactionParameters
   ) => Promise<SignTransactionReturnType>;
+
+  /**
+   * Registers a passkey with the user's wallet
+   */
+  registerWithPasskey: (
+    params: RegisterWithPasskeyParameters
+  ) => Promise<RegisterWithPasskeyReturnType>;
+
+  /**
+   * Logs in a user with a stamp
+   */
+  loginWithStamp: (
+    params: LoginWithStampParameters
+  ) => Promise<LoginWithStampReturnType>;
 };
 
 /**
@@ -100,5 +118,7 @@ export function doorwayActions(client: Client): DoorwayActions {
     getUserWallet: (params) => getUserWallet(client, params),
     signRawPayload: (params) => signRawPayload(client, params),
     signTransaction: (params) => signTransaction(client, params),
+    registerWithPasskey: (params) => registerWithPasskey(client, params),
+    loginWithStamp: (params) => loginWithStamp(client, params),
   };
 }

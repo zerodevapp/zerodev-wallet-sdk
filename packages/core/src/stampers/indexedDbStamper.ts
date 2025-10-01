@@ -1,4 +1,3 @@
-// src/stampers/indexeddb.ts
 import type { IndexedDbStamper } from "./types.js";
 import { IndexedDbStamper as TurnkeyIndexedDbStamper } from "@turnkey/indexed-db-stamper";
 
@@ -16,5 +15,8 @@ export async function createIndexedDbStamper(): Promise<IndexedDbStamper> {
     async clear() {
       await inner.clear();
     },
+    async resetKeyPair(externalKeyPair?: CryptoKeyPair) {
+      await inner.resetKeyPair(externalKeyPair);
+    }
   };
 }
