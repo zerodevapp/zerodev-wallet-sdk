@@ -1,3 +1,4 @@
+import { getWebAuthnAttestation } from '@turnkey/http'
 import type { LocalAccount } from 'viem/accounts'
 import type { EmailCustomization } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
@@ -14,13 +15,19 @@ import {
 import { createIframeStamper } from '../stampers/iframeStamper.js'
 import { createIndexedDbStamper } from '../stampers/indexedDbStamper.js'
 import type { IframeStamper, IndexedDbStamper } from '../stampers/types.js'
+import { createWebauthnStamper } from '../stampers/webauthnStamper.js'
 import { createWebStorageAdapter } from '../storage/adapters.js'
 import {
   createStorageManager,
   type StorageAdapter,
 } from '../storage/manager.js'
 import { type DoorwaySession, SessionType } from '../types/session.js'
-import { parseSession } from '../utils/utils.js'
+import {
+  base64UrlEncode,
+  generateCompressedPublicKeyFromKeyPair,
+  generateRandomBuffer,
+  parseSession,
+} from '../utils/utils.js'
 export interface DoorwayConfig {
   organizationId?: string
   proxyBaseUrl?: string
@@ -29,6 +36,7 @@ export interface DoorwayConfig {
   iframeElementId?: string
   projectId: string
   sessionStorage?: StorageAdapter
+  rpId?: string
 }
 
 // Re-export EmailCustomization for convenience
@@ -52,6 +60,11 @@ export type AuthParams =
       provider: string
       redirectUrl?: string
       credential: string
+    }
+  | {
+      type: 'passkey'
+      email: string
+      mode: 'register' | 'login'
     }
 
 export interface DoorwaySDK {
@@ -77,7 +90,7 @@ export interface DoorwaySDK {
 export async function createDoorway(
   config: DoorwayConfig,
 ): Promise<DoorwaySDK> {
-  const { projectId, sessionStorage } = config
+  const { projectId, sessionStorage, rpId = window.location.hostname } = config
 
   const sessionStorageManager = createStorageManager(
     sessionStorage || createWebStorageAdapter(),
@@ -93,6 +106,8 @@ export async function createDoorway(
 
   const indexedDbStamper = await createIndexedDbStamper()
 
+  const webauthnStamper = await createWebauthnStamper({ rpId })
+
   let currentClient: DoorwayClient | null = null
 
   const authIframeClient = createClient({
@@ -104,6 +119,13 @@ export async function createDoorway(
 
   const indexedDbClient = createClient({
     stamper: indexedDbStamper,
+    transport: doorwayTransport({
+      baseUrl: config.proxyBaseUrl || 'http://localhost:3001/api/v1',
+    }),
+  })
+
+  const passkeyClient = createClient({
+    stamper: webauthnStamper,
     transport: doorwayTransport({
       baseUrl: config.proxyBaseUrl || 'http://localhost:3001/api/v1',
     }),
@@ -189,6 +211,7 @@ export async function createDoorway(
       currentClient = null
     },
 
+    // [TODO] refactor to smaller utils/actions
     async auth(params: AuthParams) {
       switch (params.type) {
         case 'email': {
@@ -276,6 +299,119 @@ export async function createDoorway(
           }
           currentClient = indexedDbClient
           return data
+        }
+        case 'passkey': {
+          const { type } = params
+          if (
+            type === 'passkey' &&
+            'mode' in params &&
+            params.mode === 'register'
+          ) {
+            const { email } = params
+            await indexedDbClient.stamper.resetKeyPair()
+            const tempPublicKey = await indexedDbClient.stamper.getPublicKey()
+            if (!tempPublicKey) {
+              throw new Error('Failed to get public key')
+            }
+            const challenge = generateRandomBuffer()
+            const encodedChallenge = base64UrlEncode(challenge)
+            const authenticatorUserId = generateRandomBuffer()
+            const name = `Doorway-${email}-${new Date().toISOString()}`
+            const attestation = await getWebAuthnAttestation({
+              publicKey: {
+                rp: { id: rpId, name: '' },
+                challenge,
+                pubKeyCredParams: [
+                  {
+                    type: 'public-key',
+                    alg: -7,
+                  },
+                  {
+                    type: 'public-key',
+                    alg: -257,
+                  },
+                ],
+                user: {
+                  id: authenticatorUserId,
+                  name,
+                  displayName: name,
+                },
+              },
+            })
+            const data = await passkeyClient.registerWithPasskey({
+              email,
+              attestation,
+              challenge: encodedChallenge,
+              projectId,
+              encodedPublicKey: tempPublicKey,
+            })
+            const newKeyPair = await crypto.subtle.generateKey(
+              {
+                name: 'ECDSA',
+                namedCurve: 'P-256',
+              },
+              false,
+              ['sign', 'verify'],
+            )
+            const compressedPublicKeyHex =
+              await generateCompressedPublicKeyFromKeyPair(newKeyPair)
+            const loginData = await indexedDbClient.loginWithStamp({
+              projectId,
+              targetPublicKey: compressedPublicKeyHex,
+              organizationId: data.subOrganizationId,
+            })
+            await indexedDbClient.stamper.resetKeyPair(newKeyPair)
+            const parsedSession = parseSession(loginData.session)
+            const session: DoorwaySession = {
+              id: `session_indexedDb_${Date.now()}`,
+              stamperType: 'indexedDb',
+              createdAt: Date.now(),
+              sessionType: SessionType.READ_WRITE,
+              userId: parsedSession.userId,
+              organizationId: parsedSession.organizationId,
+              expiry:
+                Date.now() +
+                Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
+              token: loginData.session,
+            }
+            await sessionStorageManager.storeSession(session, session.id)
+            currentClient = indexedDbClient
+            return data
+          }
+          if (
+            type === 'passkey' &&
+            'mode' in params &&
+            params.mode === 'login'
+          ) {
+            await indexedDbClient.stamper.resetKeyPair()
+            const generatedPublicKey =
+              await indexedDbClient.stamper.getPublicKey()
+            if (!generatedPublicKey) {
+              throw new Error('Failed to get public key')
+            }
+            const loginData = await passkeyClient.loginWithStamp({
+              targetPublicKey: generatedPublicKey,
+              projectId,
+              organizationId: config.organizationId || '',
+            })
+            const parsedSession = parseSession(loginData.session)
+            const session: DoorwaySession = {
+              id: `session_indexedDb_${Date.now()}`,
+              stamperType: 'indexedDb',
+              createdAt: Date.now(),
+              sessionType: SessionType.READ_WRITE,
+              userId: parsedSession.userId,
+              organizationId: parsedSession.organizationId,
+              expiry:
+                Date.now() +
+                Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
+              token: loginData.session,
+            }
+            await sessionStorageManager.storeSession(session, session.id)
+            currentClient = indexedDbClient
+            return loginData
+          }
+          throw new Error('Passkey authentication requires passkey parameter')
         }
         default:
           throw new Error(`Unknown auth type: ${(params as any).type}`)

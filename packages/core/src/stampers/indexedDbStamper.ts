@@ -15,5 +15,8 @@ export async function createIndexedDbStamper(): Promise<IndexedDbStamper> {
     async clear() {
       await inner.clear()
     },
+    async resetKeyPair(externalKeyPair?: CryptoKeyPair) {
+      await inner.resetKeyPair(externalKeyPair)
+    },
   }
 }

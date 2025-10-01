@@ -1,4 +1,9 @@
 import {
+  type LoginWithStampParameters,
+  type LoginWithStampReturnType,
+  loginWithStamp,
+} from '../../actions/auth/loginWithStamp.js'
+import {
   type AuthenticateWithEmailParameters,
   type AuthenticateWithEmailReturnType,
   type AuthenticateWithOAuthParameters,
@@ -11,6 +16,9 @@ import {
   type GetWhoamiReturnType,
   getUserWallet,
   getWhoami,
+  type RegisterWithPasskeyParameters,
+  type RegisterWithPasskeyReturnType,
+  registerWithPasskey,
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
   signRawPayload,
@@ -67,6 +75,20 @@ export type DoorwayActions = {
   signTransaction: (
     params: SignTransactionParameters,
   ) => Promise<SignTransactionReturnType>
+
+  /**
+   * Registers a passkey with the user's wallet
+   */
+  registerWithPasskey: (
+    params: RegisterWithPasskeyParameters,
+  ) => Promise<RegisterWithPasskeyReturnType>
+
+  /**
+   * Logs in a user with a stamp
+   */
+  loginWithStamp: (
+    params: LoginWithStampParameters,
+  ) => Promise<LoginWithStampReturnType>
 }
 
 /**
@@ -102,5 +124,7 @@ export function doorwayActions(client: Client): DoorwayActions {
     getUserWallet: (params) => getUserWallet(client, params),
     signRawPayload: (params) => signRawPayload(client, params),
     signTransaction: (params) => signTransaction(client, params),
+    registerWithPasskey: (params) => registerWithPasskey(client, params),
+    loginWithStamp: (params) => loginWithStamp(client, params),
   }
 }

@@ -16,3 +16,13 @@ export {
   type GetWhoamiReturnType,
   getWhoami,
 } from './getWhoami.js'
+export {
+  type LoginWithStampParameters,
+  type LoginWithStampReturnType,
+  loginWithStamp,
+} from './loginWithStamp.js'
+export {
+  type RegisterWithPasskeyParameters,
+  type RegisterWithPasskeyReturnType,
+  registerWithPasskey,
+} from './registerWithPasskey.js'

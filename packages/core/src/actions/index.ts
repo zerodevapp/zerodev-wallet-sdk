@@ -10,6 +10,9 @@ export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getWhoami,
+  type RegisterWithPasskeyParameters,
+  type RegisterWithPasskeyReturnType,
+  registerWithPasskey,
 } from './auth/index.js'
 
 // Wallet actions

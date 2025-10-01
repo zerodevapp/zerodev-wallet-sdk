@@ -26,12 +26,18 @@ importers:
 
   packages/core:
     dependencies:
+      '@turnkey/http':
+        specifier: ^3.12.1
+        version: 3.12.1
       '@turnkey/iframe-stamper':
         specifier: ^2.5.0
         version: 2.5.0
       '@turnkey/indexed-db-stamper':
         specifier: ^1.1.1
         version: 1.1.1
+      '@turnkey/webauthn-stamper':
+        specifier: ^0.6.0
+        version: 0.6.0
       viem:
         specifier: 2.37.6
         version: 2.37.6(typescript@5.9.2)
@@ -70,24 +76,28 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@biomejs/cli-linux-arm64@2.2.4':
     resolution: {integrity: sha512-M/Iz48p4NAzMXOuH+tsn5BvG/Jb07KOMTdSVwJpicmhN309BeEyRyQX+n1XDF0JVSlu28+hiTQ2L4rZPvu7nMw==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@biomejs/cli-linux-x64-musl@2.2.4':
     resolution: {integrity: sha512-m41nFDS0ksXK2gwXL6W6yZTYPMH0LughqbsxInSKetoH6morVj43szqKx79Iudkp8WRT5SxSh7qVb8KCUiewGg==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@biomejs/cli-linux-x64@2.2.4':
     resolution: {integrity: sha512-orr3nnf2Dpb2ssl6aihQtvcKtLySLta4E2UcXdp7+RTa7mfJjBgIsbS0B9GC8gVu0hjOu021aU8b3/I1tn+pVQ==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@biomejs/cli-win32-arm64@2.2.4':
     resolution: {integrity: sha512-NXnfTeKHDFUWfxAefa57DiGmu9VyKi0cDqFpdI+1hJWQjGJhJutHPX0b5m+eXvTKOaf+brU+P0JrQAZMb5yYaQ==}
@@ -130,8 +140,20 @@ packages:
     resolution: {integrity: sha512-/0/kW7v+uCnmHnGMoHSXn4Vb/MxLAIivGxX/T0L4vVoIiJalQmqcCtgiWnPWZDiJNGjMKp+jd/8j6VXgbVVozg==}
     engines: {node: '>=18.0.0'}
 
+  '@turnkey/api-key-stamper@0.5.0':
+    resolution: {integrity: sha512-DcxavFpNO93mJnCSef+g97uuQANYHjxxqK8z+cX7GztSBN+Skfja5656VDZCUITql4gNhhiNyjMiWLutS2DDJg==}
+    engines: {node: '>=18.0.0'}
+
   '@turnkey/encoding@0.5.0':
     resolution: {integrity: sha512-nRlKRQa6B5/xltGUKN1iKo4h4YC/0iFz0fAuFFZevc+YGDj7ddAP/3HkWmVvLmdoicUgs9rxvWbLRlgqPkbwzQ==}
+    engines: {node: '>=18.0.0'}
+
+  '@turnkey/encoding@0.6.0':
+    resolution: {integrity: sha512-IC8qXvy36+iGAeiaVIuJvB35uU2Ld/RAWI/DRTKS+ttBej0GXhOn48Ouu5mlca4jt8ZEuwXmDVv74A8uBQclsA==}
+    engines: {node: '>=18.0.0'}
+
+  '@turnkey/http@3.12.1':
+    resolution: {integrity: sha512-64lY5gx6ZBAMm7gSpfXgJsXfIqL0rNlV/HI4mrf0xCuRDIwcwSdkI//cUbyYlNUNpI89m6oljg/wisFIIgtBYQ==}
     engines: {node: '>=18.0.0'}
 
   '@turnkey/iframe-stamper@2.5.0':
@@ -140,6 +162,10 @@ packages:
 
   '@turnkey/indexed-db-stamper@1.1.1':
     resolution: {integrity: sha512-pKEMTCTg6Kn76nvYu3vq3HfsdkZ7BmO5MSrXqk7K2TJ4griL/oEzIhlSNAnihpohIRTmIkSCxOAgyIe43oB+Cg==}
+    engines: {node: '>=18.0.0'}
+
+  '@turnkey/webauthn-stamper@0.6.0':
+    resolution: {integrity: sha512-jdN17QEnn7RBykEOhtKIialWmDjnDAH8DzbyITwn8jsKcwT1TBNYge89hTUTjbdsDLBAqQw8cHujPdy0RaAqvw==}
     engines: {node: '>=18.0.0'}
 
   '@types/node@20.19.11':
@@ -168,9 +194,18 @@ packages:
     resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
     engines: {node: '>=12'}
 
+  base-x@5.0.1:
+    resolution: {integrity: sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg==}
+
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
+
+  bs58@6.0.0:
+    resolution: {integrity: sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==}
+
+  bs58check@4.0.0:
+    resolution: {integrity: sha512-FsGDOnFg9aVI9erdriULkd/JjEWONV/lQE5aYziB5PoBsXRind56lh8doIZIc9X4HoxT5x4bLjMWN1/NB8Zp5g==}
 
   cli-cursor@5.0.0:
     resolution: {integrity: sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==}
@@ -186,6 +221,9 @@ packages:
   commander@14.0.1:
     resolution: {integrity: sha512-2JkV3gUZUVrbNA+1sjBOYLsMZ5cEEl8GTFP2a4AVz5hvasAMCQ1D2l2le/cX+pV4N6ZU17zjUahLpIXRrnWL8A==}
     engines: {node: '>=20'}
+
+  cross-fetch@3.2.0:
+    resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
 
   emoji-regex@10.5.0:
     resolution: {integrity: sha512-lb49vf1Xzfx080OKA0o6l8DQQpV+6Vg95zyCJX9VB/BqKYlhG7N4wgROUUHRA+ZPUefLnteQOad7z1kT2bV7bg==}
@@ -248,6 +286,15 @@ packages:
     resolution: {integrity: sha512-jtpsQDetTnvS2Ts1fiRdci5rx0VYws5jGyC+4IYOTnIQ/wwdf6JdomlHBwqC3bJYOvaKu0C2GSZ1A60anrYpaA==}
     engines: {node: '>=20.17'}
 
+  node-fetch@2.7.0:
+    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
+
   onetime@7.0.0:
     resolution: {integrity: sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ==}
     engines: {node: '>=18'}
@@ -307,6 +354,9 @@ packages:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
 
+  tr46@0.0.3:
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+
   typescript@5.9.2:
     resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
     engines: {node: '>=14.17'}
@@ -322,6 +372,12 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  webidl-conversions@3.0.1:
+    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+
+  whatwg-url@5.0.0:
+    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
   wrap-ansi@9.0.2:
     resolution: {integrity: sha512-42AtmgqjV+X1VpdOfyTGOYRi0/zsoLqtXQckTmqTeybT+BDIbM/Guxo7x3pE2vtpr1ok6xRqM9OpBe+Jyoqyww==}
@@ -414,7 +470,27 @@ snapshots:
       '@turnkey/encoding': 0.5.0
       sha256-uint8array: 0.10.7
 
+  '@turnkey/api-key-stamper@0.5.0':
+    dependencies:
+      '@noble/curves': 1.9.7
+      '@turnkey/encoding': 0.6.0
+      sha256-uint8array: 0.10.7
+
   '@turnkey/encoding@0.5.0': {}
+
+  '@turnkey/encoding@0.6.0':
+    dependencies:
+      bs58: 6.0.0
+      bs58check: 4.0.0
+
+  '@turnkey/http@3.12.1':
+    dependencies:
+      '@turnkey/api-key-stamper': 0.5.0
+      '@turnkey/encoding': 0.6.0
+      '@turnkey/webauthn-stamper': 0.6.0
+      cross-fetch: 3.2.0
+    transitivePeerDependencies:
+      - encoding
 
   '@turnkey/iframe-stamper@2.5.0': {}
 
@@ -422,6 +498,10 @@ snapshots:
     dependencies:
       '@turnkey/api-key-stamper': 0.4.7
       '@turnkey/encoding': 0.5.0
+
+  '@turnkey/webauthn-stamper@0.6.0':
+    dependencies:
+      sha256-uint8array: 0.10.7
 
   '@types/node@20.19.11':
     dependencies:
@@ -439,9 +519,20 @@ snapshots:
 
   ansi-styles@6.2.3: {}
 
+  base-x@5.0.1: {}
+
   braces@3.0.3:
     dependencies:
       fill-range: 7.1.1
+
+  bs58@6.0.0:
+    dependencies:
+      base-x: 5.0.1
+
+  bs58check@4.0.0:
+    dependencies:
+      '@noble/hashes': 1.8.0
+      bs58: 6.0.0
 
   cli-cursor@5.0.0:
     dependencies:
@@ -455,6 +546,12 @@ snapshots:
   colorette@2.0.20: {}
 
   commander@14.0.1: {}
+
+  cross-fetch@3.2.0:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
 
   emoji-regex@10.5.0: {}
 
@@ -516,6 +613,10 @@ snapshots:
 
   nano-spawn@1.0.3: {}
 
+  node-fetch@2.7.0:
+    dependencies:
+      whatwg-url: 5.0.0
+
   onetime@7.0.0:
     dependencies:
       mimic-function: 5.0.1
@@ -576,6 +677,8 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
+  tr46@0.0.3: {}
+
   typescript@5.9.2: {}
 
   undici-types@6.21.0: {}
@@ -596,6 +699,13 @@ snapshots:
       - bufferutil
       - utf-8-validate
       - zod
+
+  webidl-conversions@3.0.1: {}
+
+  whatwg-url@5.0.0:
+    dependencies:
+      tr46: 0.0.3
+      webidl-conversions: 3.0.1
 
   wrap-ansi@9.0.2:
     dependencies:
