@@ -52,3 +52,5 @@ export { createDoorway } from './core/createDoorway.js'
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 // Session types
 export type { DoorwaySession, StamperType } from './types/session.js'
+// Utils
+export { normalizeTimestamp } from './utils/utils.js'

@@ -81,6 +81,7 @@ export interface DoorwaySDK {
   switchSession: (sessionId: string) => Promise<DoorwaySession | undefined>
   clearSession: (sessionId: string) => Promise<void>
   clearAllSessions: () => Promise<void>
+  refreshSession: (sessionId?: string) => Promise<DoorwaySession | undefined>
 
   logout: () => Promise<boolean>
 
@@ -209,6 +210,51 @@ export async function createDoorway(
     async clearAllSessions() {
       await sessionStorageManager.clearAllSessions()
       currentClient = null
+    },
+
+    async refreshSession(sessionId?: string) {
+      const activeSession = sessionId
+        ? await sessionStorageManager.getSession(sessionId)
+        : await sessionStorageManager.getActiveSession()
+      if (!activeSession) {
+        throw new Error('No active session')
+      }
+      if (activeSession.stamperType === 'iframe') {
+        throw new Error('Not implemented')
+      }
+      if (activeSession.stamperType === 'indexedDb') {
+        const newKeyPair = await crypto.subtle.generateKey(
+          {
+            name: 'ECDSA',
+            namedCurve: 'P-256',
+          },
+          false,
+          ['sign', 'verify'],
+        )
+        const compressedPublicKeyHex =
+          await generateCompressedPublicKeyFromKeyPair(newKeyPair)
+        const data = await indexedDbClient.loginWithStamp({
+          targetPublicKey: compressedPublicKeyHex,
+          projectId,
+          organizationId: activeSession.organizationId,
+        })
+        await indexedDbClient.stamper.resetKeyPair(newKeyPair)
+        const parsedSession = parseSession(data.session)
+        const session: DoorwaySession = {
+          id: `session_indexedDb_${Date.now()}`,
+          userId: parsedSession.userId,
+          organizationId: parsedSession.organizationId,
+          stamperType: 'indexedDb',
+          sessionType: SessionType.READ_WRITE,
+          token: data.session,
+          expiry: parsedSession.expiry,
+          createdAt: Date.now(),
+        }
+        await sessionStorageManager.clearSession(activeSession.id)
+        await sessionStorageManager.storeSession(session, session.id)
+        return session
+      }
+      throw new Error('Invalid session type')
     },
 
     // [TODO] refactor to smaller utils/actions
