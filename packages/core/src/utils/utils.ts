@@ -18,7 +18,7 @@ export function parseSession(
     throw new Error('Invalid JWT: Missing payload')
   }
 
-  const decoded = JSON.parse(atob(payload))
+  const decoded = JSON.parse(Buffer.from(payload, 'base64').toString())
   const {
     exp,
     public_key: publicKey,
