@@ -16,8 +16,14 @@ import {
   type GetWhoamiReturnType,
   getUserWallet,
   getWhoami,
+  type LoginWithOTPParameters,
+  type LoginWithOTPReturnType,
+  loginWithOTP,
+  type RegisterWithOTPParameters,
+  type RegisterWithOTPReturnType,
   type RegisterWithPasskeyParameters,
   type RegisterWithPasskeyReturnType,
+  registerWithOTP,
   registerWithPasskey,
   type SignRawPayloadParameters,
   type SignRawPayloadReturnType,
@@ -89,6 +95,20 @@ export type DoorwayActions = {
   loginWithStamp: (
     params: LoginWithStampParameters,
   ) => Promise<LoginWithStampReturnType>
+
+  /**
+   * Registers a user with OTP (One-Time Password) authentication
+   */
+  registerWithOTP: (
+    params: RegisterWithOTPParameters,
+  ) => Promise<RegisterWithOTPReturnType>
+
+  /**
+   * Logs in a user with OTP (One-Time Password) authentication
+   */
+  loginWithOTP: (
+    params: LoginWithOTPParameters,
+  ) => Promise<LoginWithOTPReturnType>
 }
 
 /**
@@ -126,5 +146,7 @@ export function doorwayActions(client: Client): DoorwayActions {
     signTransaction: (params) => signTransaction(client, params),
     registerWithPasskey: (params) => registerWithPasskey(client, params),
     loginWithStamp: (params) => loginWithStamp(client, params),
+    registerWithOTP: (params) => registerWithOTP(client, params),
+    loginWithOTP: (params) => loginWithOTP(client, params),
   }
 }

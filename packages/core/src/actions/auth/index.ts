@@ -17,10 +17,22 @@ export {
   getWhoami,
 } from './getWhoami.js'
 export {
+  type LoginWithOTPParameters,
+  type LoginWithOTPReturnType,
+  loginWithOTP,
+} from './loginWithOTP.js'
+export {
   type LoginWithStampParameters,
   type LoginWithStampReturnType,
   loginWithStamp,
 } from './loginWithStamp.js'
+
+export {
+  type OtpContact,
+  type RegisterWithOTPParameters,
+  type RegisterWithOTPReturnType,
+  registerWithOTP,
+} from './registerWithOTP.js'
 export {
   type RegisterWithPasskeyParameters,
   type RegisterWithPasskeyReturnType,

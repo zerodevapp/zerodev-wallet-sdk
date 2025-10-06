@@ -10,8 +10,15 @@ export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getWhoami,
+  type LoginWithOTPParameters,
+  type LoginWithOTPReturnType,
+  loginWithOTP,
+  type OtpContact,
+  type RegisterWithOTPParameters,
+  type RegisterWithOTPReturnType,
   type RegisterWithPasskeyParameters,
   type RegisterWithPasskeyReturnType,
+  registerWithOTP,
   registerWithPasskey,
 } from './auth/index.js'
 

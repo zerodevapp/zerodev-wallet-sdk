@@ -59,7 +59,7 @@ export async function registerWithPasskey(
 ): Promise<RegisterWithPasskeyReturnType> {
   const { email, projectId, challenge, attestation, encodedPublicKey } = params
 
-  const response = await client.request({
+  return client.request({
     path: `${projectId}/auth/register/passkey`,
     method: 'POST',
     body: {
@@ -69,9 +69,4 @@ export async function registerWithPasskey(
       encodedPublicKey,
     },
   })
-  return {
-    subOrganizationId: response.SubOrganizationID,
-    userId: response.UserID,
-    walletAddress: response.WalletAddress,
-  }
 }

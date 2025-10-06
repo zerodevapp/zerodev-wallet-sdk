@@ -66,6 +66,22 @@ export type AuthParams =
       email: string
       mode: 'register' | 'login'
     }
+  | {
+      type: 'otp'
+      mode: 'register'
+      email: string
+      contact: {
+        type: 'email' | 'sms'
+        contact: string
+      }
+    }
+  | {
+      type: 'otp'
+      mode: 'login'
+      otpId: string
+      otpCode: string
+      subOrganizationId: string
+    }
 
 export interface DoorwaySDK {
   client: DoorwayClient | null
@@ -458,6 +474,61 @@ export async function createDoorway(
             return loginData
           }
           throw new Error('Passkey authentication requires passkey parameter')
+        }
+        case 'otp': {
+          const { type, mode } = params
+
+          if (type === 'otp' && mode === 'register') {
+            const { email, contact } = params
+
+            const data = await indexedDbClient.registerWithOTP({
+              email,
+              contact,
+              projectId,
+            })
+
+            return data
+          }
+
+          if (type === 'otp' && mode === 'login') {
+            const { otpId, otpCode, subOrganizationId } = params
+            await indexedDbClient.stamper.resetKeyPair()
+            const targetPublicKey = await indexedDbClient.stamper.getPublicKey()
+
+            if (!targetPublicKey) {
+              throw new Error('Failed to get public key')
+            }
+
+            const data = await indexedDbClient.loginWithOTP({
+              otpId,
+              otpCode,
+              subOrganizationId,
+              encodedPublicKey: targetPublicKey,
+              projectId,
+            })
+
+            if (data.session) {
+              // Parse the JWT to get session data
+              const parsedSession = parseSession(data.session)
+              const session: DoorwaySession = {
+                id: `session_otp_${Date.now()}`,
+                userId: parsedSession.userId,
+                organizationId: parsedSession.organizationId,
+                stamperType: 'indexedDb',
+                sessionType:
+                  parsedSession.sessionType || SessionType.READ_WRITE,
+                token: data.session,
+                expiry: parsedSession.expiry,
+                createdAt: Date.now(),
+                publicKey: targetPublicKey,
+              }
+              await sessionStorageManager.storeSession(session, session.id)
+            }
+            currentClient = indexedDbClient
+            return data
+          }
+
+          throw new Error('OTP authentication requires mode parameter')
         }
         default:
           throw new Error(`Unknown auth type: ${(params as any).type}`)
