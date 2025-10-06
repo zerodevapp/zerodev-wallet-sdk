@@ -10,6 +10,11 @@ export type {
   GetUserWalletReturnType,
   GetWhoamiParameters,
   GetWhoamiReturnType,
+  LoginWithOTPParameters,
+  LoginWithOTPReturnType,
+  OtpContact,
+  RegisterWithOTPParameters,
+  RegisterWithOTPReturnType,
   SignRawPayloadParameters,
   SignRawPayloadReturnType,
   SignTransactionParameters,
@@ -24,6 +29,8 @@ export {
   // Wallet actions
   getUserWallet,
   getWhoami,
+  loginWithOTP,
+  registerWithOTP,
   signRawPayload,
   signTransaction,
 } from './actions/index.js'
