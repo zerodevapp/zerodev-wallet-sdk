@@ -32,7 +32,7 @@ export type AuthenticateWithEmailReturnType = {
 /**
  * Authenticates a user with their email address
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for email authentication
  * @returns The authentication result
  *

@@ -37,9 +37,9 @@ import {
 import type { Client } from '../types.js'
 
 /**
- * Doorway-specific actions that can be performed with a client
+ * ZeroDev Signer-specific actions that can be performed with a client
  */
-export type DoorwayActions = {
+export type ZeroDevSignerActions = {
   // Auth actions
   /**
    * Authenticates a user with their email address
@@ -112,19 +112,19 @@ export type DoorwayActions = {
 }
 
 /**
- * Decorator function that adds Doorway-specific actions to a client
+ * Decorator function that adds ZeroDev Signer-specific actions to a client
  *
  * @param client - The base client to extend
- * @returns An object containing all Doorway actions bound to the client
+ * @returns An object containing all ZeroDev Signer actions bound to the client
  *
  * @example
  * ```ts
- * import { createClient, doorwayTransport, doorwayActions } from '@doorway/core';
+ * import { createClient, zeroDevSignerTransport, zeroDevSignerActions } from '@zerodev/signer-core';
  *
  * const client = createClient({
- *   transport: doorwayTransport({ baseUrl: 'https://api.example.com' }),
+ *   transport: zeroDevSignerTransport({ baseUrl: 'https://api.example.com' }),
  *   stamper: myStamper,
- * }).extend(doorwayActions);
+ * }).extend(zeroDevSignerActions);
  *
  * // Now you can use actions directly on the client
  * const userInfo = await client.getWhoami({
@@ -133,7 +133,7 @@ export type DoorwayActions = {
  * });
  * ```
  */
-export function doorwayActions(client: Client): DoorwayActions {
+export function zeroDevSignerActions(client: Client): ZeroDevSignerActions {
   return {
     // Auth actions
     authenticateWithEmail: (params) => authenticateWithEmail(client, params),

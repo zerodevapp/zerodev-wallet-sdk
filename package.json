@@ -1,7 +1,7 @@
 {
-  "name": "doorway-sdk",
+  "name": "@zerodev/signer",
   "version": "0.0.1",
-  "description": "Monorepo for Doorway SDK",
+  "description": "Monorepo for ZeroDev Signer SDK",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,9 +19,10 @@
   },
   "keywords": [
     "monorepo",
-    "kms",
     "wallet",
-    "turnkey",
+    "offchainlabs",
+    "zerodev",
+    "signer",
     "viem",
     "account-abstraction",
     "eip7702"

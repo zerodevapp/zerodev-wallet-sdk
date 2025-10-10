@@ -22,7 +22,7 @@ export type LoginWithOTPReturnType = {
  * Logs in a user with OTP (One-Time Password) authentication
  * This verifies the OTP code and returns a session token
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for OTP login
  * @returns The login result with session token
  *

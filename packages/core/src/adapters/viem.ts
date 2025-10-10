@@ -18,10 +18,10 @@ import type {
 import { toAccount } from 'viem/accounts'
 import { hashAuthorization } from 'viem/utils'
 import type { signRawPayload } from '../actions/index.js'
-import type { DoorwayClient } from '../client/index.js'
+import type { ZeroDevSignerClient } from '../client/index.js'
 
 export interface ToViemAccountParams {
-  client: DoorwayClient
+  client: ZeroDevSignerClient
   organizationId: string
   projectId: string
 }

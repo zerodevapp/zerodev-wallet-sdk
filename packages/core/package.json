@@ -1,5 +1,5 @@
 {
-  "name": "@doorway/core",
+  "name": "@zerodev/signer-core",
   "version": "0.0.1",
   "description": "Functional KMS SDK built on Turnkey",
   "type": "module",
@@ -43,9 +43,10 @@
     "clean": "rm -rf dist"
   },
   "keywords": [
-    "kms",
     "wallet",
-    "turnkey",
+    "offchainlabs",
+    "zerodev",
+    "signer",
     "viem",
     "account-abstraction",
     "eip7702"

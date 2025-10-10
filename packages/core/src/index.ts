@@ -37,27 +37,27 @@ export {
 export type { ToViemAccountParams } from './adapters/viem.js'
 // Adapters
 export { toViemAccount } from './adapters/viem.js'
-export type { DoorwayActions } from './client/decorators/doorway.js'
+export type { ZeroDevSignerActions } from './client/decorators/client.js'
 // Client decorators
-export { doorwayActions } from './client/decorators/doorway.js'
+export { zeroDevSignerActions } from './client/decorators/client.js'
 export type { Client, ClientConfig, Transport } from './client/index.js'
 // Client
 export {
   createBaseClient,
   createClient,
-  type DoorwayClient,
-  doorwayTransport,
+  type ZeroDevSignerClient,
+  zeroDevSignerTransport,
 } from './client/index.js'
 export type {
   AuthParams,
-  DoorwayConfig,
-  DoorwaySDK,
-} from './core/createDoorway.js'
+  ZeroDevSignerConfig,
+  ZeroDevSignerSDK,
+} from './core/createZeroDevSigner.js'
 // Core
-export { createDoorway } from './core/createDoorway.js'
+export { createZeroDevSigner } from './core/createZeroDevSigner.js'
 // Storage
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 // Session types
-export type { DoorwaySession, StamperType } from './types/session.js'
+export type { StamperType, ZeroDevSignerSession } from './types/session.js'
 // Utils
 export { normalizeTimestamp } from './utils/utils.js'

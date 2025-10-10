@@ -1,15 +1,15 @@
 import type { PartialBy } from 'viem'
-import type { DoorwaySession } from '../types/session.js'
+import type { ZeroDevSignerSession } from '../types/session.js'
 
 /**
  * Parses a session from a JWT.
  *
  * @param token - The JWT to parse.
- * @returns {PartialBy<DoorwaySession, "createdAt" | "id" | "stamperType">} - The parsed session.
+ * @returns {PartialBy<ZeroDevSignerSession, "createdAt" | "id" | "stamperType">} - The parsed session.
  */
 export function parseSession(
-  token: string | DoorwaySession,
-): PartialBy<DoorwaySession, 'createdAt' | 'id' | 'stamperType'> {
+  token: string | ZeroDevSignerSession,
+): PartialBy<ZeroDevSignerSession, 'createdAt' | 'id' | 'stamperType'> {
   if (typeof token !== 'string') {
     return token
   }
@@ -129,4 +129,8 @@ export async function generateCompressedPublicKeyFromKeyPair(
   const compressedPubKey = pointEncode(rawPubKey)
   const compressedHex = uint8ArrayToHexString(compressedPubKey)
   return compressedHex
+}
+
+export const humanReadableDateTime = (): string => {
+  return new Date().toLocaleString().replaceAll('/', '-').replaceAll(':', '.')
 }

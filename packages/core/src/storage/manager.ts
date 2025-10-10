@@ -1,4 +1,4 @@
-import type { DoorwaySession } from '../types/session.js'
+import type { ZeroDevSignerSession } from '../types/session.js'
 import { normalizeTimestamp } from '../utils/utils.js'
 
 export type StorageAdapter = {
@@ -8,23 +8,26 @@ export type StorageAdapter = {
 }
 
 export type StorageManager = {
-  storeSession(sessionData: DoorwaySession, sessionKey: string): Promise<void>
-  getActiveSession(): Promise<DoorwaySession | undefined>
+  storeSession(
+    sessionData: ZeroDevSignerSession,
+    sessionKey: string,
+  ): Promise<void>
+  getActiveSession(): Promise<ZeroDevSignerSession | undefined>
   getActiveSessionKey(): Promise<string | undefined>
-  getSession(sessionKey: string): Promise<DoorwaySession | undefined>
+  getSession(sessionKey: string): Promise<ZeroDevSignerSession | undefined>
   listSessionKeys(): Promise<string[]>
-  listSessions(): Promise<DoorwaySession[]>
+  listSessions(): Promise<ZeroDevSignerSession[]>
   setActiveSession(sessionKey: string): Promise<void>
   clearSession(sessionKey: string): Promise<void>
   clearAllSessions(): Promise<void>
 }
 
 export function createStorageManager(adapter: StorageAdapter): StorageManager {
-  const ACTIVE_SESSION_KEY = '@doorway/active_session'
-  const ALL_SESSIONS_KEY = '@doorway/sessions'
+  const ACTIVE_SESSION_KEY = '@zerodev/active_session'
+  const ALL_SESSIONS_KEY = '@zerodev/sessions'
 
   const storeSession = async (
-    sessionData: DoorwaySession,
+    sessionData: ZeroDevSignerSession,
     sessionKey: string,
   ): Promise<void> => {
     // Store the session data
@@ -42,7 +45,9 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     await adapter.setItem(ACTIVE_SESSION_KEY, sessionKey)
   }
 
-  const getActiveSession = async (): Promise<DoorwaySession | undefined> => {
+  const getActiveSession = async (): Promise<
+    ZeroDevSignerSession | undefined
+  > => {
     const activeKey = await adapter.getItem(ACTIVE_SESSION_KEY)
     if (!activeKey) return undefined
 
@@ -56,12 +61,12 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
 
   const getSession = async (
     sessionKey: string,
-  ): Promise<DoorwaySession | undefined> => {
+  ): Promise<ZeroDevSignerSession | undefined> => {
     const sessionStr = await adapter.getItem(sessionKey)
     if (!sessionStr) return undefined
 
     try {
-      const session: DoorwaySession = JSON.parse(sessionStr)
+      const session: ZeroDevSignerSession = JSON.parse(sessionStr)
 
       // Check if session is expired
       if (session.expiry && normalizeTimestamp(session.expiry) < Date.now()) {
@@ -98,9 +103,9 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     return validKeys
   }
 
-  const listSessions = async (): Promise<DoorwaySession[]> => {
+  const listSessions = async (): Promise<ZeroDevSignerSession[]> => {
     const sessionKeys = await listSessionKeys()
-    const sessions: DoorwaySession[] = []
+    const sessions: ZeroDevSignerSession[] = []
 
     for (const key of sessionKeys) {
       const session = await getSession(key)

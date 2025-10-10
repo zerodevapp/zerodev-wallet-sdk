@@ -34,7 +34,7 @@ export type RegisterWithPasskeyReturnType = {
 /**
  * Registers a passkey with the user's wallet
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for passkey registration
  * @returns The passkey registration result
  *

@@ -17,7 +17,7 @@ export type SignTransactionReturnType = Hex
 /**
  * Signs a raw transaction with the user's wallet
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for signing
  * @returns The signature
  *

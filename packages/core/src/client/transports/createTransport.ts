@@ -13,15 +13,17 @@ export type CreateTransportOptions = {
 }
 
 /**
- * Creates a transport for the Doorway client.
+ * Creates a transport for the ZeroDev Signer client.
  * Requires a stamper for authenticated requests.
  */
-export function doorwayTransport(options: CreateTransportOptions): Transport {
+export function zeroDevSignerTransport(
+  options: CreateTransportOptions,
+): Transport {
   const {
     baseUrl,
     timeoutMs = 10_000,
-    key = 'doorway',
-    name = 'Doorway Transport',
+    key = 'zeroDevSigner',
+    name = 'ZeroDev Signer Transport',
   } = options
 
   return ({ stamper }) => {
@@ -39,7 +41,7 @@ export function doorwayTransport(options: CreateTransportOptions): Transport {
         key,
         url: baseUrl,
         timeoutMs,
-        type: 'doorway',
+        type: 'zeroDevSigner',
       },
       request: transport.request,
       value: {
