@@ -1,5 +1,7 @@
 {
-  "name": "@zerodev/signer",
+  "workspaces": [
+    "packages/*"
+  ],
   "version": "0.0.1",
   "description": "Monorepo for ZeroDev Signer SDK",
   "private": true,
@@ -18,7 +20,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install --lockfile-only",
-    "changeset:release": "bash scripts/remove-type.sh && pnpm build && changeset publish && bash scripts/restore-type.sh && pnpm format"
+    "changeset:release": "pnpm build && bash scripts/remove-type.sh && changeset publish && bash scripts/restore-type.sh && pnpm format"
   },
   "keywords": [
     "monorepo",
