@@ -1,5 +1,7 @@
 # ZeroDev Signer SDK
 
+[![CI](https://github.com/zerodevapp/zerodev-signer-sdk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zerodevapp/zerodev-signer-sdk/actions/workflows/ci.yml)
+
 TypeScript SDK for non-custodial wallet signing powered by Turnkey's secure infrastructure.
 
 ## Features
