@@ -2,7 +2,6 @@
   "name": "@zerodev/signer-core",
   "version": "0.0.1",
   "description": "Functional KMS SDK built on Turnkey",
-  "type": "module",
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
   "types": "./dist/_types/index.d.ts",
@@ -64,5 +63,6 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "~5.9.0"
-  }
+  },
+  "type": "module"
 }

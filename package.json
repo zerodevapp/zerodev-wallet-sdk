@@ -15,7 +15,10 @@
     "format:check": "biome format .",
     "ci": "biome ci .",
     "test": "pnpm --recursive run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "changeset": "changeset",
+    "changeset:version": "changeset version && pnpm install --lockfile-only",
+    "changeset:release": "bash scripts/remove-type.sh && pnpm build && changeset publish && bash scripts/restore-type.sh && pnpm format"
   },
   "keywords": [
     "monorepo",
@@ -30,6 +33,7 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@changesets/cli": "^2.29.7",
     "@types/node": "^20.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.3",
