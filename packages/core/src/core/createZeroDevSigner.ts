@@ -4,13 +4,15 @@ import type { EmailCustomization } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   createClient,
-  type DoorwayClient,
-  doorwayTransport,
+  type ZeroDevSignerClient,
+  zeroDevSignerTransport,
 } from '../client/index.js'
 import {
   DEFAULT_IFRAME_CONTAINER_ID,
   DEFAULT_IFRAME_ELEMENT_ID,
+  DEFAULT_ORGANIZATION_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
+  KMS_SERVER_URL,
 } from '../constants.js'
 import { createIframeStamper } from '../stampers/iframeStamper.js'
 import { createIndexedDbStamper } from '../stampers/indexedDbStamper.js'
@@ -21,14 +23,15 @@ import {
   createStorageManager,
   type StorageAdapter,
 } from '../storage/manager.js'
-import { type DoorwaySession, SessionType } from '../types/session.js'
+import { SessionType, type ZeroDevSignerSession } from '../types/session.js'
 import {
   base64UrlEncode,
   generateCompressedPublicKeyFromKeyPair,
   generateRandomBuffer,
+  humanReadableDateTime,
   parseSession,
 } from '../utils/utils.js'
-export interface DoorwayConfig {
+export interface ZeroDevSignerConfig {
   organizationId?: string
   proxyBaseUrl?: string
   iframeUrl?: string
@@ -43,7 +46,7 @@ export interface DoorwayConfig {
 export type { EmailCustomization } from '../actions/auth/index.js'
 export type { StorageAdapter, StorageManager } from '../storage/manager.js'
 // Re-export new session types
-export type { DoorwaySession, StamperType } from '../types/session.js'
+export type { StamperType, ZeroDevSignerSession } from '../types/session.js'
 
 export type AuthParams =
   | {
@@ -83,8 +86,8 @@ export type AuthParams =
       subOrganizationId: string
     }
 
-export interface DoorwaySDK {
-  client: DoorwayClient | null
+export interface ZeroDevSignerSDK {
+  client: ZeroDevSignerClient | null
   auth: (params: AuthParams) => Promise<any>
 
   getPublicKeys: () => Promise<{
@@ -92,22 +95,31 @@ export interface DoorwaySDK {
     compressedPublicKey: string | null
   }>
 
-  getSession: () => Promise<DoorwaySession | undefined>
-  getAllSessions: () => Promise<Record<string, DoorwaySession>>
-  switchSession: (sessionId: string) => Promise<DoorwaySession | undefined>
+  getSession: () => Promise<ZeroDevSignerSession | undefined>
+  getAllSessions: () => Promise<Record<string, ZeroDevSignerSession>>
+  switchSession: (
+    sessionId: string,
+  ) => Promise<ZeroDevSignerSession | undefined>
   clearSession: (sessionId: string) => Promise<void>
   clearAllSessions: () => Promise<void>
-  refreshSession: (sessionId?: string) => Promise<DoorwaySession | undefined>
+  refreshSession: (
+    sessionId?: string,
+  ) => Promise<ZeroDevSignerSession | undefined>
 
   logout: () => Promise<boolean>
 
   toAccount: () => Promise<LocalAccount>
 }
 
-export async function createDoorway(
-  config: DoorwayConfig,
-): Promise<DoorwaySDK> {
-  const { projectId, sessionStorage, rpId = window.location.hostname } = config
+export async function createZeroDevSigner(
+  config: ZeroDevSignerConfig,
+): Promise<ZeroDevSignerSDK> {
+  const {
+    projectId,
+    sessionStorage,
+    rpId = window.location.hostname,
+    organizationId = DEFAULT_ORGANIZATION_ID,
+  } = config
 
   const sessionStorageManager = createStorageManager(
     sessionStorage || createWebStorageAdapter(),
@@ -125,26 +137,26 @@ export async function createDoorway(
 
   const webauthnStamper = await createWebauthnStamper({ rpId })
 
-  let currentClient: DoorwayClient | null = null
+  let currentClient: ZeroDevSignerClient | null = null
 
   const authIframeClient = createClient({
     stamper: iframeStamper,
-    transport: doorwayTransport({
-      baseUrl: config.proxyBaseUrl || 'http://localhost:3001/api/v1',
+    transport: zeroDevSignerTransport({
+      baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
 
   const indexedDbClient = createClient({
     stamper: indexedDbStamper,
-    transport: doorwayTransport({
-      baseUrl: config.proxyBaseUrl || 'http://localhost:3001/api/v1',
+    transport: zeroDevSignerTransport({
+      baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
 
   const passkeyClient = createClient({
     stamper: webauthnStamper,
-    transport: doorwayTransport({
-      baseUrl: config.proxyBaseUrl || 'http://localhost:3001/api/v1',
+    transport: zeroDevSignerTransport({
+      baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
 
@@ -168,7 +180,8 @@ export async function createDoorway(
     client: currentClient,
     async getPublicKeys() {
       const publicKey = await iframeStamper.getPublicKey()
-      const compressedPublicKey = await indexedDbStamper.getPublicKey()
+      await indexedDbClient.stamper.resetKeyPair()
+      const compressedPublicKey = await indexedDbClient.stamper.getPublicKey()
       return {
         publicKey,
         compressedPublicKey,
@@ -181,7 +194,7 @@ export async function createDoorway(
 
     async getAllSessions() {
       const sessions = await sessionStorageManager.listSessions()
-      const sessionMap: Record<string, DoorwaySession> = {}
+      const sessionMap: Record<string, ZeroDevSignerSession> = {}
       for (const session of sessions) {
         sessionMap[session.id] = session
       }
@@ -209,8 +222,8 @@ export async function createDoorway(
         if (stamper) {
           currentClient = createClient({
             stamper,
-            transport: doorwayTransport({
-              baseUrl: config.proxyBaseUrl || 'http://localhost:3001/api/v1',
+            transport: zeroDevSignerTransport({
+              baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
             }),
           })
         }
@@ -256,7 +269,7 @@ export async function createDoorway(
         })
         await indexedDbClient.stamper.resetKeyPair(newKeyPair)
         const parsedSession = parseSession(data.session)
-        const session: DoorwaySession = {
+        const session: ZeroDevSignerSession = {
           id: `session_indexedDb_${Date.now()}`,
           userId: parsedSession.userId,
           organizationId: parsedSession.organizationId,
@@ -305,10 +318,10 @@ export async function createDoorway(
             ).injectCredentialBundle(bundle)
 
             const whoAmI = await authIframeClient.getWhoami({
-              organizationId: config.organizationId || '',
+              organizationId,
               projectId,
             })
-            const session: DoorwaySession = {
+            const session: ZeroDevSignerSession = {
               id: `session_iframe_${Date.now()}`,
               userId: whoAmI.userId,
               organizationId: whoAmI.organizationId,
@@ -330,7 +343,7 @@ export async function createDoorway(
         }
         case 'oauth': {
           const { credential } = params
-          const targetPublicKey = await indexedDbStamper.getPublicKey()
+          const targetPublicKey = await indexedDbClient.stamper.getPublicKey()
 
           if (!targetPublicKey) {
             throw new Error('Failed to get public key')
@@ -346,7 +359,7 @@ export async function createDoorway(
           if (data.turnkeySession) {
             // Parse the JWT to get session data
             const parsedSession = parseSession(data.turnkeySession)
-            const session: DoorwaySession = {
+            const session: ZeroDevSignerSession = {
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
               organizationId: parsedSession.organizationId,
@@ -378,7 +391,7 @@ export async function createDoorway(
             const challenge = generateRandomBuffer()
             const encodedChallenge = base64UrlEncode(challenge)
             const authenticatorUserId = generateRandomBuffer()
-            const name = `Doorway-${email}-${new Date().toISOString()}`
+            const name = `ZeroDevSigner-${humanReadableDateTime()}-${email}`
             const attestation = await getWebAuthnAttestation({
               publicKey: {
                 rp: { id: rpId, name: '' },
@@ -424,7 +437,7 @@ export async function createDoorway(
             })
             await indexedDbClient.stamper.resetKeyPair(newKeyPair)
             const parsedSession = parseSession(loginData.session)
-            const session: DoorwaySession = {
+            const session: ZeroDevSignerSession = {
               id: `session_indexedDb_${Date.now()}`,
               stamperType: 'indexedDb',
               createdAt: Date.now(),
@@ -454,10 +467,10 @@ export async function createDoorway(
             const loginData = await passkeyClient.loginWithStamp({
               targetPublicKey: generatedPublicKey,
               projectId,
-              organizationId: config.organizationId || '',
+              organizationId,
             })
             const parsedSession = parseSession(loginData.session)
-            const session: DoorwaySession = {
+            const session: ZeroDevSignerSession = {
               id: `session_indexedDb_${Date.now()}`,
               stamperType: 'indexedDb',
               createdAt: Date.now(),
@@ -510,7 +523,7 @@ export async function createDoorway(
             if (data.session) {
               // Parse the JWT to get session data
               const parsedSession = parseSession(data.session)
-              const session: DoorwaySession = {
+              const session: ZeroDevSignerSession = {
                 id: `session_otp_${Date.now()}`,
                 userId: parsedSession.userId,
                 organizationId: parsedSession.organizationId,
@@ -538,6 +551,7 @@ export async function createDoorway(
     async logout() {
       await sessionStorageManager.clearAllSessions()
       currentClient = null
+      await indexedDbClient.stamper.resetKeyPair()
       return true
     },
 

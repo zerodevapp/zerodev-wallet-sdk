@@ -31,7 +31,7 @@ export type RegisterWithOTPReturnType = {
  * Registers a user with OTP (One-Time Password) authentication
  * This will send an OTP code to the specified contact method
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for OTP registration
  * @returns The registration result including otpId needed for login
  *

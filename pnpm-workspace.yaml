@@ -7,4 +7,4 @@ minimumReleaseAge: 1440
 
 # Exclude trusted packages from age restriction
 minimumReleaseAgeExclude:
-  - '@doorway/*'
+  - '@zerodev/*'

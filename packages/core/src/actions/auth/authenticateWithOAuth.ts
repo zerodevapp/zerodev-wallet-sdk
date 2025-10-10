@@ -25,7 +25,7 @@ export type AuthenticateWithOAuthReturnType = {
 /**
  * Authenticates a user with OAuth credentials
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for OAuth authentication
  * @returns The authentication result
  *

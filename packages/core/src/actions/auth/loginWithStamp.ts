@@ -22,7 +22,7 @@ export type LoginWithStampReturnType = {
 /**
  * Logs in a user with a stamp
  *
- * @param client - The Doorway client
+ * @param client - The ZeroDev Signer client
  * @param params - The parameters for login with a stamp
  * @returns The login result
  *

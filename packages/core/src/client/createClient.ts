@@ -1,13 +1,16 @@
 import type { Stamper } from '../stampers/types.js'
-import { type DoorwayActions, doorwayActions } from './decorators/doorway.js'
+import {
+  type ZeroDevSignerActions,
+  zeroDevSignerActions,
+} from './decorators/client.js'
 import type { Client, ClientConfig } from './types.js'
 
 let clientId = 0
 
 /**
- * Creates a base Doorway client.
+ * Creates a base ZeroDev Signer client.
  * This is the foundation client without any pre-loaded actions.
- * Use createClient() for a client with Doorway actions pre-loaded.
+ * Use createClient() for a client with ZeroDev Signer actions pre-loaded.
  */
 export function createBaseClient<
   extended extends Record<string, unknown> | undefined = undefined,
@@ -17,8 +20,8 @@ export function createBaseClient<
     transport,
     stamper,
     organizationId,
-    key = 'doorway',
-    name = 'Doorway Client',
+    key = 'zeroDevSigner',
+    name = 'ZeroDev Signer Client',
   } = config
 
   // Initialize the transport with stamper
@@ -40,7 +43,7 @@ export function createBaseClient<
     organizationId,
     key,
     name,
-    type: 'doorway',
+    type: 'zeroDevSigner',
     uid,
   } as const
 
@@ -68,25 +71,25 @@ export function createBaseClient<
   >
 }
 
-export type DoorwayClient<TStamper extends Stamper = Stamper> = Client<
-  DoorwayActions,
+export type ZeroDevSignerClient<TStamper extends Stamper = Stamper> = Client<
+  ZeroDevSignerActions,
   TStamper
 >
 
 /**
- * Creates a Doorway client with Doorway actions pre-loaded.
- * This is equivalent to calling createBaseClient(config).extend(doorwayActions).
+ * Creates a ZeroDev Signer client with ZeroDev Signer actions pre-loaded.
+ * This is equivalent to calling createBaseClient(config).extend(zeroDevSignerActions).
  *
  * For a client without pre-loaded actions, use createBaseClient().
  */
 export function createClient<TStamper extends Stamper = Stamper>(
   config: ClientConfig<TStamper>,
-): DoorwayClient<TStamper> {
-  const { key = 'doorway', name = 'Doorway Client' } = config
+): ZeroDevSignerClient<TStamper> {
+  const { key = 'zeroDevSigner', name = 'ZeroDev Signer Client' } = config
   const client = createBaseClient({
     ...config,
     key,
     name,
   })
-  return client.extend(doorwayActions) as DoorwayClient<TStamper>
+  return client.extend(zeroDevSignerActions) as ZeroDevSignerClient<TStamper>
 }

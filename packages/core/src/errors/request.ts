@@ -5,7 +5,25 @@ export class RestRequestError extends Error {
     public body?: unknown,
     public override cause?: unknown,
   ) {
-    super(`Request failed${status ? ` (${status})` : ''}: ${url}`)
+    // Extract error message from backend response format
+    // Backend format: { error: "error_code", message: "human readable message" }
+    let errorMessage = `Request failed (${status || 'unknown'}): `
+
+    if (body && typeof body === 'object') {
+      const errorBody = body as any
+
+      // Prefer message (detailed), fallback to error (code)
+      if (errorBody.message && errorBody.error) {
+        // Both present: show error code + message
+        errorMessage += `${errorBody.error} - ${errorBody.message}`
+      } else if (errorBody.message) {
+        errorMessage += `${errorBody.message}`
+      } else if (errorBody.error) {
+        errorMessage += `${errorBody.error}`
+      }
+    }
+
+    super(errorMessage)
     this.name = 'RestRequestError'
   }
 }
