@@ -30,23 +30,8 @@ export type AuthenticateWithEmailReturnType = {
 }
 
 /**
- * Authenticates a user with their email address
- *
- * @param client - The ZeroDev Signer client
- * @param params - The parameters for email authentication
- * @returns The authentication result
- *
- * @example
- * ```ts
- * const result = await authenticateWithEmail(client, {
- *   email: 'user@example.com',
- *   projectId: 'proj_456',
- *   targetPublicKey: '0x...',
- *   emailCustomization: {
- *     magicLinkTemplate: 'https://app.example.com/auth/%s'
- *   }
- * });
- * ```
+ * @deprecated Use {@link registerWithOTP} instead
+ * See {@link registerWithOTP} for more details on how to authenticate with email.
  */
 export async function authenticateWithEmail(
   client: Client,

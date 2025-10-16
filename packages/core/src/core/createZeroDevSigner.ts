@@ -8,15 +8,12 @@ import {
   zeroDevSignerTransport,
 } from '../client/index.js'
 import {
-  DEFAULT_IFRAME_CONTAINER_ID,
-  DEFAULT_IFRAME_ELEMENT_ID,
   DEFAULT_ORGANIZATION_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
 } from '../constants.js'
-import { createIframeStamper } from '../stampers/iframeStamper.js'
 import { createIndexedDbStamper } from '../stampers/indexedDbStamper.js'
-import type { IframeStamper, IndexedDbStamper } from '../stampers/types.js'
+import type { IndexedDbStamper } from '../stampers/types.js'
 import { createWebauthnStamper } from '../stampers/webauthnStamper.js'
 import { createWebStorageAdapter } from '../storage/adapters.js'
 import {
@@ -34,9 +31,6 @@ import {
 export interface ZeroDevSignerConfig {
   organizationId?: string
   proxyBaseUrl?: string
-  iframeUrl?: string
-  iframeContainer?: HTMLElement | null
-  iframeElementId?: string
   projectId: string
   sessionStorage?: StorageAdapter
   rpId?: string
@@ -50,15 +44,6 @@ export type { StamperType, ZeroDevSignerSession } from '../types/session.js'
 
 export type AuthParams =
   | {
-      type: 'email'
-      email: string
-      emailCustomization?: EmailCustomization
-    }
-  | {
-      type: 'email'
-      bundle: string
-    }
-  | {
       type: 'oauth'
       provider: string
       redirectUrl?: string
@@ -71,16 +56,17 @@ export type AuthParams =
     }
   | {
       type: 'otp'
-      mode: 'register'
+      mode: 'sendOtp'
       email: string
       contact: {
         type: 'email' | 'sms'
         contact: string
       }
+      emailCustomization?: EmailCustomization
     }
   | {
       type: 'otp'
-      mode: 'login'
+      mode: 'verifyOtp'
       otpId: string
       otpCode: string
       subOrganizationId: string
@@ -90,10 +76,7 @@ export interface ZeroDevSignerSDK {
   client: ZeroDevSignerClient | null
   auth: (params: AuthParams) => Promise<any>
 
-  getPublicKeys: () => Promise<{
-    publicKey: string | null
-    compressedPublicKey: string | null
-  }>
+  getPublicKey: () => Promise<string | null>
 
   getSession: () => Promise<ZeroDevSignerSession | undefined>
   getAllSessions: () => Promise<Record<string, ZeroDevSignerSession>>
@@ -125,26 +108,11 @@ export async function createZeroDevSigner(
     sessionStorage || createWebStorageAdapter(),
   )
 
-  const iframeStamper = await createIframeStamper({
-    iframeContainer:
-      config.iframeContainer ||
-      document.getElementById(DEFAULT_IFRAME_CONTAINER_ID),
-    iframeUrl: config.iframeUrl || 'https://auth.turnkey.com',
-    iframeElementId: config.iframeElementId || DEFAULT_IFRAME_ELEMENT_ID,
-  })
-
   const indexedDbStamper = await createIndexedDbStamper()
 
   const webauthnStamper = await createWebauthnStamper({ rpId })
 
   let currentClient: ZeroDevSignerClient | null = null
-
-  const authIframeClient = createClient({
-    stamper: iframeStamper,
-    transport: zeroDevSignerTransport({
-      baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
-    }),
-  })
 
   const indexedDbClient = createClient({
     stamper: indexedDbStamper,
@@ -165,12 +133,7 @@ export async function createZeroDevSigner(
 
   if (activeSession) {
     try {
-      if (activeSession.stamperType === 'iframe' && activeSession.token) {
-        await (iframeStamper as IframeStamper).injectCredentialBundle(
-          activeSession.token,
-        )
-        currentClient = authIframeClient
-      } else if (activeSession.stamperType === 'indexedDb') {
+      if (activeSession.stamperType === 'indexedDb') {
         currentClient = indexedDbClient
       }
     } catch (_error) {}
@@ -178,14 +141,10 @@ export async function createZeroDevSigner(
 
   return {
     client: currentClient,
-    async getPublicKeys() {
-      const publicKey = await iframeStamper.getPublicKey()
+    async getPublicKey() {
       await indexedDbClient.stamper.resetKeyPair()
       const compressedPublicKey = await indexedDbClient.stamper.getPublicKey()
-      return {
-        publicKey,
-        compressedPublicKey,
-      }
+      return compressedPublicKey
     },
 
     async getSession() {
@@ -207,15 +166,8 @@ export async function createZeroDevSigner(
 
       if (session) {
         // Update current client based on session's stamper type
-        let stamper: IframeStamper | IndexedDbStamper | undefined
-        if (session.stamperType === 'iframe') {
-          stamper = iframeStamper
-          if (session.token) {
-            await (stamper as IframeStamper).injectCredentialBundle(
-              session.token,
-            )
-          }
-        } else if (session.stamperType === 'indexedDb') {
+        let stamper: IndexedDbStamper | undefined
+        if (session.stamperType === 'indexedDb') {
           stamper = indexedDbStamper
         }
 
@@ -247,9 +199,6 @@ export async function createZeroDevSigner(
         : await sessionStorageManager.getActiveSession()
       if (!activeSession) {
         throw new Error('No active session')
-      }
-      if (activeSession.stamperType === 'iframe') {
-        throw new Error('Not implemented')
       }
       if (activeSession.stamperType === 'indexedDb') {
         const newKeyPair = await crypto.subtle.generateKey(
@@ -289,58 +238,6 @@ export async function createZeroDevSigner(
     // [TODO] refactor to smaller utils/actions
     async auth(params: AuthParams) {
       switch (params.type) {
-        case 'email': {
-          const { type } = params
-
-          if (type === 'email' && 'email' in params) {
-            const { email, emailCustomization } = params
-
-            const targetPublicKey =
-              await authIframeClient.stamper.getPublicKey()
-
-            if (!targetPublicKey) {
-              throw new Error('Failed to get public key')
-            }
-
-            const data = await authIframeClient.authenticateWithEmail({
-              email,
-              ...(emailCustomization && { emailCustomization }),
-              targetPublicKey,
-              projectId,
-            })
-
-            return data
-          }
-          if ('bundle' in params) {
-            const { bundle } = params
-            await (
-              authIframeClient.stamper as IframeStamper
-            ).injectCredentialBundle(bundle)
-
-            const whoAmI = await authIframeClient.getWhoami({
-              organizationId,
-              projectId,
-            })
-            const session: ZeroDevSignerSession = {
-              id: `session_iframe_${Date.now()}`,
-              userId: whoAmI.userId,
-              organizationId: whoAmI.organizationId,
-              stamperType: 'iframe',
-              sessionType: SessionType.READ_WRITE,
-              token: bundle,
-              expiry:
-                Date.now() +
-                Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
-              createdAt: Date.now(),
-            }
-            await sessionStorageManager.storeSession(session, session.id)
-            currentClient = authIframeClient
-            return whoAmI
-          }
-          throw new Error(
-            'Email authentication requires either email or bundle parameter',
-          )
-        }
         case 'oauth': {
           const { credential } = params
           const targetPublicKey = await indexedDbClient.stamper.getPublicKey()
@@ -491,19 +388,20 @@ export async function createZeroDevSigner(
         case 'otp': {
           const { type, mode } = params
 
-          if (type === 'otp' && mode === 'register') {
-            const { email, contact } = params
+          if (type === 'otp' && mode === 'sendOtp') {
+            const { email, contact, emailCustomization } = params
 
             const data = await indexedDbClient.registerWithOTP({
               email,
               contact,
               projectId,
+              ...(emailCustomization && { emailCustomization }),
             })
 
             return data
           }
 
-          if (type === 'otp' && mode === 'login') {
+          if (type === 'otp' && mode === 'verifyOtp') {
             const { otpId, otpCode, subOrganizationId } = params
             await indexedDbClient.stamper.resetKeyPair()
             const targetPublicKey = await indexedDbClient.stamper.getPublicKey()
