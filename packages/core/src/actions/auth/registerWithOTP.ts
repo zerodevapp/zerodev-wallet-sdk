@@ -1,4 +1,5 @@
 import type { Client } from '../../client/types.js'
+import type { EmailCustomization } from './authenticateWithEmail.js'
 
 export type OtpContact = {
   /** The OTP delivery type (currently only 'email' is supported) */
@@ -14,6 +15,8 @@ export type RegisterWithOTPParameters = {
   contact: OtpContact
   /** The project ID for the request */
   projectId: string
+  /** Optional email customization settings */
+  emailCustomization?: EmailCustomization
 }
 
 export type RegisterWithOTPReturnType = {
@@ -53,7 +56,7 @@ export async function registerWithOTP(
   client: Client,
   params: RegisterWithOTPParameters,
 ): Promise<RegisterWithOTPReturnType> {
-  const { email, contact, projectId } = params
+  const { email, contact, projectId, emailCustomization } = params
 
   return await client.request({
     path: `${projectId}/auth/register/otp`,
@@ -62,6 +65,7 @@ export async function registerWithOTP(
       email,
       contact,
       projectId,
+      emailCustomization,
     },
   })
 }
