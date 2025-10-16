@@ -88,17 +88,22 @@ await signer.auth({
 ```typescript
 // Send magic link
 await signer.auth({
-  type: 'email',
-  email: 'user@example.com',
+  type: "otp",
+  mode: "sendOtp",
+  email: "user@example.com",
+  contact: { type: "email", contact: email },
   emailCustomization: {
-    magicLinkTemplate: 'https://yourapp.com/verify?bundle=%s'
-  }
+    magicLinkTemplate: 'https://yourapp.com/verify?otp=%s'
+  },
 });
 
-// After user clicks link, inject bundle
+// After user clicks link, parse otp from url params
 await signer.auth({
-  type: 'email',
-  bundle: bundleFromUrl  // From magic link URL
+  type: "otp",
+  mode: "verifyOtp",
+  otpId,
+  otpCode: otp, // OTP from magic link url
+  subOrganizationId,
 });
 ```
 
@@ -108,7 +113,7 @@ await signer.auth({
 // Step 1: Send OTP code
 const data = await signer.auth({
   type: 'otp',
-  mode: 'register',
+  mode: 'sendOtp',
   email: 'user@example.com',
   contact: { type: 'email', contact: 'user@example.com' }
 });
@@ -116,7 +121,7 @@ const data = await signer.auth({
 // Step 2: Verify OTP code
 await signer.auth({
   type: 'otp',
-  mode: 'login',
+  mode: 'verifyOtp',
   otpId: data.otpId,
   otpCode: '123456',
   subOrganizationId: data.subOrganizationId

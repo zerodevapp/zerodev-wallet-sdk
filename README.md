@@ -93,21 +93,26 @@ Passwordless authentication via email.
 
 ```typescript
 // Step 1: Send magic link
-await signer.auth({
-  type: 'email',
-  email: 'user@example.com',
+const { otpId, subOrganizationId } = await signer.auth({
+  type: "otp",
+  mode: "sendOtp",
+  email: "user@example.com",
+  contact: { type: "email", contact: email },
   emailCustomization: {
-    magicLinkTemplate: 'https://yourapp.com/verify?bundle=%s'
-  }
+    magicLinkTemplate: 'https://yourapp.com/verify?otp=%s'
+  },
 });
 
 // Step 2: After user clicks link (on /verify page)
 const params = new URLSearchParams(window.location.search);
-const bundle = params.get('bundle');
+const otp = params.get('otp');
 
 await signer.auth({
-  type: 'email',
-  bundle: bundle
+  type: "otp",
+  mode: "verifyOtp",
+  otpId,
+  otpCode: otp,
+  subOrganizationId,
 });
 ```
 
@@ -117,9 +122,9 @@ One-time password sent to email.
 
 ```typescript
 // Step 1: Send OTP
-const registration = await signer.auth({
+const { otpId, subOrganizationId } = await signer.auth({
   type: 'otp',
-  mode: 'register',
+  mode: 'sendOtp',
   email: 'user@example.com',
   contact: { type: 'email', contact: 'user@example.com' }
 });
@@ -127,10 +132,10 @@ const registration = await signer.auth({
 // Step 2: Verify OTP code
 await signer.auth({
   type: 'otp',
-  mode: 'login',
-  otpId: registration.otpId,
+  mode: 'verifyOtp',
+  otpId,
   otpCode: '123456',
-  subOrganizationId: registration.subOrganizationId
+  subOrganizationId
 });
 ```
 
