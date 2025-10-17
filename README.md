@@ -185,6 +185,42 @@ await signer.clearSession(sessionId);
 await signer.logout();
 ```
 
+## Export Wallet
+
+Export your wallet's seed phrase for backup or import into other wallets.
+
+**Prerequisites:** You must have a container element in your DOM for the export iframe:
+```html
+<div id="export-container"></div>
+```
+
+**Important:** The export uses Turnkey's secure iframe to decrypt and display the seed phrase. The SDK returns an encrypted bundle that only the export iframe can decrypt.
+
+```typescript
+import { createIframeStamper } from '@zerodev/signer-core';
+
+// 1. Create export iframe stamper
+// Note: The container element MUST exist in DOM before this call
+const exportIframeStamper = await createIframeStamper({
+  iframeUrl: 'https://export.turnkey.com',
+  iframeContainer: document.getElementById('export-container'),
+  iframeElementId: 'export-iframe'
+});
+
+// 2. Initialize iframe and get target public key
+const targetPublicKey = await exportIframeStamper.init();
+
+// 3. Call SDK to get encrypted export bundle
+const { exportBundle, organizationId } = await signer.exportWallet(targetPublicKey);
+
+// 4. Inject bundle into iframe (iframe will decrypt and show seed phrase)
+await exportIframeStamper.injectWalletExportBundle(exportBundle, organizationId);
+
+// The iframe now displays the seed phrase in the 'export-container' div
+```
+
+**Security Note:** The seed phrase never passes through your JavaScript code - it's decrypted inside Turnkey's iframe for maximum security.
+
 ## Configuration
 
 ```typescript

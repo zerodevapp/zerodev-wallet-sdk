@@ -20,6 +20,11 @@
       "types": "./dist/_types/actions/index.d.ts",
       "import": "./dist/_esm/actions/index.js",
       "require": "./dist/_cjs/actions/index.js"
+    },
+    "./stampers": {
+      "types": "./dist/_types/stampers/index.d.ts",
+      "import": "./dist/_esm/stampers/index.js",
+      "require": "./dist/_cjs/stampers/index.js"
     }
   },
   "files": [
