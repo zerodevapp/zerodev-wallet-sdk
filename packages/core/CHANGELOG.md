@@ -1,5 +1,11 @@
 # @zerodev/signer-core
 
+## 0.0.1-alpha.2
+
+### Patch Changes
+
+- feat: added export wallet util
+
 ## 0.0.1-alpha.1
 
 ### Patch Changes
