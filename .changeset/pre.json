@@ -4,5 +4,9 @@
   "initialVersions": {
     "@zerodev/signer-core": "0.0.0"
   },
-  "changesets": ["giant-garlics-make", "neat-birds-count"]
+  "changesets": [
+    "giant-garlics-make",
+    "lucky-corners-sneeze",
+    "neat-birds-count"
+  ]
 }
