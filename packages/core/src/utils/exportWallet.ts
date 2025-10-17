@@ -21,9 +21,10 @@ export type ExportWalletParameters = {
  * @example
  * ```ts
  * // In UI: Initialize export iframe first
- * const iframeStamper = new IframeStamper({
+ * const iframeStamper = await createIframeStamper({
  *   iframeUrl: 'https://export.turnkey.com',
- *   iframeContainer: document.getElementById('export-container')
+ *   iframeContainer: document.getElementById('export-container'),
+ *   iframeElementId: 'export-iframe'
  * });
  * const targetPublicKey = await iframeStamper.init();
  *
@@ -34,7 +35,7 @@ export type ExportWalletParameters = {
  * });
  *
  * // Inject into iframe to display seed phrase
- * await iframeStamper.injectWalletExportBundle(exportBundle, session.organizationId);
+ * await iframeStamper.injectWalletExportBundle(exportBundle, organizationId);
  * ```
  */
 export async function exportWallet(
