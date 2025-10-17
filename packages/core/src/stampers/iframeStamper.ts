@@ -1,20 +1,21 @@
 import { IframeStamper as TurnkeyIframeStamper } from '@turnkey/iframe-stamper'
 import type { IframeStamper } from './types.js'
 
-export async function createIframeStamper(cfg?: {
-  iframeUrl?: string
-  iframeContainer?: HTMLElement | null
-  iframeElementId?: string
+export async function createIframeStamper(cfg: {
+  iframeUrl: string
+  iframeContainer: HTMLElement | null | undefined
+  iframeElementId: string
 }): Promise<IframeStamper> {
   const inner = new TurnkeyIframeStamper({
-    iframeUrl: cfg?.iframeUrl ?? 'https://auth.turnkey.com',
-    iframeContainer: cfg?.iframeContainer ?? document.body,
-    iframeElementId: cfg?.iframeElementId ?? 'turnkey-iframe',
+    iframeUrl: cfg.iframeUrl,
+    iframeContainer: cfg.iframeContainer,
+    iframeElementId: cfg.iframeElementId,
   })
 
-  await inner.init()
-
   return {
+    async init() {
+      return await inner.init()
+    },
     async injectCredentialBundle(bundle: string) {
       return await inner.injectCredentialBundle(bundle)
     },
@@ -26,6 +27,9 @@ export async function createIframeStamper(cfg?: {
     },
     async clear() {
       await inner.clear()
+    },
+    async injectWalletExportBundle(bundle: string, organizationId: string) {
+      return await inner.injectWalletExportBundle(bundle, organizationId)
     },
   }
 }

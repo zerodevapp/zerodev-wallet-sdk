@@ -55,9 +55,21 @@ export type {
 } from './core/createZeroDevSigner.js'
 // Core
 export { createZeroDevSigner } from './core/createZeroDevSigner.js'
+// Stampers
+export {
+  createIframeStamper,
+  createIndexedDbStamper,
+  createWebauthnStamper,
+} from './stampers/index.js'
+export type {
+  IframeStamper,
+  IndexedDbStamper,
+  WebauthnStamper,
+} from './stampers/types.js'
 // Storage
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 // Session types
 export type { StamperType, ZeroDevSignerSession } from './types/session.js'
+export { exportWallet } from './utils/exportWallet.js'
 // Utils
 export { normalizeTimestamp } from './utils/utils.js'

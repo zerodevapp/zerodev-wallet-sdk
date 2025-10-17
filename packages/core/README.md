@@ -202,6 +202,41 @@ const signer = await createZeroDevSigner({
 });
 ```
 
+## Export Wallet
+
+Export your wallet's seed phrase using Turnkey's secure iframe:
+
+**Setup:** Add a container element to your HTML:
+```html
+<div id="export-container"></div>
+```
+
+**Usage:**
+```typescript
+import { createIframeStamper } from '@zerodev/signer-core';
+
+// 1. Create export iframe stamper
+// IMPORTANT: Container element must exist in DOM first!
+const exportIframeStamper = await createIframeStamper({
+  iframeUrl: 'https://export.turnkey.com',
+  iframeContainer: document.getElementById('export-container'),
+  iframeElementId: 'export-iframe'
+});
+
+// 2. Initialize iframe and get target public key
+const targetPublicKey = await exportIframeStamper.init();
+
+// 3. Get encrypted export bundle from SDK
+const { exportBundle, organizationId } = await signer.exportWallet(targetPublicKey);
+
+// 4. Inject into iframe to display seed phrase
+await exportIframeStamper.injectWalletExportBundle(exportBundle, organizationId);
+
+// The seed phrase is now visible in the 'export-container' div
+```
+
+**Note:** The SDK handles Turnkey API calls. The iframe handles secure decryption and display. The seed phrase never touches your JavaScript code.
+
 ## TypeScript Types
 
 ```typescript
@@ -210,7 +245,9 @@ import type {
   ZeroDevSignerConfig,
   ZeroDevSignerSession,
   AuthParams,
-  StamperType
+  StamperType,
+  ExportWalletParameters,
+  ExportWalletReturnType
 } from '@zerodev/signer-core';
 ```
 

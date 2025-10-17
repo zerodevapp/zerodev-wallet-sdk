@@ -14,7 +14,12 @@ export type Stamper = {
 }
 
 export type IframeStamper = Stamper & {
+  init(): Promise<string>
   injectCredentialBundle(bundle: string): Promise<boolean>
+  injectWalletExportBundle(
+    bundle: string,
+    organizationId: string,
+  ): Promise<boolean>
 }
 
 export type IndexedDbStamper = Stamper & {
