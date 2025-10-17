@@ -73,7 +73,7 @@ export type AuthParams =
     }
 
 export interface ZeroDevSignerSDK {
-  client: ZeroDevSignerClient | null
+  client: () => ZeroDevSignerClient | null
   auth: (params: AuthParams) => Promise<any>
 
   getPublicKey: () => Promise<string | null>
@@ -139,8 +139,12 @@ export async function createZeroDevSigner(
     } catch (_error) {}
   }
 
+  const getClient = () => {
+    return currentClient
+  }
+
   return {
-    client: currentClient,
+    client: getClient,
     async getPublicKey() {
       await indexedDbClient.stamper.resetKeyPair()
       const compressedPublicKey = await indexedDbClient.stamper.getPublicKey()
@@ -230,6 +234,7 @@ export async function createZeroDevSigner(
         }
         await sessionStorageManager.clearSession(activeSession.id)
         await sessionStorageManager.storeSession(session, session.id)
+        currentClient = indexedDbClient
         return session
       }
       throw new Error('Invalid session type')
