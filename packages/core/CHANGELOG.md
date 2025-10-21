@@ -1,4 +1,10 @@
-# @zerodev/signer-core
+# @zerodev/wallet-core
+
+## 0.0.1-alpha.3
+
+### Patch Changes
+
+- Package renamed from @zerodev/signer-core to @zerodev/wallet-core and likewise changes in utils
 
 ## 0.0.1-alpha.2
 

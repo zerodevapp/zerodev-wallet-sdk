@@ -5,7 +5,7 @@ export enum SessionType {
 
 export type StamperType = 'iframe' | 'indexedDb' | 'passkey'
 
-export type ZeroDevSignerSession = {
+export type ZeroDevWalletSession = {
   id: string
   userId: string
   organizationId: string

@@ -27,6 +27,7 @@
     "wallet",
     "offchainlabs",
     "zerodev",
+    "wallet",
     "signer",
     "viem",
     "account-abstraction",

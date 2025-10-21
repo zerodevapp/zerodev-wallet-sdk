@@ -1,4 +1,4 @@
-import type { ZeroDevSignerSession } from '../types/session.js'
+import type { ZeroDevWalletSession } from '../types/session.js'
 import { normalizeTimestamp } from '../utils/utils.js'
 
 export type StorageAdapter = {
@@ -9,14 +9,14 @@ export type StorageAdapter = {
 
 export type StorageManager = {
   storeSession(
-    sessionData: ZeroDevSignerSession,
+    sessionData: ZeroDevWalletSession,
     sessionKey: string,
   ): Promise<void>
-  getActiveSession(): Promise<ZeroDevSignerSession | undefined>
+  getActiveSession(): Promise<ZeroDevWalletSession | undefined>
   getActiveSessionKey(): Promise<string | undefined>
-  getSession(sessionKey: string): Promise<ZeroDevSignerSession | undefined>
+  getSession(sessionKey: string): Promise<ZeroDevWalletSession | undefined>
   listSessionKeys(): Promise<string[]>
-  listSessions(): Promise<ZeroDevSignerSession[]>
+  listSessions(): Promise<ZeroDevWalletSession[]>
   setActiveSession(sessionKey: string): Promise<void>
   clearSession(sessionKey: string): Promise<void>
   clearAllSessions(): Promise<void>
@@ -27,7 +27,7 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
   const ALL_SESSIONS_KEY = '@zerodev/sessions'
 
   const storeSession = async (
-    sessionData: ZeroDevSignerSession,
+    sessionData: ZeroDevWalletSession,
     sessionKey: string,
   ): Promise<void> => {
     // Store the session data
@@ -46,7 +46,7 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
   }
 
   const getActiveSession = async (): Promise<
-    ZeroDevSignerSession | undefined
+    ZeroDevWalletSession | undefined
   > => {
     const activeKey = await adapter.getItem(ACTIVE_SESSION_KEY)
     if (!activeKey) return undefined
@@ -61,12 +61,12 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
 
   const getSession = async (
     sessionKey: string,
-  ): Promise<ZeroDevSignerSession | undefined> => {
+  ): Promise<ZeroDevWalletSession | undefined> => {
     const sessionStr = await adapter.getItem(sessionKey)
     if (!sessionStr) return undefined
 
     try {
-      const session: ZeroDevSignerSession = JSON.parse(sessionStr)
+      const session: ZeroDevWalletSession = JSON.parse(sessionStr)
 
       // Check if session is expired
       if (session.expiry && normalizeTimestamp(session.expiry) < Date.now()) {
@@ -103,9 +103,9 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     return validKeys
   }
 
-  const listSessions = async (): Promise<ZeroDevSignerSession[]> => {
+  const listSessions = async (): Promise<ZeroDevWalletSession[]> => {
     const sessionKeys = await listSessionKeys()
-    const sessions: ZeroDevSignerSession[] = []
+    const sessions: ZeroDevWalletSession[] = []
 
     for (const key of sessionKeys) {
       const session = await getSession(key)

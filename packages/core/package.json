@@ -1,7 +1,7 @@
 {
-  "name": "@zerodev/signer-core",
-  "version": "0.0.1-alpha.2",
-  "description": "Functional KMS SDK built on Turnkey",
+  "name": "@zerodev/wallet-core",
+  "version": "0.0.1-alpha.3",
+  "description": "ZeroDev Wallet SDK built on Turnkey",
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
   "types": "./dist/_types/index.d.ts",
@@ -50,6 +50,7 @@
     "wallet",
     "offchainlabs",
     "zerodev",
+    "wallet",
     "signer",
     "viem",
     "account-abstraction",

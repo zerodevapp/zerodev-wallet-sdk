@@ -18,7 +18,7 @@ export type GetUserWalletReturnType = {
 /**
  * Gets the user's wallet information
  *
- * @param client - The ZeroDev Signer client
+ * @param client - The ZeroDev Wallet client
  * @param params - The parameters for getting wallet info
  * @returns The wallet information
  *

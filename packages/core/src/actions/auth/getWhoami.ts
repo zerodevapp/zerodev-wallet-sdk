@@ -21,7 +21,7 @@ export type GetWhoamiReturnType = {
 /**
  * Gets the current user information
  *
- * @param client - The ZeroDev Signer client
+ * @param client - The ZeroDev Wallet client
  * @param params - The parameters for the whoami request
  * @returns The user information
  *

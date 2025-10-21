@@ -21,7 +21,7 @@ export type SignRawPayloadReturnType = Hex
 /**
  * Signs a raw payload with the user's wallet
  *
- * @param client - The ZeroDev Signer client
+ * @param client - The ZeroDev Wallet client
  * @param params - The parameters for signing
  * @returns The signature
  *
