@@ -37,9 +37,9 @@ import {
 import type { Client } from '../types.js'
 
 /**
- * ZeroDev Signer-specific actions that can be performed with a client
+ * ZeroDev Wallet client actions that can be performed with a client
  */
-export type ZeroDevSignerActions = {
+export type ZeroDevWalletActions = {
   // Auth actions
   /**
    * Authenticates a user with their email address
@@ -112,19 +112,19 @@ export type ZeroDevSignerActions = {
 }
 
 /**
- * Decorator function that adds ZeroDev Signer-specific actions to a client
+ * Decorator function that adds ZeroDev Wallet client actions to a client
  *
  * @param client - The base client to extend
- * @returns An object containing all ZeroDev Signer actions bound to the client
+ * @returns An object containing all ZeroDev Wallet client actions bound to the client
  *
  * @example
  * ```ts
- * import { createClient, zeroDevSignerTransport, zeroDevSignerActions } from '@zerodev/signer-core';
+ * import { createClient, zeroDevWalletTransport, zeroDevWalletActions } from '@zerodev/wallet-core';
  *
  * const client = createClient({
- *   transport: zeroDevSignerTransport({ baseUrl: 'https://api.example.com' }),
+ *   transport: zeroDevWalletTransport({ baseUrl: 'https://api.example.com' }),
  *   stamper: myStamper,
- * }).extend(zeroDevSignerActions);
+ * }).extend(zeroDevWalletActions);
  *
  * // Now you can use actions directly on the client
  * const userInfo = await client.getWhoami({
@@ -133,7 +133,7 @@ export type ZeroDevSignerActions = {
  * });
  * ```
  */
-export function zeroDevSignerActions(client: Client): ZeroDevSignerActions {
+export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
   return {
     // Auth actions
     authenticateWithEmail: (params) => authenticateWithEmail(client, params),

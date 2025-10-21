@@ -1,4 +1,4 @@
-# ZeroDev Signer SDK
+# ZeroDev Wallet SDK
 
 [![CI](https://github.com/offchainlabs/doorway-kms-sdk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/offchainlabs/doorway-kms-sdk/actions/workflows/ci.yml)
 
@@ -16,32 +16,32 @@ TypeScript SDK for non-custodial wallet signing powered by Turnkey's secure infr
 ## Installation
 
 ```bash
-npm install @zerodev/signer-core
+npm install @zerodev/wallet-core
 # or
-yarn add @zerodev/signer-core
+yarn add @zerodev/wallet-core
 # or
-pnpm add @zerodev/signer-core
+pnpm add @zerodev/wallet-core
 ```
 
 ## Quick Start
 
 ```typescript
-import { createZeroDevSigner } from '@zerodev/signer-core';
+import { createZeroDevWallet } from '@zerodev/wallet-core';
 
 // 1. Initialize
-const signer = await createZeroDevSigner({
+const wallet = await createZeroDevWallet({
   projectId: 'your-project-id',
 });
 
 // 2. Authenticate with passkey
-await signer.auth({
+await wallet.auth({
   type: 'passkey',
   email: 'user@example.com',
   mode: 'register'  // or 'login'
 });
 
 // 3. Get wallet account
-const account = await signer.toAccount();
+const account = await wallet.toAccount();
 console.log('Wallet:', account.address);
 
 // 4. Sign message
@@ -73,14 +73,14 @@ Hardware-backed authentication using biometrics or security keys.
 
 ```typescript
 // Register new passkey
-await signer.auth({
+await wallet.auth({
   type: 'passkey',
   email: 'user@example.com',
   mode: 'register'
 });
 
 // Login with existing passkey
-await signer.auth({
+await wallet.auth({
   type: 'passkey',
   email: 'user@example.com',
   mode: 'login'
@@ -93,7 +93,7 @@ Passwordless authentication via email.
 
 ```typescript
 // Step 1: Send magic link
-const { otpId, subOrganizationId } = await signer.auth({
+const { otpId, subOrganizationId } = await wallet.auth({
   type: "otp",
   mode: "sendOtp",
   email: "user@example.com",
@@ -107,7 +107,7 @@ const { otpId, subOrganizationId } = await signer.auth({
 const params = new URLSearchParams(window.location.search);
 const otp = params.get('otp');
 
-await signer.auth({
+await wallet.auth({
   type: "otp",
   mode: "verifyOtp",
   otpId,
@@ -122,7 +122,7 @@ One-time password sent to email.
 
 ```typescript
 // Step 1: Send OTP
-const { otpId, subOrganizationId } = await signer.auth({
+const { otpId, subOrganizationId } = await wallet.auth({
   type: 'otp',
   mode: 'sendOtp',
   email: 'user@example.com',
@@ -130,7 +130,7 @@ const { otpId, subOrganizationId } = await signer.auth({
 });
 
 // Step 2: Verify OTP code
-await signer.auth({
+await wallet.auth({
   type: 'otp',
   mode: 'verifyOtp',
   otpId,
@@ -149,7 +149,7 @@ import { GoogleLogin } from '@react-oauth/google';
 
 <GoogleLogin
   onSuccess={async (response) => {
-    await signer.auth({
+    await wallet.auth({
       type: 'oauth',
       provider: 'google',
       credential: response.credential
@@ -162,27 +162,27 @@ import { GoogleLogin } from '@react-oauth/google';
 
 ```typescript
 // Get current session
-const session = await signer.getSession();
+const session = await wallet.getSession();
 console.log('User ID:', session.userId);
 console.log('Expires:', new Date(session.expiry));
 
 // Refresh session (extend expiry)
-const refreshed = await signer.refreshSession();
+const refreshed = await wallet.refreshSession();
 
 // Get all sessions
-const allSessions = await signer.getAllSessions();
+const allSessions = await wallet.getAllSessions();
 Object.values(allSessions).forEach(session => {
   console.log(`Session ${session.id}: ${session.stamperType}`);
 });
 
 // Switch session
-await signer.switchSession(sessionId);
+await wallet.switchSession(sessionId);
 
 // Clear specific session
-await signer.clearSession(sessionId);
+await wallet.clearSession(sessionId);
 
 // Logout (clear all)
-await signer.logout();
+await wallet.logout();
 ```
 
 ## Export Wallet
@@ -197,7 +197,7 @@ Export your wallet's seed phrase for backup or import into other wallets.
 **Important:** The export uses Turnkey's secure iframe to decrypt and display the seed phrase. The SDK returns an encrypted bundle that only the export iframe can decrypt.
 
 ```typescript
-import { createIframeStamper } from '@zerodev/signer-core';
+import { createIframeStamper } from '@zerodev/wallet-core';
 
 // 1. Create export iframe stamper
 // Note: The container element MUST exist in DOM before this call
@@ -211,7 +211,7 @@ const exportIframeStamper = await createIframeStamper({
 const targetPublicKey = await exportIframeStamper.init();
 
 // 3. Call SDK to get encrypted export bundle
-const { exportBundle, organizationId } = await signer.exportWallet(targetPublicKey);
+const { exportBundle, organizationId } = await wallet.exportWallet(targetPublicKey);
 
 // 4. Inject bundle into iframe (iframe will decrypt and show seed phrase)
 await exportIframeStamper.injectWalletExportBundle(exportBundle, organizationId);
@@ -224,7 +224,7 @@ await exportIframeStamper.injectWalletExportBundle(exportBundle, organizationId)
 ## Configuration
 
 ```typescript
-interface ZeroDevSignerConfig {
+interface ZeroDevWalletConfig {
   // Required
   projectId: string;
 
@@ -242,7 +242,7 @@ interface ZeroDevSignerConfig {
 ### Custom Storage Adapter
 
 ```typescript
-import type { StorageAdapter } from '@zerodev/signer-core';
+import type { StorageAdapter } from '@zerodev/wallet-core';
 
 const customStorage: StorageAdapter = {
   getItem: async (key: string) => {
@@ -266,15 +266,15 @@ Full type definitions included:
 
 ```typescript
 import type {
-  ZeroDevSignerSDK,
-  ZeroDevSignerConfig,
-  ZeroDevSignerSession,
-  ZeroDevSignerClient,
+  ZeroDevWalletSDK,
+  ZeroDevWalletConfig,
+  ZeroDevWalletSession,
+  ZeroDevWalletClient,
   AuthParams,
   StamperType,
   SessionType,
   StorageAdapter
-} from '@zerodev/signer-core';
+} from '@zerodev/wallet-core';
 ```
 
 ## Development
@@ -302,13 +302,13 @@ pnpm link
 
 # In your project
 cd /path/to/your-project
-pnpm link @zerodev/signer-core
+pnpm link @zerodev/wallet-core
 ```
 
 ### Project Structure
 
 ```
-zerodev-signer-sdk/
+zerodev-wallet-sdk/
 ├── packages/
 │   └── core/              # Main SDK package
 │       ├── src/
@@ -316,7 +316,7 @@ zerodev-signer-sdk/
 │       │   ├── client/    # HTTP client & transport
 │       │   ├── stampers/  # Key management (iframe, indexedDB, webauthn)
 │       │   ├── storage/   # Session storage
-│       │   ├── core/      # Main SDK (createZeroDevSigner)
+│       │   ├── core/      # Main SDK (createZeroDevWallet)
 │       │   └── types/     # TypeScript types
 │       └── dist/          # Compiled output
 └── README.md
@@ -330,5 +330,5 @@ MIT
 
 - **Website:** [zerodev.app](https://zerodev.app)
 - **Documentation:** [docs.zerodev.app](https://docs.zerodev.app)
-- **Demo:** [GitHub - zerodev-signer-demo](https://github.com/OffchainLabs/doorway-auth-prototype)
+- **Demo:** [GitHub - zerodev-wallet-demo](https://github.com/zerodevapp/zerodev-signer-demo)
 - **Turnkey:** [turnkey.com](https://turnkey.com)

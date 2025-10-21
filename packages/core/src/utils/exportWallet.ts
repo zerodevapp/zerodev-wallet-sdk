@@ -1,8 +1,8 @@
-import type { ZeroDevSignerSDK } from '../core/createZeroDevSigner.js'
+import type { ZeroDevWalletSDK } from '../core/createZeroDevWallet.js'
 
 export type ExportWalletParameters = {
-  /** Signer to use for the export */
-  signer: ZeroDevSignerSDK
+  /** Wallet to use for the export */
+  wallet: ZeroDevWalletSDK
   /** Target public key from export iframe for encryption */
   targetPublicKey: string
 }
@@ -30,7 +30,7 @@ export type ExportWalletParameters = {
  *
  * // Call SDK to get encrypted bundle
  * const exportBundle = await exportWallet({
- *   signer,
+ *   wallet,
  *   targetPublicKey
  * });
  *
@@ -41,10 +41,10 @@ export type ExportWalletParameters = {
 export async function exportWallet(
   params: ExportWalletParameters,
 ): Promise<{ exportBundle: string; walletId: string; organizationId: string }> {
-  const { targetPublicKey, signer } = params
+  const { targetPublicKey, wallet } = params
 
   try {
-    const session = await signer.getSession()
+    const session = await wallet.getSession()
     if (!session) {
       throw new Error('Session not found')
     }
@@ -54,7 +54,7 @@ export async function exportWallet(
       organizationId,
     })
 
-    const listWalletsStamp = await signer
+    const listWalletsStamp = await wallet
       .client()
       ?.stamper.stamp(listWalletsBody)
     if (!listWalletsStamp) {
@@ -88,7 +88,7 @@ export async function exportWallet(
         language: 'MNEMONIC_LANGUAGE_ENGLISH',
       },
     })
-    const exportWalletStamp = await signer
+    const exportWalletStamp = await wallet
       .client()
       ?.stamper.stamp(exportWalletBody)
     if (!exportWalletStamp) {

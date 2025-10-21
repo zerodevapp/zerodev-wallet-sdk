@@ -13,17 +13,17 @@ export type CreateTransportOptions = {
 }
 
 /**
- * Creates a transport for the ZeroDev Signer client.
+ * Creates a transport for the ZeroDev Wallet client.
  * Requires a stamper for authenticated requests.
  */
-export function zeroDevSignerTransport(
+export function zeroDevWalletTransport(
   options: CreateTransportOptions,
 ): Transport {
   const {
     baseUrl,
     timeoutMs = 10_000,
-    key = 'zeroDevSigner',
-    name = 'ZeroDev Signer Transport',
+    key = 'zeroDevWallet',
+    name = 'ZeroDev Wallet Transport',
   } = options
 
   return ({ stamper }) => {
@@ -41,7 +41,7 @@ export function zeroDevSignerTransport(
         key,
         url: baseUrl,
         timeoutMs,
-        type: 'zeroDevSigner',
+        type: 'zeroDevWallet',
       },
       request: transport.request,
       value: {

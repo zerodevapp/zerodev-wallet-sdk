@@ -1,9 +1,9 @@
 export {
   createBaseClient,
   createClient,
-  type ZeroDevSignerClient,
+  type ZeroDevWalletClient,
 } from './createClient.js'
-export { zeroDevSignerTransport } from './transports/createTransport.js'
+export { zeroDevWalletTransport } from './transports/createTransport.js'
 export type {
   Client,
   ClientConfig,

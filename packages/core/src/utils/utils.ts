@@ -1,15 +1,15 @@
 import type { PartialBy } from 'viem'
-import type { ZeroDevSignerSession } from '../types/session.js'
+import type { ZeroDevWalletSession } from '../types/session.js'
 
 /**
  * Parses a session from a JWT.
  *
  * @param token - The JWT to parse.
- * @returns {PartialBy<ZeroDevSignerSession, "createdAt" | "id" | "stamperType">} - The parsed session.
+ * @returns {PartialBy<ZeroDevWalletSession, "createdAt" | "id" | "stamperType">} - The parsed session.
  */
 export function parseSession(
-  token: string | ZeroDevSignerSession,
-): PartialBy<ZeroDevSignerSession, 'createdAt' | 'id' | 'stamperType'> {
+  token: string | ZeroDevWalletSession,
+): PartialBy<ZeroDevWalletSession, 'createdAt' | 'id' | 'stamperType'> {
   if (typeof token !== 'string') {
     return token
   }

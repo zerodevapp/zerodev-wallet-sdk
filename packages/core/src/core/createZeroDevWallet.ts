@@ -4,8 +4,8 @@ import type { EmailCustomization } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   createClient,
-  type ZeroDevSignerClient,
-  zeroDevSignerTransport,
+  type ZeroDevWalletClient,
+  zeroDevWalletTransport,
 } from '../client/index.js'
 import {
   DEFAULT_ORGANIZATION_ID,
@@ -20,7 +20,7 @@ import {
   createStorageManager,
   type StorageAdapter,
 } from '../storage/manager.js'
-import { SessionType, type ZeroDevSignerSession } from '../types/session.js'
+import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import {
   base64UrlEncode,
   generateCompressedPublicKeyFromKeyPair,
@@ -28,7 +28,7 @@ import {
   humanReadableDateTime,
   parseSession,
 } from '../utils/utils.js'
-export interface ZeroDevSignerConfig {
+export interface ZeroDevWalletConfig {
   organizationId?: string
   proxyBaseUrl?: string
   projectId: string
@@ -40,7 +40,7 @@ export interface ZeroDevSignerConfig {
 export type { EmailCustomization } from '../actions/auth/index.js'
 export type { StorageAdapter, StorageManager } from '../storage/manager.js'
 // Re-export new session types
-export type { StamperType, ZeroDevSignerSession } from '../types/session.js'
+export type { StamperType, ZeroDevWalletSession } from '../types/session.js'
 
 export type AuthParams =
   | {
@@ -72,31 +72,31 @@ export type AuthParams =
       subOrganizationId: string
     }
 
-export interface ZeroDevSignerSDK {
-  client: () => ZeroDevSignerClient | null
+export interface ZeroDevWalletSDK {
+  client: () => ZeroDevWalletClient | null
   auth: (params: AuthParams) => Promise<any>
 
   getPublicKey: () => Promise<string | null>
 
-  getSession: () => Promise<ZeroDevSignerSession | undefined>
-  getAllSessions: () => Promise<Record<string, ZeroDevSignerSession>>
+  getSession: () => Promise<ZeroDevWalletSession | undefined>
+  getAllSessions: () => Promise<Record<string, ZeroDevWalletSession>>
   switchSession: (
     sessionId: string,
-  ) => Promise<ZeroDevSignerSession | undefined>
+  ) => Promise<ZeroDevWalletSession | undefined>
   clearSession: (sessionId: string) => Promise<void>
   clearAllSessions: () => Promise<void>
   refreshSession: (
     sessionId?: string,
-  ) => Promise<ZeroDevSignerSession | undefined>
+  ) => Promise<ZeroDevWalletSession | undefined>
 
   logout: () => Promise<boolean>
 
   toAccount: () => Promise<LocalAccount>
 }
 
-export async function createZeroDevSigner(
-  config: ZeroDevSignerConfig,
-): Promise<ZeroDevSignerSDK> {
+export async function createZeroDevWallet(
+  config: ZeroDevWalletConfig,
+): Promise<ZeroDevWalletSDK> {
   const {
     projectId,
     sessionStorage,
@@ -112,18 +112,18 @@ export async function createZeroDevSigner(
 
   const webauthnStamper = await createWebauthnStamper({ rpId })
 
-  let currentClient: ZeroDevSignerClient | null = null
+  let currentClient: ZeroDevWalletClient | null = null
 
   const indexedDbClient = createClient({
     stamper: indexedDbStamper,
-    transport: zeroDevSignerTransport({
+    transport: zeroDevWalletTransport({
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
 
   const passkeyClient = createClient({
     stamper: webauthnStamper,
-    transport: zeroDevSignerTransport({
+    transport: zeroDevWalletTransport({
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
@@ -157,7 +157,7 @@ export async function createZeroDevSigner(
 
     async getAllSessions() {
       const sessions = await sessionStorageManager.listSessions()
-      const sessionMap: Record<string, ZeroDevSignerSession> = {}
+      const sessionMap: Record<string, ZeroDevWalletSession> = {}
       for (const session of sessions) {
         sessionMap[session.id] = session
       }
@@ -178,7 +178,7 @@ export async function createZeroDevSigner(
         if (stamper) {
           currentClient = createClient({
             stamper,
-            transport: zeroDevSignerTransport({
+            transport: zeroDevWalletTransport({
               baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
             }),
           })
@@ -222,7 +222,7 @@ export async function createZeroDevSigner(
         })
         await indexedDbClient.stamper.resetKeyPair(newKeyPair)
         const parsedSession = parseSession(data.session)
-        const session: ZeroDevSignerSession = {
+        const session: ZeroDevWalletSession = {
           id: `session_indexedDb_${Date.now()}`,
           userId: parsedSession.userId,
           organizationId: parsedSession.organizationId,
@@ -261,7 +261,7 @@ export async function createZeroDevSigner(
           if (data.turnkeySession) {
             // Parse the JWT to get session data
             const parsedSession = parseSession(data.turnkeySession)
-            const session: ZeroDevSignerSession = {
+            const session: ZeroDevWalletSession = {
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
               organizationId: parsedSession.organizationId,
@@ -293,7 +293,7 @@ export async function createZeroDevSigner(
             const challenge = generateRandomBuffer()
             const encodedChallenge = base64UrlEncode(challenge)
             const authenticatorUserId = generateRandomBuffer()
-            const name = `ZeroDevSigner-${humanReadableDateTime()}-${email}`
+            const name = `ZeroDevWallet-${humanReadableDateTime()}-${email}`
             const attestation = await getWebAuthnAttestation({
               publicKey: {
                 rp: { id: rpId, name: '' },
@@ -339,7 +339,7 @@ export async function createZeroDevSigner(
             })
             await indexedDbClient.stamper.resetKeyPair(newKeyPair)
             const parsedSession = parseSession(loginData.session)
-            const session: ZeroDevSignerSession = {
+            const session: ZeroDevWalletSession = {
               id: `session_indexedDb_${Date.now()}`,
               stamperType: 'indexedDb',
               createdAt: Date.now(),
@@ -372,7 +372,7 @@ export async function createZeroDevSigner(
               organizationId,
             })
             const parsedSession = parseSession(loginData.session)
-            const session: ZeroDevSignerSession = {
+            const session: ZeroDevWalletSession = {
               id: `session_indexedDb_${Date.now()}`,
               stamperType: 'indexedDb',
               createdAt: Date.now(),
@@ -426,7 +426,7 @@ export async function createZeroDevSigner(
             if (data.session) {
               // Parse the JWT to get session data
               const parsedSession = parseSession(data.session)
-              const session: ZeroDevSignerSession = {
+              const session: ZeroDevWalletSession = {
                 id: `session_otp_${Date.now()}`,
                 userId: parsedSession.userId,
                 organizationId: parsedSession.organizationId,

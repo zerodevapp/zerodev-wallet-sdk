@@ -37,24 +37,24 @@ export {
 export type { ToViemAccountParams } from './adapters/viem.js'
 // Adapters
 export { toViemAccount } from './adapters/viem.js'
-export type { ZeroDevSignerActions } from './client/decorators/client.js'
+export type { ZeroDevWalletActions } from './client/decorators/client.js'
 // Client decorators
-export { zeroDevSignerActions } from './client/decorators/client.js'
+export { zeroDevWalletActions } from './client/decorators/client.js'
 export type { Client, ClientConfig, Transport } from './client/index.js'
 // Client
 export {
   createBaseClient,
   createClient,
-  type ZeroDevSignerClient,
-  zeroDevSignerTransport,
+  type ZeroDevWalletClient,
+  zeroDevWalletTransport,
 } from './client/index.js'
 export type {
   AuthParams,
-  ZeroDevSignerConfig,
-  ZeroDevSignerSDK,
-} from './core/createZeroDevSigner.js'
+  ZeroDevWalletConfig,
+  ZeroDevWalletSDK,
+} from './core/createZeroDevWallet.js'
 // Core
-export { createZeroDevSigner } from './core/createZeroDevSigner.js'
+export { createZeroDevWallet } from './core/createZeroDevWallet.js'
 // Stampers
 export {
   createIframeStamper,
@@ -69,7 +69,7 @@ export type {
 // Storage
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 // Session types
-export type { StamperType, ZeroDevSignerSession } from './types/session.js'
+export type { StamperType, ZeroDevWalletSession } from './types/session.js'
 export { exportWallet } from './utils/exportWallet.js'
 // Utils
 export { normalizeTimestamp } from './utils/utils.js'
