@@ -26,13 +26,14 @@ export function zeroDevWalletTransport(
     name = 'ZeroDev Wallet Transport',
   } = options
 
-  return ({ stamper }) => {
+  return ({ indexedDbStamper, webauthnStamper }) => {
     // Create REST transport with stamper
     const transport = rest(baseUrl, {
       timeoutMs,
       key,
       name,
-      stamper,
+      indexedDbStamper,
+      webauthnStamper,
     })
 
     return {
@@ -45,7 +46,8 @@ export function zeroDevWalletTransport(
       },
       request: transport.request,
       value: {
-        stamper,
+        indexedDbStamper,
+        webauthnStamper,
       },
     }
   }

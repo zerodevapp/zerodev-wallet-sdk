@@ -1,4 +1,4 @@
-import type { Stamper } from '../stampers/types.js'
+import type { IndexedDbStamper, WebauthnStamper } from '../stampers/types.js'
 import type { RestRequestFn } from './transports/rest.js'
 
 export type TransportConfig = {
@@ -16,35 +16,33 @@ export type TransportConfig = {
   type: string
 }
 
-export type Transport = (options: { stamper: Stamper }) => {
+export type Transport = (options: {
+  indexedDbStamper: IndexedDbStamper
+  webauthnStamper: WebauthnStamper
+}) => {
   config: TransportConfig
   request: RestRequestFn
   value?: Record<string, unknown>
 }
 
-export type ClientConfig<TStamper extends Stamper = Stamper> = {
-  /** Transport for the client */
+export type ClientConfig = {
   transport: Transport
-  /** Stamper for authenticated requests */
-  stamper: TStamper
-  /** Organization ID */
+  indexedDbStamper: IndexedDbStamper
+  webauthnStamper: WebauthnStamper
   organizationId?: string
-  /** A key for the client. */
   key?: string
-  /** A name for the client. */
   name?: string
 }
 
-export type Client<
-  extended extends Extended | undefined = undefined,
-  TStamper extends Stamper = Stamper,
-> = {
+export type Client<extended extends Extended | undefined = undefined> = {
   /** Transport configuration */
   transport: TransportConfig & Record<string, unknown>
   /** Request function from transport */
   request: RestRequestFn
-  /** Stamper for authenticated requests */
-  stamper: TStamper
+  /** IndexedDB Stamper for authenticated requests */
+  indexedDbStamper: IndexedDbStamper
+  /** WebAuthn Stamper for authenticated requests */
+  webauthnStamper: WebauthnStamper
   /** Organization ID */
   organizationId?: string
   /** A key for the client */
