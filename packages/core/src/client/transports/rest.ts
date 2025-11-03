@@ -1,12 +1,13 @@
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
-import type { Stamper } from '../../stampers/types.js'
+import type { IndexedDbStamper, WebauthnStamper } from '../../stampers/types.js'
 
 export type RestRequestArgs = {
   path: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   body?: any
   headers?: Record<string, string>
-  stamp?: boolean // When true, will stamp the request body
+  stamp?: boolean
+  stampWith?: 'indexedDb' | 'webAuthn'
 }
 
 export type RestRequestFn = <T = any>(args: RestRequestArgs) => Promise<T>
@@ -27,13 +28,11 @@ export type RestTransportConfig = {
   timeoutMs?: number
   key?: string
   name?: string
-  stamper?: Stamper
+  indexedDbStamper: IndexedDbStamper
+  webauthnStamper: WebauthnStamper
 }
 
-export function rest(
-  url: string,
-  cfg: RestTransportConfig = {},
-): RestTransport {
+export function rest(url: string, cfg: RestTransportConfig): RestTransport {
   const timeoutMs = cfg.timeoutMs ?? 10_000
   const key = cfg.key ?? 'rest'
   const name = cfg.name ?? 'HTTP REST'
@@ -52,10 +51,18 @@ export function rest(
       }
 
       // Handle stamping if requested
-      if (args.stamp && cfg.stamper) {
+      if (args.stamp) {
+        let stamper: IndexedDbStamper | WebauthnStamper
+        if (args.stampWith === 'indexedDb') {
+          stamper = cfg.indexedDbStamper
+        } else if (args.stampWith === 'webAuthn') {
+          stamper = cfg.webauthnStamper
+        } else {
+          stamper = cfg.indexedDbStamper
+        }
         const { body, apiUrl } = args.body
         const bodyString = `${JSON.stringify(body ?? args.body)}\n`
-        const stamp = await cfg.stamper.stamp(bodyString)
+        const stamp = await stamper.stamp(bodyString)
 
         // Restructure request body to match backend expectation
         if (body) {

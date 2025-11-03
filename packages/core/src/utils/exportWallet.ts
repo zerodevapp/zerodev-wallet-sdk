@@ -54,9 +54,12 @@ export async function exportWallet(
       organizationId,
     })
 
-    const listWalletsStamp = await wallet
-      .client()
-      ?.stamper.stamp(listWalletsBody)
+    const listWalletsStamp =
+      await wallet.client[
+        session.stamperType === 'indexedDb'
+          ? 'indexedDbStamper'
+          : 'webauthnStamper'
+      ].stamp(listWalletsBody)
     if (!listWalletsStamp) {
       throw new Error('Failed to stamp list wallets body')
     }
@@ -88,9 +91,12 @@ export async function exportWallet(
         language: 'MNEMONIC_LANGUAGE_ENGLISH',
       },
     })
-    const exportWalletStamp = await wallet
-      .client()
-      ?.stamper.stamp(exportWalletBody)
+    const exportWalletStamp =
+      await wallet.client[
+        session.stamperType === 'indexedDb'
+          ? 'indexedDbStamper'
+          : 'webauthnStamper'
+      ].stamp(exportWalletBody)
     if (!exportWalletStamp) {
       throw new Error('Failed to stamp export wallet body')
     }

@@ -1,4 +1,5 @@
 import type { Client } from '../../client/types.js'
+import type { Stamp } from '../../stampers/types.js'
 
 export type EmailCustomization = {
   /** A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
@@ -12,6 +13,8 @@ export type LoginWithStampParameters = {
   organizationId: string
   /** The encoded public key for the request */
   targetPublicKey: string
+  /** The stamper type for the request */
+  stampWith?: 'indexedDb' | 'webauthn'
 }
 
 export type LoginWithStampReturnType = {
@@ -39,7 +42,7 @@ export async function loginWithStamp(
   client: Client,
   params: LoginWithStampParameters,
 ): Promise<LoginWithStampReturnType> {
-  const { projectId, targetPublicKey, organizationId } = params
+  const { projectId, targetPublicKey, organizationId, stampWith } = params
 
   const timestampMs = Date.now()
   const timestampMsString = timestampMs.toString()
@@ -53,7 +56,14 @@ export async function loginWithStamp(
     timestampMs: timestampMsString,
     type: 'ACTIVITY_TYPE_STAMP_LOGIN',
   })}\n`
-  const stamp = await client.stamper.stamp(stampPayload)
+  let stamp: Stamp
+  if (stampWith === 'indexedDb') {
+    stamp = await client.indexedDbStamper.stamp(stampPayload)
+  } else if (stampWith === 'webauthn') {
+    stamp = await client.webauthnStamper.stamp(stampPayload)
+  } else {
+    stamp = await client.indexedDbStamper.stamp(stampPayload)
+  }
 
   return client.request({
     path: `${projectId}/auth/login/passkey`,

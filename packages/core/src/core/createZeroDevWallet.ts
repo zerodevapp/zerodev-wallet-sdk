@@ -13,7 +13,6 @@ import {
   KMS_SERVER_URL,
 } from '../constants.js'
 import { createIndexedDbStamper } from '../stampers/indexedDbStamper.js'
-import type { IndexedDbStamper } from '../stampers/types.js'
 import { createWebauthnStamper } from '../stampers/webauthnStamper.js'
 import { createWebStorageAdapter } from '../storage/adapters.js'
 import {
@@ -73,7 +72,7 @@ export type AuthParams =
     }
 
 export interface ZeroDevWalletSDK {
-  client: () => ZeroDevWalletClient | null
+  client: ZeroDevWalletClient
   auth: (params: AuthParams) => Promise<any>
 
   getPublicKey: () => Promise<string | null>
@@ -112,42 +111,19 @@ export async function createZeroDevWallet(
 
   const webauthnStamper = await createWebauthnStamper({ rpId })
 
-  let currentClient: ZeroDevWalletClient | null = null
-
-  const indexedDbClient = createClient({
-    stamper: indexedDbStamper,
+  const client = createClient({
+    indexedDbStamper,
+    webauthnStamper,
     transport: zeroDevWalletTransport({
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
-
-  const passkeyClient = createClient({
-    stamper: webauthnStamper,
-    transport: zeroDevWalletTransport({
-      baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
-    }),
-  })
-
-  // Restore active session on initialization
-  const activeSession = await sessionStorageManager.getActiveSession()
-
-  if (activeSession) {
-    try {
-      if (activeSession.stamperType === 'indexedDb') {
-        currentClient = indexedDbClient
-      }
-    } catch (_error) {}
-  }
-
-  const getClient = () => {
-    return currentClient
-  }
 
   return {
-    client: getClient,
+    client,
     async getPublicKey() {
-      await indexedDbClient.stamper.resetKeyPair()
-      const compressedPublicKey = await indexedDbClient.stamper.getPublicKey()
+      await client.indexedDbStamper.resetKeyPair()
+      const compressedPublicKey = await client.indexedDbStamper.getPublicKey()
       return compressedPublicKey
     },
 
@@ -168,23 +144,6 @@ export async function createZeroDevWallet(
       await sessionStorageManager.setActiveSession(sessionId)
       const session = await sessionStorageManager.getActiveSession()
 
-      if (session) {
-        // Update current client based on session's stamper type
-        let stamper: IndexedDbStamper | undefined
-        if (session.stamperType === 'indexedDb') {
-          stamper = indexedDbStamper
-        }
-
-        if (stamper) {
-          currentClient = createClient({
-            stamper,
-            transport: zeroDevWalletTransport({
-              baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
-            }),
-          })
-        }
-      }
-
       return session
     },
 
@@ -194,7 +153,6 @@ export async function createZeroDevWallet(
 
     async clearAllSessions() {
       await sessionStorageManager.clearAllSessions()
-      currentClient = null
     },
 
     async refreshSession(sessionId?: string) {
@@ -215,12 +173,13 @@ export async function createZeroDevWallet(
         )
         const compressedPublicKeyHex =
           await generateCompressedPublicKeyFromKeyPair(newKeyPair)
-        const data = await indexedDbClient.loginWithStamp({
+        const data = await client.loginWithStamp({
           targetPublicKey: compressedPublicKeyHex,
           projectId,
           organizationId: activeSession.organizationId,
+          stampWith: 'indexedDb',
         })
-        await indexedDbClient.stamper.resetKeyPair(newKeyPair)
+        await client.indexedDbStamper.resetKeyPair(newKeyPair)
         const parsedSession = parseSession(data.session)
         const session: ZeroDevWalletSession = {
           id: `session_indexedDb_${Date.now()}`,
@@ -234,7 +193,6 @@ export async function createZeroDevWallet(
         }
         await sessionStorageManager.clearSession(activeSession.id)
         await sessionStorageManager.storeSession(session, session.id)
-        currentClient = indexedDbClient
         return session
       }
       throw new Error('Invalid session type')
@@ -245,13 +203,13 @@ export async function createZeroDevWallet(
       switch (params.type) {
         case 'oauth': {
           const { credential } = params
-          const targetPublicKey = await indexedDbClient.stamper.getPublicKey()
+          const targetPublicKey = await client.indexedDbStamper.getPublicKey()
 
           if (!targetPublicKey) {
             throw new Error('Failed to get public key')
           }
 
-          const data = await indexedDbClient.authenticateWithOAuth({
+          const data = await client.authenticateWithOAuth({
             oidcToken: credential,
             provider: 'google',
             targetPublicKey,
@@ -274,7 +232,6 @@ export async function createZeroDevWallet(
             }
             await sessionStorageManager.storeSession(session, session.id)
           }
-          currentClient = indexedDbClient
           return data
         }
         case 'passkey': {
@@ -285,8 +242,8 @@ export async function createZeroDevWallet(
             params.mode === 'register'
           ) {
             const { email } = params
-            await indexedDbClient.stamper.resetKeyPair()
-            const tempPublicKey = await indexedDbClient.stamper.getPublicKey()
+            await client.indexedDbStamper.resetKeyPair()
+            const tempPublicKey = await client.indexedDbStamper.getPublicKey()
             if (!tempPublicKey) {
               throw new Error('Failed to get public key')
             }
@@ -315,7 +272,7 @@ export async function createZeroDevWallet(
                 },
               },
             })
-            const data = await passkeyClient.registerWithPasskey({
+            const data = await client.registerWithPasskey({
               email,
               attestation,
               challenge: encodedChallenge,
@@ -332,12 +289,12 @@ export async function createZeroDevWallet(
             )
             const compressedPublicKeyHex =
               await generateCompressedPublicKeyFromKeyPair(newKeyPair)
-            const loginData = await indexedDbClient.loginWithStamp({
+            const loginData = await client.loginWithStamp({
               projectId,
               targetPublicKey: compressedPublicKeyHex,
               organizationId: data.subOrganizationId,
             })
-            await indexedDbClient.stamper.resetKeyPair(newKeyPair)
+            await client.indexedDbStamper.resetKeyPair(newKeyPair)
             const parsedSession = parseSession(loginData.session)
             const session: ZeroDevWalletSession = {
               id: `session_indexedDb_${Date.now()}`,
@@ -352,7 +309,6 @@ export async function createZeroDevWallet(
               token: loginData.session,
             }
             await sessionStorageManager.storeSession(session, session.id)
-            currentClient = indexedDbClient
             return data
           }
           if (
@@ -360,16 +316,17 @@ export async function createZeroDevWallet(
             'mode' in params &&
             params.mode === 'login'
           ) {
-            await indexedDbClient.stamper.resetKeyPair()
+            await client.indexedDbStamper.resetKeyPair()
             const generatedPublicKey =
-              await indexedDbClient.stamper.getPublicKey()
+              await client.indexedDbStamper.getPublicKey()
             if (!generatedPublicKey) {
               throw new Error('Failed to get public key')
             }
-            const loginData = await passkeyClient.loginWithStamp({
+            const loginData = await client.loginWithStamp({
               targetPublicKey: generatedPublicKey,
               projectId,
               organizationId,
+              stampWith: 'webauthn',
             })
             const parsedSession = parseSession(loginData.session)
             const session: ZeroDevWalletSession = {
@@ -385,7 +342,6 @@ export async function createZeroDevWallet(
               token: loginData.session,
             }
             await sessionStorageManager.storeSession(session, session.id)
-            currentClient = indexedDbClient
             return loginData
           }
           throw new Error('Passkey authentication requires passkey parameter')
@@ -396,7 +352,7 @@ export async function createZeroDevWallet(
           if (type === 'otp' && mode === 'sendOtp') {
             const { email, contact, emailCustomization } = params
 
-            const data = await indexedDbClient.registerWithOTP({
+            const data = await client.registerWithOTP({
               email,
               contact,
               projectId,
@@ -408,14 +364,14 @@ export async function createZeroDevWallet(
 
           if (type === 'otp' && mode === 'verifyOtp') {
             const { otpId, otpCode, subOrganizationId } = params
-            await indexedDbClient.stamper.resetKeyPair()
-            const targetPublicKey = await indexedDbClient.stamper.getPublicKey()
+            await client.indexedDbStamper.resetKeyPair()
+            const targetPublicKey = await client.indexedDbStamper.getPublicKey()
 
             if (!targetPublicKey) {
               throw new Error('Failed to get public key')
             }
 
-            const data = await indexedDbClient.loginWithOTP({
+            const data = await client.loginWithOTP({
               otpId,
               otpCode,
               subOrganizationId,
@@ -440,7 +396,6 @@ export async function createZeroDevWallet(
               }
               await sessionStorageManager.storeSession(session, session.id)
             }
-            currentClient = indexedDbClient
             return data
           }
 
@@ -453,8 +408,7 @@ export async function createZeroDevWallet(
 
     async logout() {
       await sessionStorageManager.clearAllSessions()
-      currentClient = null
-      await indexedDbClient.stamper.resetKeyPair()
+      await client.indexedDbStamper.resetKeyPair()
       return true
     },
 
@@ -463,12 +417,9 @@ export async function createZeroDevWallet(
       if (!session) {
         throw new Error('No active session')
       }
-      if (!currentClient) {
-        throw new Error('No client')
-      }
 
       return toViemAccount({
-        client: currentClient,
+        client,
         organizationId: session.organizationId,
         projectId,
       })

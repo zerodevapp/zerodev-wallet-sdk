@@ -1,4 +1,3 @@
-import type { Stamper } from '../stampers/types.js'
 import {
   type ZeroDevWalletActions,
   zeroDevWalletActions,
@@ -14,11 +13,11 @@ let clientId = 0
  */
 export function createBaseClient<
   extended extends Record<string, unknown> | undefined = undefined,
-  TStamper extends Stamper = Stamper,
->(config: ClientConfig): Client<extended, TStamper> {
+>(config: ClientConfig): Client<extended> {
   const {
     transport,
-    stamper,
+    indexedDbStamper,
+    webauthnStamper,
     organizationId,
     key = 'zeroDevWallet',
     name = 'ZeroDev Wallet Client',
@@ -30,7 +29,8 @@ export function createBaseClient<
     request,
     value,
   } = transport({
-    stamper,
+    indexedDbStamper,
+    webauthnStamper,
   })
   const transportInstance = { ...transportConfig, ...value }
 
@@ -39,7 +39,8 @@ export function createBaseClient<
   const client = {
     transport: transportInstance,
     request,
-    stamper,
+    indexedDbStamper,
+    webauthnStamper,
     organizationId,
     key,
     name,
@@ -65,16 +66,12 @@ export function createBaseClient<
     }
   }
 
-  return Object.assign(client, { extend: extend(client) as any }) as Client<
-    extended,
-    TStamper
-  >
+  return Object.assign(client, {
+    extend: extend(client) as any,
+  }) as Client<extended>
 }
 
-export type ZeroDevWalletClient<TStamper extends Stamper = Stamper> = Client<
-  ZeroDevWalletActions,
-  TStamper
->
+export type ZeroDevWalletClient = Client<ZeroDevWalletActions>
 
 /**
  * Creates a ZeroDev Wallet client with ZeroDev Wallet actions pre-loaded.
@@ -82,14 +79,12 @@ export type ZeroDevWalletClient<TStamper extends Stamper = Stamper> = Client<
  *
  * For a client without pre-loaded actions, use createBaseClient().
  */
-export function createClient<TStamper extends Stamper = Stamper>(
-  config: ClientConfig<TStamper>,
-): ZeroDevWalletClient<TStamper> {
+export function createClient(config: ClientConfig): ZeroDevWalletClient {
   const { key = 'zeroDevWallet', name = 'ZeroDev Wallet Client' } = config
   const client = createBaseClient({
     ...config,
     key,
     name,
   })
-  return client.extend(zeroDevWalletActions) as ZeroDevWalletClient<TStamper>
+  return client.extend(zeroDevWalletActions) as ZeroDevWalletClient
 }
