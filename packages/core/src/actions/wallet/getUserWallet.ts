@@ -6,6 +6,8 @@ export type GetUserWalletParameters = {
   organizationId: string
   /** The project ID for the request */
   projectId: string
+  /** The token for the request */
+  token: string
 }
 
 export type GetUserWalletReturnType = {
@@ -35,12 +37,17 @@ export async function getUserWallet(
   client: Client,
   params: GetUserWalletParameters,
 ): Promise<GetUserWalletReturnType> {
-  const { organizationId, projectId } = params
+  const { organizationId, projectId, token } = params
 
   return await client.request({
     path: `${projectId}/user-wallet`,
     body: {
       organizationId,
     },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    stamp: true,
+    stampPostion: 'headers',
   })
 }
