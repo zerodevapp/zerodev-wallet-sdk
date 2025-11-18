@@ -50,5 +50,8 @@
     "*.{json,jsonc}": [
       "biome format --write"
     ]
+  },
+  "dependencies": {
+    "@zerodev/wallet-react": "link:../../Library/pnpm/global/5/node_modules/@zerodev/wallet-react"
   }
 }

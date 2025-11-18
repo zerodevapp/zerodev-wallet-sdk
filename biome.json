@@ -13,7 +13,8 @@
       "**/*.js",
       "**/*.jsx",
       "**/*.json",
-      "**/*.jsonc"
+      "**/*.jsonc",
+      "!packages/react/**/*.ts"
     ],
     "experimentalScannerIgnores": [
       "**/dist/**",
@@ -146,6 +147,16 @@
         "rules": {
           "performance": {
             "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/react/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
           }
         }
       }

@@ -71,7 +71,7 @@ export async function toViemAccount(
         ? { ...transaction, sidecars: false }
         : transaction
 
-    const serializedTx = serializer(signableTransaction)
+    const serializedTx = await serializer(signableTransaction)
     const nonHexPrefixedSerializedTx = serializedTx.replace(/^0x/, '')
     const signature = await client.signTransaction({
       organizationId,

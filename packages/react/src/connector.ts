@@ -1,0 +1,425 @@
+import { type CreateConnectorFn, createConnector } from '@wagmi/core'
+import {
+  createKernelAccount,
+  createKernelAccountClient,
+  createZeroDevPaymasterClient,
+} from '@zerodev/sdk'
+import { getEntryPoint, KERNEL_V3_3 } from '@zerodev/sdk/constants'
+import type { StorageAdapter } from '@zerodev/wallet-core'
+import { createZeroDevWallet, normalizeTimestamp } from '@zerodev/wallet-core'
+import { type Chain, createPublicClient, http } from 'viem'
+import type { OAuthConfig } from './oauth.js'
+import { createProvider } from './provider.js'
+import { createZeroDevWalletStore } from './store.js'
+import { getAAUrl } from './utils/aaUtils.js'
+
+export type ZeroDevWalletConnectorParams = {
+  projectId: string
+  organizationId?: string
+  proxyBaseUrl?: string
+  aaUrl: string // Bundler/paymaster URL
+  chains: readonly Chain[]
+  rpId?: string
+  sessionStorage?: StorageAdapter
+  autoRefreshSession?: boolean
+  sessionWarningThreshold?: number
+  oauthConfig?: OAuthConfig
+}
+
+const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
+
+export function zeroDevWallet(
+  params: ZeroDevWalletConnectorParams,
+): CreateConnectorFn {
+  type Provider = ReturnType<typeof createProvider>
+  type Properties = {
+    connect<withCapabilities extends boolean = false>(parameters?: {
+      chainId?: number | undefined
+      isReconnecting?: boolean | undefined
+      withCapabilities?: withCapabilities | boolean | undefined
+    }): Promise<{
+      accounts: withCapabilities extends true
+        ? readonly {
+            address: `0x${string}`
+            capabilities: Record<string, unknown>
+          }[]
+        : readonly `0x${string}`[]
+      chainId: number
+    }>
+    getStore(): Promise<ReturnType<typeof createZeroDevWalletStore>>
+  }
+
+  return createConnector<Provider, Properties>(() => {
+    let store: ReturnType<typeof createZeroDevWalletStore>
+    let provider: ReturnType<typeof createProvider>
+    let sessionRefreshTimer: NodeJS.Timeout | null = null
+    let initPromise: Promise<void> | undefined
+
+    // Lazy initialization - only runs on client side
+    const initialize = async () => {
+      initPromise ??= (async () => {
+        console.log('Initializing ZeroDevWallet connector...')
+
+        // Initialize wallet SDK
+        const wallet = await createZeroDevWallet({
+          projectId: params.projectId,
+          ...(params.organizationId && {
+            organizationId: params.organizationId,
+          }),
+          ...(params.proxyBaseUrl && { proxyBaseUrl: params.proxyBaseUrl }),
+          ...(params.sessionStorage && {
+            sessionStorage: params.sessionStorage,
+          }),
+          ...(params.rpId && { rpId: params.rpId }),
+        })
+
+        // Create store
+        store = createZeroDevWalletStore()
+        store.getState().setWallet(wallet)
+
+        // Initialize chainIds
+        const chainIds = params.chains.map((c) => c.id)
+        store.setState({ chainIds })
+
+        // Store OAuth config if provided
+        if (params.oauthConfig) {
+          store.getState().setOAuthConfig(params.oauthConfig)
+        }
+
+        // Create EIP-1193 provider
+        provider = createProvider({
+          store,
+          config: params,
+          chains: Array.from(params.chains),
+        })
+
+        // Check for existing session (page reload)
+        const session = await wallet.getSession()
+        if (session) {
+          console.log('Found existing session, restoring...')
+          const eoaAccount = await wallet.toAccount()
+          store.getState().setEoaAccount(eoaAccount)
+          store.getState().setSession(session)
+
+          // Schedule auto-refresh
+          scheduleSessionRefresh()
+        }
+
+        // Subscribe to session changes for auto-refresh
+        store.subscribe(
+          (state) => state.session,
+          () => {
+            scheduleSessionRefresh()
+          },
+        )
+
+        console.log('ZeroDevWallet connector initialized')
+      })()
+
+      return initPromise
+    }
+
+    // Session auto-refresh logic
+    const scheduleSessionRefresh = () => {
+      if (params.autoRefreshSession === false) return
+
+      const state = store.getState()
+      if (!state.session || !state.wallet) return
+
+      const expiryMs = normalizeTimestamp(state.session.expiry)
+      const now = Date.now()
+      const timeUntilExpiry = expiryMs - now
+
+      if (timeUntilExpiry <= 0) {
+        console.log('Session already expired')
+        return
+      }
+
+      // Clear existing timer
+      if (sessionRefreshTimer) {
+        clearTimeout(sessionRefreshTimer)
+        sessionRefreshTimer = null
+      }
+
+      const threshold =
+        params.sessionWarningThreshold || SESSION_WARNING_THRESHOLD_MS
+      const refreshAt = expiryMs - threshold
+
+      const timeUntilRefresh = refreshAt - now
+
+      if (timeUntilRefresh <= 0) {
+        // Need to refresh immediately
+        console.log('Session expiring soon, refreshing immediately...')
+        refreshSessionNow()
+      } else {
+        // Schedule refresh
+        console.log(`Scheduling session refresh in ${timeUntilRefresh}ms`)
+        sessionRefreshTimer = setTimeout(() => {
+          refreshSessionNow()
+        }, timeUntilRefresh)
+      }
+    }
+
+    const refreshSessionNow = async () => {
+      const state = store.getState()
+      if (!state.wallet || !state.session) return
+
+      console.log('Auto-refreshing session...')
+      store.getState().setIsExpiring(true)
+
+      try {
+        const newSession = await state.wallet.refreshSession(state.session.id)
+        console.log('Session refreshed successfully')
+        store.getState().setSession(newSession || null)
+        store.getState().setIsExpiring(false)
+
+        // Re-schedule for new session
+        if (newSession) {
+          scheduleSessionRefresh()
+        }
+      } catch (err) {
+        console.error('Session refresh failed:', err)
+        store.getState().setIsExpiring(false)
+        // Clear session on refresh failure
+        store.getState().clear()
+      }
+    }
+
+    return {
+      id: 'zerodev-wallet',
+      name: 'ZeroDevWallet',
+      type: 'injected' as const,
+
+      async setup() {
+        // Initialize on client-side mount (setup only runs client-side)
+        if (typeof window !== 'undefined') {
+          await initialize()
+        }
+      },
+
+      async connect({ chainId, ...rest } = {}) {
+        const withCapabilities =
+          ('withCapabilities' in rest && rest.withCapabilities) || false
+        const isReconnecting =
+          ('isReconnecting' in rest && rest.isReconnecting) || false
+
+        // Ensure wallet is initialized (lazy init on first connect)
+        await initialize()
+
+        console.log(
+          isReconnecting
+            ? 'Reconnecting ZeroDevWallet...'
+            : 'Connecting ZeroDevWallet...',
+        )
+        const state = store.getState()
+
+        // Determine active chain
+        const activeChainId = chainId || state.chainIds[0]
+        if (!activeChainId) {
+          throw new Error('No chain configured')
+        }
+
+        // If reconnecting and already have kernel account, return immediately
+        if (isReconnecting && state.kernelAccounts.has(activeChainId)) {
+          const kernelAccount = state.kernelAccounts.get(activeChainId)
+          if (kernelAccount?.address) {
+            console.log('Already connected:', kernelAccount.address)
+            return {
+              accounts: [kernelAccount.address] as never,
+              chainId: activeChainId,
+            }
+          }
+        }
+
+        if (!state.eoaAccount) {
+          throw new Error(
+            'Not authenticated. Please authenticate first using passkey, OAuth, or OTP.',
+          )
+        }
+
+        // Create KernelAccount for this chain if doesn't exist
+        if (!state.kernelAccounts.has(activeChainId)) {
+          const chain = params.chains.find((c) => c.id === activeChainId)
+          if (!chain) {
+            throw new Error(`Chain ${activeChainId} not found in config`)
+          }
+
+          const publicClient = createPublicClient({
+            chain,
+            transport: http(),
+          })
+
+          console.log(`Creating kernel account for chain ${activeChainId}...`)
+          console.log('state.eoaAccount', state.eoaAccount)
+          const kernelAccount = await createKernelAccount(publicClient, {
+            entryPoint: getEntryPoint('0.7'),
+            kernelVersion: KERNEL_V3_3,
+            eip7702Account: state.eoaAccount,
+          })
+          console.log('kernelAccount', kernelAccount)
+
+          // Store kernel account for this chain
+          store.getState().setKernelAccount(activeChainId, kernelAccount)
+
+          console.log('creating kernel client for chain', activeChainId)
+          // Create and store kernel client for transactions
+          const kernelClient = createKernelAccountClient({
+            account: kernelAccount,
+            bundlerTransport: http(getAAUrl(activeChainId, params.aaUrl)),
+            chain,
+            client: publicClient,
+            paymaster: createZeroDevPaymasterClient({
+              chain,
+              transport: http(getAAUrl(activeChainId, params.aaUrl)),
+            }),
+          })
+          console.log('kernelClient', kernelClient)
+          store.getState().setKernelClient(activeChainId, kernelClient)
+        }
+
+        // Set as active chain
+        store.getState().setActiveChain(activeChainId)
+
+        // Get fresh state after updates
+        const freshState = store.getState()
+        const kernelAccount = freshState.kernelAccounts.get(activeChainId)!
+
+        console.log('ZeroDevWallet connected:', kernelAccount.address)
+
+        const address = kernelAccount.address
+        return {
+          accounts: (withCapabilities
+            ? [{ address, capabilities: {} }]
+            : [address]) as never,
+          chainId: activeChainId,
+        }
+      },
+
+      async disconnect() {
+        console.log('Disconnecting ZeroDevWallet...')
+        if (!store) return
+        const wallet = store.getState().wallet
+
+        // Clear session refresh timer
+        if (sessionRefreshTimer) {
+          clearTimeout(sessionRefreshTimer)
+          sessionRefreshTimer = null
+        }
+
+        await wallet?.logout()
+        store.getState().clear()
+      },
+
+      async getAccounts() {
+        if (!store) return []
+        const { eoaAccount, kernelAccounts, chainIds } = store.getState()
+
+        // Return EOA address if we have it (EIP-7702: EOA address = kernel address)
+        if (eoaAccount) {
+          return [eoaAccount.address]
+        }
+
+        // Fallback: check kernel accounts
+        const activeAccount = chainIds[0]
+          ? kernelAccounts.get(chainIds[0])
+          : null
+        return activeAccount ? [activeAccount.address] : []
+      },
+
+      async getChainId() {
+        if (!store) return params.chains[0].id
+        return store.getState().chainIds[0] || params.chains[0].id
+      },
+
+      async getProvider() {
+        await initialize()
+        return provider
+      },
+
+      async switchChain({ chainId }) {
+        await initialize()
+        console.log(`Switching to chain ${chainId}...`)
+        const state = store.getState()
+
+        if (!state.eoaAccount) {
+          throw new Error('Not authenticated')
+        }
+
+        // Update active chain
+        store.getState().setActiveChain(chainId)
+
+        // Create kernel account for new chain if doesn't exist
+        if (!state.kernelAccounts.has(chainId)) {
+          const chain = params.chains.find((c) => c.id === chainId)
+          if (!chain) {
+            throw new Error(`Chain ${chainId} not found in config`)
+          }
+
+          const publicClient = createPublicClient({
+            chain,
+            transport: http(),
+          })
+
+          console.log(`Creating kernel account for chain ${chainId}...`)
+          const kernelAccount = await createKernelAccount(publicClient, {
+            entryPoint: getEntryPoint('0.7'),
+            kernelVersion: KERNEL_V3_3,
+            eip7702Account: state.eoaAccount,
+          })
+
+          store.getState().setKernelAccount(chainId, kernelAccount)
+          console.log('kernelAccount', kernelAccount)
+          console.log('creating kernel client for chain', chainId)
+          const kernelClient = createKernelAccountClient({
+            account: kernelAccount,
+            bundlerTransport: http(getAAUrl(chainId, params.aaUrl)),
+            chain,
+            client: publicClient,
+            paymaster: createZeroDevPaymasterClient({
+              chain,
+              transport: http(getAAUrl(chainId, params.aaUrl)),
+            }),
+          })
+          console.log('kernelClient', kernelClient)
+          store.getState().setKernelClient(chainId, kernelClient)
+
+          console.log('kernelClient', kernelClient)
+          store.getState().setKernelClient(chainId, kernelClient)
+        }
+
+        return params.chains.find((c) => c.id === chainId)!
+      },
+
+      async isAuthorized() {
+        // Just check if we have a session - don't initialize here (too slow)
+        if (!store) return false
+        return !!store.getState().eoaAccount
+      },
+
+      // Custom method for hooks to access store
+      async getStore() {
+        await initialize()
+        return store
+      },
+
+      // Event listeners
+      onAccountsChanged() {
+        // Not applicable for this wallet type
+      },
+      onChainChanged() {
+        // Handled by Wagmi
+      },
+      onConnect() {
+        // Handled by Wagmi
+      },
+      onDisconnect() {
+        console.log('Disconnect event')
+        if (sessionRefreshTimer) {
+          clearTimeout(sessionRefreshTimer)
+          sessionRefreshTimer = null
+        }
+        store.getState().clear()
+      },
+    }
+  })
+}

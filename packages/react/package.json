@@ -1,0 +1,51 @@
+{
+  "name": "@zerodev/wallet-react",
+  "version": "0.0.1-alpha.0",
+  "description": "React hooks for ZeroDev Wallet SDK",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/_cjs/index.js",
+  "module": "./dist/_esm/index.js",
+  "types": "./dist/_types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/_types/index.d.ts",
+      "import": "./dist/_esm/index.js",
+      "require": "./dist/_cjs/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
+    "build:esm": "tsc --project ./tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
+    "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "react",
+    "hooks",
+    "wallet",
+    "zerodev",
+    "web3"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@zerodev/wallet-core": "workspace:*",
+    "@zerodev/sdk": "5.5.4",
+    "@wagmi/core": "^2.22.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "viem": "^2.38.0",
+    "wagmi": "^2.19.0",
+    "zustand": "^5.0.3"
+  },
+  "dependencies": {
+    "ox": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "5.9.3"
+  }
+}
