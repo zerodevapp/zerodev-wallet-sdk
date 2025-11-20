@@ -20,7 +20,7 @@ export function useAuthenticateOAuth<
   context = unknown,
 >(
   parameters: useAuthenticateOAuth.Parameters<config, context> = {},
-): useAuthenticateOAuth.ReturnType<config, context> {
+): useAuthenticateOAuth.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
 
@@ -48,10 +48,7 @@ export declare namespace useAuthenticateOAuth {
       | undefined
   }
 
-  type ReturnType<
-    config extends Config = Config,
-    context = unknown,
-  > = UseMutationResult<
+  type ReturnType<context = unknown> = UseMutationResult<
     authenticateOAuth.ReturnType,
     authenticateOAuth.ErrorType,
     authenticateOAuth.Parameters,

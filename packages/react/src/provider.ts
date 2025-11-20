@@ -1,9 +1,12 @@
 import type { KernelSmartAccountImplementation } from '@zerodev/sdk'
+import { normalizeTimestamp } from '@zerodev/wallet-core'
 import { Provider } from 'ox'
 import type { Chain, LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
 import type { ZeroDevWalletConnectorParams } from './connector.js'
 import type { createZeroDevWalletStore } from './store.js'
+
+const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
 
 type CreateProviderParams = {
   store: ReturnType<typeof createZeroDevWalletStore>
@@ -13,15 +16,102 @@ type CreateProviderParams = {
 
 export type ZeroDevProvider = ReturnType<typeof Provider.createEmitter> & {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>
+  destroy(): void
 }
 
 export function createProvider({
   store,
+  config,
 }: CreateProviderParams): ZeroDevProvider {
   const emitter = Provider.createEmitter()
+  let sessionRefreshTimer: NodeJS.Timeout | null = null
+
+  // Session auto-refresh logic
+  const scheduleSessionRefresh = () => {
+    if (config.autoRefreshSession === false) return
+
+    const state = store.getState()
+    if (!state.session || !state.wallet) return
+
+    const expiryMs = normalizeTimestamp(state.session.expiry)
+    const now = Date.now()
+    const timeUntilExpiry = expiryMs - now
+
+    if (timeUntilExpiry <= 0) {
+      console.log('Session already expired')
+      return
+    }
+
+    // Clear existing timer
+    if (sessionRefreshTimer) {
+      clearTimeout(sessionRefreshTimer)
+      sessionRefreshTimer = null
+    }
+
+    const threshold =
+      config.sessionWarningThreshold || SESSION_WARNING_THRESHOLD_MS
+    const refreshAt = expiryMs - threshold
+    const timeUntilRefresh = refreshAt - now
+
+    if (timeUntilRefresh <= 0) {
+      console.log('Session expiring soon, refreshing immediately...')
+      refreshSessionNow()
+    } else {
+      console.log(`Scheduling session refresh in ${timeUntilRefresh}ms`)
+      sessionRefreshTimer = setTimeout(() => {
+        refreshSessionNow()
+      }, timeUntilRefresh)
+    }
+  }
+
+  const refreshSessionNow = async () => {
+    const state = store.getState()
+    if (!state.wallet || !state.session) return
+
+    console.log('Auto-refreshing session...')
+    store.getState().setIsExpiring(true)
+
+    try {
+      const newSession = await state.wallet.refreshSession(state.session.id)
+      console.log('Session refreshed successfully')
+      store.getState().setSession(newSession || null)
+      store.getState().setIsExpiring(false)
+
+      if (newSession) {
+        scheduleSessionRefresh()
+      }
+    } catch (err) {
+      console.error('Session refresh failed:', err)
+      store.getState().setIsExpiring(false)
+      store.getState().clear()
+    }
+  }
+
+  // Subscribe to session changes
+  const unsubscribe = store.subscribe(
+    (state) => state.session,
+    () => {
+      scheduleSessionRefresh()
+    },
+  )
+
+  // Schedule initial refresh if session exists
+  const initialSession = store.getState().session
+  if (initialSession) {
+    scheduleSessionRefresh()
+  }
 
   return {
     ...emitter,
+
+    destroy() {
+      // Cleanup timer and subscription
+      if (sessionRefreshTimer) {
+        clearTimeout(sessionRefreshTimer)
+        sessionRefreshTimer = null
+      }
+      unsubscribe()
+    },
 
     async request({ method, params }: { method: string; params?: any[] }) {
       const state = store.getState()
@@ -45,7 +135,6 @@ export function createProvider({
 
         case 'wallet_sendTransaction':
         case 'eth_sendTransaction': {
-          console.log('eth_sendTransaction', params)
           if (!params || params.length === 0) {
             throw new Error('Missing transaction parameters')
           }
@@ -53,15 +142,11 @@ export function createProvider({
           const [tx] = params
           const chainId = tx.chainId ? parseInt(tx.chainId, 16) : activeChainId
 
-          console.log('chainId', chainId)
-
           // Get kernel client for this chain
           const kernelClient = store.getState().kernelClients.get(chainId)
           if (!kernelClient) {
             throw new Error(`No kernel client for chain ${chainId}`)
           }
-
-          console.log('kernelClient', kernelClient)
 
           // Send gasless transaction (always UserOp for EIP-7702)
           const hash = await kernelClient.sendTransaction({
@@ -73,8 +158,6 @@ export function createProvider({
               },
             ],
           })
-
-          console.log('hash', hash)
 
           return hash
         }

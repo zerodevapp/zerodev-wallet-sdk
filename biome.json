@@ -13,8 +13,7 @@
       "**/*.js",
       "**/*.jsx",
       "**/*.json",
-      "**/*.jsonc",
-      "!packages/react/**/*.ts"
+      "**/*.jsonc"
     ],
     "experimentalScannerIgnores": [
       "**/dist/**",

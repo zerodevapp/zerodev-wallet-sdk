@@ -20,7 +20,7 @@ export function useSendOTP<
   context = unknown,
 >(
   parameters: useSendOTP.Parameters<config, context> = {},
-): useSendOTP.ReturnType<config, context> {
+): useSendOTP.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
 
@@ -48,10 +48,7 @@ export declare namespace useSendOTP {
       | undefined
   }
 
-  type ReturnType<
-    config extends Config = Config,
-    context = unknown,
-  > = UseMutationResult<
+  type ReturnType<context = unknown> = UseMutationResult<
     sendOTP.ReturnType,
     sendOTP.ErrorType,
     sendOTP.Parameters,

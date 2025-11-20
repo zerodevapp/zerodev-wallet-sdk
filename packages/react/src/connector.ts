@@ -6,7 +6,7 @@ import {
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_3 } from '@zerodev/sdk/constants'
 import type { StorageAdapter } from '@zerodev/wallet-core'
-import { createZeroDevWallet, normalizeTimestamp } from '@zerodev/wallet-core'
+import { createZeroDevWallet } from '@zerodev/wallet-core'
 import { type Chain, createPublicClient, http } from 'viem'
 import type { OAuthConfig } from './oauth.js'
 import { createProvider } from './provider.js'
@@ -25,8 +25,6 @@ export type ZeroDevWalletConnectorParams = {
   sessionWarningThreshold?: number
   oauthConfig?: OAuthConfig
 }
-
-const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
 
 export function zeroDevWallet(
   params: ZeroDevWalletConnectorParams,
@@ -49,11 +47,13 @@ export function zeroDevWallet(
     getStore(): Promise<ReturnType<typeof createZeroDevWalletStore>>
   }
 
-  return createConnector<Provider, Properties>(() => {
+  return createConnector<Provider, Properties>((wagmiConfig) => {
     let store: ReturnType<typeof createZeroDevWalletStore>
     let provider: ReturnType<typeof createProvider>
-    let sessionRefreshTimer: NodeJS.Timeout | null = null
     let initPromise: Promise<void> | undefined
+
+    // Get transports from Wagmi config (uses user's RPC URLs)
+    const transports = wagmiConfig.transports
 
     // Lazy initialization - only runs on client side
     const initialize = async () => {
@@ -100,89 +100,12 @@ export function zeroDevWallet(
           const eoaAccount = await wallet.toAccount()
           store.getState().setEoaAccount(eoaAccount)
           store.getState().setSession(session)
-
-          // Schedule auto-refresh
-          scheduleSessionRefresh()
         }
-
-        // Subscribe to session changes for auto-refresh
-        store.subscribe(
-          (state) => state.session,
-          () => {
-            scheduleSessionRefresh()
-          },
-        )
 
         console.log('ZeroDevWallet connector initialized')
       })()
 
       return initPromise
-    }
-
-    // Session auto-refresh logic
-    const scheduleSessionRefresh = () => {
-      if (params.autoRefreshSession === false) return
-
-      const state = store.getState()
-      if (!state.session || !state.wallet) return
-
-      const expiryMs = normalizeTimestamp(state.session.expiry)
-      const now = Date.now()
-      const timeUntilExpiry = expiryMs - now
-
-      if (timeUntilExpiry <= 0) {
-        console.log('Session already expired')
-        return
-      }
-
-      // Clear existing timer
-      if (sessionRefreshTimer) {
-        clearTimeout(sessionRefreshTimer)
-        sessionRefreshTimer = null
-      }
-
-      const threshold =
-        params.sessionWarningThreshold || SESSION_WARNING_THRESHOLD_MS
-      const refreshAt = expiryMs - threshold
-
-      const timeUntilRefresh = refreshAt - now
-
-      if (timeUntilRefresh <= 0) {
-        // Need to refresh immediately
-        console.log('Session expiring soon, refreshing immediately...')
-        refreshSessionNow()
-      } else {
-        // Schedule refresh
-        console.log(`Scheduling session refresh in ${timeUntilRefresh}ms`)
-        sessionRefreshTimer = setTimeout(() => {
-          refreshSessionNow()
-        }, timeUntilRefresh)
-      }
-    }
-
-    const refreshSessionNow = async () => {
-      const state = store.getState()
-      if (!state.wallet || !state.session) return
-
-      console.log('Auto-refreshing session...')
-      store.getState().setIsExpiring(true)
-
-      try {
-        const newSession = await state.wallet.refreshSession(state.session.id)
-        console.log('Session refreshed successfully')
-        store.getState().setSession(newSession || null)
-        store.getState().setIsExpiring(false)
-
-        // Re-schedule for new session
-        if (newSession) {
-          scheduleSessionRefresh()
-        }
-      } catch (err) {
-        console.error('Session refresh failed:', err)
-        store.getState().setIsExpiring(false)
-        // Clear session on refresh failure
-        store.getState().clear()
-      }
     }
 
     return {
@@ -244,24 +167,23 @@ export function zeroDevWallet(
             throw new Error(`Chain ${activeChainId} not found in config`)
           }
 
+          // Use transport from Wagmi config (has user's RPC URL)
+          const transport = transports?.[activeChainId] ?? http()
           const publicClient = createPublicClient({
             chain,
-            transport: http(),
+            transport,
           })
 
           console.log(`Creating kernel account for chain ${activeChainId}...`)
-          console.log('state.eoaAccount', state.eoaAccount)
           const kernelAccount = await createKernelAccount(publicClient, {
             entryPoint: getEntryPoint('0.7'),
             kernelVersion: KERNEL_V3_3,
             eip7702Account: state.eoaAccount,
           })
-          console.log('kernelAccount', kernelAccount)
 
           // Store kernel account for this chain
           store.getState().setKernelAccount(activeChainId, kernelAccount)
 
-          console.log('creating kernel client for chain', activeChainId)
           // Create and store kernel client for transactions
           const kernelClient = createKernelAccountClient({
             account: kernelAccount,
@@ -273,7 +195,6 @@ export function zeroDevWallet(
               transport: http(getAAUrl(activeChainId, params.aaUrl)),
             }),
           })
-          console.log('kernelClient', kernelClient)
           store.getState().setKernelClient(activeChainId, kernelClient)
         }
 
@@ -300,11 +221,8 @@ export function zeroDevWallet(
         if (!store) return
         const wallet = store.getState().wallet
 
-        // Clear session refresh timer
-        if (sessionRefreshTimer) {
-          clearTimeout(sessionRefreshTimer)
-          sessionRefreshTimer = null
-        }
+        // Cleanup provider (clears timers)
+        provider?.destroy()
 
         await wallet?.logout()
         store.getState().clear()
@@ -355,9 +273,11 @@ export function zeroDevWallet(
             throw new Error(`Chain ${chainId} not found in config`)
           }
 
+          // Use transport from Wagmi config (has user's RPC URL)
+          const transport = transports?.[chainId] ?? http()
           const publicClient = createPublicClient({
             chain,
-            transport: http(),
+            transport,
           })
 
           console.log(`Creating kernel account for chain ${chainId}...`)
@@ -368,8 +288,6 @@ export function zeroDevWallet(
           })
 
           store.getState().setKernelAccount(chainId, kernelAccount)
-          console.log('kernelAccount', kernelAccount)
-          console.log('creating kernel client for chain', chainId)
           const kernelClient = createKernelAccountClient({
             account: kernelAccount,
             bundlerTransport: http(getAAUrl(chainId, params.aaUrl)),
@@ -380,10 +298,6 @@ export function zeroDevWallet(
               transport: http(getAAUrl(chainId, params.aaUrl)),
             }),
           })
-          console.log('kernelClient', kernelClient)
-          store.getState().setKernelClient(chainId, kernelClient)
-
-          console.log('kernelClient', kernelClient)
           store.getState().setKernelClient(chainId, kernelClient)
         }
 
@@ -414,10 +328,7 @@ export function zeroDevWallet(
       },
       onDisconnect() {
         console.log('Disconnect event')
-        if (sessionRefreshTimer) {
-          clearTimeout(sessionRefreshTimer)
-          sessionRefreshTimer = null
-        }
+        provider?.destroy()
         store.getState().clear()
       },
     }

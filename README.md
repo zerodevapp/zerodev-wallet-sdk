@@ -2,28 +2,85 @@
 
 [![CI](https://github.com/offchainlabs/doorway-kms-sdk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/offchainlabs/doorway-kms-sdk/actions/workflows/ci.yml)
 
-TypeScript SDK for non-custodial wallet signing powered by Turnkey's secure infrastructure.
+TypeScript SDK for non-custodial wallet signing powered by Turnkey's secure infrastructure with EIP-7702 gasless transactions.
 
-## Features
+## Packages
 
-- **Multiple Authentication Methods** - Passkey, Email Magic Link, OTP, OAuth (Google)
-- **Non-Custodial** - Keys managed by Turnkey enclaves, never exposed
-- **Session Management** - Auto-refresh, multi-session support
-- **viem Integration** - Works seamlessly with viem for Ethereum operations
-- **TypeScript** - Full type safety
-- **Flexible Storage** - Custom storage adapters (localStorage, IndexedDB, etc.)
-
-## Installation
-
-```bash
-npm install @zerodev/wallet-core
-# or
-yarn add @zerodev/wallet-core
-# or
-pnpm add @zerodev/wallet-core
-```
+- **[@zerodev/wallet-react](./packages/react)** - React hooks and Wagmi connector (recommended for React apps)
+- **[@zerodev/wallet-core](./packages/core)** - Core SDK (framework-agnostic)
 
 ## Quick Start
+
+### For React/Next.js Apps (Recommended)
+
+Use the Wagmi connector for seamless integration:
+
+```bash
+npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem
+```
+
+```typescript
+import { createConfig } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+import { zeroDevWallet, useRegisterPasskey, OAUTH_PROVIDERS } from '@zerodev/wallet-react'
+
+// 1. Configure Wagmi
+const config = createConfig({
+  chains: [sepolia],
+  connectors: [
+    zeroDevWallet({
+      projectId: 'your-project-id',
+      aaUrl: 'your-aa-provider-url',
+      chains: [sepolia],
+      oauthConfig: {
+        googleClientId: 'your-google-client-id',
+        redirectUri: 'http://localhost:3000/oauth/callback',
+      }
+    })
+  ],
+  transports: {
+    [sepolia.id]: http('your-rpc-url'),
+  },
+})
+
+// 2. Authenticate
+function LoginPage() {
+  const registerPasskey = useRegisterPasskey()
+  const authenticateOAuth = useAuthenticateOAuth()
+
+  return (
+    <>
+      <button onClick={() => registerPasskey.mutate({ email: 'user@example.com' })}>
+        Register with Passkey
+      </button>
+      <button onClick={() => authenticateOAuth.mutate({ provider: OAUTH_PROVIDERS.GOOGLE })}>
+        Login with Google
+      </button>
+    </>
+  )
+}
+
+// 3. Use standard Wagmi hooks
+function Dashboard() {
+  const { address } = useAccount()
+  const { sendTransaction } = useSendTransaction() // Automatically gasless!
+  const { disconnect } = useDisconnect()
+
+  return (
+    <>
+      <p>Address: {address}</p>
+      <button onClick={() => sendTransaction({ to: '0x...', value: parseEther('0.01') })}>
+        Send Gasless Transaction
+      </button>
+      <button onClick={() => disconnect()}>Logout</button>
+    </>
+  )
+}
+```
+
+See [React package README](./packages/react/README.md) for full documentation.
+
+### For Vanilla JS/Other Frameworks
 
 ```typescript
 import { createZeroDevWallet } from '@zerodev/wallet-core';

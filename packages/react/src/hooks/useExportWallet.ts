@@ -20,7 +20,7 @@ export function useExportWallet<
   context = unknown,
 >(
   parameters: useExportWallet.Parameters<config, context> = {},
-): useExportWallet.ReturnType<config, context> {
+): useExportWallet.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
 
@@ -48,10 +48,7 @@ export declare namespace useExportWallet {
       | undefined
   }
 
-  type ReturnType<
-    config extends Config = Config,
-    context = unknown,
-  > = UseMutationResult<
+  type ReturnType<context = unknown> = UseMutationResult<
     exportWallet.ReturnType,
     exportWallet.ErrorType,
     exportWallet.Parameters,

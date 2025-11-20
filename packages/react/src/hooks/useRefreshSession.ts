@@ -19,7 +19,7 @@ export function useRefreshSession<
   config extends Config = ResolvedRegister['config'],
   context = unknown,
 >(
-  parameters: useRefreshSession.Parameters<context> = {},
+  parameters: useRefreshSession.Parameters<config, context> = {},
 ): useRefreshSession.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
@@ -34,7 +34,10 @@ export function useRefreshSession<
 }
 
 export declare namespace useRefreshSession {
-  type Parameters<context = unknown> = ConfigParameter & {
+  type Parameters<
+    config extends Config = Config,
+    context = unknown,
+  > = ConfigParameter<config> & {
     mutation?:
       | UseMutationOptions<
           refreshSession.ReturnType,

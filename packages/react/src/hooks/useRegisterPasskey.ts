@@ -20,7 +20,7 @@ export function useRegisterPasskey<
   context = unknown,
 >(
   parameters: useRegisterPasskey.Parameters<config, context> = {},
-): useRegisterPasskey.ReturnType<config, context> {
+): useRegisterPasskey.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
 
@@ -48,10 +48,7 @@ export declare namespace useRegisterPasskey {
       | undefined
   }
 
-  type ReturnType<
-    config extends Config = Config,
-    context = unknown,
-  > = UseMutationResult<
+  type ReturnType<context = unknown> = UseMutationResult<
     registerPasskey.ReturnType,
     registerPasskey.ErrorType,
     registerPasskey.Parameters,

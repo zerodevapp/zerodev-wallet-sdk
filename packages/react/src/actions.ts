@@ -116,7 +116,6 @@ export async function authenticateOAuth(
   config: Config,
   parameters: {
     provider: OAuthProvider
-    openInPage?: boolean
     clientId?: string
     connector?: Connector
   },
@@ -135,24 +134,10 @@ export async function authenticateOAuth(
     )
   }
 
-  const openInPage = parameters.openInPage ?? oauthConfig.openInPage ?? false
-
   // Get client ID for the provider
   let clientId = parameters.clientId
   if (!clientId) {
-    switch (parameters.provider) {
-      case 'google':
-        clientId = oauthConfig.googleClientId
-        break
-      case 'apple':
-        clientId = oauthConfig.appleClientId
-        break
-      case 'facebook':
-        clientId = oauthConfig.facebookClientId
-        break
-      default:
-        throw new Error(`Unsupported OAuth provider: ${parameters.provider}`)
-    }
+    clientId = oauthConfig.googleClientId
   }
 
   if (!clientId) {
@@ -176,21 +161,8 @@ export async function authenticateOAuth(
     clientId,
     redirectUri: oauthConfig.redirectUri,
     nonce,
-    openInPage,
   })
 
-  if (openInPage) {
-    // Redirect current page
-    window.location.href = oauthUrl
-    // Wait indefinitely (page will redirect)
-    return new Promise<void>((_, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Authentication timed out.'))
-      }, 300000) // 5 minutes
-
-      window.addEventListener('beforeunload', () => clearTimeout(timeout))
-    })
-  }
   // Open popup
   const authWindow = openOAuthPopup(oauthUrl)
 
@@ -236,7 +208,6 @@ export async function authenticateOAuth(
 export declare namespace authenticateOAuth {
   type Parameters = {
     provider: OAuthProvider
-    openInPage?: boolean
     clientId?: string
     connector?: Connector
   }
@@ -334,35 +305,6 @@ export declare namespace verifyOTP {
     code: string
     otpId: string
     subOrganizationId: string
-    connector?: Connector
-  }
-  type ReturnType = void
-  type ErrorType = Error
-}
-
-/**
- * Logout
- */
-export async function logout(
-  config: Config,
-  parameters: {
-    connector?: Connector
-  } = {},
-): Promise<void> {
-  const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) return
-
-  await wallet.logout()
-  store.getState().clear()
-}
-
-export declare namespace logout {
-  type Parameters = {
     connector?: Connector
   }
   type ReturnType = void

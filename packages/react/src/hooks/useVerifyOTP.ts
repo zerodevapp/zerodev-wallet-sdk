@@ -20,7 +20,7 @@ export function useVerifyOTP<
   context = unknown,
 >(
   parameters: useVerifyOTP.Parameters<config, context> = {},
-): useVerifyOTP.ReturnType<config, context> {
+): useVerifyOTP.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
 
@@ -48,10 +48,7 @@ export declare namespace useVerifyOTP {
       | undefined
   }
 
-  type ReturnType<
-    config extends Config = Config,
-    context = unknown,
-  > = UseMutationResult<
+  type ReturnType<context = unknown> = UseMutationResult<
     verifyOTP.ReturnType,
     verifyOTP.ErrorType,
     verifyOTP.Parameters,

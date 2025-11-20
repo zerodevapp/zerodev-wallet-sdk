@@ -2,9 +2,11 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
-    "@zerodev/wallet-core": "0.0.0"
+    "@zerodev/wallet-core": "0.0.0",
+    "@zerodev/wallet-react": "0.0.1-alpha.0"
   },
   "changesets": [
+    "free-grapes-teach",
     "giant-garlics-make",
     "lucky-corners-sneeze",
     "neat-birds-count",

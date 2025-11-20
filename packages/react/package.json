@@ -2,7 +2,6 @@
   "name": "@zerodev/wallet-react",
   "version": "0.0.1-alpha.0",
   "description": "React hooks for ZeroDev Wallet SDK",
-  "type": "module",
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
@@ -38,14 +37,13 @@
     "@wagmi/core": "^2.22.0",
     "react": "^18.0.0 || ^19.0.0",
     "viem": "^2.38.0",
-    "wagmi": "^2.19.0",
-    "zustand": "^5.0.3"
-  },
-  "dependencies": {
+    "wagmi": "^3.0.0",
+    "zustand": "^5.0.3",
     "ox": "^0.3.0"
   },
   "devDependencies": {
     "@types/react": "^19",
     "typescript": "5.9.3"
-  }
+  },
+  "type": "module"
 }
