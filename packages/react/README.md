@@ -1,0 +1,269 @@
+# @zerodev/wallet-react
+
+React hooks and Wagmi connector for ZeroDev Wallet SDK with EIP-7702 gasless transactions.
+
+## Features
+
+- **Wagmi Integration** - Works seamlessly with the Wagmi ecosystem
+- **Multiple Auth Methods** - Passkey (WebAuthn), Email OTP, OAuth (Google)
+- **Gasless Transactions** - All transactions are gasless via EIP-7702
+- **Session Management** - Auto-refresh with configurable thresholds
+- **Multi-Chain** - Lazy kernel account creation per chain
+- **TypeScript** - Full type safety with proper generics
+- **React Query** - Built on TanStack Query for optimal UX
+
+## Installation
+
+```bash
+npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem
+# or
+yarn add @zerodev/wallet-react @zerodev/wallet-core wagmi viem
+# or
+pnpm add @zerodev/wallet-react @zerodev/wallet-core wagmi viem
+```
+
+## Quick Start
+
+### 1. Configure Wagmi
+
+```typescript
+import { createConfig, http } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+import { zeroDevWallet } from '@zerodev/wallet-react'
+
+const config = createConfig({
+  chains: [sepolia],
+  connectors: [
+    zeroDevWallet({
+      projectId: 'YOUR_PROJECT_ID',
+      aaUrl: 'YOUR_AA_PROVIDER_URL',
+      chains: [sepolia],
+      oauthConfig: {
+        googleClientId: 'YOUR_GOOGLE_CLIENT_ID',
+        redirectUri: 'http://localhost:3000',
+      },
+    })
+  ],
+  transports: {
+    [sepolia.id]: http('YOUR_RPC_URL'),
+  },
+})
+```
+
+### 2. Wrap Your App
+
+```typescript
+import { WagmiProvider } from 'wagmi'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
+
+function App() {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <YourApp />
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+```
+
+### 3. Authenticate Users
+
+```typescript
+import { useRegisterPasskey, useAuthenticateOAuth, OAUTH_PROVIDERS } from '@zerodev/wallet-react'
+
+function LoginPage() {
+  const registerPasskey = useRegisterPasskey()
+  const authenticateOAuth = useAuthenticateOAuth()
+
+  return (
+    <>
+      <button
+        onClick={() => registerPasskey.mutate({ email: 'user@example.com' })}
+        disabled={registerPasskey.isPending}
+      >
+        {registerPasskey.isPending ? 'Registering...' : 'Register with Passkey'}
+      </button>
+
+      <button
+        onClick={() => authenticateOAuth.mutate({ provider: OAUTH_PROVIDERS.GOOGLE })}
+        disabled={authenticateOAuth.isPending}
+      >
+        {authenticateOAuth.isPending ? 'Authenticating...' : 'Login with Google'}
+      </button>
+    </>
+  )
+}
+```
+
+### 4. Use Standard Wagmi Hooks
+
+```typescript
+import { useAccount, useSendTransaction, useDisconnect } from 'wagmi'
+import { parseEther } from 'viem'
+
+function Dashboard() {
+  const { address } = useAccount()
+  const { sendTransaction } = useSendTransaction()
+  const { disconnect } = useDisconnect()
+
+  return (
+    <>
+      <p>Address: {address}</p>
+
+      <button onClick={() =>
+        sendTransaction({
+          to: '0x...',
+          value: parseEther('0.01')
+        })
+      }>
+        Send Gasless Transaction
+      </button>
+
+      <button onClick={() => disconnect()}>
+        Logout
+      </button>
+    </>
+  )
+}
+```
+
+## Authentication Methods
+
+### Passkey (WebAuthn)
+
+```typescript
+const registerPasskey = useRegisterPasskey()
+const loginPasskey = useLoginPasskey()
+
+// Register new passkey
+await registerPasskey.mutateAsync({ email: 'user@example.com' })
+
+// Login with existing passkey
+await loginPasskey.mutateAsync({ email: 'user@example.com' })
+```
+
+### OAuth (Google)
+
+```typescript
+const authenticateOAuth = useAuthenticateOAuth()
+
+// Opens popup automatically, handles token exchange
+await authenticateOAuth.mutateAsync({
+  provider: OAUTH_PROVIDERS.GOOGLE
+})
+```
+
+### Email OTP
+
+```typescript
+const sendOTP = useSendOTP()
+const verifyOTP = useVerifyOTP()
+
+// Send OTP code
+const { otpId, subOrganizationId } = await sendOTP.mutateAsync({
+  email: 'user@example.com'
+})
+
+// Verify OTP code
+await verifyOTP.mutateAsync({
+  code: '123456',
+  otpId,
+  subOrganizationId
+})
+```
+
+## Configuration Options
+
+```typescript
+type ZeroDevWalletConnectorParams = {
+  projectId: string                    // Required: Your ZeroDev project ID
+  organizationId?: string               // Optional: Turnkey organization ID
+  proxyBaseUrl?: string                 // Optional: KMS proxy URL
+  aaUrl: string                         // Required: Bundler/paymaster URL
+  chains: readonly Chain[]              // Required: Supported chains
+  rpId?: string                         // Optional: WebAuthn RP ID
+  sessionStorage?: StorageAdapter       // Optional: Custom session storage
+  autoRefreshSession?: boolean          // Optional: Auto-refresh (default: true)
+  sessionWarningThreshold?: number      // Optional: Refresh threshold in ms (default: 60000)
+  oauthConfig?: OAuthConfig             // Optional: OAuth configuration
+}
+
+type OAuthConfig = {
+  googleClientId?: string
+  redirectUri: string
+}
+```
+
+## Advanced Usage
+
+### Custom Callbacks
+
+```typescript
+const registerPasskey = useRegisterPasskey({
+  mutation: {
+    onSuccess: () => {
+      console.log('Registration successful!')
+      router.push('/dashboard')
+    },
+    onError: (error) => {
+      console.error('Registration failed:', error)
+      analytics.track('auth_failed', { method: 'passkey' })
+    }
+  }
+})
+```
+
+### Manual Session Refresh
+
+```typescript
+const refreshSession = useRefreshSession()
+
+await refreshSession.mutateAsync({})
+```
+
+### Export Wallet
+
+```typescript
+const exportWallet = useExportWallet()
+
+await exportWallet.mutateAsync({
+  iframeContainerId: 'export-container'
+})
+```
+
+## API Reference
+
+### Hooks
+
+All hooks follow the TanStack Query mutation pattern:
+
+- `useRegisterPasskey()` - Register with passkey
+- `useLoginPasskey()` - Login with passkey
+- `useAuthenticateOAuth()` - OAuth (Google popup)
+- `useSendOTP()` - Send OTP via email
+- `useVerifyOTP()` - Verify OTP code
+- `useRefreshSession()` - Manually refresh session
+- `useExportWallet()` - Export wallet seed phrase
+
+### Connector
+
+- `zeroDevWallet(params)` - Wagmi connector factory
+
+### Constants
+
+- `OAUTH_PROVIDERS.GOOGLE` - Google OAuth provider constant
+
+### Types
+
+- `OAuthProvider` - OAuth provider type
+- `OAuthConfig` - OAuth configuration type
+- `ZeroDevWalletConnectorParams` - Connector parameters
+- `ZeroDevWalletState` - Store state type
+- `ZeroDevProvider` - EIP-1193 provider type
+
+## License
+
+MIT

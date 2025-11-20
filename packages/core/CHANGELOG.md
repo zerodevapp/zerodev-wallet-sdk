@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.4
+
+### Patch Changes
+
+- feat: @zerodev/wallet-react initial release
+
 ## 0.0.1-alpha.3
 
 ### Patch Changes

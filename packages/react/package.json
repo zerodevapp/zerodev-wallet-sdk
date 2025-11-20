@@ -1,7 +1,8 @@
 {
-  "name": "@zerodev/wallet-core",
-  "version": "0.0.1-alpha.4",
-  "description": "ZeroDev Wallet SDK built on Turnkey",
+  "name": "@zerodev/wallet-react",
+  "version": "0.0.1-alpha.0",
+  "description": "React hooks for ZeroDev Wallet SDK",
+  "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
   "types": "./dist/_types/index.d.ts",
@@ -10,33 +11,8 @@
       "types": "./dist/_types/index.d.ts",
       "import": "./dist/_esm/index.js",
       "require": "./dist/_cjs/index.js"
-    },
-    "./viem": {
-      "types": "./dist/_types/adapters/viem.d.ts",
-      "import": "./dist/_esm/adapters/viem.js",
-      "require": "./dist/_cjs/adapters/viem.js"
-    },
-    "./actions": {
-      "types": "./dist/_types/actions/index.d.ts",
-      "import": "./dist/_esm/actions/index.js",
-      "require": "./dist/_cjs/actions/index.js"
-    },
-    "./stampers": {
-      "types": "./dist/_types/stampers/index.d.ts",
-      "import": "./dist/_esm/stampers/index.js",
-      "require": "./dist/_cjs/stampers/index.js"
     }
   },
-  "files": [
-    "dist",
-    "./src/**/*.ts",
-    "!dist/_esm/**/*.tsbuildinfo",
-    "!dist/_cjs/**/*.tsbuildinfo",
-    "!dist/_types/**/*.tsbuildinfo",
-    "!.env",
-    "!./**/*.test.ts",
-    "!.changeset"
-  ],
   "scripts": {
     "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
     "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
@@ -47,27 +23,26 @@
     "clean": "rm -rf dist"
   },
   "keywords": [
+    "react",
+    "hooks",
     "wallet",
-    "offchainlabs",
     "zerodev",
-    "wallet",
-    "signer",
-    "viem",
-    "account-abstraction",
-    "eip7702"
+    "web3"
   ],
   "license": "MIT",
-  "dependencies": {
-    "@turnkey/http": "^3.12.1",
-    "@turnkey/iframe-stamper": "^2.5.0",
-    "@turnkey/indexed-db-stamper": "^1.1.1",
-    "@turnkey/webauthn-stamper": "^0.6.0"
-  },
   "peerDependencies": {
-    "viem": "^2.38.0"
+    "@tanstack/react-query": "^5.0.0",
+    "@zerodev/wallet-core": "workspace:*",
+    "@zerodev/sdk": "5.5.4",
+    "@wagmi/core": "^2.22.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "viem": "^2.38.0",
+    "wagmi": "^3.0.0",
+    "zustand": "^5.0.3",
+    "ox": "^0.3.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/react": "^19",
     "typescript": "5.9.3"
   },
   "type": "module"

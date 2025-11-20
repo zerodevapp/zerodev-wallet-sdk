@@ -149,6 +149,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/react/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
     }
   ]
 }

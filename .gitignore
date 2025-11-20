@@ -21,3 +21,4 @@ esbuild-why-permissionless*
 .env.production.local
 .envrc
 .vscode
+.claude
