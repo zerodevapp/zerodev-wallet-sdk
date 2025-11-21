@@ -101,11 +101,11 @@ function LoginPage() {
 ### 4. Use Standard Wagmi Hooks
 
 ```typescript
-import { useAccount, useSendTransaction, useDisconnect } from 'wagmi'
+import { useConnection, useSendTransaction, useDisconnect } from 'wagmi'
 import { parseEther } from 'viem'
 
 function Dashboard() {
-  const { address } = useAccount()
+  const { address } = useConnection()
   const { sendTransaction } = useSendTransaction()
   const { disconnect } = useDisconnect()
 
