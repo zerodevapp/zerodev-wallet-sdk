@@ -62,7 +62,7 @@ function LoginPage() {
 
 // 3. Use standard Wagmi hooks
 function Dashboard() {
-  const { address } = useAccount()
+  const { address } = useConnection()
   const { sendTransaction } = useSendTransaction() // Automatically gasless!
   const { disconnect } = useDisconnect()
 
