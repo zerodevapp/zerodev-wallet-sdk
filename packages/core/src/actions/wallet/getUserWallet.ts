@@ -12,7 +12,7 @@ export type GetUserWalletParameters = {
 
 export type GetUserWalletReturnType = {
   /** The wallet address */
-  walletAddress: Hex
+  walletAddresses: Hex[]
   /** The user ID */
   userId?: string
 }
@@ -30,7 +30,7 @@ export type GetUserWalletReturnType = {
  *   organizationId: 'org_123',
  *   projectId: 'proj_456'
  * });
- * console.log(wallet.walletAddress); // '0x...'
+ * console.log(wallet.walletAddresses); // ['0x...', '0x...']
  * ```
  */
 export async function getUserWallet(

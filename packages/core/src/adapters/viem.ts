@@ -40,7 +40,7 @@ export async function toViemAccount(
       projectId,
       token,
     })
-    address = walletResponse.walletAddress
+    address = walletResponse.walletAddresses[0]
   } catch {
     address = zeroAddress
   }
