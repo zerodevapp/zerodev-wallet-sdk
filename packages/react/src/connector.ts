@@ -17,7 +17,7 @@ export type ZeroDevWalletConnectorParams = {
   projectId: string
   organizationId?: string
   proxyBaseUrl?: string
-  aaUrl: string // Bundler/paymaster URL
+  aaUrl?: string // Bundler/paymaster URL
   chains: readonly Chain[]
   rpId?: string
   sessionStorage?: StorageAdapter
@@ -187,12 +187,16 @@ export function zeroDevWallet(
           // Create and store kernel client for transactions
           const kernelClient = createKernelAccountClient({
             account: kernelAccount,
-            bundlerTransport: http(getAAUrl(activeChainId, params.aaUrl)),
+            bundlerTransport: http(
+              getAAUrl(params.projectId, activeChainId, params.aaUrl),
+            ),
             chain,
             client: publicClient,
             paymaster: createZeroDevPaymasterClient({
               chain,
-              transport: http(getAAUrl(activeChainId, params.aaUrl)),
+              transport: http(
+                getAAUrl(params.projectId, activeChainId, params.aaUrl),
+              ),
             }),
           })
           store.getState().setKernelClient(activeChainId, kernelClient)
@@ -290,12 +294,16 @@ export function zeroDevWallet(
           store.getState().setKernelAccount(chainId, kernelAccount)
           const kernelClient = createKernelAccountClient({
             account: kernelAccount,
-            bundlerTransport: http(getAAUrl(chainId, params.aaUrl)),
+            bundlerTransport: http(
+              getAAUrl(params.projectId, chainId, params.aaUrl),
+            ),
             chain,
             client: publicClient,
             paymaster: createZeroDevPaymasterClient({
               chain,
-              transport: http(getAAUrl(chainId, params.aaUrl)),
+              transport: http(
+                getAAUrl(params.projectId, chainId, params.aaUrl),
+              ),
             }),
           })
           store.getState().setKernelClient(chainId, kernelClient)
