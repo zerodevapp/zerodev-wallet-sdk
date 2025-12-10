@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.5
+
+### Patch Changes
+
+- feat: audit fixes
+
 ## 0.0.1-alpha.4
 
 ### Patch Changes

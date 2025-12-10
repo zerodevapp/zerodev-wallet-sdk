@@ -6,6 +6,7 @@
     "@zerodev/wallet-react": "0.0.1-alpha.0"
   },
   "changesets": [
+    "busy-facts-brake",
     "dry-cobras-smash",
     "free-grapes-teach",
     "giant-garlics-make",
