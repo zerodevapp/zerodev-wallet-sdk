@@ -24,12 +24,13 @@ export interface ToViemAccountParams {
   client: ZeroDevWalletClient
   organizationId: string
   projectId: string
+  token: string
 }
 
 export async function toViemAccount(
   params: ToViemAccountParams,
 ): Promise<LocalAccount> {
-  const { client, organizationId, projectId } = params
+  const { client, organizationId, projectId, token } = params
 
   let address: Hex = zeroAddress
 
@@ -37,8 +38,9 @@ export async function toViemAccount(
     const walletResponse = await client.getUserWallet({
       organizationId,
       projectId,
+      token,
     })
-    address = walletResponse.walletAddress
+    address = walletResponse.walletAddresses[0]
   } catch {
     address = zeroAddress
   }

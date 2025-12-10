@@ -8,6 +8,7 @@ export type RestRequestArgs = {
   headers?: Record<string, string>
   stamp?: boolean
   stampWith?: 'indexedDb' | 'webAuthn'
+  stampPostion?: 'body' | 'headers'
 }
 
 export type RestRequestFn = <T = any>(args: RestRequestArgs) => Promise<T>
@@ -44,7 +45,7 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
 
     try {
       let requestBody = args.body
-      const requestHeaders = {
+      let requestHeaders = {
         'content-type': 'application/json',
         ...(args.headers ?? {}),
         ...(cfg.fetchOptions?.headers ?? {}),
@@ -65,7 +66,12 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
         const stamp = await stamper.stamp(bodyString)
 
         // Restructure request body to match backend expectation
-        if (body) {
+        if (args.stampPostion === 'headers') {
+          requestHeaders = {
+            ...requestHeaders,
+            [stamp.stampHeaderName]: stamp.stampHeaderValue,
+          }
+        } else if (body) {
           requestBody = {
             body: bodyString,
             stamp: {

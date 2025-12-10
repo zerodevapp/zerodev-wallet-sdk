@@ -422,6 +422,7 @@ export async function createZeroDevWallet(
         client,
         organizationId: session.organizationId,
         projectId,
+        token: session.token ?? '',
       })
     },
   }
