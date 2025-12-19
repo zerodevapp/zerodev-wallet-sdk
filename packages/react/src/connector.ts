@@ -50,62 +50,57 @@ export function zeroDevWallet(
   return createConnector<Provider, Properties>((wagmiConfig) => {
     let store: ReturnType<typeof createZeroDevWalletStore>
     let provider: ReturnType<typeof createProvider>
-    let initPromise: Promise<void> | undefined
 
     // Get transports from Wagmi config (uses user's RPC URLs)
     const transports = wagmiConfig.transports
 
     // Lazy initialization - only runs on client side
     const initialize = async () => {
-      initPromise ??= (async () => {
-        console.log('Initializing ZeroDevWallet connector...')
+      console.log('Initializing ZeroDevWallet connector...')
 
-        // Initialize wallet SDK
-        const wallet = await createZeroDevWallet({
-          projectId: params.projectId,
-          ...(params.organizationId && {
-            organizationId: params.organizationId,
-          }),
-          ...(params.proxyBaseUrl && { proxyBaseUrl: params.proxyBaseUrl }),
-          ...(params.sessionStorage && {
-            sessionStorage: params.sessionStorage,
-          }),
-          ...(params.rpId && { rpId: params.rpId }),
-        })
+      // Initialize wallet SDK
+      const wallet = await createZeroDevWallet({
+        projectId: params.projectId,
+        ...(params.organizationId && {
+          organizationId: params.organizationId,
+        }),
+        ...(params.proxyBaseUrl && { proxyBaseUrl: params.proxyBaseUrl }),
+        ...(params.sessionStorage && {
+          sessionStorage: params.sessionStorage,
+        }),
+        ...(params.rpId && { rpId: params.rpId }),
+      })
 
-        // Create store
-        store = createZeroDevWalletStore()
-        store.getState().setWallet(wallet)
+      // Create store
+      store = createZeroDevWalletStore()
+      store.getState().setWallet(wallet)
 
-        // Initialize chainIds
-        const chainIds = params.chains.map((c) => c.id)
-        store.setState({ chainIds })
+      // Initialize chainIds
+      const chainIds = params.chains.map((c) => c.id)
+      store.setState({ chainIds })
 
-        // Store OAuth config if provided
-        if (params.oauthConfig) {
-          store.getState().setOAuthConfig(params.oauthConfig)
-        }
+      // Store OAuth config if provided
+      if (params.oauthConfig) {
+        store.getState().setOAuthConfig(params.oauthConfig)
+      }
 
-        // Create EIP-1193 provider
-        provider = createProvider({
-          store,
-          config: params,
-          chains: Array.from(params.chains),
-        })
+      // Create EIP-1193 provider
+      provider = createProvider({
+        store,
+        config: params,
+        chains: Array.from(params.chains),
+      })
 
-        // Check for existing session (page reload)
-        const session = await wallet.getSession()
-        if (session) {
-          console.log('Found existing session, restoring...')
-          const eoaAccount = await wallet.toAccount()
-          store.getState().setEoaAccount(eoaAccount)
-          store.getState().setSession(session)
-        }
+      // Check for existing session (page reload)
+      const session = await wallet.getSession()
+      if (session) {
+        console.log('Found existing session, restoring...')
+        const eoaAccount = await wallet.toAccount()
+        store.getState().setEoaAccount(eoaAccount)
+        store.getState().setSession(session)
+      }
 
-        console.log('ZeroDevWallet connector initialized')
-      })()
-
-      return initPromise
+      console.log('ZeroDevWallet connector initialized')
     }
 
     return {
