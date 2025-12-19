@@ -1,5 +1,11 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.3
+
+### Patch Changes
+
+- fix: removed lazy initialization of ZD wallet core
+
 ## 0.0.1-alpha.2
 
 ### Patch Changes
