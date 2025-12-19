@@ -304,6 +304,7 @@ export function zeroDevWallet(
           store.getState().setKernelClient(chainId, kernelClient)
         }
 
+        wagmiConfig.emitter.emit('change', { chainId })
         return params.chains.find((c) => c.id === chainId)!
       },
 
