@@ -249,12 +249,13 @@ export function zeroDevWallet(
       },
 
       async getProvider() {
-        await initialize()
+        if (!provider) {
+          await initialize()
+        }
         return provider
       },
 
       async switchChain({ chainId }) {
-        await initialize()
         console.log(`Switching to chain ${chainId}...`)
         const state = store.getState()
 
