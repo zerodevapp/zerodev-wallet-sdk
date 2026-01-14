@@ -32,10 +32,6 @@ const config = createConfig({
       projectId: 'your-project-id',
       aaUrl: 'your-aa-provider-url',
       chains: [sepolia],
-      oauthConfig: {
-        googleClientId: 'your-google-client-id',
-        redirectUri: 'http://localhost:3000/oauth/callback',
-      }
     })
   ],
   transports: {
@@ -198,21 +194,24 @@ await wallet.auth({
 
 ### OAuth (Google)
 
-Social login with Google.
+Social login with Google. The backend handles PKCE and token exchange - no client-side OAuth library needed.
 
 ```typescript
-// Using @react-oauth/google or similar
-import { GoogleLogin } from '@react-oauth/google';
+// React SDK (recommended)
+import { useAuthenticateOAuth, OAUTH_PROVIDERS } from '@zerodev/wallet-react'
 
-<GoogleLogin
-  onSuccess={async (response) => {
-    await wallet.auth({
-      type: 'oauth',
-      provider: 'google',
-      credential: response.credential
-    });
-  }}
-/>
+const authenticateOAuth = useAuthenticateOAuth()
+
+// Opens popup, SDK handles everything automatically
+await authenticateOAuth.mutateAsync({
+  provider: OAUTH_PROVIDERS.GOOGLE
+})
+
+// Core SDK
+await wallet.auth({
+  type: 'oauth',
+  provider: 'google'
+})
 ```
 
 ## Session Management

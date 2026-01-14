@@ -48,6 +48,8 @@ export {
   type ZeroDevWalletClient,
   zeroDevWalletTransport,
 } from './client/index.js'
+// Constants
+export { KMS_SERVER_URL } from './constants.js'
 export type {
   AuthParams,
   ZeroDevWalletConfig,
