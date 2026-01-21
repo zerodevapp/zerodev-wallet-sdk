@@ -75,10 +75,6 @@ export function zeroDevWallet(
       store = createZeroDevWalletStore()
       store.getState().setWallet(wallet)
 
-      // Initialize chainIds
-      const chainIds = params.chains.map((c) => c.id)
-      store.setState({ chainIds })
-
       // Store OAuth config if provided
       if (params.oauthConfig) {
         store.getState().setOAuthConfig(params.oauthConfig)
@@ -132,10 +128,8 @@ export function zeroDevWallet(
         const state = store.getState()
 
         // Determine active chain
-        const activeChainId = chainId || state.chainIds[0]
-        if (!activeChainId) {
-          throw new Error('No chain configured')
-        }
+        const activeChainId =
+          chainId ?? state.activeChainId ?? params.chains[0].id
 
         // If reconnecting and already have kernel account, return immediately
         if (isReconnecting && state.kernelAccounts.has(activeChainId)) {
@@ -198,7 +192,7 @@ export function zeroDevWallet(
         }
 
         // Set as active chain
-        store.getState().setActiveChain(activeChainId)
+        store.getState().setActiveChainId(activeChainId)
 
         // Get fresh state after updates
         const freshState = store.getState()
@@ -229,7 +223,7 @@ export function zeroDevWallet(
 
       async getAccounts() {
         if (!store) return []
-        const { eoaAccount, kernelAccounts, chainIds } = store.getState()
+        const { eoaAccount, kernelAccounts, activeChainId } = store.getState()
 
         // Return EOA address if we have it (EIP-7702: EOA address = kernel address)
         if (eoaAccount) {
@@ -237,15 +231,15 @@ export function zeroDevWallet(
         }
 
         // Fallback: check kernel accounts
-        const activeAccount = chainIds[0]
-          ? kernelAccounts.get(chainIds[0])
+        const activeAccount = activeChainId
+          ? kernelAccounts.get(activeChainId)
           : null
         return activeAccount ? [activeAccount.address] : []
       },
 
       async getChainId() {
         if (!store) return params.chains[0].id
-        return store.getState().chainIds[0] || params.chains[0].id
+        return store.getState().activeChainId ?? params.chains[0].id
       },
 
       async getProvider() {
@@ -264,7 +258,7 @@ export function zeroDevWallet(
         }
 
         // Update active chain
-        store.getState().setActiveChain(chainId)
+        store.getState().setActiveChainId(chainId)
 
         // Create kernel account for new chain if doesn't exist
         if (!state.kernelAccounts.has(chainId)) {

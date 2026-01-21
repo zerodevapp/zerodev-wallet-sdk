@@ -115,7 +115,10 @@ export function createProvider({
 
     async request({ method, params }: { method: string; params?: any[] }) {
       const state = store.getState()
-      const activeChainId = state.chainIds[0]
+      const activeChainId = state.activeChainId
+      if (!activeChainId) {
+        throw new Error('No active chain')
+      }
 
       switch (method) {
         case 'eth_accounts': {
@@ -219,7 +222,7 @@ export function createProvider({
           const chainId_number = parseInt(chainId, 16)
 
           // Update active chain
-          store.getState().setActiveChain(chainId_number)
+          store.getState().setActiveChainId(chainId_number)
 
           // Emit chainChanged event
           emitter.emit('chainChanged', chainId)
