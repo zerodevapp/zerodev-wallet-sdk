@@ -1,6 +1,7 @@
 export type { ZeroDevWalletConnectorParams } from './connector.js'
 export { zeroDevWallet } from './connector.js'
 export { useAuthenticateOAuth } from './hooks/useAuthenticateOAuth.js'
+export { useExportPrivateKey } from './hooks/useExportPrivateKey.js'
 export { useExportWallet } from './hooks/useExportWallet.js'
 export { useLoginPasskey } from './hooks/useLoginPasskey.js'
 export { useRefreshSession } from './hooks/useRefreshSession.js'

@@ -13,12 +13,19 @@ export type Stamper = {
   clear: () => Promise<void>
 }
 
+export type KeyFormat = 'Hexadecimal' | 'Solana'
+
 export type IframeStamper = Stamper & {
   init(): Promise<string>
   injectCredentialBundle(bundle: string): Promise<boolean>
   injectWalletExportBundle(
     bundle: string,
     organizationId: string,
+  ): Promise<boolean>
+  injectKeyExportBundle(
+    bundle: string,
+    organizationId: string,
+    keyFormat?: KeyFormat,
   ): Promise<boolean>
 }
 

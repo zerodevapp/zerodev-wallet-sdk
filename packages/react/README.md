@@ -224,12 +224,24 @@ const refreshSession = useRefreshSession()
 await refreshSession.mutateAsync({})
 ```
 
-### Export Wallet
+### Export Wallet (Seed Phrase)
 
 ```typescript
 const exportWallet = useExportWallet()
 
+// Container element must exist: <div id="export-container" />
 await exportWallet.mutateAsync({
+  iframeContainerId: 'export-container'
+})
+```
+
+### Export Private Key
+
+```typescript
+const exportPrivateKey = useExportPrivateKey()
+
+// Container element must exist: <div id="export-container" />
+await exportPrivateKey.mutateAsync({
   iframeContainerId: 'export-container'
 })
 ```
@@ -247,6 +259,7 @@ All hooks follow the TanStack Query mutation pattern:
 - `useVerifyOTP()` - Verify OTP code
 - `useRefreshSession()` - Manually refresh session
 - `useExportWallet()` - Export wallet seed phrase
+- `useExportPrivateKey()` - Export wallet private key
 
 ### Connector
 

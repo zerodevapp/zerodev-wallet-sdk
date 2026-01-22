@@ -1,5 +1,8 @@
-import { IframeStamper as TurnkeyIframeStamper } from '@turnkey/iframe-stamper'
-import type { IframeStamper } from './types.js'
+import {
+  KeyFormat,
+  IframeStamper as TurnkeyIframeStamper,
+} from '@turnkey/iframe-stamper'
+import type { IframeStamper, KeyFormat as KeyFormatType } from './types.js'
 
 export async function createIframeStamper(cfg: {
   iframeUrl: string
@@ -30,6 +33,17 @@ export async function createIframeStamper(cfg: {
     },
     async injectWalletExportBundle(bundle: string, organizationId: string) {
       return await inner.injectWalletExportBundle(bundle, organizationId)
+    },
+    async injectKeyExportBundle(
+      bundle: string,
+      organizationId: string,
+      keyFormat?: KeyFormatType,
+    ) {
+      return await inner.injectKeyExportBundle(
+        bundle,
+        organizationId,
+        keyFormat ? KeyFormat[keyFormat] : KeyFormat.Hexadecimal,
+      )
     },
   }
 }
