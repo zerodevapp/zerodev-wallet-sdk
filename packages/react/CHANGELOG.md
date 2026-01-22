@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.6
+
+### Patch Changes
+
+- feat: Added private key export feature
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.6
+
 ## 0.0.1-alpha.5
 
 ### Patch Changes
