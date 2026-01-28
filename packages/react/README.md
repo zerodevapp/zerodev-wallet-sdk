@@ -38,10 +38,6 @@ const config = createConfig({
       projectId: 'YOUR_PROJECT_ID',
       aaUrl: 'YOUR_AA_PROVIDER_URL',
       chains: [sepolia],
-      oauthConfig: {
-        googleClientId: 'YOUR_GOOGLE_CLIENT_ID',
-        redirectUri: 'http://localhost:3000',
-      },
     })
   ],
   transports: {
@@ -150,7 +146,8 @@ await loginPasskey.mutateAsync({ email: 'user@example.com' })
 ```typescript
 const authenticateOAuth = useAuthenticateOAuth()
 
-// Opens popup automatically, handles token exchange
+// Opens popup, backend handles PKCE and token exchange
+// No callback page or OAuth library needed - SDK handles everything
 await authenticateOAuth.mutateAsync({
   provider: OAUTH_PROVIDERS.GOOGLE
 })
@@ -182,18 +179,12 @@ type ZeroDevWalletConnectorParams = {
   projectId: string                    // Required: Your ZeroDev project ID
   organizationId?: string               // Optional: Turnkey organization ID
   proxyBaseUrl?: string                 // Optional: KMS proxy URL
-  aaUrl: string                         // Required: Bundler/paymaster URL
+  aaUrl?: string                        // Optional: Bundler/paymaster URL
   chains: readonly Chain[]              // Required: Supported chains
   rpId?: string                         // Optional: WebAuthn RP ID
   sessionStorage?: StorageAdapter       // Optional: Custom session storage
   autoRefreshSession?: boolean          // Optional: Auto-refresh (default: true)
   sessionWarningThreshold?: number      // Optional: Refresh threshold in ms (default: 60000)
-  oauthConfig?: OAuthConfig             // Optional: OAuth configuration
-}
-
-type OAuthConfig = {
-  googleClientId?: string
-  redirectUri: string
 }
 ```
 
@@ -272,7 +263,6 @@ All hooks follow the TanStack Query mutation pattern:
 ### Types
 
 - `OAuthProvider` - OAuth provider type
-- `OAuthConfig` - OAuth configuration type
 - `ZeroDevWalletConnectorParams` - Connector parameters
 - `ZeroDevWalletState` - Store state type
 - `ZeroDevProvider` - EIP-1193 provider type

@@ -8,8 +8,13 @@ export { useRefreshSession } from './hooks/useRefreshSession.js'
 export { useRegisterPasskey } from './hooks/useRegisterPasskey.js'
 export { useSendOTP } from './hooks/useSendOTP.js'
 export { useVerifyOTP } from './hooks/useVerifyOTP.js'
-export type { OAuthConfig, OAuthProvider } from './oauth.js'
-export { OAUTH_PROVIDERS } from './oauth.js'
+export type { OAuthMessageData, OAuthProvider } from './oauth.js'
+export {
+  buildBackendOAuthUrl,
+  handleOAuthCallback,
+  listenForOAuthMessage,
+  OAUTH_PROVIDERS,
+} from './oauth.js'
 export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
 export { createZeroDevWalletStore } from './store.js'

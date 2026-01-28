@@ -45,8 +45,6 @@ export type AuthParams =
   | {
       type: 'oauth'
       provider: string
-      redirectUrl?: string
-      credential: string
     }
   | {
       type: 'passkey'
@@ -202,23 +200,17 @@ export async function createZeroDevWallet(
     async auth(params: AuthParams) {
       switch (params.type) {
         case 'oauth': {
-          const { credential } = params
-          const targetPublicKey = await client.indexedDbStamper.getPublicKey()
-
-          if (!targetPublicKey) {
-            throw new Error('Failed to get public key')
-          }
-
+          // Backend OAuth flow - the backend reads the OAuth session from a cookie
+          // set during the OAuth popup flow via /oauth/google/login
           const data = await client.authenticateWithOAuth({
-            oidcToken: credential,
-            provider: 'google',
-            targetPublicKey,
+            provider: params.provider,
             projectId,
           })
 
           if (data.turnkeySession) {
             // Parse the JWT to get session data
             const parsedSession = parseSession(data.turnkeySession)
+            const publicKey = await client.indexedDbStamper.getPublicKey()
             const session: ZeroDevWalletSession = {
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
@@ -228,7 +220,7 @@ export async function createZeroDevWallet(
               token: data.turnkeySession,
               expiry: parsedSession.expiry,
               createdAt: Date.now(),
-              publicKey: targetPublicKey,
+              publicKey: publicKey || '',
             }
             await sessionStorageManager.storeSession(session, session.id)
           }

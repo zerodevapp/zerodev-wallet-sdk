@@ -7,10 +7,9 @@ import {
 } from '@zerodev/wallet-core'
 import type { OAuthProvider } from './oauth.js'
 import {
-  buildOAuthUrl,
-  generateOAuthNonce,
+  buildBackendOAuthUrl,
+  listenForOAuthMessage,
   openOAuthPopup,
-  pollOAuthPopup,
 } from './oauth.js'
 
 /**
@@ -116,12 +115,12 @@ export declare namespace loginPasskey {
 
 /**
  * Authenticate with OAuth (opens popup)
+ * Uses backend OAuth flow where the backend handles PKCE and token exchange
  */
 export async function authenticateOAuth(
   config: Config,
   parameters: {
     provider: OAuthProvider
-    clientId?: string
     connector?: Connector
   },
 ): Promise<void> {
@@ -134,38 +133,23 @@ export async function authenticateOAuth(
 
   if (!wallet) throw new Error('Wallet not initialized')
   if (!oauthConfig) {
-    throw new Error(
-      'OAuth is not configured. Please provide oauthConfig to zeroDevWallet connector.',
-    )
+    throw new Error('Wallet not initialized. Please wait for connector setup.')
   }
 
-  // Get client ID for the provider
-  let clientId = parameters.clientId
-  if (!clientId) {
-    clientId = oauthConfig.googleClientId
-  }
-
-  if (!clientId) {
-    throw new Error(`Client ID not configured for ${parameters.provider}`)
-  }
-
-  if (!oauthConfig.redirectUri) {
-    throw new Error('OAuth redirect URI is not configured.')
-  }
-
-  // Generate nonce from wallet public key
+  // Get wallet public key for the OAuth flow
   const publicKey = await wallet.getPublicKey()
   if (!publicKey) {
     throw new Error('Failed to get wallet public key')
   }
-  const nonce = generateOAuthNonce(publicKey)
 
-  // Build OAuth URL
-  const oauthUrl = buildOAuthUrl({
+  // Build OAuth URL that redirects to backend
+  // Use current origin as redirect - SDK auto-detects callback on any page
+  const oauthUrl = buildBackendOAuthUrl({
     provider: parameters.provider,
-    clientId,
-    redirectUri: oauthConfig.redirectUri,
-    nonce,
+    backendUrl: oauthConfig.backendUrl,
+    projectId: oauthConfig.projectId,
+    publicKey,
+    returnTo: `${window.location.origin}?oauth_success=true&oauth_provider=${parameters.provider}`,
   })
 
   // Open popup
@@ -175,18 +159,18 @@ export async function authenticateOAuth(
     throw new Error(`Failed to open ${parameters.provider} login window.`)
   }
 
-  // Poll for OAuth completion
+  // Listen for OAuth completion via postMessage
   return new Promise<void>((resolve, reject) => {
-    pollOAuthPopup(
+    const cleanup = listenForOAuthMessage(
       authWindow,
       window.location.origin,
-      async (idToken) => {
+      async () => {
         try {
           // Complete OAuth authentication with wallet-core
+          // The backend has stored the OAuth session in a cookie
           await wallet.auth({
             type: 'oauth',
             provider: parameters.provider,
-            credential: idToken,
           })
 
           const [session, eoaAccount] = await Promise.all([
@@ -205,7 +189,10 @@ export async function authenticateOAuth(
           reject(err)
         }
       },
-      reject,
+      (error) => {
+        cleanup()
+        reject(error)
+      },
     )
   })
 }
@@ -213,7 +200,6 @@ export async function authenticateOAuth(
 export declare namespace authenticateOAuth {
   type Parameters = {
     provider: OAuthProvider
-    clientId?: string
     connector?: Connector
   }
   type ReturnType = void

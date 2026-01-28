@@ -9,6 +9,8 @@ export type RestRequestArgs = {
   stamp?: boolean
   stampWith?: 'indexedDb' | 'webAuthn'
   stampPostion?: 'body' | 'headers'
+  /** Include credentials (cookies) in the request */
+  credentials?: RequestCredentials
 }
 
 export type RestRequestFn = <T = any>(args: RestRequestArgs) => Promise<T>
@@ -97,6 +99,7 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
         headers: requestHeaders,
         body: requestBody != null ? JSON.stringify(requestBody) : null,
         signal: controller.signal,
+        ...(args.credentials && { credentials: args.credentials }),
       }
 
       const finalInit = (await cfg.onRequest?.(fullUrl, init)) ?? init

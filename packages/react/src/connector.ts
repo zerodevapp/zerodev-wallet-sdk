@@ -6,12 +6,70 @@ import {
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_3 } from '@zerodev/sdk/constants'
 import type { StorageAdapter } from '@zerodev/wallet-core'
-import { createZeroDevWallet } from '@zerodev/wallet-core'
+import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
 import { type Chain, createPublicClient, http } from 'viem'
-import type { OAuthConfig } from './oauth.js'
+import { handleOAuthCallback, type OAuthProvider } from './oauth.js'
 import { createProvider } from './provider.js'
 import { createZeroDevWalletStore } from './store.js'
 import { getAAUrl } from './utils/aaUtils.js'
+
+// OAuth URL parameter used to detect callback
+const OAUTH_SUCCESS_PARAM = 'oauth_success'
+const OAUTH_PROVIDER_PARAM = 'oauth_provider'
+
+/**
+ * Detect OAuth callback from URL params and handle it.
+ * - If in popup: sends postMessage to opener and closes
+ * - If not in popup: completes auth directly
+ */
+async function detectAndHandleOAuthCallback(
+  wallet: Awaited<ReturnType<typeof createZeroDevWallet>>,
+  store: ReturnType<typeof createZeroDevWalletStore>,
+): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+
+  const params = new URLSearchParams(window.location.search)
+  const isOAuthCallback = params.get(OAUTH_SUCCESS_PARAM) === 'true'
+
+  if (!isOAuthCallback) return false
+
+  // If in popup, use the existing handler to notify opener
+  if (window.opener) {
+    handleOAuthCallback(OAUTH_SUCCESS_PARAM)
+    return true
+  }
+
+  // Not in popup - complete auth directly (redirect flow)
+  console.log('OAuth callback detected, completing authentication...')
+  const provider = (params.get(OAUTH_PROVIDER_PARAM) ||
+    'google') as OAuthProvider
+
+  try {
+    await wallet.auth({ type: 'oauth', provider })
+
+    const [session, eoaAccount] = await Promise.all([
+      wallet.getSession(),
+      wallet.toAccount(),
+    ])
+
+    store.getState().setEoaAccount(eoaAccount)
+    store.getState().setSession(session || null)
+
+    // Clean up URL params
+    params.delete(OAUTH_SUCCESS_PARAM)
+    params.delete(OAUTH_PROVIDER_PARAM)
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname
+    window.history.replaceState({}, '', newUrl)
+
+    console.log('OAuth authentication completed')
+    return true
+  } catch (error) {
+    console.error('OAuth authentication failed:', error)
+    return false
+  }
+}
 
 export type ZeroDevWalletConnectorParams = {
   projectId: string
@@ -23,7 +81,6 @@ export type ZeroDevWalletConnectorParams = {
   sessionStorage?: StorageAdapter
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
-  oauthConfig?: OAuthConfig
 }
 
 export function zeroDevWallet(
@@ -75,10 +132,11 @@ export function zeroDevWallet(
       store = createZeroDevWalletStore()
       store.getState().setWallet(wallet)
 
-      // Store OAuth config if provided
-      if (params.oauthConfig) {
-        store.getState().setOAuthConfig(params.oauthConfig)
-      }
+      // Store OAuth config - uses proxyBaseUrl and projectId from params
+      store.getState().setOAuthConfig({
+        backendUrl: params.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
+        projectId: params.projectId,
+      })
 
       // Create EIP-1193 provider
       provider = createProvider({
@@ -95,6 +153,9 @@ export function zeroDevWallet(
         store.getState().setEoaAccount(eoaAccount)
         store.getState().setSession(session)
       }
+
+      // Auto-detect OAuth callback (when popup redirects back with ?oauth_success=true)
+      await detectAndHandleOAuthCallback(wallet, store)
 
       console.log('ZeroDevWallet connector initialized')
     }

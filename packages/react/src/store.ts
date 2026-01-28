@@ -10,7 +10,12 @@ import type { LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
 import { create } from 'zustand'
 import { persist, subscribeWithSelector } from 'zustand/middleware'
-import type { OAuthConfig } from './oauth.js'
+
+// Internal OAuth config stored in the state (derived from connector params)
+type InternalOAuthConfig = {
+  backendUrl: string
+  projectId: string
+}
 
 export type ZeroDevWalletState = {
   // Core
@@ -26,8 +31,8 @@ export type ZeroDevWalletState = {
   // Session expiry
   isExpiring: boolean
 
-  // OAuth config (optional)
-  oauthConfig: OAuthConfig | null
+  // OAuth config (derived from connector params)
+  oauthConfig: InternalOAuthConfig | null
 
   // Actions
   setWallet: (wallet: ZeroDevWalletSDK) => void
@@ -40,7 +45,7 @@ export type ZeroDevWalletState = {
   setSession: (session: ZeroDevWalletSession | null) => void
   setActiveChainId: (chainId: number | null) => void
   setIsExpiring: (isExpiring: boolean) => void
-  setOAuthConfig: (config: OAuthConfig | null) => void
+  setOAuthConfig: (config: InternalOAuthConfig | null) => void
   clear: () => void
 }
 
