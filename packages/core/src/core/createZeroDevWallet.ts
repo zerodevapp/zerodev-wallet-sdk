@@ -3,11 +3,13 @@ import type { LocalAccount } from 'viem/accounts'
 import type { EmailCustomization } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
+  createAuthProxyClient,
   createClient,
   type ZeroDevWalletClient,
   zeroDevWalletTransport,
 } from '../client/index.js'
 import {
+  DEFAULT_AUTH_PROXY_CONFIG_ID,
   DEFAULT_ORGANIZATION_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
@@ -356,6 +358,8 @@ export async function createZeroDevWallet(
 
           if (type === 'otp' && mode === 'verifyOtp') {
             const { otpId, otpCode, subOrganizationId } = params
+
+            // Step 1: Generate new key pair
             await client.indexedDbStamper.resetKeyPair()
             const targetPublicKey = await client.indexedDbStamper.getPublicKey()
 
@@ -363,12 +367,24 @@ export async function createZeroDevWallet(
               throw new Error('Failed to get public key')
             }
 
-            const data = await client.loginWithOTP({
+            // Step 2: Create Auth Proxy client
+            const authProxyClient = createAuthProxyClient({
+              authProxyConfigId: DEFAULT_AUTH_PROXY_CONFIG_ID,
+            })
+
+            // Step 3: Verify OTP via Auth Proxy
+            const { verificationToken } = await authProxyClient.verifyOtp({
               otpId,
               otpCode,
-              subOrganizationId,
-              encodedPublicKey: targetPublicKey,
-              projectId,
+              public_key: targetPublicKey,
+            })
+
+            // Step 4: Login via Auth Proxy with client signature
+            const data = await authProxyClient.otpLogin({
+              verificationToken,
+              organizationId: subOrganizationId,
+              publicKey: targetPublicKey,
+              stamper: client.indexedDbStamper,
             })
 
             if (data.session) {
