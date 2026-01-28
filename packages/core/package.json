@@ -61,7 +61,8 @@
     "@turnkey/http": "^3.12.1",
     "@turnkey/iframe-stamper": "^2.5.0",
     "@turnkey/indexed-db-stamper": "^1.1.1",
-    "@turnkey/webauthn-stamper": "^0.6.0"
+    "@turnkey/webauthn-stamper": "^0.6.0",
+    "json-canonicalize": "^2.0.0"
   },
   "peerDependencies": {
     "viem": "^2.38.0"
