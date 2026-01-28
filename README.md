@@ -253,7 +253,7 @@ Export your wallet's seed phrase for backup or import into other wallets.
 **Important:** The export uses Turnkey's secure iframe to decrypt and display the seed phrase. The SDK returns an encrypted bundle that only the export iframe can decrypt.
 
 ```typescript
-import { createIframeStamper } from '@zerodev/wallet-core';
+import { createIframeStamper, exportWallet } from '@zerodev/wallet-core';
 
 // 1. Create export iframe stamper
 // Note: The container element MUST exist in DOM before this call
@@ -267,7 +267,10 @@ const exportIframeStamper = await createIframeStamper({
 const targetPublicKey = await exportIframeStamper.init();
 
 // 3. Call SDK to get encrypted export bundle
-const { exportBundle, organizationId } = await wallet.exportWallet(targetPublicKey);
+const { exportBundle, organizationId } = await exportWallet({
+  wallet,
+  targetPublicKey
+});
 
 // 4. Inject bundle into iframe (iframe will decrypt and show seed phrase)
 await exportIframeStamper.injectWalletExportBundle(exportBundle, organizationId);
@@ -276,6 +279,65 @@ await exportIframeStamper.injectWalletExportBundle(exportBundle, organizationId)
 ```
 
 **Security Note:** The seed phrase never passes through your JavaScript code - it's decrypted inside Turnkey's iframe for maximum security.
+
+## Export Private Key
+
+Export your wallet account's private key for backup or import into other wallets.
+
+**Prerequisites:** You must have a container element in your DOM for the export iframe:
+```html
+<div id="export-container"></div>
+```
+
+```typescript
+import { createIframeStamper, exportPrivateKey } from '@zerodev/wallet-core';
+
+// 1. Create export iframe stamper
+const exportIframeStamper = await createIframeStamper({
+  iframeUrl: 'https://export.turnkey.com',
+  iframeContainer: document.getElementById('export-container'),
+  iframeElementId: 'export-iframe'
+});
+
+// 2. Initialize iframe and get target public key
+const targetPublicKey = await exportIframeStamper.init();
+
+// 3. Call SDK to get encrypted export bundle
+const { exportBundle, organizationId } = await exportPrivateKey({
+  wallet,
+  targetPublicKey,
+  // address: '0x...' // Optional: specify address, defaults to wallet's account
+});
+
+// 4. Inject bundle into iframe (iframe will decrypt and show private key)
+await exportIframeStamper.injectKeyExportBundle(exportBundle, organizationId, 'Hexadecimal');
+
+// The iframe now displays the private key in the 'export-container' div
+```
+
+### React Hook
+
+```typescript
+import { useExportPrivateKey } from '@zerodev/wallet-react';
+
+function ExportButton() {
+  const exportPrivateKey = useExportPrivateKey();
+
+  return (
+    <>
+      <div id="export-container" />
+      <button
+        onClick={() => exportPrivateKey.mutate({ iframeContainerId: 'export-container' })}
+        disabled={exportPrivateKey.isPending}
+      >
+        Export Private Key
+      </button>
+    </>
+  );
+}
+```
+
+**Security Note:** The private key never passes through your JavaScript code - it's decrypted inside Turnkey's iframe for maximum security.
 
 ## Configuration
 

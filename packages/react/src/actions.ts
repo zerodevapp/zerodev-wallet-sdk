@@ -1,5 +1,10 @@
 import type { Config, Connector } from '@wagmi/core'
 import { connect as wagmiConnect } from '@wagmi/core/actions'
+import {
+  createIframeStamper,
+  exportPrivateKey as exportPrivateKeySdk,
+  exportWallet as exportWalletSdk,
+} from '@zerodev/wallet-core'
 import type { OAuthProvider } from './oauth.js'
 import {
   buildBackendOAuthUrl,
@@ -348,10 +353,6 @@ export async function exportWallet(
 
   if (!wallet) throw new Error('Wallet not initialized')
 
-  const { exportWallet: exportWalletSdk, createIframeStamper } = await import(
-    '@zerodev/wallet-core'
-  )
-
   const iframeContainer = document.getElementById(parameters.iframeContainerId)
   if (!iframeContainer) {
     throw new Error('Iframe container not found')
@@ -381,6 +382,65 @@ export async function exportWallet(
 export declare namespace exportWallet {
   type Parameters = {
     iframeContainerId: string
+    connector?: Connector
+  }
+  type ReturnType = void
+  type ErrorType = Error
+}
+
+/**
+ * Export private key
+ */
+export async function exportPrivateKey(
+  config: Config,
+  parameters: {
+    iframeContainerId: string
+    address?: string
+    keyFormat?: 'Hexadecimal' | 'Solana'
+    connector?: Connector
+  },
+): Promise<void> {
+  const connector = parameters.connector ?? getZeroDevConnector(config)
+
+  // @ts-expect-error - getStore is a custom method
+  const store = await connector.getStore()
+  const wallet = store.getState().wallet
+
+  if (!wallet) throw new Error('Wallet not initialized')
+
+  const iframeContainer = document.getElementById(parameters.iframeContainerId)
+  if (!iframeContainer) {
+    throw new Error('Iframe container not found')
+  }
+
+  const iframeStamper = await createIframeStamper({
+    iframeUrl: 'https://export.turnkey.com',
+    iframeContainer,
+    iframeElementId: 'export-private-key-iframe',
+  })
+
+  const publicKey = await iframeStamper.init()
+  const { exportBundle, organizationId } = await exportPrivateKeySdk({
+    wallet,
+    targetPublicKey: publicKey,
+    ...(parameters.address && { address: parameters.address }),
+  })
+
+  const success = await iframeStamper.injectKeyExportBundle(
+    exportBundle,
+    organizationId,
+    parameters.keyFormat ?? 'Hexadecimal',
+  )
+  if (success !== true) {
+    throw new Error('Failed to inject export bundle')
+  }
+}
+
+export declare namespace exportPrivateKey {
+  type Parameters = {
+    iframeContainerId: string
+    address?: string
+    keyFormat?: 'Hexadecimal' | 'Solana'
     connector?: Connector
   }
   type ReturnType = void

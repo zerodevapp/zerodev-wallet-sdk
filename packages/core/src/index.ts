@@ -72,6 +72,8 @@ export type {
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 // Session types
 export type { StamperType, ZeroDevWalletSession } from './types/session.js'
+export type { KeyFormat } from './utils/exportPrivateKey.js'
+export { exportPrivateKey } from './utils/exportPrivateKey.js'
 export { exportWallet } from './utils/exportWallet.js'
 // Utils
 export { normalizeTimestamp } from './utils/utils.js'

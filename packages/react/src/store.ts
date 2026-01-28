@@ -24,7 +24,7 @@ export type ZeroDevWalletState = {
   session: ZeroDevWalletSession | null
 
   // Multi-chain support
-  chainIds: number[] // [activeChain, ...otherChains]
+  activeChainId: number | null
   kernelAccounts: Map<number, SmartAccount<KernelSmartAccountImplementation>>
   kernelClients: Map<number, KernelAccountClient>
 
@@ -43,7 +43,7 @@ export type ZeroDevWalletState = {
   ) => void
   setKernelClient: (chainId: number, client: KernelAccountClient) => void
   setSession: (session: ZeroDevWalletSession | null) => void
-  setActiveChain: (chainId: number) => void
+  setActiveChainId: (chainId: number | null) => void
   setIsExpiring: (isExpiring: boolean) => void
   setOAuthConfig: (config: InternalOAuthConfig | null) => void
   clear: () => void
@@ -58,7 +58,7 @@ export const createZeroDevWalletStore = () =>
           wallet: null,
           eoaAccount: null,
           session: null,
-          chainIds: [],
+          activeChainId: null,
           kernelAccounts: new Map(),
           kernelClients: new Map(),
           isExpiring: false,
@@ -83,13 +83,7 @@ export const createZeroDevWalletStore = () =>
 
           setSession: (session) => set({ session }),
 
-          setActiveChain: (chainId) => {
-            const { chainIds } = get()
-            // Move chainId to front, remove duplicates
-            set({
-              chainIds: [chainId, ...chainIds.filter((id) => id !== chainId)],
-            })
-          },
+          setActiveChainId: (chainId) => set({ activeChainId: chainId }),
 
           setIsExpiring: (isExpiring) => set({ isExpiring }),
 
@@ -102,7 +96,7 @@ export const createZeroDevWalletStore = () =>
               kernelAccounts: new Map(),
               kernelClients: new Map(),
               isExpiring: false,
-              chainIds: [],
+              activeChainId: null,
             }),
         }),
         {
@@ -110,7 +104,7 @@ export const createZeroDevWalletStore = () =>
           // Only persist session data, not clients or accounts
           partialize: (state) => ({
             session: state.session,
-            chainIds: state.chainIds,
+            activeChainId: state.activeChainId,
           }),
         },
       ),
