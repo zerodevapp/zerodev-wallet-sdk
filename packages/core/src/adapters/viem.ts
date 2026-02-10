@@ -53,6 +53,7 @@ export async function toViemAccount(
     return await client.signRawPayload({
       organizationId,
       projectId,
+      token,
       address,
       payload,
       encoding,
@@ -78,6 +79,7 @@ export async function toViemAccount(
     const signature = await client.signTransaction({
       organizationId,
       projectId,
+      token,
       address,
       unsignedTransaction: nonHexPrefixedSerializedTx,
     })

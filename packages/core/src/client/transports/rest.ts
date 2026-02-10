@@ -1,3 +1,4 @@
+import { canonicalizeEx } from 'json-canonicalize'
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
 import type { IndexedDbStamper, WebauthnStamper } from '../../stampers/types.js'
 
@@ -64,7 +65,7 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
           stamper = cfg.indexedDbStamper
         }
         const { body, apiUrl } = args.body
-        const bodyString = `${JSON.stringify(body ?? args.body)}\n`
+        const bodyString = canonicalizeEx(body ?? args.body)
         const stamp = await stamper.stamp(bodyString)
 
         // Restructure request body to match backend expectation
