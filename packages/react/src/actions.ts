@@ -336,6 +336,42 @@ export declare namespace refreshSession {
 }
 
 /**
+ * Get user email
+ */
+export async function getUserEmail(
+  config: Config,
+  parameters: {
+    organizationId: string
+    projectId: string
+    connector?: Connector
+  },
+): Promise<{ email: string }> {
+  const connector = parameters.connector ?? getZeroDevConnector(config)
+
+  // @ts-expect-error - getStore is a custom method
+  const store = await connector.getStore()
+  const wallet = store.getState().wallet
+
+  if (!wallet) throw new Error('Wallet not initialized')
+
+  // Call the core SDK method
+  return await wallet.client.getUserEmail({
+    organizationId: parameters.organizationId,
+    projectId: parameters.projectId,
+  })
+}
+
+export declare namespace getUserEmail {
+  type Parameters = {
+    organizationId: string
+    projectId: string
+    connector?: Connector
+  }
+  type ReturnType = { email: string }
+  type ErrorType = Error
+}
+
+/**
  * Export wallet
  */
 export async function exportWallet(
