@@ -22,6 +22,7 @@ import {
   type StorageAdapter,
 } from '../storage/manager.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
+import { buildClientSignature } from '../utils/buildClientSignature.js'
 import {
   base64UrlEncode,
   generateCompressedPublicKeyFromKeyPair,
@@ -68,7 +69,6 @@ export type AuthParams =
       mode: 'verifyOtp'
       otpId: string
       otpCode: string
-      subOrganizationId: string
     }
 
 export interface ZeroDevWalletSDK {
@@ -357,7 +357,7 @@ export async function createZeroDevWallet(
           }
 
           if (type === 'otp' && mode === 'verifyOtp') {
-            const { otpId, otpCode, subOrganizationId } = params
+            const { otpId, otpCode } = params
 
             // Step 1: Generate new key pair
             await client.indexedDbStamper.resetKeyPair()
@@ -367,24 +367,29 @@ export async function createZeroDevWallet(
               throw new Error('Failed to get public key')
             }
 
-            // Step 2: Create Auth Proxy client
+            // Step 2: Verify OTP via Auth Proxy
             const authProxyClient = createAuthProxyClient({
               authProxyConfigId: DEFAULT_AUTH_PROXY_CONFIG_ID,
             })
 
-            // Step 3: Verify OTP via Auth Proxy
             const { verificationToken } = await authProxyClient.verifyOtp({
               otpId,
               otpCode,
               public_key: targetPublicKey,
             })
 
-            // Step 4: Login via Auth Proxy with client signature
-            const data = await authProxyClient.otpLogin({
+            // Step 3: Build client signature
+            const clientSignature = await buildClientSignature({
               verificationToken,
-              organizationId: subOrganizationId,
               publicKey: targetPublicKey,
               stamper: client.indexedDbStamper,
+            })
+
+            // Step 4: Login via backend (not Auth Proxy!)
+            const data = await client.loginWithOTP({
+              verificationToken,
+              clientSignature,
+              projectId,
             })
 
             if (data.session) {

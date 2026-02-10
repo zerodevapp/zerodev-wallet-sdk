@@ -216,7 +216,7 @@ export async function sendOTP(
     emailCustomization?: { magicLinkTemplate?: string }
     connector?: Connector
   },
-): Promise<{ otpId: string; subOrganizationId: string }> {
+): Promise<{ otpId: string }> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
 
   // @ts-expect-error - getStore is a custom method
@@ -237,7 +237,6 @@ export async function sendOTP(
 
   return {
     otpId: result.otpId,
-    subOrganizationId: result.subOrganizationId,
   }
 }
 
@@ -247,7 +246,7 @@ export declare namespace sendOTP {
     emailCustomization?: { magicLinkTemplate?: string }
     connector?: Connector
   }
-  type ReturnType = { otpId: string; subOrganizationId: string }
+  type ReturnType = { otpId: string }
   type ErrorType = Error
 }
 
@@ -259,7 +258,6 @@ export async function verifyOTP(
   parameters: {
     code: string
     otpId: string
-    subOrganizationId: string
     connector?: Connector
   },
 ): Promise<void> {
@@ -276,7 +274,6 @@ export async function verifyOTP(
     mode: 'verifyOtp',
     otpId: parameters.otpId,
     otpCode: parameters.code,
-    subOrganizationId: parameters.subOrganizationId,
   })
 
   const [session, eoaAccount] = await Promise.all([
@@ -295,7 +292,6 @@ export declare namespace verifyOTP {
   type Parameters = {
     code: string
     otpId: string
-    subOrganizationId: string
     connector?: Connector
   }
   type ReturnType = void

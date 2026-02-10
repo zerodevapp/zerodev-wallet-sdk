@@ -20,23 +20,17 @@ export type RegisterWithOTPParameters = {
 }
 
 export type RegisterWithOTPReturnType = {
-  /** The user ID */
-  userId: string
-  /** The wallet address */
-  walletAddress: string
-  /** The sub-organization ID */
-  subOrganizationId: string
-  /** The OTP ID needed for login */
+  /** The OTP ID needed for verification */
   otpId: string
 }
 
 /**
- * Registers a user with OTP (One-Time Password) authentication
+ * Initiates OTP (One-Time Password) authentication
  * This will send an OTP code to the specified contact method
  *
  * @param client - The ZeroDev Wallet client
- * @param params - The parameters for OTP registration
- * @returns The registration result including otpId needed for login
+ * @param params - The parameters for OTP initiation
+ * @returns The result including otpId needed for verification
  *
  * @example
  * ```ts
@@ -49,7 +43,7 @@ export type RegisterWithOTPReturnType = {
  *   projectId: 'proj_456'
  * });
  *
- * // Use result.otpId for the login step
+ * // Use result.otpId for the verification step
  * ```
  */
 export async function registerWithOTP(
@@ -59,12 +53,11 @@ export async function registerWithOTP(
   const { email, contact, projectId, emailCustomization } = params
 
   return await client.request({
-    path: `${projectId}/auth/register/otp`,
+    path: `${projectId}/auth/init/otp`,
     method: 'POST',
     body: {
       email,
       contact,
-      projectId,
       emailCustomization,
     },
   })

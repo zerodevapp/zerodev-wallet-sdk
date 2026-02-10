@@ -1,14 +1,10 @@
 import type { Client } from '../../client/types.js'
 
 export type LoginWithOTPParameters = {
-  /** The OTP ID received from registration */
-  otpId: string
-  /** The OTP code received via email/sms */
-  otpCode: string
-  /** The sub-organization ID from registration */
-  subOrganizationId: string
-  /** The encoded public key for authentication */
-  encodedPublicKey: string
+  /** The verification token JWT from Auth Proxy's verifyOtp */
+  verificationToken: string
+  /** The raw r||s signature hex (64 bytes = 128 chars) */
+  clientSignature: string
   /** The project ID for the request */
   projectId: string
 }
@@ -19,8 +15,14 @@ export type LoginWithOTPReturnType = {
 }
 
 /**
- * Logs in a user with OTP (One-Time Password) authentication
- * This verifies the OTP code and returns a session token
+ * Logs in a user with OTP (One-Time Password) authentication via the backend.
+ *
+ * The backend handles:
+ * 1. Parsing the verificationToken JWT to extract email and publicKey
+ * 2. Creating/retrieving sub-organization for (projectId, email)
+ * 3. Reconstructing the message for signature verification
+ * 4. Calling Turnkey.OtpLogin with the appropriate parameters
+ * 5. Returning the session to the SDK
  *
  * @param client - The ZeroDev Wallet client
  * @param params - The parameters for OTP login
@@ -28,12 +30,10 @@ export type LoginWithOTPReturnType = {
  *
  * @example
  * ```ts
- * // After receiving OTP code via email
+ * // After verifying OTP via Auth Proxy and building client signature
  * const result = await loginWithOTP(client, {
- *   otpId: 'otp_123456',
- *   otpCode: '123456',
- *   subOrganizationId: 'org_abc',
- *   encodedPublicKey: '0x...',
+ *   verificationToken: '<jwt-from-auth-proxy>',
+ *   clientSignature: '<raw-signature-hex>',
  *   projectId: 'proj_456'
  * });
  *
@@ -44,17 +44,14 @@ export async function loginWithOTP(
   client: Client,
   params: LoginWithOTPParameters,
 ): Promise<LoginWithOTPReturnType> {
-  const { otpId, otpCode, subOrganizationId, encodedPublicKey, projectId } =
-    params
+  const { verificationToken, clientSignature, projectId } = params
 
   return await client.request({
     path: `${projectId}/auth/login/otp`,
     method: 'POST',
     body: {
-      otpId,
-      otpCode,
-      subOrganizationId,
-      encodedPublicKey,
+      verificationToken,
+      clientSignature,
     },
   })
 }
