@@ -1,5 +1,18 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.7
+
+### Patch Changes
+
+- Add OTP authentication via Turnkey Auth Proxy
+- Add OAuth backend PKCE flow
+- Add getUserEmail method and React hook
+- Fix passkey login endpoint
+- Fix signature verification with JSON canonicalization
+- Rename turnkeySession to session in OAuth response
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.7
+
 ## 0.0.1-alpha.6
 
 ### Patch Changes
