@@ -30,7 +30,6 @@ const config = createConfig({
   connectors: [
     zeroDevWallet({
       projectId: 'your-project-id',
-      aaUrl: 'your-aa-provider-url',
       chains: [sepolia],
     })
   ],

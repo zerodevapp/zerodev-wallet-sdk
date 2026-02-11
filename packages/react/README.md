@@ -36,7 +36,6 @@ const config = createConfig({
   connectors: [
     zeroDevWallet({
       projectId: 'YOUR_PROJECT_ID',
-      aaUrl: 'YOUR_AA_PROVIDER_URL',
       chains: [sepolia],
     })
   ],
@@ -178,7 +177,6 @@ type ZeroDevWalletConnectorParams = {
   projectId: string                    // Required: Your ZeroDev project ID
   organizationId?: string               // Optional: Turnkey organization ID
   proxyBaseUrl?: string                 // Optional: KMS proxy URL
-  aaUrl?: string                        // Optional: Bundler/paymaster URL
   chains: readonly Chain[]              // Required: Supported chains
   rpId?: string                         // Optional: WebAuthn RP ID
   sessionStorage?: StorageAdapter       // Optional: Custom session storage
