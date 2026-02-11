@@ -209,9 +209,9 @@ export async function createZeroDevWallet(
             projectId,
           })
 
-          if (data.turnkeySession) {
+          if (data.session) {
             // Parse the JWT to get session data
-            const parsedSession = parseSession(data.turnkeySession)
+            const parsedSession = parseSession(data.session)
             const publicKey = await client.indexedDbStamper.getPublicKey()
             const session: ZeroDevWalletSession = {
               id: `session_oauth_${Date.now()}`,
@@ -219,7 +219,7 @@ export async function createZeroDevWallet(
               organizationId: parsedSession.organizationId,
               stamperType: 'indexedDb',
               sessionType: parsedSession.sessionType || SessionType.READ_WRITE,
-              token: data.turnkeySession,
+              token: data.session,
               expiry: parsedSession.expiry,
               createdAt: Date.now(),
               publicKey: publicKey || '',

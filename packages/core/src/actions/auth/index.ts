@@ -11,6 +11,11 @@ export {
   authenticateWithOAuth,
 } from './authenticateWithOAuth.js'
 export {
+  type GetUserEmailParameters,
+  type GetUserEmailReturnType,
+  getUserEmail,
+} from './getUserEmail.js'
+export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getWhoami,

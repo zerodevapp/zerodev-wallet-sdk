@@ -1,3 +1,4 @@
+import { canonicalizeEx } from 'json-canonicalize'
 import type { Client } from '../../client/types.js'
 import type { Stamp } from '../../stampers/types.js'
 
@@ -48,14 +49,14 @@ export async function loginWithStamp(
   const timestampMsString = timestampMs.toString()
   const timestampIso = new Date(timestampMs).toISOString()
 
-  const stampPayload = `${JSON.stringify({
+  const stampPayload = canonicalizeEx({
     organizationId,
     parameters: {
       publicKey: targetPublicKey,
     },
     timestampMs: timestampMsString,
     type: 'ACTIVITY_TYPE_STAMP_LOGIN',
-  })}\n`
+  })
   let stamp: Stamp
   if (stampWith === 'indexedDb') {
     stamp = await client.indexedDbStamper.stamp(stampPayload)

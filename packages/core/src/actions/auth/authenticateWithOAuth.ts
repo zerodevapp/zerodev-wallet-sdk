@@ -15,7 +15,7 @@ export type AuthenticateWithOAuthReturnType = {
   /** The sub-organization ID */
   subOrganizationId?: string
   /** The Turnkey session */
-  turnkeySession?: string
+  session?: string
 }
 
 /**
