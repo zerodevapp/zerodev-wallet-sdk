@@ -10,10 +10,13 @@ import {
   type AuthenticateWithOAuthReturnType,
   authenticateWithEmail,
   authenticateWithOAuth,
+  type GetUserEmailParameters,
+  type GetUserEmailReturnType,
   type GetUserWalletParameters,
   type GetUserWalletReturnType,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
+  getUserEmail,
   getUserWallet,
   getWhoami,
   type LoginWithOTPParameters,
@@ -59,6 +62,13 @@ export type ZeroDevWalletActions = {
    * Gets the current user information
    */
   getWhoami: (params: GetWhoamiParameters) => Promise<GetWhoamiReturnType>
+
+  /**
+   * Gets the user's email address
+   */
+  getUserEmail: (
+    params: GetUserEmailParameters,
+  ) => Promise<GetUserEmailReturnType>
 
   // Wallet actions
   /**
@@ -139,6 +149,7 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     authenticateWithEmail: (params) => authenticateWithEmail(client, params),
     authenticateWithOAuth: (params) => authenticateWithOAuth(client, params),
     getWhoami: (params) => getWhoami(client, params),
+    getUserEmail: (params) => getUserEmail(client, params),
 
     // Wallet actions
     getUserWallet: (params) => getUserWallet(client, params),

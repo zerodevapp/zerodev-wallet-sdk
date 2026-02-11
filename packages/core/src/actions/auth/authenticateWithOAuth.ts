@@ -1,14 +1,10 @@
 import type { Client } from '../../client/types.js'
 
 export type AuthenticateWithOAuthParameters = {
-  /** The OAuth credential/token */
-  oidcToken: string
   /** The OAuth provider (e.g., 'google') */
   provider: string
   /** The project ID for the request */
   projectId: string
-  /** Target public key for authentication */
-  targetPublicKey: string
 }
 
 export type AuthenticateWithOAuthReturnType = {
@@ -19,11 +15,15 @@ export type AuthenticateWithOAuthReturnType = {
   /** The sub-organization ID */
   subOrganizationId?: string
   /** The Turnkey session */
-  turnkeySession?: string
+  session?: string
 }
 
 /**
- * Authenticates a user with OAuth credentials
+ * Authenticates a user with OAuth using cookie-based backend flow
+ *
+ * The backend reads the OAuth session from a cookie set during the OAuth flow.
+ * This requires the OAuth popup flow to complete first via the backend's
+ * /oauth/google/login endpoint.
  *
  * @param client - The ZeroDev Wallet client
  * @param params - The parameters for OAuth authentication
@@ -32,10 +32,8 @@ export type AuthenticateWithOAuthReturnType = {
  * @example
  * ```ts
  * const result = await authenticateWithOAuth(client, {
- *   oidcToken: 'oauth_token_here',
  *   provider: 'google',
  *   projectId: 'proj_456',
- *   targetPublicKey: '0x...'
  * });
  * ```
  */
@@ -43,16 +41,12 @@ export async function authenticateWithOAuth(
   client: Client,
   params: AuthenticateWithOAuthParameters,
 ): Promise<AuthenticateWithOAuthReturnType> {
-  const { oidcToken, provider, projectId, targetPublicKey } = params
+  const { projectId } = params
 
   return await client.request({
     path: `${projectId}/auth/oauth`,
     method: 'POST',
-    body: {
-      oidcToken,
-      provider,
-      targetPublicKey,
-      projectId,
-    },
+    body: null,
+    credentials: 'include',
   })
 }

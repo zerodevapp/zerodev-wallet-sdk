@@ -6,6 +6,8 @@ export type SignTransactionParameters = {
   organizationId: string
   /** The project ID for the request */
   projectId: string
+  /** The session token for authorization */
+  token: string
   /** The address to sign with */
   address: Hex
   /** The unsigned transaction to sign */
@@ -36,24 +38,26 @@ export async function signTransaction(
   client: Client,
   params: SignTransactionParameters,
 ): Promise<SignTransactionReturnType> {
-  const { organizationId, projectId, address, unsignedTransaction } = params
+  const { organizationId, projectId, token, address, unsignedTransaction } =
+    params
 
   const { signature } = await client.request({
     path: `${projectId}/sign/transaction`,
     body: {
-      body: {
-        type: 'ACTIVITY_TYPE_SIGN_TRANSACTION_V2',
-        timestampMs: Date.now().toString(),
-        organizationId,
-        parameters: {
-          signWith: address,
-          type: 'TRANSACTION_TYPE_ETHEREUM',
-          unsignedTransaction,
-        },
+      type: 'ACTIVITY_TYPE_SIGN_TRANSACTION_V2',
+      timestampMs: Date.now().toString(),
+      organizationId,
+      parameters: {
+        signWith: address,
+        type: 'TRANSACTION_TYPE_ETHEREUM',
+        unsignedTransaction,
       },
-      apiUrl: 'https://api.turnkey.com/public/v1/submit/sign_transaction',
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
     stamp: true,
+    stampPostion: 'headers',
   })
 
   return `0x${signature}` as Hex

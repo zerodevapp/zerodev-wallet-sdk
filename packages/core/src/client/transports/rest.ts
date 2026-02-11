@@ -1,3 +1,4 @@
+import { canonicalizeEx } from 'json-canonicalize'
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
 import type { IndexedDbStamper, WebauthnStamper } from '../../stampers/types.js'
 
@@ -9,6 +10,8 @@ export type RestRequestArgs = {
   stamp?: boolean
   stampWith?: 'indexedDb' | 'webAuthn'
   stampPostion?: 'body' | 'headers'
+  /** Include credentials (cookies) in the request */
+  credentials?: RequestCredentials
 }
 
 export type RestRequestFn = <T = any>(args: RestRequestArgs) => Promise<T>
@@ -62,7 +65,7 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
           stamper = cfg.indexedDbStamper
         }
         const { body, apiUrl } = args.body
-        const bodyString = `${JSON.stringify(body ?? args.body)}\n`
+        const bodyString = canonicalizeEx(body ?? args.body)
         const stamp = await stamper.stamp(bodyString)
 
         // Restructure request body to match backend expectation
@@ -97,6 +100,7 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
         headers: requestHeaders,
         body: requestBody != null ? JSON.stringify(requestBody) : null,
         signal: controller.signal,
+        ...(args.credentials && { credentials: args.credentials }),
       }
 
       const finalInit = (await cfg.onRequest?.(fullUrl, init)) ?? init

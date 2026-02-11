@@ -1,4 +1,11 @@
 export {
+  type AuthProxyClient,
+  type AuthProxyClientConfig,
+  type AuthProxyVerifyOtpRequest,
+  type AuthProxyVerifyOtpResponse,
+  createAuthProxyClient,
+} from './authProxy.js'
+export {
   createBaseClient,
   createClient,
   type ZeroDevWalletClient,

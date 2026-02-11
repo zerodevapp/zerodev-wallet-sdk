@@ -3,11 +3,13 @@ import type { LocalAccount } from 'viem/accounts'
 import type { EmailCustomization } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
+  createAuthProxyClient,
   createClient,
   type ZeroDevWalletClient,
   zeroDevWalletTransport,
 } from '../client/index.js'
 import {
+  DEFAULT_AUTH_PROXY_CONFIG_ID,
   DEFAULT_ORGANIZATION_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
@@ -20,6 +22,7 @@ import {
   type StorageAdapter,
 } from '../storage/manager.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
+import { buildClientSignature } from '../utils/buildClientSignature.js'
 import {
   base64UrlEncode,
   generateCompressedPublicKeyFromKeyPair,
@@ -45,8 +48,6 @@ export type AuthParams =
   | {
       type: 'oauth'
       provider: string
-      redirectUrl?: string
-      credential: string
     }
   | {
       type: 'passkey'
@@ -68,7 +69,6 @@ export type AuthParams =
       mode: 'verifyOtp'
       otpId: string
       otpCode: string
-      subOrganizationId: string
     }
 
 export interface ZeroDevWalletSDK {
@@ -202,33 +202,27 @@ export async function createZeroDevWallet(
     async auth(params: AuthParams) {
       switch (params.type) {
         case 'oauth': {
-          const { credential } = params
-          const targetPublicKey = await client.indexedDbStamper.getPublicKey()
-
-          if (!targetPublicKey) {
-            throw new Error('Failed to get public key')
-          }
-
+          // Backend OAuth flow - the backend reads the OAuth session from a cookie
+          // set during the OAuth popup flow via /oauth/google/login
           const data = await client.authenticateWithOAuth({
-            oidcToken: credential,
-            provider: 'google',
-            targetPublicKey,
+            provider: params.provider,
             projectId,
           })
 
-          if (data.turnkeySession) {
+          if (data.session) {
             // Parse the JWT to get session data
-            const parsedSession = parseSession(data.turnkeySession)
+            const parsedSession = parseSession(data.session)
+            const publicKey = await client.indexedDbStamper.getPublicKey()
             const session: ZeroDevWalletSession = {
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
               organizationId: parsedSession.organizationId,
               stamperType: 'indexedDb',
               sessionType: parsedSession.sessionType || SessionType.READ_WRITE,
-              token: data.turnkeySession,
+              token: data.session,
               expiry: parsedSession.expiry,
               createdAt: Date.now(),
-              publicKey: targetPublicKey,
+              publicKey: publicKey || '',
             }
             await sessionStorageManager.storeSession(session, session.id)
           }
@@ -363,7 +357,9 @@ export async function createZeroDevWallet(
           }
 
           if (type === 'otp' && mode === 'verifyOtp') {
-            const { otpId, otpCode, subOrganizationId } = params
+            const { otpId, otpCode } = params
+
+            // Step 1: Generate new key pair
             await client.indexedDbStamper.resetKeyPair()
             const targetPublicKey = await client.indexedDbStamper.getPublicKey()
 
@@ -371,11 +367,28 @@ export async function createZeroDevWallet(
               throw new Error('Failed to get public key')
             }
 
-            const data = await client.loginWithOTP({
+            // Step 2: Verify OTP via Auth Proxy
+            const authProxyClient = createAuthProxyClient({
+              authProxyConfigId: DEFAULT_AUTH_PROXY_CONFIG_ID,
+            })
+
+            const { verificationToken } = await authProxyClient.verifyOtp({
               otpId,
               otpCode,
-              subOrganizationId,
-              encodedPublicKey: targetPublicKey,
+              public_key: targetPublicKey,
+            })
+
+            // Step 3: Build client signature
+            const clientSignature = await buildClientSignature({
+              verificationToken,
+              publicKey: targetPublicKey,
+              stamper: client.indexedDbStamper,
+            })
+
+            // Step 4: Login via backend (not Auth Proxy!)
+            const data = await client.loginWithOTP({
+              verificationToken,
+              clientSignature,
               projectId,
             })
 

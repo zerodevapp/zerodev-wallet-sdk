@@ -10,7 +10,11 @@ export {
   type AuthenticateWithOAuthReturnType,
   authenticateWithOAuth,
 } from './authenticateWithOAuth.js'
-
+export {
+  type GetUserEmailParameters,
+  type GetUserEmailReturnType,
+  getUserEmail,
+} from './getUserEmail.js'
 export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
@@ -26,7 +30,6 @@ export {
   type LoginWithStampReturnType,
   loginWithStamp,
 } from './loginWithStamp.js'
-
 export {
   type OtpContact,
   type RegisterWithOTPParameters,

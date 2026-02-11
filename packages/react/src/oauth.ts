@@ -7,55 +7,16 @@ export const OAUTH_PROVIDERS = {
 export type OAuthProvider =
   (typeof OAUTH_PROVIDERS)[keyof typeof OAUTH_PROVIDERS]
 
-export type OAuthConfig = {
-  googleClientId?: string
-  redirectUri: string
-}
-
-export type OAuthFlowParams = {
+export type BackendOAuthFlowParams = {
   provider: OAuthProvider
-  clientId: string
-  redirectUri: string
-  nonce: string
-  state?: Record<string, string>
+  backendUrl: string
+  projectId: string
+  publicKey: string
+  returnTo: string
 }
-
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 
 const POPUP_WIDTH = 500
 const POPUP_HEIGHT = 600
-
-export function buildOAuthUrl(params: OAuthFlowParams): string {
-  const { provider, clientId, redirectUri, nonce, state } = params
-
-  if (provider !== OAUTH_PROVIDERS.GOOGLE) {
-    throw new Error(`Unsupported OAuth provider: ${provider}`)
-  }
-
-  const authUrl = new URL(GOOGLE_AUTH_URL)
-  authUrl.searchParams.set('client_id', clientId)
-  authUrl.searchParams.set('redirect_uri', redirectUri)
-  authUrl.searchParams.set('response_type', 'id_token')
-  authUrl.searchParams.set('scope', 'openid email profile')
-  authUrl.searchParams.set('nonce', nonce)
-  authUrl.searchParams.set('prompt', 'select_account')
-
-  let stateParam = `provider=${provider}`
-  if (state) {
-    const additionalState = Object.entries(state)
-      .map(
-        ([key, value]) =>
-          `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
-      )
-      .join('&')
-    if (additionalState) {
-      stateParam += `&${additionalState}`
-    }
-  }
-  authUrl.searchParams.set('state', stateParam)
-
-  return authUrl.toString()
-}
 
 export function openOAuthPopup(url: string): Window | null {
   const width = POPUP_WIDTH
@@ -76,49 +37,107 @@ export function openOAuthPopup(url: string): Window | null {
   return authWindow
 }
 
-export function extractOAuthToken(url: string): string | null {
-  const hashParams = new URLSearchParams(url.split('#')[1])
-  let idToken = hashParams.get('id_token')
-
-  if (!idToken) {
-    const queryParams = new URLSearchParams(url.split('?')[1])
-    idToken = queryParams.get('id_token')
-  }
-
-  return idToken
-}
-
-export function pollOAuthPopup(
-  authWindow: Window,
-  originUrl: string,
-  onSuccess: (token: string) => void,
-  onError: (error: Error) => void,
-): void {
-  const interval = setInterval(() => {
-    try {
-      if (authWindow.closed) {
-        clearInterval(interval)
-        onError(new Error('Authentication window was closed'))
-        return
-      }
-
-      const url = authWindow.location.href || ''
-
-      if (url.startsWith(originUrl)) {
-        const token = extractOAuthToken(url)
-
-        if (token) {
-          authWindow.close()
-          clearInterval(interval)
-          onSuccess(token)
-        }
-      }
-    } catch {
-      // Ignore cross-origin errors
-    }
-  }, 500)
-}
-
 export function generateOAuthNonce(publicKey: string): string {
   return sha256(publicKey as Hex).replace(/^0x/, '')
+}
+
+/**
+ * Build OAuth URL that redirects to backend's OAuth endpoint
+ * The backend handles PKCE, client credentials, and token exchange
+ */
+export function buildBackendOAuthUrl(params: BackendOAuthFlowParams): string {
+  const { provider, backendUrl, projectId, publicKey, returnTo } = params
+
+  if (provider !== OAUTH_PROVIDERS.GOOGLE) {
+    throw new Error(`Unsupported OAuth provider: ${provider}`)
+  }
+
+  const oauthUrl = new URL(`${backendUrl}/oauth/google/login`)
+  oauthUrl.searchParams.set('project_id', projectId)
+  oauthUrl.searchParams.set('pub_key', publicKey.replace(/^0x/, ''))
+  oauthUrl.searchParams.set('return_to', returnTo)
+
+  return oauthUrl.toString()
+}
+
+export type OAuthMessageData = {
+  type: 'oauth_success' | 'oauth_error'
+  error?: string
+}
+
+/**
+ * Listen for OAuth completion via postMessage from popup
+ * The popup sends a message when it detects a successful redirect
+ */
+export function listenForOAuthMessage(
+  authWindow: Window,
+  expectedOrigin: string,
+  onSuccess: () => void,
+  onError: (error: Error) => void,
+): () => void {
+  let cleaned = false
+
+  const handleMessage = (event: MessageEvent<OAuthMessageData>) => {
+    // Only trust messages from expected origin
+    if (event.origin !== expectedOrigin) return
+    if (!event.data || typeof event.data !== 'object') return
+
+    if (event.data.type === 'oauth_success') {
+      cleanup()
+      onSuccess()
+    } else if (event.data.type === 'oauth_error') {
+      cleanup()
+      onError(new Error(event.data.error || 'OAuth authentication failed'))
+    }
+  }
+
+  const checkWindowClosed = setInterval(() => {
+    if (authWindow.closed) {
+      cleanup()
+      onError(new Error('Authentication window was closed'))
+    }
+  }, 500)
+
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    window.removeEventListener('message', handleMessage)
+    clearInterval(checkWindowClosed)
+  }
+
+  window.addEventListener('message', handleMessage)
+
+  return cleanup
+}
+
+/**
+ * Handle OAuth callback on the return page
+ * Call this on the page that receives the OAuth redirect
+ * It sends a postMessage to the opener and closes the window
+ */
+export function handleOAuthCallback(successParam = 'oauth_success'): boolean {
+  const urlParams = new URLSearchParams(window.location.search)
+  const isSuccess = urlParams.get(successParam) === 'true'
+  const error = urlParams.get('error')
+
+  if (window.opener) {
+    if (isSuccess) {
+      window.opener.postMessage(
+        { type: 'oauth_success' } satisfies OAuthMessageData,
+        window.location.origin,
+      )
+      window.close()
+      return true
+    }
+    if (error) {
+      window.opener.postMessage(
+        { type: 'oauth_error', error } satisfies OAuthMessageData,
+        window.location.origin,
+      )
+      window.close()
+      return false
+    }
+  }
+
+  return false
 }

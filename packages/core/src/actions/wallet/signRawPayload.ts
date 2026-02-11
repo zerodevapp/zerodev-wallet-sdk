@@ -6,6 +6,8 @@ export type SignRawPayloadParameters = {
   organizationId: string
   /** The project ID for the request */
   projectId: string
+  /** The session token for authorization */
+  token: string
   /** The address to sign with */
   address: Hex
   /** The payload hash to sign (without 0x prefix) */
@@ -43,6 +45,7 @@ export async function signRawPayload(
   const {
     organizationId,
     projectId,
+    token,
     address,
     payload,
     encoding = 'PAYLOAD_ENCODING_HEXADECIMAL',
@@ -52,20 +55,21 @@ export async function signRawPayload(
   const { signature } = await client.request({
     path: `${projectId}/sign/raw-payload`,
     body: {
-      body: {
-        type: 'ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2',
-        timestampMs: Date.now().toString(),
-        organizationId,
-        parameters: {
-          signWith: address,
-          payload,
-          encoding,
-          hashFunction,
-        },
+      type: 'ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2',
+      timestampMs: Date.now().toString(),
+      organizationId,
+      parameters: {
+        signWith: address,
+        payload,
+        encoding,
+        hashFunction,
       },
-      apiUrl: 'https://api.turnkey.com/public/v1/submit/sign_raw_payload',
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
     stamp: true,
+    stampPostion: 'headers',
   })
   return signature as Hex
 }
