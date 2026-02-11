@@ -67,7 +67,7 @@ export async function loginWithStamp(
   }
 
   return client.request({
-    path: `${projectId}/auth/login/passkey`,
+    path: `${projectId}/auth/login/stamp`,
     method: 'POST',
     body: {
       subOrganizationId: organizationId,
