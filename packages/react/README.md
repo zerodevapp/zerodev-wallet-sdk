@@ -160,7 +160,7 @@ const sendOTP = useSendOTP()
 const verifyOTP = useVerifyOTP()
 
 // Send OTP code
-const { otpId, subOrganizationId } = await sendOTP.mutateAsync({
+const { otpId } = await sendOTP.mutateAsync({
   email: 'user@example.com'
 })
 
@@ -168,7 +168,6 @@ const { otpId, subOrganizationId } = await sendOTP.mutateAsync({
 await verifyOTP.mutateAsync({
   code: '123456',
   otpId,
-  subOrganizationId
 })
 ```
 
@@ -237,6 +236,18 @@ await exportPrivateKey.mutateAsync({
 })
 ```
 
+### Get User Email
+
+```typescript
+const getUserEmail = useGetUserEmail()
+
+// Fetch user's email from the backend
+const { email } = await getUserEmail.mutateAsync({
+  organizationId: session.organizationId,
+  projectId: 'your-project-id'
+})
+```
+
 ## API Reference
 
 ### Hooks
@@ -251,6 +262,7 @@ All hooks follow the TanStack Query mutation pattern:
 - `useRefreshSession()` - Manually refresh session
 - `useExportWallet()` - Export wallet seed phrase
 - `useExportPrivateKey()` - Export wallet private key
+- `useGetUserEmail()` - Get user's email address
 
 ### Connector
 

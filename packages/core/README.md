@@ -87,7 +87,7 @@ await wallet.auth({
 
 ```typescript
 // Send magic link
-await wallet.auth({
+const { otpId } = await wallet.auth({
   type: "otp",
   mode: "sendOtp",
   email: "user@example.com",
@@ -103,7 +103,6 @@ await wallet.auth({
   mode: "verifyOtp",
   otpId,
   otpCode: otp, // OTP from magic link url
-  subOrganizationId,
 });
 ```
 
@@ -111,7 +110,7 @@ await wallet.auth({
 
 ```typescript
 // Step 1: Send OTP code
-const data = await wallet.auth({
+const { otpId } = await wallet.auth({
   type: 'otp',
   mode: 'sendOtp',
   email: 'user@example.com',
@@ -122,20 +121,18 @@ const data = await wallet.auth({
 await wallet.auth({
   type: 'otp',
   mode: 'verifyOtp',
-  otpId: data.otpId,
+  otpId,
   otpCode: '123456',
-  subOrganizationId: data.subOrganizationId
 });
 ```
 
 ### OAuth (Google)
 
 ```typescript
-// After getting credential from Google OAuth
+// Backend handles PKCE and token exchange - no client-side OAuth library needed
 await wallet.auth({
   type: 'oauth',
-  provider: 'google',
-  credential: googleCredential  // JWT from Google
+  provider: 'google'
 });
 ```
 
