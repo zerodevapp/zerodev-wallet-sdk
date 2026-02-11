@@ -30,7 +30,6 @@ export {
   type LoginWithStampReturnType,
   loginWithStamp,
 } from './loginWithStamp.js'
-
 export {
   type OtpContact,
   type RegisterWithOTPParameters,

@@ -3,11 +3,13 @@ import type { LocalAccount } from 'viem/accounts'
 import type { EmailCustomization } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
+  createAuthProxyClient,
   createClient,
   type ZeroDevWalletClient,
   zeroDevWalletTransport,
 } from '../client/index.js'
 import {
+  DEFAULT_AUTH_PROXY_CONFIG_ID,
   DEFAULT_ORGANIZATION_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
@@ -20,6 +22,7 @@ import {
   type StorageAdapter,
 } from '../storage/manager.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
+import { buildClientSignature } from '../utils/buildClientSignature.js'
 import {
   base64UrlEncode,
   generateCompressedPublicKeyFromKeyPair,
@@ -66,7 +69,6 @@ export type AuthParams =
       mode: 'verifyOtp'
       otpId: string
       otpCode: string
-      subOrganizationId: string
     }
 
 export interface ZeroDevWalletSDK {
@@ -355,7 +357,9 @@ export async function createZeroDevWallet(
           }
 
           if (type === 'otp' && mode === 'verifyOtp') {
-            const { otpId, otpCode, subOrganizationId } = params
+            const { otpId, otpCode } = params
+
+            // Step 1: Generate new key pair
             await client.indexedDbStamper.resetKeyPair()
             const targetPublicKey = await client.indexedDbStamper.getPublicKey()
 
@@ -363,11 +367,28 @@ export async function createZeroDevWallet(
               throw new Error('Failed to get public key')
             }
 
-            const data = await client.loginWithOTP({
+            // Step 2: Verify OTP via Auth Proxy
+            const authProxyClient = createAuthProxyClient({
+              authProxyConfigId: DEFAULT_AUTH_PROXY_CONFIG_ID,
+            })
+
+            const { verificationToken } = await authProxyClient.verifyOtp({
               otpId,
               otpCode,
-              subOrganizationId,
-              encodedPublicKey: targetPublicKey,
+              public_key: targetPublicKey,
+            })
+
+            // Step 3: Build client signature
+            const clientSignature = await buildClientSignature({
+              verificationToken,
+              publicKey: targetPublicKey,
+              stamper: client.indexedDbStamper,
+            })
+
+            // Step 4: Login via backend (not Auth Proxy!)
+            const data = await client.loginWithOTP({
+              verificationToken,
+              clientSignature,
               projectId,
             })
 
