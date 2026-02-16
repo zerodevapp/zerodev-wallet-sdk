@@ -30,7 +30,6 @@ const config = createConfig({
   connectors: [
     zeroDevWallet({
       projectId: 'your-project-id',
-      aaUrl: 'your-aa-provider-url',
       chains: [sepolia],
     })
   ],
@@ -146,7 +145,7 @@ Passwordless authentication via email.
 
 ```typescript
 // Step 1: Send magic link
-const { otpId, subOrganizationId } = await wallet.auth({
+const { otpId } = await wallet.auth({
   type: "otp",
   mode: "sendOtp",
   email: "user@example.com",
@@ -165,7 +164,6 @@ await wallet.auth({
   mode: "verifyOtp",
   otpId,
   otpCode: otp,
-  subOrganizationId,
 });
 ```
 
@@ -175,7 +173,7 @@ One-time password sent to email.
 
 ```typescript
 // Step 1: Send OTP
-const { otpId, subOrganizationId } = await wallet.auth({
+const { otpId } = await wallet.auth({
   type: 'otp',
   mode: 'sendOtp',
   email: 'user@example.com',
@@ -188,7 +186,6 @@ await wallet.auth({
   mode: 'verifyOtp',
   otpId,
   otpCode: '123456',
-  subOrganizationId
 });
 ```
 

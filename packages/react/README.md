@@ -36,7 +36,6 @@ const config = createConfig({
   connectors: [
     zeroDevWallet({
       projectId: 'YOUR_PROJECT_ID',
-      aaUrl: 'YOUR_AA_PROVIDER_URL',
       chains: [sepolia],
     })
   ],
@@ -160,7 +159,7 @@ const sendOTP = useSendOTP()
 const verifyOTP = useVerifyOTP()
 
 // Send OTP code
-const { otpId, subOrganizationId } = await sendOTP.mutateAsync({
+const { otpId } = await sendOTP.mutateAsync({
   email: 'user@example.com'
 })
 
@@ -168,7 +167,6 @@ const { otpId, subOrganizationId } = await sendOTP.mutateAsync({
 await verifyOTP.mutateAsync({
   code: '123456',
   otpId,
-  subOrganizationId
 })
 ```
 
@@ -179,7 +177,6 @@ type ZeroDevWalletConnectorParams = {
   projectId: string                    // Required: Your ZeroDev project ID
   organizationId?: string               // Optional: Turnkey organization ID
   proxyBaseUrl?: string                 // Optional: KMS proxy URL
-  aaUrl?: string                        // Optional: Bundler/paymaster URL
   chains: readonly Chain[]              // Required: Supported chains
   rpId?: string                         // Optional: WebAuthn RP ID
   sessionStorage?: StorageAdapter       // Optional: Custom session storage
@@ -237,6 +234,18 @@ await exportPrivateKey.mutateAsync({
 })
 ```
 
+### Get User Email
+
+```typescript
+const getUserEmail = useGetUserEmail()
+
+// Fetch user's email from the backend
+const { email } = await getUserEmail.mutateAsync({
+  organizationId: session.organizationId,
+  projectId: 'your-project-id'
+})
+```
+
 ## API Reference
 
 ### Hooks
@@ -251,6 +260,7 @@ All hooks follow the TanStack Query mutation pattern:
 - `useRefreshSession()` - Manually refresh session
 - `useExportWallet()` - Export wallet seed phrase
 - `useExportPrivateKey()` - Export wallet private key
+- `useGetUserEmail()` - Get user's email address
 
 ### Connector
 
