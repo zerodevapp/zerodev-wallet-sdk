@@ -18,23 +18,21 @@ type ConfigParameter<config extends Config = Config> = {
 export function useGetUserEmail<
   config extends Config = ResolvedRegister['config'],
 >(parameters: useGetUserEmail.Parameters<config>): useGetUserEmail.ReturnType {
-  const { organizationId, projectId, query } = parameters
+  const { query } = parameters
   const config = useConfig(parameters)
 
   return useQuery({
     ...query,
-    queryKey: ['getUserEmail', { organizationId, projectId }],
+    queryKey: ['getUserEmail'],
     queryFn: async () => {
-      return getUserEmail(config, { organizationId, projectId })
+      return getUserEmail(config)
     },
-    enabled: Boolean(organizationId && projectId),
+    enabled: Boolean(config),
   })
 }
 
 export declare namespace useGetUserEmail {
   type Parameters<config extends Config = Config> = ConfigParameter<config> & {
-    organizationId: string
-    projectId: string
     query?:
       | Omit<
           UseQueryOptions<
