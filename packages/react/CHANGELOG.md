@@ -1,5 +1,11 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.8
+
+### Patch Changes
+
+- fix: use internal state for get user email
+
 ## 0.0.1-alpha.7
 
 ### Patch Changes
