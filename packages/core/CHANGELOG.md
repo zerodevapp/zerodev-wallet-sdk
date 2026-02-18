@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.9
+
+### Patch Changes
+
+- fix: use session.token for getUserEmail auth headers
+
 ## 0.0.1-alpha.8
 
 ### Patch Changes

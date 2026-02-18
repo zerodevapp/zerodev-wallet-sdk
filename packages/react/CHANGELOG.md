@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.10
+
+### Patch Changes
+
+- fix: use session.token for getUserEmail auth headers
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.9
+
 ## 0.0.1-alpha.9
 
 ### Patch Changes
