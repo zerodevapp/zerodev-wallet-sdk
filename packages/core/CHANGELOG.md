@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.8
+
+### Patch Changes
+
+- fix: get user email stamp position
+
 ## 0.0.1-alpha.7
 
 ### Patch Changes
