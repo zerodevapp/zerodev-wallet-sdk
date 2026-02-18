@@ -5,6 +5,8 @@ export type GetUserEmailParameters = {
   organizationId: string
   /** The project ID for the request */
   projectId: string
+  /** The session token for authorization */
+  token: string
 }
 
 export type GetUserEmailReturnType = {
@@ -23,7 +25,8 @@ export type GetUserEmailReturnType = {
  * ```ts
  * const userEmail = await getUserEmail(client, {
  *   organizationId: 'org_123',
- *   projectId: 'proj_456'
+ *   projectId: 'proj_456',
+ *   token: 'session_token_abc',
  * });
  * console.log(userEmail.email); // 'user@example.com'
  * ```
@@ -32,13 +35,16 @@ export async function getUserEmail(
   client: Client,
   params: GetUserEmailParameters,
 ): Promise<GetUserEmailReturnType> {
-  const { organizationId, projectId } = params
+  const { organizationId, projectId, token } = params
 
   return await client.request({
     path: `${projectId}/user-email`,
     method: 'POST',
     body: {
       organizationId,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
     stamp: true,
     stampPostion: 'headers',
