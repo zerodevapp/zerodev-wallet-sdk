@@ -357,6 +357,7 @@ export async function getUserEmail(config: Config): Promise<{ email: string }> {
   return await wallet.client.getUserEmail({
     organizationId: session.organizationId,
     projectId: oauthConfig.projectId,
+    token: session.token,
   })
 }
 
