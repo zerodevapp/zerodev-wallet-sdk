@@ -41,5 +41,6 @@ export async function getUserEmail(
       organizationId,
     },
     stamp: true,
+    stampPostion: 'headers',
   })
 }
