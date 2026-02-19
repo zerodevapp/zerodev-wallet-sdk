@@ -1,0 +1,8 @@
+{
+  "extends": "./templates/typescript/tsconfig.base.json",
+  "include": ["packages/core/src/**/*.ts", "packages/react/src/**/*.ts"],
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  }
+}
