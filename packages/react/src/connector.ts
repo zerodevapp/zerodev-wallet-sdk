@@ -107,12 +107,19 @@ export function zeroDevWallet(
   return createConnector<Provider, Properties>((wagmiConfig) => {
     let store: ReturnType<typeof createZeroDevWalletStore>
     let provider: ReturnType<typeof createProvider>
+    let initPromise: Promise<void> | null = null
 
     // Get transports from Wagmi config (uses user's RPC URLs)
     const transports = wagmiConfig.transports
 
-    // Lazy initialization - only runs on client side
+    // Lazy initialization - only runs on client side (idempotent)
     const initialize = async () => {
+      if (initPromise) return initPromise
+      initPromise = doInitialize()
+      return initPromise
+    }
+
+    const doInitialize = async () => {
       console.log('Initializing ZeroDevWallet connector...')
 
       // Initialize wallet SDK
