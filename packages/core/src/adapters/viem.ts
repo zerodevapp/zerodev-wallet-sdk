@@ -24,13 +24,13 @@ export interface ToViemAccountParams {
   client: ZeroDevWalletClient
   organizationId: string
   projectId: string
-  token: string
+  getToken: () => string | Promise<string>
 }
 
 export async function toViemAccount(
   params: ToViemAccountParams,
 ): Promise<LocalAccount> {
-  const { client, organizationId, projectId, token } = params
+  const { client, organizationId, projectId, getToken } = params
 
   let address: Hex = zeroAddress
 
@@ -38,7 +38,7 @@ export async function toViemAccount(
     const walletResponse = await client.getUserWallet({
       organizationId,
       projectId,
-      token,
+      token: await getToken(),
     })
     address = walletResponse.walletAddresses[0]
   } catch {
@@ -53,7 +53,7 @@ export async function toViemAccount(
     return await client.signRawPayload({
       organizationId,
       projectId,
-      token,
+      token: await getToken(),
       address,
       payload,
       encoding,
@@ -79,7 +79,7 @@ export async function toViemAccount(
     const signature = await client.signTransaction({
       organizationId,
       projectId,
-      token,
+      token: await getToken(),
       address,
       unsignedTransaction: nonHexPrefixedSerializedTx,
     })
