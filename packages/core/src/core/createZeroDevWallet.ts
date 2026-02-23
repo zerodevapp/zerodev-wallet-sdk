@@ -440,7 +440,10 @@ export async function createZeroDevWallet(
         client,
         organizationId: session.organizationId,
         projectId,
-        token: session.token ?? '',
+        getToken: async () => {
+          const activeSession = await sessionStorageManager.getActiveSession()
+          return activeSession?.token ?? ''
+        },
       })
     },
   }
