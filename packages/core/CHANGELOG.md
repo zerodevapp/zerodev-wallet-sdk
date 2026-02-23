@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.10
+
+### Patch Changes
+
+- feat: Added new getAuthProxyConfigId action that fetches the auth proxy config ID from GET /server-info/auth-proxy-id and updated DEFAULT_ORGANIZATION_ID and KMS_SERVER_URL to staging environment
+
 ## 0.0.1-alpha.9
 
 ### Patch Changes
