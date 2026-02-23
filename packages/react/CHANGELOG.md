@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.12
+
+### Patch Changes
+
+- fix: resolve session token dynamically so signing survives session refresh
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.11
+
 ## 0.0.1-alpha.11
 
 ### Patch Changes
