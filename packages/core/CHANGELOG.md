@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.11
+
+### Patch Changes
+
+- fix: resolve session token dynamically so signing survives session refresh
+
 ## 0.0.1-alpha.10
 
 ### Patch Changes
