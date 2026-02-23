@@ -11,6 +11,10 @@ export {
   authenticateWithOAuth,
 } from './authenticateWithOAuth.js'
 export {
+  type GetAuthProxyConfigIdReturnType,
+  getAuthProxyConfigId,
+} from './getAuthProxyConfigId.js'
+export {
   type GetUserEmailParameters,
   type GetUserEmailReturnType,
   getUserEmail,

@@ -10,12 +10,14 @@ import {
   type AuthenticateWithOAuthReturnType,
   authenticateWithEmail,
   authenticateWithOAuth,
+  type GetAuthProxyConfigIdReturnType,
   type GetUserEmailParameters,
   type GetUserEmailReturnType,
   type GetUserWalletParameters,
   type GetUserWalletReturnType,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
+  getAuthProxyConfigId,
   getUserEmail,
   getUserWallet,
   getWhoami,
@@ -119,6 +121,11 @@ export type ZeroDevWalletActions = {
   loginWithOTP: (
     params: LoginWithOTPParameters,
   ) => Promise<LoginWithOTPReturnType>
+
+  /**
+   * Gets the auth proxy config ID from the backend
+   */
+  getAuthProxyConfigId: () => Promise<GetAuthProxyConfigIdReturnType>
 }
 
 /**
@@ -159,5 +166,6 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     loginWithStamp: (params) => loginWithStamp(client, params),
     registerWithOTP: (params) => registerWithOTP(client, params),
     loginWithOTP: (params) => loginWithOTP(client, params),
+    getAuthProxyConfigId: () => getAuthProxyConfigId(client),
   }
 }

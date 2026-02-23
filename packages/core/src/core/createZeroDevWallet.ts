@@ -9,7 +9,6 @@ import {
   zeroDevWalletTransport,
 } from '../client/index.js'
 import {
-  DEFAULT_AUTH_PROXY_CONFIG_ID,
   DEFAULT_ORGANIZATION_ID,
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
@@ -118,6 +117,8 @@ export async function createZeroDevWallet(
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
   })
+
+  let cachedAuthProxyConfigId: string | undefined
 
   return {
     client,
@@ -368,8 +369,12 @@ export async function createZeroDevWallet(
             }
 
             // Step 2: Verify OTP via Auth Proxy
+            if (!cachedAuthProxyConfigId) {
+              const { authProxyConfigId } = await client.getAuthProxyConfigId()
+              cachedAuthProxyConfigId = authProxyConfigId
+            }
             const authProxyClient = createAuthProxyClient({
-              authProxyConfigId: DEFAULT_AUTH_PROXY_CONFIG_ID,
+              authProxyConfigId: cachedAuthProxyConfigId,
             })
 
             const { verificationToken } = await authProxyClient.verifyOtp({
