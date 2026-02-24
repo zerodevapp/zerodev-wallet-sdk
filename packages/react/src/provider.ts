@@ -151,7 +151,8 @@ export function createProvider({
             throw new Error(`No kernel client for chain ${chainId}`)
           }
 
-          // Send gasless transaction (always UserOp for EIP-7702)
+          // Transactions are sent as UserOperations under the hood (EIP-7702).
+          // Gasless if a paymaster is configured on the ZeroDev dashboard.
           const hash = await kernelClient.sendTransaction({
             calls: [
               {

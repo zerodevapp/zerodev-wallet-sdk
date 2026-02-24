@@ -34,7 +34,6 @@ const wallet = await createZeroDevWallet({
 // 2. Authenticate with passkey
 await wallet.auth({
   type: 'passkey',
-  email: 'user@example.com',
   mode: 'register'  // or 'login' for existing users
 });
 
@@ -71,14 +70,12 @@ const hash = await walletClient.sendTransaction({
 // Register new passkey
 await wallet.auth({
   type: 'passkey',
-  email: 'user@example.com',
   mode: 'register'
 });
 
 // Login with existing passkey
 await wallet.auth({
   type: 'passkey',
-  email: 'user@example.com',
   mode: 'login'
 });
 ```
@@ -88,21 +85,19 @@ await wallet.auth({
 ```typescript
 // Send magic link
 const { otpId } = await wallet.auth({
-  type: "otp",
-  mode: "sendOtp",
-  email: "user@example.com",
-  contact: { type: "email", contact: email },
-  emailCustomization: {
-    magicLinkTemplate: 'https://yourapp.com/verify?otp=%s'
-  },
+  type: 'magicLink',
+  mode: 'send',
+  email: 'user@example.com',
+  redirectURL: 'https://yourapp.com/verify',
 });
 
-// After user clicks link, parse otp from url params
+// After user clicks link (on /verify page), extract code from URL
+const code = new URLSearchParams(window.location.search).get('code');
 await wallet.auth({
-  type: "otp",
-  mode: "verifyOtp",
+  type: 'magicLink',
+  mode: 'verify',
   otpId,
-  otpCode: otp, // OTP from magic link url
+  code,
 });
 ```
 
@@ -306,5 +301,4 @@ MIT
 ## Links
 
 - [ZeroDev](https://zerodev.app)
-- [Turnkey](https://turnkey.com)
 - [GitHub](https://github.com/zerodevapp/doorway-kms-sdk)
