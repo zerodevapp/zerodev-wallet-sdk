@@ -28,12 +28,11 @@ function getZeroDevConnector(config: Config): Connector {
  */
 export async function registerPasskey(
   config: Config,
-  parameters: {
-    email: string
+  parameters?: {
     connector?: Connector
   },
 ): Promise<void> {
-  const connector = parameters.connector ?? getZeroDevConnector(config)
+  const connector = parameters?.connector ?? getZeroDevConnector(config)
 
   // @ts-expect-error - getStore is a custom method
   const store = await connector.getStore()
@@ -43,7 +42,6 @@ export async function registerPasskey(
 
   await wallet.auth({
     type: 'passkey',
-    email: parameters.email,
     mode: 'register',
   })
 
@@ -60,8 +58,7 @@ export async function registerPasskey(
 }
 
 export declare namespace registerPasskey {
-  type Parameters = {
-    email: string
+  type Parameters = void | {
     connector?: Connector
   }
   type ReturnType = void
@@ -73,12 +70,11 @@ export declare namespace registerPasskey {
  */
 export async function loginPasskey(
   config: Config,
-  parameters: {
-    email: string
+  parameters?: {
     connector?: Connector
   },
 ): Promise<void> {
-  const connector = parameters.connector ?? getZeroDevConnector(config)
+  const connector = parameters?.connector ?? getZeroDevConnector(config)
 
   // @ts-expect-error - getStore is a custom method
   const store = await connector.getStore()
@@ -88,7 +84,6 @@ export async function loginPasskey(
 
   await wallet.auth({
     type: 'passkey',
-    email: parameters.email,
     mode: 'login',
   })
 
@@ -105,8 +100,7 @@ export async function loginPasskey(
 }
 
 export declare namespace loginPasskey {
-  type Parameters = {
-    email: string
+  type Parameters = void | {
     connector?: Connector
   }
   type ReturnType = void
@@ -475,6 +469,95 @@ export declare namespace exportPrivateKey {
     iframeContainerId: string
     address?: string
     keyFormat?: 'Hexadecimal' | 'Solana'
+    connector?: Connector
+  }
+  type ReturnType = void
+  type ErrorType = Error
+}
+
+/**
+ * Send magic link via email
+ */
+export async function sendMagicLink(
+  config: Config,
+  parameters: {
+    email: string
+    redirectURL: string
+    connector?: Connector
+  },
+): Promise<{ otpId: string }> {
+  const connector = parameters.connector ?? getZeroDevConnector(config)
+
+  // @ts-expect-error - getStore is a custom method
+  const store = await connector.getStore()
+  const wallet = store.getState().wallet
+
+  if (!wallet) throw new Error('Wallet not initialized')
+
+  const result = await wallet.auth({
+    type: 'magicLink',
+    mode: 'send',
+    email: parameters.email,
+    redirectURL: parameters.redirectURL,
+  })
+
+  return {
+    otpId: result.otpId,
+  }
+}
+
+export declare namespace sendMagicLink {
+  type Parameters = {
+    email: string
+    redirectURL: string
+    connector?: Connector
+  }
+  type ReturnType = { otpId: string }
+  type ErrorType = Error
+}
+
+/**
+ * Verify magic link code
+ */
+export async function verifyMagicLink(
+  config: Config,
+  parameters: {
+    otpId: string
+    code: string
+    connector?: Connector
+  },
+): Promise<void> {
+  const connector = parameters.connector ?? getZeroDevConnector(config)
+
+  // @ts-expect-error - getStore is a custom method
+  const store = await connector.getStore()
+  const wallet = store.getState().wallet
+
+  if (!wallet) throw new Error('Wallet not initialized')
+
+  await wallet.auth({
+    type: 'magicLink',
+    mode: 'verify',
+    otpId: parameters.otpId,
+    code: parameters.code,
+  })
+
+  const [session, eoaAccount] = await Promise.all([
+    wallet.getSession(),
+    wallet.toAccount(),
+  ])
+
+  store.getState().setEoaAccount(eoaAccount)
+  store.getState().setSession(session || null)
+
+  // Auto-connect to Wagmi
+  await wagmiConnect(config, { connector })
+}
+
+export declare namespace verifyMagicLink {
+  type Parameters = {
+    otpId: string
+    code: string
     connector?: Connector
   }
   type ReturnType = void

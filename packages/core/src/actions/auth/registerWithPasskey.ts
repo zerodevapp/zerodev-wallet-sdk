@@ -6,8 +6,6 @@ export type EmailCustomization = {
 }
 
 export type RegisterWithPasskeyParameters = {
-  /** The email address to authenticate */
-  email: string
   /** The project ID for the request */
   projectId: string
   /** The challenge for the request */
@@ -41,7 +39,6 @@ export type RegisterWithPasskeyReturnType = {
  * @example
  * ```ts
  * const result = await registerWithPasskey(client, {
- *   email: 'user@example.com',
  *   projectId: 'proj_456',
  *   challenge: 'challenge',
  *   attestation: {
@@ -57,13 +54,12 @@ export async function registerWithPasskey(
   client: Client,
   params: RegisterWithPasskeyParameters,
 ): Promise<RegisterWithPasskeyReturnType> {
-  const { email, projectId, challenge, attestation, encodedPublicKey } = params
+  const { projectId, challenge, attestation, encodedPublicKey } = params
 
   return client.request({
     path: `${projectId}/auth/register/passkey`,
     method: 'POST',
     body: {
-      email,
       attestation,
       challenge,
       encodedPublicKey,

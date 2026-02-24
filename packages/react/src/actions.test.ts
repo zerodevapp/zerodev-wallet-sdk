@@ -108,11 +108,10 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await registerPasskey(config, { email: 'user@example.com' })
+      await registerPasskey(config, {})
 
       expect(wallet.auth).toHaveBeenCalledWith({
         type: 'passkey',
-        email: 'user@example.com',
         mode: 'register',
       })
     })
@@ -125,7 +124,7 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await registerPasskey(config, { email: 'user@example.com' })
+      await registerPasskey(config, {})
 
       expect(store.getState().setEoaAccount).toHaveBeenCalledWith({
         address: '0xdeadbeef',
@@ -143,7 +142,7 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await registerPasskey(config, { email: 'user@example.com' })
+      await registerPasskey(config, {})
 
       expect(store.getState().setSession).toHaveBeenCalledWith(null)
     })
@@ -154,7 +153,7 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await registerPasskey(config, { email: 'user@example.com' })
+      await registerPasskey(config, {})
 
       expect(wagmiConnect).toHaveBeenCalledWith(config, { connector })
     })
@@ -164,9 +163,9 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await expect(
-        registerPasskey(config, { email: 'user@example.com' }),
-      ).rejects.toThrow('Wallet not initialized')
+      await expect(registerPasskey(config, {})).rejects.toThrow(
+        'Wallet not initialized',
+      )
     })
 
     it('uses provided connector instead of finding one', async () => {
@@ -176,7 +175,6 @@ describe('React Actions', () => {
       const config = createMockConfig()
 
       await registerPasskey(config, {
-        email: 'user@example.com',
         connector: customConnector,
       })
 
@@ -191,11 +189,10 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await loginPasskey(config, { email: 'user@example.com' })
+      await loginPasskey(config, {})
 
       expect(wallet.auth).toHaveBeenCalledWith({
         type: 'passkey',
-        email: 'user@example.com',
         mode: 'login',
       })
     })
@@ -208,7 +205,7 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await loginPasskey(config, { email: 'user@example.com' })
+      await loginPasskey(config, {})
 
       expect(store.getState().setEoaAccount).toHaveBeenCalledWith({
         address: '0xabc',
@@ -224,7 +221,7 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await loginPasskey(config, { email: 'user@example.com' })
+      await loginPasskey(config, {})
 
       expect(wagmiConnect).toHaveBeenCalledWith(config, { connector })
     })
@@ -234,9 +231,9 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await expect(
-        loginPasskey(config, { email: 'user@example.com' }),
-      ).rejects.toThrow('Wallet not initialized')
+      await expect(loginPasskey(config, {})).rejects.toThrow(
+        'Wallet not initialized',
+      )
     })
   })
 
@@ -887,9 +884,9 @@ describe('React Actions', () => {
         storage: null,
       } as unknown as Config
 
-      await expect(
-        registerPasskey(config, { email: 'user@example.com' }),
-      ).rejects.toThrow('ZeroDev connector not found in Wagmi config')
+      await expect(registerPasskey(config, {})).rejects.toThrow(
+        'ZeroDev connector not found in Wagmi config',
+      )
     })
   })
 })

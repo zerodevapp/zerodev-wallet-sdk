@@ -26,8 +26,8 @@ export function useRegisterPasskey<
 
   return useMutation({
     ...mutation,
-    async mutationFn(variables: registerPasskey.Parameters) {
-      return registerPasskey(config, variables)
+    async mutationFn(variables?: registerPasskey.Parameters) {
+      return registerPasskey(config, variables ?? undefined)
     },
     mutationKey: ['registerPasskey'],
   })

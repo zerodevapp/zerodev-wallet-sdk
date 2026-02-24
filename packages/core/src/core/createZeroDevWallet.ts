@@ -50,7 +50,6 @@ export type AuthParams =
     }
   | {
       type: 'passkey'
-      email: string
       mode: 'register' | 'login'
     }
   | {
@@ -68,6 +67,18 @@ export type AuthParams =
       mode: 'verifyOtp'
       otpId: string
       otpCode: string
+    }
+  | {
+      type: 'magicLink'
+      mode: 'send'
+      email: string
+      redirectURL: string
+    }
+  | {
+      type: 'magicLink'
+      mode: 'verify'
+      otpId: string
+      code: string
     }
 
 export interface ZeroDevWalletSDK {
@@ -236,7 +247,6 @@ export async function createZeroDevWallet(
             'mode' in params &&
             params.mode === 'register'
           ) {
-            const { email } = params
             await client.indexedDbStamper.resetKeyPair()
             const tempPublicKey = await client.indexedDbStamper.getPublicKey()
             if (!tempPublicKey) {
@@ -245,7 +255,7 @@ export async function createZeroDevWallet(
             const challenge = generateRandomBuffer()
             const encodedChallenge = base64UrlEncode(challenge)
             const authenticatorUserId = generateRandomBuffer()
-            const name = `ZeroDevWallet-${humanReadableDateTime()}-${email}`
+            const name = `ZeroDevWallet-${humanReadableDateTime()}`
             const attestation = await getWebAuthnAttestation({
               publicKey: {
                 rp: { id: rpId, name: '' },
@@ -268,7 +278,6 @@ export async function createZeroDevWallet(
               },
             })
             const data = await client.registerWithPasskey({
-              email,
               attestation,
               challenge: encodedChallenge,
               projectId,
@@ -341,11 +350,35 @@ export async function createZeroDevWallet(
           }
           throw new Error('Passkey authentication requires passkey parameter')
         }
-        case 'otp': {
-          const { type, mode } = params
+        case 'otp':
+        case 'magicLink': {
+          // Normalize magicLink params into OTP params
+          let otpParams: Extract<AuthParams, { type: 'otp' }>
+          if (params.type === 'magicLink') {
+            if (params.mode === 'send') {
+              otpParams = {
+                type: 'otp',
+                mode: 'sendOtp',
+                email: params.email,
+                contact: { type: 'email', contact: params.email },
+                emailCustomization: {
+                  magicLinkTemplate: `${params.redirectURL}${params.redirectURL.includes('?') ? '&' : '?'}code=%s`,
+                },
+              }
+            } else {
+              otpParams = {
+                type: 'otp',
+                mode: 'verifyOtp',
+                otpId: params.otpId,
+                otpCode: params.code,
+              }
+            }
+          } else {
+            otpParams = params
+          }
 
-          if (type === 'otp' && mode === 'sendOtp') {
-            const { email, contact, emailCustomization } = params
+          if (otpParams.mode === 'sendOtp') {
+            const { email, contact, emailCustomization } = otpParams
 
             const data = await client.registerWithOTP({
               email,
@@ -357,8 +390,8 @@ export async function createZeroDevWallet(
             return data
           }
 
-          if (type === 'otp' && mode === 'verifyOtp') {
-            const { otpId, otpCode } = params
+          if (otpParams.mode === 'verifyOtp') {
+            const { otpId, otpCode } = otpParams
 
             // Step 1: Generate new key pair
             await client.indexedDbStamper.resetKeyPair()

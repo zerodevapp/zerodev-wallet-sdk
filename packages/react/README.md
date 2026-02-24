@@ -76,7 +76,7 @@ function LoginPage() {
   return (
     <>
       <button
-        onClick={() => registerPasskey.mutate({ email: 'user@example.com' })}
+        onClick={() => registerPasskey.mutate()}
         disabled={registerPasskey.isPending}
       >
         {registerPasskey.isPending ? 'Registering...' : 'Register with Passkey'}
@@ -134,10 +134,10 @@ const registerPasskey = useRegisterPasskey()
 const loginPasskey = useLoginPasskey()
 
 // Register new passkey
-await registerPasskey.mutateAsync({ email: 'user@example.com' })
+await registerPasskey.mutateAsync()
 
 // Login with existing passkey
-await loginPasskey.mutateAsync({ email: 'user@example.com' })
+await loginPasskey.mutateAsync()
 ```
 
 ### OAuth (Google)
@@ -150,6 +150,23 @@ const authenticateOAuth = useAuthenticateOAuth()
 await authenticateOAuth.mutateAsync({
   provider: OAUTH_PROVIDERS.GOOGLE
 })
+```
+
+### Email Magic Link
+
+```typescript
+const sendMagicLink = useSendMagicLink()
+const verifyMagicLink = useVerifyMagicLink()
+
+// Send magic link
+const { otpId } = await sendMagicLink.mutateAsync({
+  email: 'user@example.com',
+  redirectURL: 'https://yourapp.com/verify',
+})
+
+// Verify (on /verify page, extract code from URL)
+const code = new URLSearchParams(window.location.search).get('code')
+await verifyMagicLink.mutateAsync({ otpId, code })
 ```
 
 ### Email OTP
@@ -255,6 +272,8 @@ All hooks follow the TanStack Query mutation pattern:
 - `useRegisterPasskey()` - Register with passkey
 - `useLoginPasskey()` - Login with passkey
 - `useAuthenticateOAuth()` - OAuth (Google popup)
+- `useSendMagicLink()` - Send magic link via email
+- `useVerifyMagicLink()` - Verify magic link code
 - `useSendOTP()` - Send OTP via email
 - `useVerifyOTP()` - Verify OTP code
 - `useRefreshSession()` - Manually refresh session

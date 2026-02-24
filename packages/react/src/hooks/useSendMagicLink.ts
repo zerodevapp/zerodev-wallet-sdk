@@ -6,52 +6,52 @@ import {
   useMutation,
 } from '@tanstack/react-query'
 import { type Config, type ResolvedRegister, useConfig } from 'wagmi'
-import { loginPasskey } from '../actions.js'
+import { sendMagicLink } from '../actions.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined
 }
 
 /**
- * Hook to login with passkey
+ * Hook to send a magic link via email
  */
-export function useLoginPasskey<
+export function useSendMagicLink<
   config extends Config = ResolvedRegister['config'],
   context = unknown,
 >(
-  parameters: useLoginPasskey.Parameters<config, context> = {},
-): useLoginPasskey.ReturnType<context> {
+  parameters: useSendMagicLink.Parameters<config, context> = {},
+): useSendMagicLink.ReturnType<context> {
   const { mutation } = parameters
   const config = useConfig(parameters)
 
   return useMutation({
     ...mutation,
-    async mutationFn(variables?: loginPasskey.Parameters) {
-      return loginPasskey(config, variables ?? undefined)
+    async mutationFn(variables: sendMagicLink.Parameters) {
+      return sendMagicLink(config, variables)
     },
-    mutationKey: ['loginPasskey'],
+    mutationKey: ['sendMagicLink'],
   })
 }
 
-export declare namespace useLoginPasskey {
+export declare namespace useSendMagicLink {
   type Parameters<
     config extends Config = Config,
     context = unknown,
   > = ConfigParameter<config> & {
     mutation?:
       | UseMutationOptions<
-          loginPasskey.ReturnType,
-          loginPasskey.ErrorType,
-          loginPasskey.Parameters,
+          sendMagicLink.ReturnType,
+          sendMagicLink.ErrorType,
+          sendMagicLink.Parameters,
           context
         >
       | undefined
   }
 
   type ReturnType<context = unknown> = UseMutationResult<
-    loginPasskey.ReturnType,
-    loginPasskey.ErrorType,
-    loginPasskey.Parameters,
+    sendMagicLink.ReturnType,
+    sendMagicLink.ErrorType,
+    sendMagicLink.Parameters,
     context
   >
 }

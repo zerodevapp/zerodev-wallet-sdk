@@ -308,7 +308,6 @@ describe('registerWithPasskey', () => {
     }))
 
     const result = await registerWithPasskey(mockClient, {
-      email: 'user@example.com',
       projectId: 'proj-456',
       challenge: 'challenge-base64',
       attestation,
@@ -319,7 +318,6 @@ describe('registerWithPasskey', () => {
       path: 'proj-456/auth/register/passkey',
       method: 'POST',
       body: {
-        email: 'user@example.com',
         attestation,
         challenge: 'challenge-base64',
         encodedPublicKey: '03abcdef1234567890',
@@ -339,7 +337,6 @@ describe('registerWithPasskey', () => {
 
     await expect(
       registerWithPasskey(mockClient, {
-        email: 'user@example.com',
         projectId: 'proj-456',
         challenge: 'challenge',
         attestation: {
