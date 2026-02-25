@@ -91,6 +91,15 @@ const { otpId } = await wallet.auth({
   redirectURL: 'https://yourapp.com/verify',
 });
 
+// With custom OTP code settings
+const { otpId } = await wallet.auth({
+  type: 'magicLink',
+  mode: 'send',
+  email: 'user@example.com',
+  redirectURL: 'https://yourapp.com/verify',
+  otpCodeCustomization: { length: 8, alphanumeric: false },
+});
+
 // After user clicks link (on /verify page), extract code from URL
 const code = new URLSearchParams(window.location.search).get('code');
 await wallet.auth({
@@ -112,14 +121,32 @@ const { otpId } = await wallet.auth({
   contact: { type: 'email', contact: 'user@example.com' }
 });
 
+// With custom OTP code settings
+const { otpId } = await wallet.auth({
+  type: 'otp',
+  mode: 'sendOtp',
+  email: 'user@example.com',
+  contact: { type: 'email', contact: 'user@example.com' },
+  otpCodeCustomization: { length: 8, alphanumeric: false },
+});
+
 // Step 2: Verify OTP code
 await wallet.auth({
   type: 'otp',
   mode: 'verifyOtp',
   otpId,
-  otpCode: '123456',
+  otpCode: '12345678',
 });
 ```
+
+### OTP Code Customization
+
+Both OTP and magic link `send` modes accept an optional `otpCodeCustomization` parameter:
+
+| Field | Type | Description |
+|---|---|---|
+| `length` | `6 \| 7 \| 8 \| 9` | Code length (default: 6) |
+| `alphanumeric` | `boolean` | Use alphanumeric characters instead of digits only (default: false) |
 
 ### OAuth (Google)
 
