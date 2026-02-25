@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.12
+
+### Patch Changes
+
+- feat: expose applySettings on iframe stamper and accept iframeStyles in export actions
+
 ## 0.0.1-alpha.11
 
 ### Patch Changes

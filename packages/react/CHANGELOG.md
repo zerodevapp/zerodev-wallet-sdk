@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.13
+
+### Patch Changes
+
+- feat: expose applySettings on iframe stamper and accept iframeStyles in export actions
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.12
+
 ## 0.0.1-alpha.12
 
 ### Patch Changes
