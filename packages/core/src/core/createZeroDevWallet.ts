@@ -1,6 +1,9 @@
 import { getWebAuthnAttestation } from '@turnkey/http'
 import type { LocalAccount } from 'viem/accounts'
-import type { EmailCustomization } from '../actions/auth/index.js'
+import type {
+  EmailCustomization,
+  OtpCodeCustomization,
+} from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   createAuthProxyClient,
@@ -61,6 +64,7 @@ export type AuthParams =
         contact: string
       }
       emailCustomization?: EmailCustomization
+      otpCodeCustomization?: OtpCodeCustomization
     }
   | {
       type: 'otp'
@@ -73,6 +77,7 @@ export type AuthParams =
       mode: 'send'
       email: string
       redirectURL: string
+      otpCodeCustomization?: OtpCodeCustomization
     }
   | {
       type: 'magicLink'
@@ -364,6 +369,9 @@ export async function createZeroDevWallet(
                 emailCustomization: {
                   magicLinkTemplate: `${params.redirectURL}${params.redirectURL.includes('?') ? '&' : '?'}code=%s`,
                 },
+                ...(params.otpCodeCustomization && {
+                  otpCodeCustomization: params.otpCodeCustomization,
+                }),
               }
             } else {
               otpParams = {
@@ -378,13 +386,15 @@ export async function createZeroDevWallet(
           }
 
           if (otpParams.mode === 'sendOtp') {
-            const { email, contact, emailCustomization } = otpParams
+            const { email, contact, emailCustomization, otpCodeCustomization } =
+              otpParams
 
             const data = await client.registerWithOTP({
               email,
               contact,
               projectId,
               ...(emailCustomization && { emailCustomization }),
+              ...(otpCodeCustomization && { otpCodeCustomization }),
             })
 
             return data

@@ -111,6 +111,13 @@ const { otpId } = await sendMagicLink.mutateAsync({
   redirectURL: 'https://yourapp.com/verify',
 })
 
+// With custom OTP code settings
+const { otpId } = await sendMagicLink.mutateAsync({
+  email: 'user@example.com',
+  redirectURL: 'https://yourapp.com/verify',
+  otpCodeCustomization: { length: 8, alphanumeric: false },
+})
+
 // Verify (on /verify page, extract code from URL)
 const code = new URLSearchParams(window.location.search).get('code')
 await verifyMagicLink.mutateAsync({ otpId, code })
@@ -129,11 +136,33 @@ const { otpId } = await sendOTP.mutateAsync({
   email: 'user@example.com'
 })
 
+// With custom OTP code settings
+const { otpId } = await sendOTP.mutateAsync({
+  email: 'user@example.com',
+  otpCodeCustomization: { length: 8, alphanumeric: false },
+})
+
 // Verify OTP code
 await verifyOTP.mutateAsync({
-  code: '123456',
+  code: '12345678',
   otpId,
 })
+```
+
+### OTP Code Customization
+
+Both `sendOTP` and `sendMagicLink` accept an optional `otpCodeCustomization` parameter to configure the generated code:
+
+| Field | Type | Description |
+|---|---|---|
+| `length` | `6 \| 7 \| 8 \| 9` | Code length (default: 6) |
+| `alphanumeric` | `boolean` | Use alphanumeric characters instead of digits only (default: false) |
+
+```typescript
+otpCodeCustomization: {
+  length: 8,        // 8-digit code
+  alphanumeric: false, // numeric only
+}
 ```
 
 ## Send Transaction

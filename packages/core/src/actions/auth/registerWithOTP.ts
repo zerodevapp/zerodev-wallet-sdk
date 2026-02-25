@@ -8,6 +8,13 @@ export type OtpContact = {
   contact: string
 }
 
+export type OtpCodeCustomization = {
+  /** The length of the OTP code (must be between 6 and 9 inclusive) */
+  length: 6 | 7 | 8 | 9
+  /** Whether the OTP code should be alphanumeric */
+  alphanumeric: boolean
+}
+
 export type RegisterWithOTPParameters = {
   /** The email address to register */
   email: string
@@ -17,6 +24,8 @@ export type RegisterWithOTPParameters = {
   projectId: string
   /** Optional email customization settings */
   emailCustomization?: EmailCustomization
+  /** Optional OTP code customization settings */
+  otpCodeCustomization?: OtpCodeCustomization
 }
 
 export type RegisterWithOTPReturnType = {
@@ -50,7 +59,20 @@ export async function registerWithOTP(
   client: Client,
   params: RegisterWithOTPParameters,
 ): Promise<RegisterWithOTPReturnType> {
-  const { email, contact, projectId, emailCustomization } = params
+  const {
+    email,
+    contact,
+    projectId,
+    emailCustomization,
+    otpCodeCustomization,
+  } = params
+
+  if (
+    otpCodeCustomization &&
+    (otpCodeCustomization.length < 6 || otpCodeCustomization.length > 9)
+  ) {
+    throw new Error('OTP code length must be between 6 and 9')
+  }
 
   return await client.request({
     path: `${projectId}/auth/init/otp`,
@@ -59,6 +81,7 @@ export async function registerWithOTP(
       email,
       contact,
       emailCustomization,
+      otpCodeCustomization,
     },
   })
 }

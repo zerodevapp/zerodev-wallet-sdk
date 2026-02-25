@@ -208,6 +208,7 @@ export async function sendOTP(
   parameters: {
     email: string
     emailCustomization?: { magicLinkTemplate?: string }
+    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   },
 ): Promise<{ otpId: string }> {
@@ -227,6 +228,9 @@ export async function sendOTP(
     ...(parameters.emailCustomization && {
       emailCustomization: parameters.emailCustomization,
     }),
+    ...(parameters.otpCodeCustomization && {
+      otpCodeCustomization: parameters.otpCodeCustomization,
+    }),
   })
 
   return {
@@ -238,6 +242,7 @@ export declare namespace sendOTP {
   type Parameters = {
     email: string
     emailCustomization?: { magicLinkTemplate?: string }
+    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   }
   type ReturnType = { otpId: string }
@@ -497,6 +502,7 @@ export async function sendMagicLink(
   parameters: {
     email: string
     redirectURL: string
+    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   },
 ): Promise<{ otpId: string }> {
@@ -513,6 +519,9 @@ export async function sendMagicLink(
     mode: 'send',
     email: parameters.email,
     redirectURL: parameters.redirectURL,
+    ...(parameters.otpCodeCustomization && {
+      otpCodeCustomization: parameters.otpCodeCustomization,
+    }),
   })
 
   return {
@@ -524,6 +533,7 @@ export declare namespace sendMagicLink {
   type Parameters = {
     email: string
     redirectURL: string
+    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   }
   type ReturnType = { otpId: string }
