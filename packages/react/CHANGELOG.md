@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.14
+
+### Patch Changes
+
+- Add optional `otpCodeCustomization` parameter to OTP and magic link send flows for configuring code length (6-9) and alphanumeric mode
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.13
+
 ## 0.0.1-alpha.13
 
 ### Patch Changes
