@@ -45,5 +45,8 @@ export async function createIframeStamper(cfg: {
         keyFormat ? KeyFormat[keyFormat] : KeyFormat.Hexadecimal,
       )
     },
+    async applySettings(settings: { styles?: Record<string, string> }) {
+      return await inner.applySettings(settings)
+    },
   }
 }

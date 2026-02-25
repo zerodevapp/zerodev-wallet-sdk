@@ -370,6 +370,7 @@ export async function exportWallet(
   config: Config,
   parameters: {
     iframeContainerId: string
+    iframeStyles?: Record<string, string>
     connector?: Connector
   },
 ): Promise<void> {
@@ -393,6 +394,11 @@ export async function exportWallet(
   })
 
   const publicKey = await iframeStamper.init()
+
+  if (parameters.iframeStyles) {
+    await iframeStamper.applySettings({ styles: parameters.iframeStyles })
+  }
+
   const { exportBundle, organizationId } = await exportWalletSdk({
     wallet,
     targetPublicKey: publicKey,
@@ -410,6 +416,7 @@ export async function exportWallet(
 export declare namespace exportWallet {
   type Parameters = {
     iframeContainerId: string
+    iframeStyles?: Record<string, string>
     connector?: Connector
   }
   type ReturnType = void
@@ -423,6 +430,7 @@ export async function exportPrivateKey(
   config: Config,
   parameters: {
     iframeContainerId: string
+    iframeStyles?: Record<string, string>
     address?: string
     keyFormat?: 'Hexadecimal' | 'Solana'
     connector?: Connector
@@ -448,6 +456,11 @@ export async function exportPrivateKey(
   })
 
   const publicKey = await iframeStamper.init()
+
+  if (parameters.iframeStyles) {
+    await iframeStamper.applySettings({ styles: parameters.iframeStyles })
+  }
+
   const { exportBundle, organizationId } = await exportPrivateKeySdk({
     wallet,
     targetPublicKey: publicKey,
@@ -467,6 +480,7 @@ export async function exportPrivateKey(
 export declare namespace exportPrivateKey {
   type Parameters = {
     iframeContainerId: string
+    iframeStyles?: Record<string, string>
     address?: string
     keyFormat?: 'Hexadecimal' | 'Solana'
     connector?: Connector

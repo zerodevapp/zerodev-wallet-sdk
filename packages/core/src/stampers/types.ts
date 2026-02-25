@@ -27,6 +27,7 @@ export type IframeStamper = Stamper & {
     organizationId: string,
     keyFormat?: KeyFormat,
   ): Promise<boolean>
+  applySettings(settings: { styles?: Record<string, string> }): Promise<boolean>
 }
 
 export type IndexedDbStamper = Stamper & {
