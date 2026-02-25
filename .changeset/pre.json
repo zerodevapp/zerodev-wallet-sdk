@@ -6,6 +6,7 @@
     "@zerodev/wallet-react": "0.0.1-alpha.0"
   },
   "changesets": [
+    "add-otp-code-customization",
     "busy-facts-brake",
     "calm-badgers-walk",
     "dry-cobras-smash",
