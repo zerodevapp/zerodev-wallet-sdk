@@ -159,6 +159,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["e2e/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
     }
   ]
 }

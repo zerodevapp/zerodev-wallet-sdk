@@ -22,3 +22,11 @@ esbuild-why-permissionless*
 .envrc
 .vscode
 .claude
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+
+# E2E env
+.env.e2e
