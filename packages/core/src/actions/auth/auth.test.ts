@@ -421,7 +421,7 @@ describe('getUserEmail', () => {
 })
 
 describe('getWhoami', () => {
-  it('sends whoami request with correct parameters', async () => {
+  it('sends whoami request with dual stamps', async () => {
     const mockClient = createMockClient(async () => ({
       userId: 'user-789',
       organizationId: 'org-123',
@@ -432,18 +432,50 @@ describe('getWhoami', () => {
       projectId: 'proj-456',
     })
 
+    // Should call stamper twice (inner stamp + outer stamp)
+    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+
+    // Request should include stamp in body and X-Stamp header
     expect(mockClient.request).toHaveBeenCalledWith({
       path: 'proj-456/whoami',
       method: 'POST',
       body: {
         organizationId: 'org-123',
+        stamp: {
+          stampHeaderName: 'X-Stamp',
+          stampHeaderValue: 'mock-stamp-value',
+        },
       },
-      stamp: true,
+      headers: {
+        'X-Stamp': 'mock-stamp-value',
+      },
     })
     expect(result).toEqual({
       userId: 'user-789',
       organizationId: 'org-123',
     })
+  })
+
+  it('includes bearer token when provided', async () => {
+    const mockClient = createMockClient(async () => ({
+      userId: 'user-789',
+      organizationId: 'org-123',
+    }))
+
+    await getWhoami(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'session-jwt',
+    })
+
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer session-jwt',
+          'X-Stamp': 'mock-stamp-value',
+        }),
+      }),
+    )
   })
 
   it('returns all user info fields when available', async () => {
@@ -465,24 +497,6 @@ describe('getWhoami', () => {
       organizationName: 'My Organization',
       username: 'john_doe',
     })
-  })
-
-  it('requests stamping', async () => {
-    const mockClient = createMockClient(async () => ({
-      userId: 'user-789',
-      organizationId: 'org-123',
-    }))
-
-    await getWhoami(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stamp: true,
-      }),
-    )
   })
 
   it('propagates errors', async () => {
