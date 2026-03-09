@@ -6,7 +6,7 @@ import {
   sendSigningRequest,
 } from './signingUtils.js'
 
-export type SignTransactionParameters = {
+export type SignUserOperationParameters = {
   /** The organization ID */
   organizationId: string
   /** The project ID for the request */
@@ -15,28 +15,31 @@ export type SignTransactionParameters = {
   token: string
   /** The address to sign with */
   address: Hex
-  /** The unsigned transaction to sign */
-  unsignedTransaction: string
-  /** The encoding of the transaction ('utf8' or 'hex') */
-  encoding?: 'utf8' | 'hex'
+  /** The unsigned user operation to sign */
+  unsignedUserOperation: string
+  /** The chain ID for the user operation */
+  chainId: number
+  /** The encoding of the user operation ('utf8' or 'hex') */
+  encoding: 'utf8' | 'hex'
 }
 
-export type SignTransactionReturnType = Hex
+export type SignUserOperationReturnType = Hex
 
-export async function signTransaction(
+export async function signUserOperation(
   client: Client,
-  params: SignTransactionParameters,
-): Promise<SignTransactionReturnType> {
+  params: SignUserOperationParameters,
+): Promise<SignUserOperationReturnType> {
   const {
     organizationId,
     projectId,
     token,
     address,
-    unsignedTransaction,
-    encoding = 'hex',
+    unsignedUserOperation,
+    chainId,
+    encoding,
   } = params
 
-  const payloadHash = computeDataPayloadHash(unsignedTransaction, encoding)
+  const payloadHash = computeDataPayloadHash(unsignedUserOperation, encoding)
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
@@ -46,8 +49,8 @@ export async function signTransaction(
   return sendSigningRequest(client, {
     projectId,
     token,
-    path: 'sign/transaction',
+    path: 'sign/user-operation',
     turnkeyPayload,
-    bodyFields: { unsignedTransaction, encoding },
+    bodyFields: { unsignedUserOperation, chainId, encoding },
   })
 }

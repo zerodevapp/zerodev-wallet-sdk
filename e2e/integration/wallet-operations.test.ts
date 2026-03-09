@@ -3,7 +3,7 @@
  *
  * After OTP login:
  * 1. Get user wallet addresses
- * 2. Sign a raw payload
+ * 2. Sign a message
  */
 
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -131,7 +131,7 @@ describe('Wallet Operations', () => {
     console.log(`Wallet addresses: ${wallet.walletAddresses.join(', ')}`)
   })
 
-  it('should sign a raw payload after login', async (context) => {
+  it('should sign a message after login', async (context) => {
     context.skip(!!skipReason, skipReason)
 
     const { client, session, sessionToken } = await completeOtpLogin(
@@ -148,22 +148,20 @@ describe('Wallet Operations', () => {
     expect(wallet.walletAddresses.length).toBeGreaterThan(0)
     const walletAddress = wallet.walletAddresses[0]!
 
-    // Sign a test payload (32 bytes of zeros as hex)
-    const testPayload = '0'.repeat(64)
-    const signature = await client.signRawPayload({
+    // Sign a test message
+    const signature = await client.signMessage({
       organizationId: session.organizationId,
       projectId,
       token: sessionToken,
       address: walletAddress,
-      payload: testPayload,
-      encoding: 'PAYLOAD_ENCODING_HEXADECIMAL',
-      hashFunction: 'HASH_FUNCTION_NO_OP',
+      message: 'Hello, World!',
+      encoding: 'utf8',
     })
 
     expect(signature).toBeTruthy()
     expect(typeof signature).toBe('string')
     console.log(
-      `Signed payload, signature: ${String(signature).substring(0, 20)}...`,
+      `Signed message, signature: ${String(signature).substring(0, 20)}...`,
     )
   })
 })

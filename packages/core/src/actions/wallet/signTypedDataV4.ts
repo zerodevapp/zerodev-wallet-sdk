@@ -6,7 +6,7 @@ import {
   sendSigningRequest,
 } from './signingUtils.js'
 
-export type SignTransactionParameters = {
+export type SignTypedDataV4Parameters = {
   /** The organization ID */
   organizationId: string
   /** The project ID for the request */
@@ -15,28 +15,28 @@ export type SignTransactionParameters = {
   token: string
   /** The address to sign with */
   address: Hex
-  /** The unsigned transaction to sign */
-  unsignedTransaction: string
-  /** The encoding of the transaction ('utf8' or 'hex') */
-  encoding?: 'utf8' | 'hex'
+  /** The serialized EIP-712 typed data to sign */
+  unsignedTypedDataV4: string
+  /** The encoding of the typed data ('utf8' or 'hex') */
+  encoding: 'utf8' | 'hex'
 }
 
-export type SignTransactionReturnType = Hex
+export type SignTypedDataV4ReturnType = Hex
 
-export async function signTransaction(
+export async function signTypedDataV4(
   client: Client,
-  params: SignTransactionParameters,
-): Promise<SignTransactionReturnType> {
+  params: SignTypedDataV4Parameters,
+): Promise<SignTypedDataV4ReturnType> {
   const {
     organizationId,
     projectId,
     token,
     address,
-    unsignedTransaction,
-    encoding = 'hex',
+    unsignedTypedDataV4,
+    encoding,
   } = params
 
-  const payloadHash = computeDataPayloadHash(unsignedTransaction, encoding)
+  const payloadHash = computeDataPayloadHash(unsignedTypedDataV4, encoding)
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
@@ -46,8 +46,8 @@ export async function signTransaction(
   return sendSigningRequest(client, {
     projectId,
     token,
-    path: 'sign/transaction',
+    path: 'sign/typed-data-v4',
     turnkeyPayload,
-    bodyFields: { unsignedTransaction, encoding },
+    bodyFields: { unsignedTypedDataV4, encoding },
   })
 }
