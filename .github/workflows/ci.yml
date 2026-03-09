@@ -151,13 +151,27 @@ jobs:
       - name: Install SDK dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build SDK
+        run: pnpm build
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Point demo app to local SDK build
+        working-directory: zerodev-signer-demo
+        run: |
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.dependencies['@zerodev/wallet-core'] = 'file:../packages/core';
+          pkg.dependencies['@zerodev/wallet-react'] = 'file:../packages/react';
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+          pnpm install --no-frozen-lockfile
 
       - name: Build and start demo app
         working-directory: zerodev-signer-demo
         run: |
-          pnpm install --frozen-lockfile
           pnpm build
           pnpm start &
         env:
