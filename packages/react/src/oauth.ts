@@ -62,6 +62,7 @@ export function buildBackendOAuthUrl(params: BackendOAuthFlowParams): string {
 
 export type OAuthMessageData = {
   type: 'oauth_success' | 'oauth_error'
+  sessionId?: string
   error?: string
 }
 
@@ -72,7 +73,7 @@ export type OAuthMessageData = {
 export function listenForOAuthMessage(
   authWindow: Window,
   expectedOrigin: string,
-  onSuccess: () => void,
+  onSuccess: (sessionId: string) => void,
   onError: (error: Error) => void,
 ): () => void {
   let cleaned = false
@@ -84,7 +85,7 @@ export function listenForOAuthMessage(
 
     if (event.data.type === 'oauth_success') {
       cleanup()
-      onSuccess()
+      onSuccess(event.data.sessionId || '')
     } else if (event.data.type === 'oauth_error') {
       cleanup()
       onError(new Error(event.data.error || 'OAuth authentication failed'))
@@ -119,13 +120,13 @@ export function handleOAuthCallback(successParam = 'oauth_success'): boolean {
   const urlParams = new URLSearchParams(window.location.search)
   const isSuccess = urlParams.get(successParam) === 'true'
   const error = urlParams.get('error')
+  const sessionId = urlParams.get('session_id') ?? undefined
 
   if (window.opener) {
     if (isSuccess) {
-      window.opener.postMessage(
-        { type: 'oauth_success' } satisfies OAuthMessageData,
-        window.location.origin,
-      )
+      const message: OAuthMessageData = { type: 'oauth_success' }
+      if (sessionId) message.sessionId = sessionId
+      window.opener.postMessage(message, window.location.origin)
       window.close()
       return true
     }

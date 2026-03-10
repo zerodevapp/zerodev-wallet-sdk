@@ -55,7 +55,7 @@ function createMockClient(
 }
 
 describe('authenticateWithOAuth', () => {
-  it('sends OAuth auth request with correct path and credentials', async () => {
+  it('sends OAuth auth request with sessionId in body', async () => {
     const mockClient = createMockClient(async () => ({
       userId: 'user-123',
       session: 'session-jwt',
@@ -64,13 +64,13 @@ describe('authenticateWithOAuth', () => {
     const result = await authenticateWithOAuth(mockClient, {
       provider: 'google',
       projectId: 'proj-456',
+      sessionId: 'test-session-id',
     })
 
     expect(mockClient.request).toHaveBeenCalledWith({
       path: 'proj-456/auth/oauth',
       method: 'POST',
-      body: null,
-      credentials: 'include',
+      body: { sessionId: 'test-session-id' },
     })
     expect(result).toEqual({
       userId: 'user-123',
@@ -90,6 +90,7 @@ describe('authenticateWithOAuth', () => {
     const result = await authenticateWithOAuth(mockClient, {
       provider: 'google',
       projectId: 'proj-456',
+      sessionId: 'test-session-id',
     })
 
     expect(result).toEqual(fullResponse)
@@ -104,6 +105,7 @@ describe('authenticateWithOAuth', () => {
       authenticateWithOAuth(mockClient, {
         provider: 'google',
         projectId: 'proj-456',
+        sessionId: 'expired-session',
       }),
     ).rejects.toThrow('OAuth session expired')
   })

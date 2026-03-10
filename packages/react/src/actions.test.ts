@@ -569,7 +569,7 @@ describe('React Actions', () => {
       })
     })
 
-    it('completes full OAuth success flow', async () => {
+    it('completes full OAuth success flow with sessionId', async () => {
       const wallet = createMockWallet()
       wallet.getSession.mockResolvedValue({ id: 'oauth-session' })
       wallet.toAccount.mockResolvedValue({ address: '0xoauth' })
@@ -578,11 +578,14 @@ describe('React Actions', () => {
       const config = createMockConfig(connector)
 
       mockOpenOAuthPopup.mockReturnValue({ closed: false } as Window)
-      // Simulate the success callback being called immediately
+      // Simulate the success callback being called with sessionId
       mockListenForOAuthMessage.mockImplementation(
-        (_win: Window, _origin: string, onSuccess: () => void) => {
-          // Call onSuccess asynchronously to simulate real behavior
-          setTimeout(() => onSuccess(), 0)
+        (
+          _win: Window,
+          _origin: string,
+          onSuccess: (sessionId: string) => void,
+        ) => {
+          setTimeout(() => onSuccess('test-session-id'), 0)
           return () => {}
         },
       )
@@ -592,6 +595,7 @@ describe('React Actions', () => {
       expect(wallet.auth).toHaveBeenCalledWith({
         type: 'oauth',
         provider: 'google',
+        sessionId: 'test-session-id',
       })
       expect(store.getState().setEoaAccount).toHaveBeenCalledWith({
         address: '0xoauth',
@@ -611,8 +615,12 @@ describe('React Actions', () => {
 
       mockOpenOAuthPopup.mockReturnValue({ closed: false } as Window)
       mockListenForOAuthMessage.mockImplementation(
-        (_win: Window, _origin: string, onSuccess: () => void) => {
-          setTimeout(() => onSuccess(), 0)
+        (
+          _win: Window,
+          _origin: string,
+          onSuccess: (sessionId: string) => void,
+        ) => {
+          setTimeout(() => onSuccess('session-id'), 0)
           return () => {}
         },
       )
@@ -633,7 +641,7 @@ describe('React Actions', () => {
         (
           _win: Window,
           _origin: string,
-          _onSuccess: () => void,
+          _onSuccess: (sessionId: string) => void,
           onError: (error: Error) => void,
         ) => {
           setTimeout(() => onError(new Error('Window closed')), 0)

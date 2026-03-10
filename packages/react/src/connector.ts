@@ -16,6 +16,7 @@ import { getAAUrl } from './utils/aaUtils.js'
 // OAuth URL parameter used to detect callback
 const OAUTH_SUCCESS_PARAM = 'oauth_success'
 const OAUTH_PROVIDER_PARAM = 'oauth_provider'
+const OAUTH_SESSION_ID_PARAM = 'session_id'
 
 /**
  * Detect OAuth callback from URL params and handle it.
@@ -43,9 +44,10 @@ async function detectAndHandleOAuthCallback(
   console.log('OAuth callback detected, completing authentication...')
   const provider = (params.get(OAUTH_PROVIDER_PARAM) ||
     'google') as OAuthProvider
+  const sessionId = params.get(OAUTH_SESSION_ID_PARAM) || ''
 
   try {
-    await wallet.auth({ type: 'oauth', provider })
+    await wallet.auth({ type: 'oauth', provider, sessionId })
 
     const [session, eoaAccount] = await Promise.all([
       wallet.getSession(),
@@ -58,6 +60,7 @@ async function detectAndHandleOAuthCallback(
     // Clean up URL params
     params.delete(OAUTH_SUCCESS_PARAM)
     params.delete(OAUTH_PROVIDER_PARAM)
+    params.delete(OAUTH_SESSION_ID_PARAM)
     const newUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname

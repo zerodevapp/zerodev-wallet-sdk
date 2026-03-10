@@ -50,6 +50,7 @@ export type AuthParams =
   | {
       type: 'oauth'
       provider: string
+      sessionId: string
     }
   | {
       type: 'passkey'
@@ -219,11 +220,10 @@ export async function createZeroDevWallet(
     async auth(params: AuthParams) {
       switch (params.type) {
         case 'oauth': {
-          // Backend OAuth flow - the backend reads the OAuth session from a cookie
-          // set during the OAuth popup flow via /oauth/google/login
           const data = await client.authenticateWithOAuth({
             provider: params.provider,
             projectId,
+            sessionId: params.sessionId,
           })
 
           if (data.session) {

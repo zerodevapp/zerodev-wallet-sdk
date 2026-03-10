@@ -158,13 +158,13 @@ export async function authenticateOAuth(
     const cleanup = listenForOAuthMessage(
       authWindow,
       window.location.origin,
-      async () => {
+      async (sessionId) => {
         try {
           // Complete OAuth authentication with wallet-core
-          // The backend has stored the OAuth session in a cookie
           await wallet.auth({
             type: 'oauth',
             provider: parameters.provider,
+            sessionId,
           })
 
           const [session, eoaAccount] = await Promise.all([
