@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.15
+
+### Patch Changes
+
+- feat: replace cookie-based OAuth with server-side session ID
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.14
+
 ## 0.0.1-alpha.14
 
 ### Patch Changes

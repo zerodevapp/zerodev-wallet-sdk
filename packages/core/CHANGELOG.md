@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.14
+
+### Patch Changes
+
+- feat: replace cookie-based OAuth with server-side session ID
+
 ## 0.0.1-alpha.13
 
 ### Patch Changes
