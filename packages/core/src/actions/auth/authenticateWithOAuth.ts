@@ -5,6 +5,8 @@ export type AuthenticateWithOAuthParameters = {
   provider: string
   /** The project ID for the request */
   projectId: string
+  /** The session ID from the OAuth callback URL */
+  sessionId: string
 }
 
 export type AuthenticateWithOAuthReturnType = {
@@ -19,11 +21,11 @@ export type AuthenticateWithOAuthReturnType = {
 }
 
 /**
- * Authenticates a user with OAuth using cookie-based backend flow
+ * Authenticates a user with OAuth using a server-side session ID
  *
- * The backend reads the OAuth session from a cookie set during the OAuth flow.
- * This requires the OAuth popup flow to complete first via the backend's
- * /oauth/google/login endpoint.
+ * The backend stores the OAuth session server-side and returns a session ID
+ * via the callback URL. The SDK extracts this session ID and sends it in
+ * the request body.
  *
  * @param client - The ZeroDev Wallet client
  * @param params - The parameters for OAuth authentication
@@ -34,6 +36,7 @@ export type AuthenticateWithOAuthReturnType = {
  * const result = await authenticateWithOAuth(client, {
  *   provider: 'google',
  *   projectId: 'proj_456',
+ *   sessionId: 'abc123',
  * });
  * ```
  */
@@ -41,12 +44,11 @@ export async function authenticateWithOAuth(
   client: Client,
   params: AuthenticateWithOAuthParameters,
 ): Promise<AuthenticateWithOAuthReturnType> {
-  const { projectId } = params
+  const { projectId, sessionId } = params
 
   return await client.request({
     path: `${projectId}/auth/oauth`,
     method: 'POST',
-    body: null,
-    credentials: 'include',
+    body: { sessionId },
   })
 }

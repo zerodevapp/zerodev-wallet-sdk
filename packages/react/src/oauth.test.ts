@@ -188,15 +188,35 @@ describe('OAuth utilities', () => {
       vi.useRealTimers()
     })
 
-    it('calls onSuccess when oauth_success message received', () => {
+    it('calls onSuccess with sessionId when oauth_success message received', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
-      // Simulate receiving a message
+      // Simulate receiving a message with sessionId
+      const event = new MessageEvent('message', {
+        data: { type: 'oauth_success', sessionId: 'test-session-123' },
+        origin: 'https://app.example.com',
+      })
+      window.dispatchEvent(event)
+
+      expect(onSuccessMock).toHaveBeenCalledOnce()
+      expect(onSuccessMock).toHaveBeenCalledWith('test-session-123')
+      expect(onErrorMock).not.toHaveBeenCalled()
+      cleanup()
+    })
+
+    it('calls onSuccess with empty string when sessionId is missing', () => {
+      const cleanup = listenForOAuthMessage(
+        mockWindow as Window,
+        'https://app.example.com',
+        onSuccessMock as (sessionId: string) => void,
+        onErrorMock as (error: Error) => void,
+      )
+
       const event = new MessageEvent('message', {
         data: { type: 'oauth_success' },
         origin: 'https://app.example.com',
@@ -204,6 +224,7 @@ describe('OAuth utilities', () => {
       window.dispatchEvent(event)
 
       expect(onSuccessMock).toHaveBeenCalledOnce()
+      expect(onSuccessMock).toHaveBeenCalledWith('')
       expect(onErrorMock).not.toHaveBeenCalled()
       cleanup()
     })
@@ -212,7 +233,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -232,7 +253,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -251,7 +272,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -268,7 +289,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -288,7 +309,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -323,7 +344,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -345,7 +366,7 @@ describe('OAuth utilities', () => {
       const cleanup = listenForOAuthMessage(
         mockWindow as Window,
         'https://app.example.com',
-        onSuccessMock as () => void,
+        onSuccessMock as (sessionId: string) => void,
         onErrorMock as (error: Error) => void,
       )
 
@@ -391,7 +412,20 @@ describe('OAuth utilities', () => {
       window.close = originalClose
     })
 
-    it('returns true and posts success message on oauth_success=true', () => {
+    it('returns true and posts success message with sessionId on oauth_success=true', () => {
+      window.location.search = '?oauth_success=true&session_id=abc123'
+
+      const result = handleOAuthCallback()
+
+      expect(result).toBe(true)
+      expect(window.opener?.postMessage).toHaveBeenCalledWith(
+        { type: 'oauth_success', sessionId: 'abc123' },
+        'https://app.example.com',
+      )
+      expect(window.close).toHaveBeenCalled()
+    })
+
+    it('posts success message without sessionId when session_id param is missing', () => {
       window.location.search = '?oauth_success=true'
 
       const result = handleOAuthCallback()
