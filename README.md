@@ -260,12 +260,15 @@ zerodev-wallet-sdk/
 │   │   │   ├── core/      # Main SDK (createZeroDevWallet)
 │   │   │   └── types/     # TypeScript types
 │   │   └── dist/          # Compiled output
-│   └── react/             # React hooks & Wagmi connector
+│   ├── react/             # React hooks & Wagmi connector
+│   │   ├── src/
+│   │   │   ├── hooks/     # React hooks (useRegisterPasskey, etc.)
+│   │   │   ├── actions.ts # Action functions
+│   │   │   ├── connector.ts # Wagmi connector
+│   │   │   └── provider.ts  # EIP-1193 provider
+│   │   └── dist/          # Compiled output
+│   └── react-kit/         # React UI components
 │       ├── src/
-│       │   ├── hooks/     # React hooks (useRegisterPasskey, etc.)
-│       │   ├── actions.ts # Action functions
-│       │   ├── connector.ts # Wagmi connector
-│       │   └── provider.ts  # EIP-1193 provider
 │       └── dist/          # Compiled output
 └── README.md
 ```
