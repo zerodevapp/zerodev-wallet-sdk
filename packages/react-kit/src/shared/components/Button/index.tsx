@@ -7,7 +7,8 @@ const baseClass =
 
 const bgClasses: Record<NonNullable<ButtonProps['action']>, string> = {
   primary: 'bg-gray-900/90 hover:bg-gray-900/93 active:bg-gray-900/95',
-  secondary: 'bg-white/50 hover:bg-white/70 active:bg-white/80',
+  secondary:
+    'bg-white/50 hover:bg-white/70 active:bg-white/80 border border-gray-200',
   secondaryNeutral: 'bg-gray-700/70 hover:bg-gray-700/80 active:bg-gray-700/90',
 }
 

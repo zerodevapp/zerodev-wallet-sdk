@@ -3,12 +3,11 @@
  * React UI components for ZeroDev Wallet SDK
  */
 
-// Import styles
-import './styles.css'
-
-// Export components here as you build them
-// Example:
-// export { Button } from './components/Button'
-// export { LoginModal } from './components/LoginModal'
+export type { CodeInputProps } from './auth/components/CodeInput'
+// Auth components
+export { CodeInput } from './auth/components/CodeInput'
+export type { ButtonProps } from './shared/components/Button'
+// Shared components
+export { Button } from './shared/components/Button'
 
 export const version = '0.0.1'
