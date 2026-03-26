@@ -33,3 +33,6 @@ blob-report/
 
 # Jetbrains IDEs
 .idea/
+
+*storybook.log
+storybook-static

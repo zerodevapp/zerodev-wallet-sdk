@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-import { cn } from '../utils/common'
+import { cn } from '../../utils/common'
 
 const baseClass =
   'flex items-center justify-center rounded-3xl h-16 w-full cursor-pointer transition-colors'

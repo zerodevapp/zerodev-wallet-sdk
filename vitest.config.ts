@@ -1,4 +1,4 @@
-import path from 'node:path'
+import * as path from 'node:path'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -16,16 +16,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['packages/*/src/**/*.ts'],
+      include: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.tsx'],
       exclude: [
         'packages/*/src/**/*.test.ts',
+        'packages/*/src/**/*.test.tsx',
         'packages/*/src/**/*.test-d.ts',
         'packages/*/src/**/*.bench.ts',
         'packages/*/src/**/index.ts',
+        'packages/*/src/**/index.tsx',
         'packages/*/src/**/types.ts',
         'packages/*/src/**/types/**',
+        'packages/*/src/**/*.stories.tsx',
       ],
     },
-    include: ['packages/*/src/**/*.test.ts'],
+    include: ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.test.tsx'],
   },
 })
