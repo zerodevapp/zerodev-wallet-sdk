@@ -1,4 +1,4 @@
-import { keccak256, toHex } from 'viem'
+import { hashMessage, keccak256, toHex } from 'viem'
 import { describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
 import { getUserWallet } from './getUserWallet.js'
@@ -52,30 +52,15 @@ function createMockClient(
 // ----- Hash computation tests (must match backend exactly) -----
 
 describe('computeMessagePayloadHash', () => {
-  it('computes correct hash for utf8 message', () => {
-    // Backend: hex.EncodeToString([]byte("Hello")) → "48656c6c6f"
-    // Then: keccak256(\x19Ethereum Signed Message:\n1048656c6c6f)
+  it('computes correct hash for utf8 message (matches viem hashMessage)', () => {
     const hash = computeMessagePayloadHash('Hello', 'utf8')
-
-    // Verify: hex encode "Hello" → "48656c6c6f" (10 chars)
-    const hexMessage = toHex('Hello').slice(2)
-    expect(hexMessage).toBe('48656c6c6f')
-    expect(hexMessage.length).toBe(10)
-
-    // Manually compute the same hash
-    const prefix = `\x19Ethereum Signed Message:\n${hexMessage.length}${hexMessage}`
-    const expected = keccak256(new TextEncoder().encode(prefix)).slice(2)
-    expect(hash).toBe(expected)
+    expect(hash).toBe(hashMessage('Hello').slice(2))
   })
 
   it('computes correct hash for hex message', () => {
-    // When encoding is 'hex', message is already hex — no conversion
-    const hexMsg = '48656c6c6f'
+    const hexMsg = '48656c6c6f' // "Hello" in hex
     const hash = computeMessagePayloadHash(hexMsg, 'hex')
-
-    const prefix = `\x19Ethereum Signed Message:\n${hexMsg.length}${hexMsg}`
-    const expected = keccak256(new TextEncoder().encode(prefix)).slice(2)
-    expect(hash).toBe(expected)
+    expect(hash).toBe(hashMessage({ raw: `0x${hexMsg}` }).slice(2))
   })
 
   it('utf8 and hex produce same hash for equivalent input', () => {
@@ -98,34 +83,27 @@ describe('computeMessagePayloadHash', () => {
   })
 
   it('uses correct length for multi-byte utf8 characters', () => {
-    // "é" is 2 bytes in UTF-8 → hex is "c3a9" (4 hex chars)
     const hash = computeMessagePayloadHash('é', 'utf8')
-    const hexMessage = toHex('é').slice(2)
-    expect(hexMessage).toBe('c3a9')
-
-    const prefix = `\x19Ethereum Signed Message:\n${hexMessage.length}${hexMessage}`
-    const expected = keccak256(new TextEncoder().encode(prefix)).slice(2)
-    expect(hash).toBe(expected)
+    expect(hash).toBe(hashMessage('é').slice(2))
   })
 })
 
 describe('computeDataPayloadHash', () => {
-  it('computes correct hash for utf8 data', () => {
-    // Backend: hex.EncodeToString([]byte(data)) → hexData
-    // Then: keccak256([]byte(hexData)) — i.e. hash the hex string chars as bytes
+  it('computes correct hash for utf8 data (hashes raw bytes)', () => {
     const data = '{"chainId":"1"}'
     const hash = computeDataPayloadHash(data, 'utf8')
 
+    // Should hash the raw bytes, not the hex string chars
     const hexData = toHex(data).slice(2)
-    const expected = keccak256(new TextEncoder().encode(hexData)).slice(2)
+    const expected = keccak256(`0x${hexData}`).slice(2)
     expect(hash).toBe(expected)
   })
 
-  it('computes correct hash for hex data', () => {
+  it('computes correct hash for hex data (hashes raw bytes)', () => {
     const hexData = 'f86c808504a817c80082520894'
     const hash = computeDataPayloadHash(hexData, 'hex')
 
-    const expected = keccak256(new TextEncoder().encode(hexData)).slice(2)
+    const expected = keccak256(`0x${hexData}`).slice(2)
     expect(hash).toBe(expected)
   })
 
@@ -486,6 +464,7 @@ describe('signTypedDataV4', () => {
       address: '0x1234567890abcdef1234567890abcdef12345678',
       unsignedTypedDataV4: typedData,
       encoding: 'utf8',
+      typedDataHash: 'deadbeef'.repeat(8),
     })
 
     expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
@@ -500,6 +479,7 @@ describe('signTypedDataV4', () => {
 
   it('body contains correct hash in turnkey payload', async () => {
     const typedData = '{"domain":{"chainId":"1"},"types":{}}'
+    const precomputedHash = 'deadbeef'.repeat(8)
     const mockClient = createMockClient(async () => ({
       signature: 'sig',
     }))
@@ -511,12 +491,12 @@ describe('signTypedDataV4', () => {
       address: '0x1234567890abcdef1234567890abcdef12345678',
       unsignedTypedDataV4: typedData,
       encoding: 'utf8',
+      typedDataHash: precomputedHash,
     })
 
     const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
-    const expectedHash = computeDataPayloadHash(typedData, 'utf8')
     expect(requestCall.body.turnkeyPayload.parameters.payload).toBe(
-      expectedHash,
+      precomputedHash,
     )
     expect(requestCall.body.unsignedTypedDataV4).toBe(typedData)
     expect(requestCall.body.encoding).toBe('utf8')
@@ -535,6 +515,7 @@ describe('signTypedDataV4', () => {
         address: '0x1234567890abcdef1234567890abcdef12345678',
         unsignedTypedDataV4: '{}',
         encoding: 'utf8',
+        typedDataHash: 'deadbeef'.repeat(8),
       }),
     ).rejects.toThrow('Invalid typed data')
   })

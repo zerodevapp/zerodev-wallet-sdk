@@ -1,10 +1,6 @@
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
-import {
-  buildTurnkeyPayload,
-  computeDataPayloadHash,
-  sendSigningRequest,
-} from './signingUtils.js'
+import { buildTurnkeyPayload, sendSigningRequest } from './signingUtils.js'
 
 export type SignTypedDataV4Parameters = {
   /** The organization ID */
@@ -19,6 +15,8 @@ export type SignTypedDataV4Parameters = {
   unsignedTypedDataV4: string
   /** The encoding of the typed data ('utf8' or 'hex') */
   encoding: 'utf8' | 'hex'
+  /** Pre-computed EIP-712 hash (hex without 0x prefix), used as the Turnkey payload. */
+  typedDataHash: string
 }
 
 export type SignTypedDataV4ReturnType = Hex
@@ -34,9 +32,10 @@ export async function signTypedDataV4(
     address,
     unsignedTypedDataV4,
     encoding,
+    typedDataHash,
   } = params
 
-  const payloadHash = computeDataPayloadHash(unsignedTypedDataV4, encoding)
+  const payloadHash = typedDataHash
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,

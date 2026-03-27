@@ -2,6 +2,7 @@ import {
   bytesToHex,
   getTypesForEIP712Domain,
   type Hex,
+  hashTypedData,
   type LocalAccount,
   parseSignature,
   type SerializeTransactionFn,
@@ -136,6 +137,9 @@ export async function toViemAccount(
         address,
         unsignedTypedDataV4: serializedTypedData,
         encoding: 'utf8',
+        typedDataHash: hashTypedData(
+          typedData as Parameters<typeof hashTypedData>[0],
+        ).slice(2),
       })
     },
 

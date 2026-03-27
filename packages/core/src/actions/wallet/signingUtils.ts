@@ -1,6 +1,6 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import type { Hex } from 'viem'
-import { keccak256, toHex } from 'viem'
+import { hashMessage, keccak256, toHex } from 'viem'
 import type { Client } from '../../client/types.js'
 
 export type TurnkeyPayload = {
@@ -77,28 +77,23 @@ export async function sendSigningRequest(
 }
 
 /**
- * Compute payload hash for message signing (EIP-191 prefix).
- * Matches backend: keccak256(\x19Ethereum Signed Message:\n{len(hexMsg)}{hexMsg})
+ * Compute payload hash for message signing (EIP-191).
+ * Uses viem's hashMessage directly to guarantee correct EIP-191 hashing.
  */
 export function computeMessagePayloadHash(
   message: string,
   encoding: 'utf8' | 'hex',
 ): string {
-  let hexMessage: string
   if (encoding === 'utf8') {
-    hexMessage = toHex(message).slice(2)
-  } else {
-    hexMessage = message.replace(/^0x/, '')
+    return hashMessage(message).slice(2)
   }
-
-  const prefix = `\x19Ethereum Signed Message:\n${hexMessage.length}${hexMessage}`
-  const bytes = new TextEncoder().encode(prefix)
-  return keccak256(bytes).slice(2)
+  const hex = message.replace(/^0x/, '')
+  return hashMessage({ raw: `0x${hex}` as Hex }).slice(2)
 }
 
 /**
- * Compute payload hash for data signing (transaction, typed data, user operation).
- * Matches backend: keccak256([]byte(hexData))
+ * Compute payload hash for data signing (transaction, user operation).
+ * Hashes the raw decoded bytes: keccak256(hexDecode(hexData))
  */
 export function computeDataPayloadHash(
   data: string,
@@ -111,6 +106,5 @@ export function computeDataPayloadHash(
     hexData = data.replace(/^0x/, '')
   }
 
-  const bytes = new TextEncoder().encode(hexData)
-  return keccak256(bytes).slice(2)
+  return keccak256(`0x${hexData}` as Hex).slice(2)
 }
