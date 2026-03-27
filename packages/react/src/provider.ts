@@ -8,10 +8,16 @@ import type { createZeroDevWalletStore } from './store.js'
 
 const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
 
+type OnBeforeRequest = (args: {
+  method: string
+  params: unknown[]
+}) => Promise<void>
+
 type CreateProviderParams = {
   store: ReturnType<typeof createZeroDevWalletStore>
   config: ZeroDevWalletConnectorParams
   chains: Chain[]
+  onBeforeRequest?: OnBeforeRequest
 }
 
 export type ZeroDevProvider = ReturnType<typeof Provider.createEmitter> & {
@@ -22,6 +28,7 @@ export type ZeroDevProvider = ReturnType<typeof Provider.createEmitter> & {
 export function createProvider({
   store,
   config,
+  onBeforeRequest,
 }: CreateProviderParams): ZeroDevProvider {
   const emitter = Provider.createEmitter()
   let sessionRefreshTimer: NodeJS.Timeout | null = null
@@ -114,6 +121,10 @@ export function createProvider({
     },
 
     async request({ method, params }: { method: string; params?: any[] }) {
+      if (onBeforeRequest) {
+        await onBeforeRequest({ method, params: params ?? [] })
+      }
+
       const state = store.getState()
       const activeChainId = state.activeChainId
       if (!activeChainId) {

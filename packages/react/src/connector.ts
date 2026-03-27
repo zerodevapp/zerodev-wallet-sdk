@@ -10,8 +10,24 @@ import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
 import { type Chain, createPublicClient, http } from 'viem'
 import { handleOAuthCallback, type OAuthProvider } from './oauth.js'
 import { createProvider } from './provider.js'
-import { createZeroDevWalletStore } from './store.js'
+import { createZeroDevWalletStore, type PendingRequest } from './store.js'
 import { getAAUrl } from './utils/aaUtils.js'
+
+function requireUserConfirmation(
+  store: ReturnType<typeof createZeroDevWalletStore>,
+  method: string,
+  params: unknown[],
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    store.getState().setPendingRequest({
+      id: crypto.randomUUID(),
+      method,
+      params: params[0],
+      resolve,
+      reject,
+    } as PendingRequest)
+  })
+}
 
 // OAuth URL parameter used to detect callback
 const OAUTH_SUCCESS_PARAM = 'oauth_success'
@@ -74,6 +90,17 @@ async function detectAndHandleOAuthCallback(
   }
 }
 
+const DEFAULT_SIGNING_UI_METHODS = [
+  'eth_sendTransaction',
+  'wallet_sendTransaction',
+  'personal_sign',
+  'eth_signTypedData_v4',
+]
+
+export type SigningUIConfig =
+  | { mode: 'background' }
+  | { mode: 'prompt'; methods?: string[] }
+
 export type ZeroDevWalletConnectorParams = {
   projectId: string
   organizationId?: string
@@ -84,6 +111,7 @@ export type ZeroDevWalletConnectorParams = {
   sessionStorage?: StorageAdapter
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
+  signingUI?: SigningUIConfig
 }
 
 export function zeroDevWallet(
@@ -149,10 +177,32 @@ export function zeroDevWallet(
       })
 
       // Create EIP-1193 provider
+      const signingUI = params.signingUI
+      const signingMethods =
+        (signingUI?.mode === 'prompt' && signingUI.methods) ||
+        DEFAULT_SIGNING_UI_METHODS
+
+      const onBeforeRequest =
+        signingUI?.mode === 'prompt'
+          ? ({
+              method,
+              params: reqParams,
+            }: {
+              method: string
+              params: unknown[]
+            }) => {
+              const { userConfirmationListenerActive } = store.getState()
+              if (!userConfirmationListenerActive) return Promise.resolve()
+              if (!signingMethods.includes(method)) return Promise.resolve()
+              return requireUserConfirmation(store, method, reqParams)
+            }
+          : undefined
+
       provider = createProvider({
         store,
         config: params,
         chains: Array.from(params.chains),
+        ...(onBeforeRequest && { onBeforeRequest }),
       })
 
       // Check for existing session (page reload)
