@@ -26,11 +26,10 @@ export function App() {
           </p>
         </div>
 
-        {/* ── Button ───────────────────────────────────── */}
+        {/* Button */}
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
           <h2 className="text-xl font-semibold text-gray-800">Button</h2>
 
-          {/* Variant picker */}
           <div className="flex gap-2">
             {(['primary', 'secondary', 'secondaryNeutral'] as const).map(
               (v) => (
@@ -63,11 +62,10 @@ export function App() {
           </div>
         </section>
 
-        {/* ── CodeInput ────────────────────────────────── */}
+        {/* CodeInput */}
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
           <h2 className="text-xl font-semibold text-gray-800">CodeInput</h2>
 
-          {/* Controls */}
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input
