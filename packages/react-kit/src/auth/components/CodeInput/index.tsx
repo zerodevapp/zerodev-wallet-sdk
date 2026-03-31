@@ -25,6 +25,11 @@ export function CodeInput({
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
   const digitKeys = useRef(Array.from({ length }, (_, i) => `digit-${i}`))
 
+  useEffect(() => {
+    setValues(Array(length).fill(''))
+    digitKeys.current = Array.from({ length }, (_, i) => `digit-${i}`)
+    inputRefs.current = inputRefs.current.slice(0, length)
+  }, [length])
   const focusIndex = (index: number) => {
     inputRefs.current[index]?.focus()
   }

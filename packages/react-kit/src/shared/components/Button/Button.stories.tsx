@@ -21,6 +21,13 @@ const meta = {
   args: {
     action: 'primary',
   },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 280 }}>
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof Button>
 
 export default meta
