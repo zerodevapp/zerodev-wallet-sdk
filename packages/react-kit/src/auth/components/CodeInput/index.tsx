@@ -76,8 +76,10 @@ export function CodeInput({
       }
       e.preventDefault()
     } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault()
       focusIndex(index - 1)
     } else if (e.key === 'ArrowRight' && index < length - 1) {
+      e.preventDefault()
       focusIndex(index + 1)
     }
   }
