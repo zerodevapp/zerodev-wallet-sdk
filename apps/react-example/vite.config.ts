@@ -10,7 +10,7 @@ export default defineConfig({
       // Point to react-kit source so changes are picked up instantly during dev
       '@zerodev/wallet-react-kit': path.resolve(
         __dirname,
-        '../react-kit/src/index.ts',
+        '../../packages/react-kit/src/index.ts',
       ),
     },
   },

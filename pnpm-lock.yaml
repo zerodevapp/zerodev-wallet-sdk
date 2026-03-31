@@ -45,39 +45,11 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@20.19.11)(happy-dom@20.6.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.1)
 
-  packages/core:
-    dependencies:
-      '@turnkey/http':
-        specifier: ^3.12.1
-        version: 3.12.1
-      '@turnkey/iframe-stamper':
-        specifier: ^2.5.0
-        version: 2.5.0
-      '@turnkey/indexed-db-stamper':
-        specifier: ^1.1.1
-        version: 1.1.1
-      '@turnkey/webauthn-stamper':
-        specifier: ^0.6.0
-        version: 0.6.0
-      json-canonicalize:
-        specifier: ^2.0.0
-        version: 2.0.0
-      viem:
-        specifier: ^2.38.0
-        version: 2.38.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.12)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.11
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-
-  packages/playground:
+  apps/playground:
     dependencies:
       '@zerodev/wallet-react-kit':
         specifier: workspace:*
-        version: link:../react-kit
+        version: link:../../packages/react-kit
       react:
         specifier: 19.2.0
         version: 19.2.0
@@ -106,6 +78,34 @@ importers:
       vite:
         specifier: ^6.3.5
         version: 6.4.1(@types/node@20.19.11)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.1)
+
+  packages/core:
+    dependencies:
+      '@turnkey/http':
+        specifier: ^3.12.1
+        version: 3.12.1
+      '@turnkey/iframe-stamper':
+        specifier: ^2.5.0
+        version: 2.5.0
+      '@turnkey/indexed-db-stamper':
+        specifier: ^1.1.1
+        version: 1.1.1
+      '@turnkey/webauthn-stamper':
+        specifier: ^0.6.0
+        version: 0.6.0
+      json-canonicalize:
+        specifier: ^2.0.0
+        version: 2.0.0
+      viem:
+        specifier: ^2.38.0
+        version: 2.38.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.1.12)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.11
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/react:
     dependencies:

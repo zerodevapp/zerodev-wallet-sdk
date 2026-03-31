@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "paths": {
-      "@zerodev/wallet-react-kit": ["../react-kit/src/index.ts"]
+      "@zerodev/wallet-react-kit": ["../../packages/react-kit/src/index.ts"]
     }
   },
   "include": ["src", "vite-env.d.ts"]

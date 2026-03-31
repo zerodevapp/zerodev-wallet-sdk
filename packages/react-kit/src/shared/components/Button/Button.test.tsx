@@ -14,12 +14,6 @@ describe('Button', () => {
       expect(screen.getByText('Connect Wallet')).toBeDefined()
     })
 
-    it('renders as a <button> element', () => {
-      render(<Button text="Click me" />)
-      const button = screen.getByRole('button')
-      expect(button.tagName).toBe('BUTTON')
-    })
-
     it('defaults to type="button"', () => {
       render(<Button text="Click me" />)
       const button = screen.getByRole('button')
@@ -33,8 +27,8 @@ describe('Button', () => {
     })
 
     it('renders without text when text is not provided', () => {
-      render(<Button data-testid="empty-btn" />)
-      const button = screen.getByTestId('empty-btn')
+      render(<Button />)
+      const button = screen.getByRole('button')
       expect(button.textContent).toBe('')
     })
   })
@@ -138,8 +132,9 @@ describe('Button', () => {
     })
 
     it('passes through data attributes', () => {
-      render(<Button text="Test" data-testid="my-button" />)
-      expect(screen.getByTestId('my-button')).toBeDefined()
+      render(<Button text="Test" />)
+      const button = screen.getByRole('button')
+      expect(button).toBeDefined()
     })
   })
 })

@@ -18,6 +18,7 @@ const textClasses: Record<NonNullable<ButtonProps['action']>, string> = {
   secondaryNeutral: 'text-white text-base',
 }
 
+// TODO: iconName prop commented out until Icon component is ready
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string
   // iconName?: IconName

@@ -9,5 +9,3 @@ export { CodeInput } from './auth/components/CodeInput'
 export type { ButtonProps } from './shared/components/Button'
 // Shared components
 export { Button } from './shared/components/Button'
-
-export const version = '0.0.1'
