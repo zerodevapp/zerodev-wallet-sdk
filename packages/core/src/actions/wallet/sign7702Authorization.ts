@@ -11,8 +11,8 @@ export type Sign7702AuthorizationParameters = {
   token: string
   /** The address to sign with */
   address: Hex
-  /** The chain ID for the 7702 authorization */
-  chainId: number
+  /** The hex-encoded EIP-7702 authorization to be signed (without 0x prefix) */
+  unsignedTransaction: string
   /** The hashed authorization (hex without 0x prefix) */
   hashedAuthorization: string
 }
@@ -28,7 +28,7 @@ export async function sign7702Authorization(
     projectId,
     token,
     address,
-    chainId,
+    unsignedTransaction,
     hashedAuthorization,
   } = params
 
@@ -43,6 +43,6 @@ export async function sign7702Authorization(
     token,
     path: 'sign/7702-authorization',
     turnkeyPayload,
-    bodyFields: { chainId },
+    bodyFields: { unsignedTransaction },
   })
 }

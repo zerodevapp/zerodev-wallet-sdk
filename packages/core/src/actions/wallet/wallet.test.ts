@@ -362,24 +362,7 @@ describe('signTransaction', () => {
       expectedHash,
     )
     expect(requestCall.body.unsignedTransaction).toBe(tx)
-    expect(requestCall.body.encoding).toBe('hex')
-  })
-
-  it('defaults encoding to hex', async () => {
-    const mockClient = createMockClient(async () => ({
-      signature: 'sig',
-    }))
-
-    await signTransaction(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      unsignedTransaction: 'tx',
-    })
-
-    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
-    expect(requestCall.body.encoding).toBe('hex')
+    expect(requestCall.body.encoding).toBeUndefined()
   })
 
   it('returns signature with 0x prefix', async () => {
@@ -606,7 +589,7 @@ describe('sign7702Authorization', () => {
       projectId: 'proj-456',
       token: 'token',
       address: '0x1234567890abcdef1234567890abcdef12345678',
-      chainId: 1,
+      unsignedTransaction: 'abc123',
       hashedAuthorization: 'deadbeef'.repeat(8),
     })
 
@@ -631,17 +614,17 @@ describe('sign7702Authorization', () => {
       projectId: 'proj-456',
       token: 'token',
       address: '0x1234567890abcdef1234567890abcdef12345678',
-      chainId: 1,
+      unsignedTransaction: 'abc123',
       hashedAuthorization: hashedAuth,
     })
 
     const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
     // Hash is passed through directly (no SDK computation)
     expect(requestCall.body.turnkeyPayload.parameters.payload).toBe(hashedAuth)
-    // Body only contains chainId (as number), not the hash
-    expect(requestCall.body.chainId).toBe(1)
+    // Body contains unsignedTransaction, not chainId or hash
+    expect(requestCall.body.unsignedTransaction).toBe('abc123')
+    expect(requestCall.body.chainId).toBeUndefined()
     expect(requestCall.body.hashedAuthorization).toBeUndefined()
-    expect(requestCall.body.message).toBeUndefined()
   })
 
   it('propagates signing errors', async () => {
@@ -655,7 +638,7 @@ describe('sign7702Authorization', () => {
         projectId: 'proj-456',
         token: 'token',
         address: '0x1234567890abcdef1234567890abcdef12345678',
-        chainId: 1,
+        unsignedTransaction: 'abc123',
         hashedAuthorization: 'hash',
       }),
     ).rejects.toThrow('Chain not allowed')

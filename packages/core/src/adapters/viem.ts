@@ -1,15 +1,18 @@
 import {
   bytesToHex,
+  concat,
   getTypesForEIP712Domain,
   type Hex,
   hashTypedData,
   type LocalAccount,
+  numberToHex,
   parseSignature,
   type SerializeTransactionFn,
   type SignableMessage,
   serializeTransaction,
   serializeTypedData,
   type TransactionSerializable,
+  toRlp,
   zeroAddress,
 } from 'viem'
 import type {
@@ -67,7 +70,6 @@ export async function toViemAccount(
       token: await getToken(),
       address,
       unsignedTransaction: nonHexPrefixedSerializedTx,
-      encoding: 'hex',
     })
 
     const { r, s, v, yParity } = parseSignature(signature)
@@ -159,12 +161,22 @@ export async function toViemAccount(
         nonce,
       })
 
+      // Serialize EIP-7702 authorization: 0x05 || RLP([chainId, address, nonce])
+      const unsignedTransaction = concat([
+        '0x05',
+        toRlp([
+          chainId ? numberToHex(chainId) : '0x',
+          authAddress,
+          nonce ? numberToHex(nonce) : '0x',
+        ]),
+      ]).slice(2)
+
       const signature = await client.sign7702Authorization({
         organizationId,
         projectId,
         token: await getToken(),
         address,
-        chainId,
+        unsignedTransaction,
         hashedAuthorization: hashedAuthorization.slice(2),
       })
 

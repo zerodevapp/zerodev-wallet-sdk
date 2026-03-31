@@ -15,10 +15,8 @@ export type SignTransactionParameters = {
   token: string
   /** The address to sign with */
   address: Hex
-  /** The unsigned transaction to sign */
+  /** The unsigned transaction to sign (hex without 0x prefix) */
   unsignedTransaction: string
-  /** The encoding of the transaction ('utf8' or 'hex') */
-  encoding?: 'utf8' | 'hex'
 }
 
 export type SignTransactionReturnType = Hex
@@ -27,16 +25,10 @@ export async function signTransaction(
   client: Client,
   params: SignTransactionParameters,
 ): Promise<SignTransactionReturnType> {
-  const {
-    organizationId,
-    projectId,
-    token,
-    address,
-    unsignedTransaction,
-    encoding = 'hex',
-  } = params
+  const { organizationId, projectId, token, address, unsignedTransaction } =
+    params
 
-  const payloadHash = computeDataPayloadHash(unsignedTransaction, encoding)
+  const payloadHash = computeDataPayloadHash(unsignedTransaction, 'hex')
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
@@ -48,6 +40,6 @@ export async function signTransaction(
     token,
     path: 'sign/transaction',
     turnkeyPayload,
-    bodyFields: { unsignedTransaction, encoding },
+    bodyFields: { unsignedTransaction },
   })
 }
