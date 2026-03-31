@@ -61,6 +61,15 @@ export function CodeInput({
     index: number,
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
+    // Handle digit keys directly so that typing the same digit still advances focus.
+    // The browser skips onChange when the value doesn't actually change (e.g. "5" → "5"),
+    // so we bypass it entirely for digit input.
+    if (/^\d$/.test(e.key)) {
+      e.preventDefault()
+      handleChange(index, e.key)
+      return
+    }
+
     if (e.key === 'Backspace') {
       if (values[index]) {
         const next = [...values]

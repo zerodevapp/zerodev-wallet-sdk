@@ -161,6 +161,87 @@ describe('CodeInput', () => {
       fireEvent.keyDown(first, { key: 'ArrowRight' })
       expect(document.activeElement).toBe(second)
     })
+
+    it('accepts a digit after navigating with ArrowRight', () => {
+      const onChange = vi.fn()
+      render(<CodeInput length={3} onChange={onChange} />)
+      const [first, second] = getDigits(3)
+      first.focus()
+      fireEvent.keyDown(first, { key: 'ArrowRight' })
+      expect(document.activeElement).toBe(second)
+      fireEvent.keyDown(second, { key: '7' })
+      expect((second as HTMLInputElement).value).toBe('7')
+      expect(onChange).toHaveBeenCalledWith(expect.stringContaining('7'))
+    })
+
+    it('accepts a digit after navigating with ArrowLeft', () => {
+      const onChange = vi.fn()
+      render(<CodeInput length={3} onChange={onChange} />)
+      const [first, , third] = getDigits(3)
+      third.focus()
+      fireEvent.keyDown(third, { key: 'ArrowLeft' })
+      fireEvent.keyDown(document.activeElement as HTMLInputElement, {
+        key: 'ArrowLeft',
+      })
+      expect(document.activeElement).toBe(first)
+      fireEvent.keyDown(first, { key: '4' })
+      expect((first as HTMLInputElement).value).toBe('4')
+    })
+  })
+
+  describe('same digit replacement', () => {
+    it('advances focus when typing the same digit that already exists', () => {
+      render(<CodeInput length={3} />)
+      const [first, second, third] = getDigits(3)
+      first.focus()
+      fireEvent.keyDown(first, { key: '5' })
+      expect((first as HTMLInputElement).value).toBe('5')
+      expect(document.activeElement).toBe(second)
+      // Type same digit in the second box
+      fireEvent.keyDown(second, { key: '5' })
+      expect((second as HTMLInputElement).value).toBe('5')
+      expect(document.activeElement).toBe(third)
+    })
+
+    it('calls onChange when typing the same digit over an existing one', () => {
+      const onChange = vi.fn()
+      render(<CodeInput length={3} onChange={onChange} />)
+      const [first, second] = getDigits(3)
+      first.focus()
+      fireEvent.keyDown(first, { key: '3' })
+      expect(document.activeElement).toBe(second)
+      // Navigate back and overwrite with the same digit
+      fireEvent.keyDown(second, { key: 'ArrowLeft' })
+      expect(document.activeElement).toBe(first)
+      onChange.mockClear()
+      fireEvent.keyDown(first, { key: '3' })
+      expect(onChange).toHaveBeenCalled()
+      expect(document.activeElement).toBe(second)
+    })
+
+    it('replaces a digit with a different digit and advances', () => {
+      render(<CodeInput length={3} />)
+      const [first, second] = getDigits(3)
+      first.focus()
+      fireEvent.keyDown(first, { key: '1' })
+      expect(document.activeElement).toBe(second)
+      // Go back and replace with a different digit
+      fireEvent.keyDown(second, { key: 'ArrowLeft' })
+      fireEvent.keyDown(first, { key: '9' })
+      expect((first as HTMLInputElement).value).toBe('9')
+      expect(document.activeElement).toBe(second)
+    })
+
+    it('calls onComplete when the last digit is the same as the existing one', () => {
+      const onComplete = vi.fn()
+      render(<CodeInput length={3} onComplete={onComplete} />)
+      const digits = getDigits(3)
+      digits[0].focus()
+      fireEvent.keyDown(digits[0], { key: '5' })
+      fireEvent.keyDown(digits[1], { key: '5' })
+      fireEvent.keyDown(digits[2], { key: '5' })
+      expect(onComplete).toHaveBeenCalledWith('555')
+    })
   })
 
   describe('paste', () => {
