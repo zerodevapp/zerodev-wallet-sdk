@@ -136,6 +136,8 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) =>
           ...(options?.storage && {
             storage: createJSONStorage(() => options.storage!),
           }),
+          // We'll handle hydration manually to ensure it completes before we use the store
+          skipHydration: true,
         },
       ),
     ),
