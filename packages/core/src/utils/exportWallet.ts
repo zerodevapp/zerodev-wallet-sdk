@@ -56,9 +56,8 @@ export async function exportWallet(
 
     const listWalletsStamp =
       await wallet.client[
-        session.stamperType === 'indexedDb'
-          ? 'indexedDbStamper'
-          : 'webauthnStamper'
+        // TODO: Change `stamperType` to `"apiKey" | "passkey"`
+        session.stamperType === 'indexedDb' ? 'apiKeyStamper' : 'passkeyStamper'
       ].stamp(listWalletsBody)
     if (!listWalletsStamp) {
       throw new Error('Failed to stamp list wallets body')
@@ -93,9 +92,8 @@ export async function exportWallet(
     })
     const exportWalletStamp =
       await wallet.client[
-        session.stamperType === 'indexedDb'
-          ? 'indexedDbStamper'
-          : 'webauthnStamper'
+        // TODO: Change `stamperType` to `"apiKey" | "passkey"`
+        session.stamperType === 'indexedDb' ? 'apiKeyStamper' : 'passkeyStamper'
       ].stamp(exportWalletBody)
     if (!exportWalletStamp) {
       throw new Error('Failed to stamp export wallet body')

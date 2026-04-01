@@ -1,4 +1,3 @@
-import { getWebAuthnAttestation } from '@turnkey/http'
 import type { LocalAccount } from 'viem/accounts'
 import type {
   EmailCustomization,
@@ -17,6 +16,7 @@ import {
   KMS_SERVER_URL,
 } from '../constants.js'
 import { createIndexedDbStamper } from '../stampers/indexedDbStamper.js'
+import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
 import { createWebauthnStamper } from '../stampers/webauthnStamper.js'
 import { createWebStorageAdapter } from '../storage/adapters.js'
 import {
@@ -26,19 +26,15 @@ import {
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
-import {
-  base64UrlEncode,
-  generateCompressedPublicKeyFromKeyPair,
-  generateRandomBuffer,
-  humanReadableDateTime,
-  parseSession,
-} from '../utils/utils.js'
+import { humanReadableDateTime, parseSession } from '../utils/utils.js'
 export interface ZeroDevWalletConfig {
   organizationId?: string
   proxyBaseUrl?: string
   projectId: string
   sessionStorage?: StorageAdapter
   rpId?: string
+  apiKeyStamper?: ApiKeyStamper
+  passkeyStamper?: PasskeyStamper
 }
 
 // Re-export EmailCustomization for convenience
@@ -134,13 +130,14 @@ export async function createZeroDevWallet(
     sessionStorage || createWebStorageAdapter(),
   )
 
-  const indexedDbStamper = await createIndexedDbStamper()
+  const apiKeyStamper = config.apiKeyStamper ?? (await createIndexedDbStamper())
 
-  const webauthnStamper = await createWebauthnStamper({ rpId })
+  const passkeyStamper =
+    config.passkeyStamper ?? (await createWebauthnStamper({ rpId }))
 
   const client = createClient({
-    indexedDbStamper,
-    webauthnStamper,
+    apiKeyStamper,
+    passkeyStamper,
     transport: zeroDevWalletTransport({
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
     }),
@@ -151,8 +148,8 @@ export async function createZeroDevWallet(
   return {
     client,
     async getPublicKey() {
-      await client.indexedDbStamper.resetKeyPair()
-      const compressedPublicKey = await client.indexedDbStamper.getPublicKey()
+      await client.apiKeyStamper.resetKeyPair()
+      const compressedPublicKey = await client.apiKeyStamper.getPublicKey()
       return compressedPublicKey
     },
 
@@ -192,23 +189,15 @@ export async function createZeroDevWallet(
         throw new Error('No active session')
       }
       if (activeSession.stamperType === 'indexedDb') {
-        const newKeyPair = await crypto.subtle.generateKey(
-          {
-            name: 'ECDSA',
-            namedCurve: 'P-256',
-          },
-          false,
-          ['sign', 'verify'],
-        )
         const compressedPublicKeyHex =
-          await generateCompressedPublicKeyFromKeyPair(newKeyPair)
+          await client.apiKeyStamper.prepareKeyRotation()
         const data = await client.loginWithStamp({
           targetPublicKey: compressedPublicKeyHex,
           projectId,
           organizationId: activeSession.organizationId,
-          stampWith: 'indexedDb',
+          stampWith: 'apiKey',
         })
-        await client.indexedDbStamper.resetKeyPair(newKeyPair)
+        await client.apiKeyStamper.commitKeyRotation()
         const parsedSession = parseSession(data.session)
         const session: ZeroDevWalletSession = {
           id: `session_indexedDb_${Date.now()}`,
@@ -216,6 +205,7 @@ export async function createZeroDevWallet(
           organizationId: parsedSession.organizationId,
           stamperType: 'indexedDb',
           sessionType: SessionType.READ_WRITE,
+          publicKey: compressedPublicKeyHex,
           token: data.session,
           expiry: parsedSession.expiry,
           createdAt: Date.now(),
@@ -240,7 +230,7 @@ export async function createZeroDevWallet(
           if (data.session) {
             // Parse the JWT to get session data
             const parsedSession = parseSession(data.session)
-            const publicKey = await client.indexedDbStamper.getPublicKey()
+            const publicKey = await client.apiKeyStamper.getPublicKey()
             const session: ZeroDevWalletSession = {
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
@@ -263,58 +253,31 @@ export async function createZeroDevWallet(
             'mode' in params &&
             params.mode === 'register'
           ) {
-            await client.indexedDbStamper.resetKeyPair()
-            const tempPublicKey = await client.indexedDbStamper.getPublicKey()
+            await client.apiKeyStamper.resetKeyPair()
+            const tempPublicKey = await client.apiKeyStamper.getPublicKey()
             if (!tempPublicKey) {
               throw new Error('Failed to get public key')
             }
-            const challenge = generateRandomBuffer()
-            const encodedChallenge = base64UrlEncode(challenge)
-            const authenticatorUserId = generateRandomBuffer()
             const name = `ZeroDevWallet-${humanReadableDateTime()}`
-            const attestation = await getWebAuthnAttestation({
-              publicKey: {
+            const { attestation, encodedChallenge } =
+              await passkeyStamper.register({
                 rp: { id: rpId, name: '' },
-                challenge,
-                pubKeyCredParams: [
-                  {
-                    type: 'public-key',
-                    alg: -7,
-                  },
-                  {
-                    type: 'public-key',
-                    alg: -257,
-                  },
-                ],
-                user: {
-                  id: authenticatorUserId,
-                  name,
-                  displayName: name,
-                },
-              },
-            })
+                userName: name,
+              })
             const data = await client.registerWithPasskey({
               attestation,
               challenge: encodedChallenge,
               projectId,
               encodedPublicKey: tempPublicKey,
             })
-            const newKeyPair = await crypto.subtle.generateKey(
-              {
-                name: 'ECDSA',
-                namedCurve: 'P-256',
-              },
-              false,
-              ['sign', 'verify'],
-            )
             const compressedPublicKeyHex =
-              await generateCompressedPublicKeyFromKeyPair(newKeyPair)
+              await client.apiKeyStamper.prepareKeyRotation()
             const loginData = await client.loginWithStamp({
               projectId,
               targetPublicKey: compressedPublicKeyHex,
               organizationId: data.subOrganizationId,
             })
-            await client.indexedDbStamper.resetKeyPair(newKeyPair)
+            await client.apiKeyStamper.commitKeyRotation()
             const parsedSession = parseSession(loginData.session)
             const session: ZeroDevWalletSession = {
               id: `session_indexedDb_${Date.now()}`,
@@ -326,6 +289,7 @@ export async function createZeroDevWallet(
               expiry:
                 Date.now() +
                 Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
+              publicKey: compressedPublicKeyHex,
               token: loginData.session,
             }
             await sessionStorageManager.storeSession(session, session.id)
@@ -336,9 +300,8 @@ export async function createZeroDevWallet(
             'mode' in params &&
             params.mode === 'login'
           ) {
-            await client.indexedDbStamper.resetKeyPair()
-            const generatedPublicKey =
-              await client.indexedDbStamper.getPublicKey()
+            await client.apiKeyStamper.resetKeyPair()
+            const generatedPublicKey = await client.apiKeyStamper.getPublicKey()
             if (!generatedPublicKey) {
               throw new Error('Failed to get public key')
             }
@@ -346,7 +309,7 @@ export async function createZeroDevWallet(
               targetPublicKey: generatedPublicKey,
               projectId,
               organizationId,
-              stampWith: 'webauthn',
+              stampWith: 'passkey',
             })
             const parsedSession = parseSession(loginData.session)
             const session: ZeroDevWalletSession = {
@@ -359,6 +322,7 @@ export async function createZeroDevWallet(
               expiry:
                 Date.now() +
                 Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
+              publicKey: generatedPublicKey,
               token: loginData.session,
             }
             await sessionStorageManager.storeSession(session, session.id)
@@ -416,8 +380,8 @@ export async function createZeroDevWallet(
             const { otpId, otpCode, otpEncryptionTargetBundle } = otpParams
 
             // Step 1: Generate new key pair
-            await client.indexedDbStamper.resetKeyPair()
-            const targetPublicKey = await client.indexedDbStamper.getPublicKey()
+            await client.apiKeyStamper.resetKeyPair()
+            const targetPublicKey = await client.apiKeyStamper.getPublicKey()
 
             if (!targetPublicKey) {
               throw new Error('Failed to get public key')
@@ -449,7 +413,7 @@ export async function createZeroDevWallet(
             const clientSignature = await buildClientSignature({
               verificationToken,
               publicKey: targetPublicKey,
-              stamper: client.indexedDbStamper,
+              stamper: client.apiKeyStamper,
             })
 
             // Step 4: Login via backend (not Auth Proxy!)
@@ -472,7 +436,7 @@ export async function createZeroDevWallet(
                 token: data.session,
                 expiry: parsedSession.expiry,
                 createdAt: Date.now(),
-                publicKey: targetPublicKey,
+                publicKey: parsedSession.publicKey,
               }
               await sessionStorageManager.storeSession(session, session.id)
             }
@@ -488,7 +452,7 @@ export async function createZeroDevWallet(
 
     async logout() {
       await sessionStorageManager.clearAllSessions()
-      await client.indexedDbStamper.resetKeyPair()
+      await client.apiKeyStamper.resetKeyPair()
       return true
     },
 

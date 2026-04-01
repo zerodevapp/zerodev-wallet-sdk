@@ -15,7 +15,8 @@ export type LoginWithStampParameters = {
   /** The encoded public key for the request */
   targetPublicKey: string
   /** The stamper type for the request */
-  stampWith?: 'indexedDb' | 'webauthn'
+  // TODO: @stamper-type - Derive type from `StamperType`
+  stampWith?: 'apiKey' | 'passkey'
 }
 
 export type LoginWithStampReturnType = {
@@ -58,12 +59,12 @@ export async function loginWithStamp(
     type: 'ACTIVITY_TYPE_STAMP_LOGIN',
   })
   let stamp: Stamp
-  if (stampWith === 'indexedDb') {
-    stamp = await client.indexedDbStamper.stamp(stampPayload)
-  } else if (stampWith === 'webauthn') {
-    stamp = await client.webauthnStamper.stamp(stampPayload)
+  if (stampWith === 'apiKey') {
+    stamp = await client.apiKeyStamper.stamp(stampPayload)
+  } else if (stampWith === 'passkey') {
+    stamp = await client.passkeyStamper.stamp(stampPayload)
   } else {
-    stamp = await client.indexedDbStamper.stamp(stampPayload)
+    stamp = await client.apiKeyStamper.stamp(stampPayload)
   }
 
   return client.request({

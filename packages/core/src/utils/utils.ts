@@ -37,6 +37,7 @@ export function parseSession(
     organizationId,
     expiry: exp,
     token: publicKey,
+    publicKey,
   }
 }
 

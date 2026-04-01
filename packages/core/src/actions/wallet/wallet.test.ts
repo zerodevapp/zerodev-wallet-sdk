@@ -32,15 +32,15 @@ function createMockClient(
     request: vi.fn(
       requestImpl || (async () => ({})),
     ) as unknown as Client['request'],
-    indexedDbStamper: {
+    apiKeyStamper: {
       stamp: vi.fn(async () => ({
         stampHeaderName: 'X-Stamp-Webauthn',
         stampHeaderValue: 'mock-stamp-value',
       })),
       getPublicKey: vi.fn(async () => 'mock-public-key'),
       init: vi.fn(async () => {}),
-    } as unknown as Client['indexedDbStamper'],
-    webauthnStamper: {} as Client['webauthnStamper'],
+    } as unknown as Client['apiKeyStamper'],
+    passkeyStamper: {} as Client['passkeyStamper'],
     key: 'test-client',
     name: 'Test Client',
     type: 'zeroDevWalletClient',
@@ -175,7 +175,7 @@ describe('signMessage', () => {
     })
 
     // Inner stamp + outer stamp = 2 calls
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalledTimes(2)
 
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -207,7 +207,7 @@ describe('signMessage', () => {
     })
 
     // First stamp call is the inner stamp over turnkeyPayload
-    const innerStampInput = vi.mocked(mockClient.indexedDbStamper.stamp).mock
+    const innerStampInput = vi.mocked(mockClient.apiKeyStamper.stamp).mock
       .calls[0][0]
     const parsed = JSON.parse(innerStampInput)
     expect(parsed.type).toBe('ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2')
@@ -233,7 +233,7 @@ describe('signMessage', () => {
     })
 
     // Second stamp call is the outer stamp over the full body
-    const outerStampInput = vi.mocked(mockClient.indexedDbStamper.stamp).mock
+    const outerStampInput = vi.mocked(mockClient.apiKeyStamper.stamp).mock
       .calls[1][0]
     const parsed = JSON.parse(outerStampInput)
     expect(parsed.message).toBe('Hello')
@@ -330,7 +330,7 @@ describe('signTransaction', () => {
       unsignedTransaction: 'f86c808504a817c80082520894',
     })
 
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalledTimes(2)
 
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -450,7 +450,7 @@ describe('signTypedDataV4', () => {
       typedDataHash: 'deadbeef'.repeat(8),
     })
 
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalledTimes(2)
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'proj-456/sign/typed-data-v4',
@@ -522,7 +522,7 @@ describe('signUserOperation', () => {
       encoding: 'hex',
     })
 
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalledTimes(2)
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'proj-456/sign/user-operation',
@@ -593,7 +593,7 @@ describe('sign7702Authorization', () => {
       hashedAuthorization: 'deadbeef'.repeat(8),
     })
 
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalledTimes(2)
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'proj-456/sign/7702-authorization',

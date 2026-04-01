@@ -26,6 +26,7 @@ function createSession(
     userId: 'user-123',
     organizationId: 'org-456',
     stamperType: 'iframe',
+    publicKey: 'mock-public-key',
     expiry: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now (in seconds)
     createdAt: Date.now(),
     ...overrides,

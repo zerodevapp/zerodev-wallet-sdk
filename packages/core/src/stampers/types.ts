@@ -30,7 +30,33 @@ export type IframeStamper = Stamper & {
   applySettings(settings: { styles?: Record<string, string> }): Promise<boolean>
 }
 
-export type IndexedDbStamper = Stamper & {
-  resetKeyPair: (externalKeyPair?: CryptoKeyPair) => Promise<void>
+export type ApiKeyStamper = Stamper & {
+  /** Generate + activate a new key pair immediately (simple cases: login init, logout). */
+  resetKeyPair: () => Promise<void>
+  /** Generate a new key pair internally, return its public key, but keep the OLD key active for stamp(). */
+  prepareKeyRotation: () => Promise<string>
+  /** Promote the pending key to active. Call after the server accepts the new key. */
+  commitKeyRotation: () => Promise<void>
 }
-export type WebauthnStamper = Stamper
+export type Attestation = {
+  attestationObject: string
+  clientDataJson: string
+  credentialId: string
+}
+
+export type PasskeyRegistrationOptions = {
+  rp: { id: string; name: string }
+  userName: string
+}
+
+export type PasskeyRegistrationResult = {
+  attestation: Attestation
+  encodedChallenge: string
+}
+
+export type PasskeyStamper = Stamper & {
+  /** Create a new passkey credential. Owns challenge and user ID generation internally. */
+  register: (
+    options: PasskeyRegistrationOptions,
+  ) => Promise<PasskeyRegistrationResult>
+}

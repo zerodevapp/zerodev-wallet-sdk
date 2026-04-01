@@ -1,4 +1,4 @@
-import type { IndexedDbStamper, WebauthnStamper } from '../stampers/types.js'
+import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
 import type { RestRequestFn } from './transports/rest.js'
 
 export type TransportConfig = {
@@ -17,8 +17,8 @@ export type TransportConfig = {
 }
 
 export type Transport = (options: {
-  indexedDbStamper: IndexedDbStamper
-  webauthnStamper: WebauthnStamper
+  apiKeyStamper: ApiKeyStamper
+  passkeyStamper: PasskeyStamper
 }) => {
   config: TransportConfig
   request: RestRequestFn
@@ -27,8 +27,8 @@ export type Transport = (options: {
 
 export type ClientConfig = {
   transport: Transport
-  indexedDbStamper: IndexedDbStamper
-  webauthnStamper: WebauthnStamper
+  apiKeyStamper: ApiKeyStamper
+  passkeyStamper: PasskeyStamper
   organizationId?: string
   key?: string
   name?: string
@@ -39,10 +39,10 @@ export type Client<extended extends Extended | undefined = undefined> = {
   transport: TransportConfig & Record<string, unknown>
   /** Request function from transport */
   request: RestRequestFn
-  /** IndexedDB Stamper for authenticated requests */
-  indexedDbStamper: IndexedDbStamper
-  /** WebAuthn Stamper for authenticated requests */
-  webauthnStamper: WebauthnStamper
+  /** API Key Stamper for authenticated requests */
+  apiKeyStamper: ApiKeyStamper
+  /** Passkey Stamper for authenticated requests */
+  passkeyStamper: PasskeyStamper
   /** Organization ID */
   organizationId?: string
   /** A key for the client */

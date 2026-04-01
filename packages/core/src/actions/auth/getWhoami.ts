@@ -51,7 +51,7 @@ export async function getWhoami(
   // Step 1: Inner stamp over the payload (for Turnkey verification)
   const innerBody = { organizationId }
   const innerBodyString = canonicalizeEx(innerBody)
-  const innerStamp = await client.indexedDbStamper.stamp(innerBodyString)
+  const innerStamp = await client.apiKeyStamper.stamp(innerBodyString)
 
   // Step 2: Build full body with inner stamp embedded
   const fullBody = {
@@ -64,7 +64,7 @@ export async function getWhoami(
 
   // Step 3: Outer stamp over full body (for KMS middleware)
   const fullBodyString = canonicalizeEx(fullBody)
-  const outerStamp = await client.indexedDbStamper.stamp(fullBodyString)
+  const outerStamp = await client.apiKeyStamper.stamp(fullBodyString)
 
   return await client.request({
     path: `${projectId}/whoami`,

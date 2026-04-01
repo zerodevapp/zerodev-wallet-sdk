@@ -1,6 +1,6 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
-import type { IndexedDbStamper, WebauthnStamper } from '../../stampers/types.js'
+import type { ApiKeyStamper, PasskeyStamper } from '../../stampers/types.js'
 
 export type RestRequestArgs = {
   path: string
@@ -8,7 +8,8 @@ export type RestRequestArgs = {
   body?: any
   headers?: Record<string, string>
   stamp?: boolean
-  stampWith?: 'indexedDb' | 'webAuthn'
+  // TODO: @stamper-type - Derive type from `StamperType`
+  stampWith?: 'apiKey' | 'passkey'
   stampPostion?: 'body' | 'headers'
   /** Include credentials (cookies) in the request */
   credentials?: RequestCredentials
@@ -32,8 +33,8 @@ export type RestTransportConfig = {
   timeoutMs?: number
   key?: string
   name?: string
-  indexedDbStamper: IndexedDbStamper
-  webauthnStamper: WebauthnStamper
+  apiKeyStamper: ApiKeyStamper
+  passkeyStamper: PasskeyStamper
 }
 
 export function rest(url: string, cfg: RestTransportConfig): RestTransport {
@@ -56,13 +57,13 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
 
       // Handle stamping if requested
       if (args.stamp) {
-        let stamper: IndexedDbStamper | WebauthnStamper
-        if (args.stampWith === 'indexedDb') {
-          stamper = cfg.indexedDbStamper
-        } else if (args.stampWith === 'webAuthn') {
-          stamper = cfg.webauthnStamper
+        let stamper: ApiKeyStamper | PasskeyStamper
+        if (args.stampWith === 'apiKey') {
+          stamper = cfg.apiKeyStamper
+        } else if (args.stampWith === 'passkey') {
+          stamper = cfg.passkeyStamper
         } else {
-          stamper = cfg.indexedDbStamper
+          stamper = cfg.apiKeyStamper
         }
         const { body, apiUrl } = args.body
         const bodyString = canonicalizeEx(body ?? args.body)
