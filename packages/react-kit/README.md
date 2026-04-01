@@ -33,7 +33,3 @@ pnpm dev
 pnpm typecheck
 ```
 
-## License
-
-MIT
-
