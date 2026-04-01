@@ -18,7 +18,8 @@ export function parseSession(
     throw new Error('Invalid JWT: Missing payload')
   }
 
-  const decoded = JSON.parse(Buffer.from(payload, 'base64').toString())
+  const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+  const decoded = JSON.parse(atob(base64))
   const {
     exp,
     public_key: publicKey,
@@ -68,11 +69,9 @@ export const generateRandomBuffer = (): ArrayBuffer => {
  * @returns {string} - The encoded challenge.
  */
 export const base64UrlEncode = (challenge: ArrayBuffer): string => {
-  return Buffer.from(challenge)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
+  const bytes = new Uint8Array(challenge)
+  const binary = String.fromCharCode(...bytes)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
 /**
