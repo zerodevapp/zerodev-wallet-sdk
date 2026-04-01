@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 import { cn } from '../../utils/common'
+import { Icon, type IconName } from '../Icon'
 
 const baseClass =
   'flex items-center justify-center rounded-3xl h-16 w-full cursor-pointer transition-colors'
@@ -18,10 +19,9 @@ const textClasses: Record<NonNullable<ButtonProps['action']>, string> = {
   secondaryNeutral: 'text-white text-base',
 }
 
-// TODO: iconName prop commented out until Icon component is ready
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string
-  // iconName?: IconName
+  iconName?: IconName
   action?: 'primary' | 'secondary' | 'secondaryNeutral'
   trailIcon?: boolean
 }
@@ -29,7 +29,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function Button({
   text,
   className,
-  // iconName,
+  iconName,
   trailIcon,
   disabled,
   action = 'primary',
@@ -50,13 +50,19 @@ export function Button({
       {...rest}
     >
       <span className="flex flex-row items-center gap-2 justify-center">
-        {/*{iconName && !trailIcon && (*/}
-        {/*  <Icon name={iconName} className={cn('w-6 h-6', textClasses[action])}/>*/}
-        {/*)}*/}
+        {iconName && !trailIcon && (
+          <Icon
+            name={iconName}
+            className={cn('w-6 h-6', textClasses[action])}
+          />
+        )}
         {text && <span className={textClasses[action]}>{text}</span>}
-        {/*{iconName && trailIcon && (*/}
-        {/*  <Icon name={iconName} className={cn('w-6 h-6', textClasses[action])}/>*/}
-        {/*)}*/}
+        {iconName && trailIcon && (
+          <Icon
+            name={iconName}
+            className={cn('w-6 h-6', textClasses[action])}
+          />
+        )}
       </span>
     </button>
   )
