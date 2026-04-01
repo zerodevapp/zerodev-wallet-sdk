@@ -1,8 +1,16 @@
 {
   "extends": "./templates/typescript/tsconfig.base.json",
-  "include": ["packages/core/src/**/*.ts", "packages/react/src/**/*.ts"],
+  "include": [
+    "packages/core/src/**/*.ts",
+    "packages/react/src/**/*.ts",
+    "packages/react-kit/src/**/*.ts",
+    "packages/react-kit/src/**/*.tsx"
+  ],
   "compilerOptions": {
     "noEmit": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "types": ["vitest/globals"]
   }
 }

@@ -30,3 +30,9 @@ blob-report/
 
 # E2E env
 .env.e2e
+
+# Jetbrains IDEs
+.idea/
+
+*storybook.log
+storybook-static
