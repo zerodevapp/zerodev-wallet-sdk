@@ -122,40 +122,6 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  packages/playground:
-    dependencies:
-      '@zerodev/wallet-react-kit':
-        specifier: workspace:*
-        version: link:../react-kit
-      react:
-        specifier: 19.2.0
-        version: 19.2.0
-      react-dom:
-        specifier: 19.2.0
-        version: 19.2.0(react@19.2.0)
-    devDependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.2.2
-        version: 4.2.2(vite@6.4.1(@types/node@20.19.11)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.1))
-      '@types/react':
-        specifier: ^19
-        version: 19.2.2
-      '@types/react-dom':
-        specifier: ^19
-        version: 19.2.3(@types/react@19.2.2)
-      '@vitejs/plugin-react':
-        specifier: ^4.5.2
-        version: 4.7.0(vite@6.4.1(@types/node@20.19.11)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.1))
-      tailwindcss:
-        specifier: ^4.2.2
-        version: 4.2.2
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vite:
-        specifier: ^6.3.5
-        version: 6.4.1(@types/node@20.19.11)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.1)
-
   packages/react:
     dependencies:
       '@tanstack/react-query':
