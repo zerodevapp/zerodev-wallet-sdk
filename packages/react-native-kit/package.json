@@ -1,0 +1,74 @@
+{
+  "name": "@zerodev/wallet-react-native-kit",
+  "version": "0.0.1",
+  "description": "React Native UI components for ZeroDev Wallet SDK",
+  "main": "./dist/_cjs/index.js",
+  "module": "./dist/_esm/index.js",
+  "react-native": "./src/index.ts",
+  "types": "./dist/_types/index.d.ts",
+  "exports": {
+    ".": {
+      "react-native": "./src/index.ts",
+      "types": "./dist/_types/index.d.ts",
+      "import": "./dist/_esm/index.js",
+      "require": "./dist/_cjs/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "!dist/_esm/**/*.tsbuildinfo",
+    "!dist/_cjs/**/*.tsbuildinfo",
+    "!dist/_types/**/*.tsbuildinfo",
+    "!.env",
+    "!./**/*.test.ts",
+    "!./**/*.test.tsx",
+    "!.changeset"
+  ],
+  "scripts": {
+    "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
+    "build:esm": "tsc --project ./tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
+    "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "keywords": [
+    "react-native",
+    "components",
+    "ui",
+    "wallet",
+    "zerodev",
+    "web3",
+    "nativewind"
+  ],
+  "peerDependencies": {
+    "nativewind": ">=4.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-native": ">=0.73.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^29.0.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.79.2",
+    "react-native-web": "^0.21.2",
+    "tailwindcss": "^4.2.2",
+    "typescript": "5.9.3"
+  },
+  "type": "module",
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0"
+  }
+}
