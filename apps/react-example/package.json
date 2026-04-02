@@ -10,17 +10,22 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.21",
+    "@zerodev/wallet-react": "workspace:*",
     "@zerodev/wallet-react-kit": "workspace:*",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "viem": "^2.38.0",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.5.2",
     "tailwindcss": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2",
     "typescript": "5.9.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-plugin-node-polyfills": "^0.25.0"
   }
 }

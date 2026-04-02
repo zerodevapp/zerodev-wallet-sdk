@@ -1,11 +1,23 @@
 /**
  * @zerodev/wallet-react-kit
- * React UI components for ZeroDev Wallet SDK
+ * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 
-export type { CodeInputProps } from './auth/components/CodeInput'
 // Auth components
+export type { CodeInputProps } from './auth/components/CodeInput'
 export { CodeInput } from './auth/components/CodeInput'
-export type { ButtonProps } from './shared/components/Button'
+
+// Signing
+export { SignatureRequest } from './components/SignatureRequest/index.js'
+export type {
+  SigningConfig,
+  ZeroDevKitConfig,
+  ZeroDevKitConnectorParams,
+} from './connector.js'
+// Connector
+export { zeroDevKitWallet } from './connector.js'
+export { usePendingRequest } from './hooks/usePendingRequest.js'
 // Shared components
+export type { ButtonProps } from './shared/components/Button'
 export { Button } from './shared/components/Button'
+export type { PendingRequest, Request, RequestMethod } from './types.js'
