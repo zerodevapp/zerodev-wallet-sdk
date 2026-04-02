@@ -1,6 +1,6 @@
 import type { Hex, RpcTransactionRequest } from 'viem'
 
-// todo: these should be moved to react package and exported from there
+// todo: these should be moved to core package and exported from there
 export type Request =
   | {
       method: 'eth_sendTransaction'
