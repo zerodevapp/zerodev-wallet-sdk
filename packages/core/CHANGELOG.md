@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.15
+
+### Patch Changes
+
+- feat: switch signing to validated backend endpoints
+
 ## 0.0.1-alpha.14
 
 ### Patch Changes

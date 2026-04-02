@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.16
+
+### Patch Changes
+
+- feat: switch signing to validated backend endpoints
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.15
+
 ## 0.0.1-alpha.15
 
 ### Patch Changes
