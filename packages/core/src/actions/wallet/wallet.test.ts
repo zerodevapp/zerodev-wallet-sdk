@@ -1,18 +1,24 @@
+import { hashMessage, keccak256, toHex } from 'viem'
 import { describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
 import { getUserWallet } from './getUserWallet.js'
-import { signRawPayload } from './signRawPayload.js'
+import { sign7702Authorization } from './sign7702Authorization.js'
+import {
+  buildTurnkeyPayload,
+  computeDataPayloadHash,
+  computeMessagePayloadHash,
+} from './signingUtils.js'
+import { signMessage } from './signMessage.js'
 import { signTransaction } from './signTransaction.js'
+import { signTypedDataV4 } from './signTypedDataV4.js'
+import { signUserOperation } from './signUserOperation.js'
 
-// Create a mock client with configurable request implementation
 function createMockClient(
   requestImpl?: (params: {
     path: string
     method?: string
-    body?: unknown
+    body?: any
     headers?: Record<string, string>
-    stamp?: boolean
-    stampPostion?: string
   }) => Promise<unknown>,
 ): Client {
   return {
@@ -26,7 +32,14 @@ function createMockClient(
     request: vi.fn(
       requestImpl || (async () => ({})),
     ) as unknown as Client['request'],
-    indexedDbStamper: {} as Client['indexedDbStamper'],
+    indexedDbStamper: {
+      stamp: vi.fn(async () => ({
+        stampHeaderName: 'X-Stamp-Webauthn',
+        stampHeaderValue: 'mock-stamp-value',
+      })),
+      getPublicKey: vi.fn(async () => 'mock-public-key'),
+      init: vi.fn(async () => {}),
+    } as unknown as Client['indexedDbStamper'],
     webauthnStamper: {} as Client['webauthnStamper'],
     key: 'test-client',
     name: 'Test Client',
@@ -36,11 +49,277 @@ function createMockClient(
   }
 }
 
-describe('signTransaction', () => {
-  it('sends sign transaction request with correct parameters', async () => {
-    const signatureHex = 'abcdef1234567890'
+// ----- Hash computation tests (must match backend exactly) -----
+
+describe('computeMessagePayloadHash', () => {
+  it('computes correct hash for utf8 message (matches viem hashMessage)', () => {
+    const hash = computeMessagePayloadHash('Hello', 'utf8')
+    expect(hash).toBe(hashMessage('Hello').slice(2))
+  })
+
+  it('computes correct hash for hex message', () => {
+    const hexMsg = '48656c6c6f' // "Hello" in hex
+    const hash = computeMessagePayloadHash(hexMsg, 'hex')
+    expect(hash).toBe(hashMessage({ raw: `0x${hexMsg}` }).slice(2))
+  })
+
+  it('utf8 and hex produce same hash for equivalent input', () => {
+    // "Hello" as utf8 should produce the same hash as "48656c6c6f" as hex
+    const utf8Hash = computeMessagePayloadHash('Hello', 'utf8')
+    const hexHash = computeMessagePayloadHash('48656c6c6f', 'hex')
+    expect(utf8Hash).toBe(hexHash)
+  })
+
+  it('strips 0x prefix from hex input', () => {
+    const withPrefix = computeMessagePayloadHash('0x48656c6c6f', 'hex')
+    const withoutPrefix = computeMessagePayloadHash('48656c6c6f', 'hex')
+    expect(withPrefix).toBe(withoutPrefix)
+  })
+
+  it('returns hash without 0x prefix', () => {
+    const hash = computeMessagePayloadHash('Hello', 'utf8')
+    expect(hash).not.toMatch(/^0x/)
+    expect(hash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('uses correct length for multi-byte utf8 characters', () => {
+    const hash = computeMessagePayloadHash('é', 'utf8')
+    expect(hash).toBe(hashMessage('é').slice(2))
+  })
+})
+
+describe('computeDataPayloadHash', () => {
+  it('computes correct hash for utf8 data (hashes raw bytes)', () => {
+    const data = '{"chainId":"1"}'
+    const hash = computeDataPayloadHash(data, 'utf8')
+
+    // Should hash the raw bytes, not the hex string chars
+    const hexData = toHex(data).slice(2)
+    const expected = keccak256(`0x${hexData}`).slice(2)
+    expect(hash).toBe(expected)
+  })
+
+  it('computes correct hash for hex data (hashes raw bytes)', () => {
+    const hexData = 'f86c808504a817c80082520894'
+    const hash = computeDataPayloadHash(hexData, 'hex')
+
+    const expected = keccak256(`0x${hexData}`).slice(2)
+    expect(hash).toBe(expected)
+  })
+
+  it('utf8 and hex produce same hash for equivalent input', () => {
+    const utf8Hash = computeDataPayloadHash('Hello', 'utf8')
+    const hexHash = computeDataPayloadHash('48656c6c6f', 'hex')
+    expect(utf8Hash).toBe(hexHash)
+  })
+
+  it('strips 0x prefix from hex input', () => {
+    const withPrefix = computeDataPayloadHash('0xdeadbeef', 'hex')
+    const withoutPrefix = computeDataPayloadHash('deadbeef', 'hex')
+    expect(withPrefix).toBe(withoutPrefix)
+  })
+
+  it('returns hash without 0x prefix', () => {
+    const hash = computeDataPayloadHash('test', 'utf8')
+    expect(hash).not.toMatch(/^0x/)
+    expect(hash).toMatch(/^[0-9a-f]{64}$/)
+  })
+})
+
+// ----- buildTurnkeyPayload tests -----
+
+describe('buildTurnkeyPayload', () => {
+  it('builds correct payload structure', () => {
+    const payload = buildTurnkeyPayload(
+      'org-123',
+      '0x1234567890abcdef1234567890abcdef12345678',
+      'deadbeef',
+    )
+
+    expect(payload.type).toBe('ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2')
+    expect(payload.organizationId).toBe('org-123')
+    expect(payload.parameters.signWith).toBe(
+      '0x1234567890abcdef1234567890abcdef12345678',
+    )
+    expect(payload.parameters.payload).toBe('deadbeef')
+    expect(payload.parameters.encoding).toBe('PAYLOAD_ENCODING_HEXADECIMAL')
+    expect(payload.parameters.hashFunction).toBe('HASH_FUNCTION_NO_OP')
+  })
+
+  it('includes timestampMs as string', () => {
+    const before = Date.now()
+    const payload = buildTurnkeyPayload('org', '0x00', 'hash')
+    const after = Date.now()
+
+    const ts = Number.parseInt(payload.timestampMs, 10)
+    expect(ts).toBeGreaterThanOrEqual(before)
+    expect(ts).toBeLessThanOrEqual(after)
+  })
+})
+
+// ----- signMessage tests -----
+
+describe('signMessage', () => {
+  it('sends signing request with dual-stamp pattern', async () => {
     const mockClient = createMockClient(async () => ({
-      signature: signatureHex,
+      signature: 'abcdef1234567890',
+    }))
+
+    const result = await signMessage(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'bearer-token-jwt',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      message: 'Hello',
+      encoding: 'utf8',
+    })
+
+    // Inner stamp + outer stamp = 2 calls
+    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: 'proj-456/sign/message',
+        method: 'POST',
+      }),
+    )
+
+    // Outer stamp in headers
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    expect(requestCall.headers!['X-Stamp-Webauthn']).toBe('mock-stamp-value')
+    expect(requestCall.headers!.Authorization).toBe('Bearer bearer-token-jwt')
+
+    expect(result).toBe('0xabcdef1234567890')
+  })
+
+  it('inner stamp is computed over canonicalized turnkeyPayload', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await signMessage(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      message: 'Hello',
+      encoding: 'utf8',
+    })
+
+    // First stamp call is the inner stamp over turnkeyPayload
+    const innerStampInput = vi.mocked(mockClient.indexedDbStamper.stamp).mock
+      .calls[0][0]
+    const parsed = JSON.parse(innerStampInput)
+    expect(parsed.type).toBe('ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2')
+    expect(parsed.parameters.signWith).toBe(
+      '0x1234567890abcdef1234567890abcdef12345678',
+    )
+    expect(parsed.parameters.encoding).toBe('PAYLOAD_ENCODING_HEXADECIMAL')
+    expect(parsed.parameters.hashFunction).toBe('HASH_FUNCTION_NO_OP')
+  })
+
+  it('outer stamp is computed over canonicalized full body', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await signMessage(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      message: 'Hello',
+      encoding: 'utf8',
+    })
+
+    // Second stamp call is the outer stamp over the full body
+    const outerStampInput = vi.mocked(mockClient.indexedDbStamper.stamp).mock
+      .calls[1][0]
+    const parsed = JSON.parse(outerStampInput)
+    expect(parsed.message).toBe('Hello')
+    expect(parsed.encoding).toBe('utf8')
+    expect(parsed.turnkeyPayload).toBeDefined()
+    expect(parsed.stampHeader.stampHeaderName).toBe('X-Stamp-Webauthn')
+    expect(parsed.stampHeader.stampHeaderValue).toBe('mock-stamp-value')
+  })
+
+  it('body contains correct human-readable fields and turnkey payload', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await signMessage(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      message: 'Hello',
+      encoding: 'utf8',
+    })
+
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    const body = requestCall.body
+
+    // Human-readable fields
+    expect(body.message).toBe('Hello')
+    expect(body.encoding).toBe('utf8')
+
+    // Turnkey payload with correct hash
+    const expectedHash = computeMessagePayloadHash('Hello', 'utf8')
+    expect(body.turnkeyPayload.parameters.payload).toBe(expectedHash)
+    expect(body.turnkeyPayload.parameters.signWith).toBe(
+      '0x1234567890abcdef1234567890abcdef12345678',
+    )
+    expect(body.turnkeyPayload.organizationId).toBe('org-123')
+
+    // Embedded inner stamp
+    expect(body.stampHeader.stampHeaderName).toBe('X-Stamp-Webauthn')
+    expect(body.stampHeader.stampHeaderValue).toBe('mock-stamp-value')
+  })
+
+  it('handles hex encoding', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'deadbeef',
+    }))
+
+    await signMessage(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      message: '48656c6c6f',
+      encoding: 'hex',
+    })
+
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    expect(requestCall.body.message).toBe('48656c6c6f')
+    expect(requestCall.body.encoding).toBe('hex')
+  })
+
+  it('propagates signing errors', async () => {
+    const mockClient = createMockClient(async () => {
+      throw new Error('Signing failed')
+    })
+
+    await expect(
+      signMessage(mockClient, {
+        organizationId: 'org-123',
+        projectId: 'proj-456',
+        token: 'token',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        message: 'Hello',
+        encoding: 'utf8',
+      }),
+    ).rejects.toThrow('Signing failed')
+  })
+})
+
+// ----- signTransaction tests -----
+
+describe('signTransaction', () => {
+  it('sends signing request with dual-stamp pattern', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'abcdef1234567890',
     }))
 
     const result = await signTransaction(mockClient, {
@@ -48,28 +327,42 @@ describe('signTransaction', () => {
       projectId: 'proj-456',
       token: 'bearer-token-jwt',
       address: '0x1234567890abcdef1234567890abcdef12345678',
-      unsignedTransaction: 'f86c808504a817c80082520894...',
+      unsignedTransaction: 'f86c808504a817c80082520894',
     })
 
-    expect(mockClient.request).toHaveBeenCalledWith({
-      path: 'proj-456/sign/transaction',
-      body: {
-        type: 'ACTIVITY_TYPE_SIGN_TRANSACTION_V2',
-        timestampMs: expect.any(String),
-        organizationId: 'org-123',
-        parameters: {
-          signWith: '0x1234567890abcdef1234567890abcdef12345678',
-          type: 'TRANSACTION_TYPE_ETHEREUM',
-          unsignedTransaction: 'f86c808504a817c80082520894...',
-        },
-      },
-      headers: {
-        Authorization: 'Bearer bearer-token-jwt',
-      },
-      stamp: true,
-      stampPostion: 'headers',
+    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: 'proj-456/sign/transaction',
+        method: 'POST',
+      }),
+    )
+
+    expect(result).toBe('0xabcdef1234567890')
+  })
+
+  it('body contains correct hash in turnkey payload', async () => {
+    const tx = 'f86c808504a817c80082520894'
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await signTransaction(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedTransaction: tx,
     })
-    expect(result).toBe(`0x${signatureHex}`)
+
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    const expectedHash = computeDataPayloadHash(tx, 'hex')
+    expect(requestCall.body.turnkeyPayload.parameters.payload).toBe(
+      expectedHash,
+    )
+    expect(requestCall.body.unsignedTransaction).toBe(tx)
+    expect(requestCall.body.encoding).toBeUndefined()
   })
 
   it('returns signature with 0x prefix', async () => {
@@ -86,69 +379,9 @@ describe('signTransaction', () => {
     })
 
     expect(result).toBe('0xdeadbeef')
-    expect(result.startsWith('0x')).toBe(true)
   })
 
-  it('includes authorization header with bearer token', async () => {
-    const mockClient = createMockClient(async () => ({ signature: 'sig' }))
-
-    await signTransaction(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'my-secret-token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      unsignedTransaction: 'tx',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        headers: {
-          Authorization: 'Bearer my-secret-token',
-        },
-      }),
-    )
-  })
-
-  it('requests stamping in headers', async () => {
-    const mockClient = createMockClient(async () => ({ signature: 'sig' }))
-
-    await signTransaction(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      unsignedTransaction: 'tx',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stamp: true,
-        stampPostion: 'headers',
-      }),
-    )
-  })
-
-  it('includes timestamp in milliseconds', async () => {
-    const mockClient = createMockClient(async () => ({ signature: 'sig' }))
-
-    await signTransaction(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      unsignedTransaction: 'tx',
-    })
-
-    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
-    const timestampMs = (requestCall as { body: { timestampMs: string } }).body
-      .timestampMs
-    expect(parseInt(timestampMs, 10)).toBeGreaterThan(0)
-    expect(parseInt(timestampMs, 10).toString()).toBe(timestampMs)
-  })
-
-  it('unconditionally prepends 0x (double prefix if server returns 0x)', async () => {
-    // The source unconditionally does `0x${signature}`, so if server returns '0xdeadbeef',
-    // result will be '0x0xdeadbeef' - documenting this behavior
+  it('does not double-prefix when server returns 0x', async () => {
     const mockClient = createMockClient(async () => ({
       signature: '0xdeadbeef',
     }))
@@ -161,29 +394,24 @@ describe('signTransaction', () => {
       unsignedTransaction: 'tx',
     })
 
-    expect(result).toBe('0x0xdeadbeef')
+    expect(result).toBe('0xdeadbeef')
   })
 
-  it('includes timestamp close to current time', async () => {
-    const before = Date.now()
-    const mockClient = createMockClient(async () => ({ signature: 'sig' }))
+  it('includes authorization header with bearer token', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
 
     await signTransaction(mockClient, {
       organizationId: 'org-123',
       projectId: 'proj-456',
-      token: 'token',
+      token: 'my-secret-token',
       address: '0x1234567890abcdef1234567890abcdef12345678',
       unsignedTransaction: 'tx',
     })
 
-    const after = Date.now()
     const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
-    const timestampMs = Number.parseInt(
-      (requestCall as { body: { timestampMs: string } }).body.timestampMs,
-      10,
-    )
-    expect(timestampMs).toBeGreaterThanOrEqual(before)
-    expect(timestampMs).toBeLessThanOrEqual(after)
+    expect(requestCall.headers!.Authorization).toBe('Bearer my-secret-token')
   })
 
   it('propagates signing errors', async () => {
@@ -202,6 +430,222 @@ describe('signTransaction', () => {
     ).rejects.toThrow('Signing failed: insufficient funds')
   })
 })
+
+// ----- signTypedDataV4 tests -----
+
+describe('signTypedDataV4', () => {
+  it('sends signing request with dual-stamp pattern', async () => {
+    const typedData = '{"domain":{"chainId":"1"},"types":{}}'
+    const mockClient = createMockClient(async () => ({
+      signature: 'abcdef',
+    }))
+
+    const result = await signTypedDataV4(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedTypedDataV4: typedData,
+      encoding: 'utf8',
+      typedDataHash: 'deadbeef'.repeat(8),
+    })
+
+    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: 'proj-456/sign/typed-data-v4',
+        method: 'POST',
+      }),
+    )
+    expect(result).toBe('0xabcdef')
+  })
+
+  it('body contains correct hash in turnkey payload', async () => {
+    const typedData = '{"domain":{"chainId":"1"},"types":{}}'
+    const precomputedHash = 'deadbeef'.repeat(8)
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await signTypedDataV4(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedTypedDataV4: typedData,
+      encoding: 'utf8',
+      typedDataHash: precomputedHash,
+    })
+
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    expect(requestCall.body.turnkeyPayload.parameters.payload).toBe(
+      precomputedHash,
+    )
+    expect(requestCall.body.unsignedTypedDataV4).toBe(typedData)
+    expect(requestCall.body.encoding).toBe('utf8')
+  })
+
+  it('propagates signing errors', async () => {
+    const mockClient = createMockClient(async () => {
+      throw new Error('Invalid typed data')
+    })
+
+    await expect(
+      signTypedDataV4(mockClient, {
+        organizationId: 'org-123',
+        projectId: 'proj-456',
+        token: 'token',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        unsignedTypedDataV4: '{}',
+        encoding: 'utf8',
+        typedDataHash: 'deadbeef'.repeat(8),
+      }),
+    ).rejects.toThrow('Invalid typed data')
+  })
+})
+
+// ----- signUserOperation tests -----
+
+describe('signUserOperation', () => {
+  it('sends signing request with dual-stamp pattern and chainId', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'abcdef',
+    }))
+
+    const result = await signUserOperation(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedUserOperation: 'userop-data',
+      chainId: 42161,
+      encoding: 'hex',
+    })
+
+    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: 'proj-456/sign/user-operation',
+        method: 'POST',
+      }),
+    )
+    expect(result).toBe('0xabcdef')
+  })
+
+  it('body contains correct hash, chainId, and encoding', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await signUserOperation(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedUserOperation: 'userop-hex',
+      chainId: 1,
+      encoding: 'hex',
+    })
+
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    const expectedHash = computeDataPayloadHash('userop-hex', 'hex')
+    expect(requestCall.body.turnkeyPayload.parameters.payload).toBe(
+      expectedHash,
+    )
+    expect(requestCall.body.unsignedUserOperation).toBe('userop-hex')
+    expect(requestCall.body.chainId).toBe(1)
+    expect(requestCall.body.encoding).toBe('hex')
+  })
+
+  it('propagates signing errors', async () => {
+    const mockClient = createMockClient(async () => {
+      throw new Error('Chain not allowed')
+    })
+
+    await expect(
+      signUserOperation(mockClient, {
+        organizationId: 'org-123',
+        projectId: 'proj-456',
+        token: 'token',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        unsignedUserOperation: 'op',
+        chainId: 1,
+        encoding: 'hex',
+      }),
+    ).rejects.toThrow('Chain not allowed')
+  })
+})
+
+// ----- sign7702Authorization tests -----
+
+describe('sign7702Authorization', () => {
+  it('sends signing request with dual-stamp pattern', async () => {
+    const mockClient = createMockClient(async () => ({
+      signature: 'abcdef',
+    }))
+
+    const result = await sign7702Authorization(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedTransaction: 'abc123',
+      hashedAuthorization: 'deadbeef'.repeat(8),
+    })
+
+    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: 'proj-456/sign/7702-authorization',
+        method: 'POST',
+      }),
+    )
+    expect(result).toBe('0xabcdef')
+  })
+
+  it('passes hashed authorization directly as turnkey payload (no SDK hash)', async () => {
+    const hashedAuth = 'deadbeef'.repeat(8)
+    const mockClient = createMockClient(async () => ({
+      signature: 'sig',
+    }))
+
+    await sign7702Authorization(mockClient, {
+      organizationId: 'org-123',
+      projectId: 'proj-456',
+      token: 'token',
+      address: '0x1234567890abcdef1234567890abcdef12345678',
+      unsignedTransaction: 'abc123',
+      hashedAuthorization: hashedAuth,
+    })
+
+    const requestCall = vi.mocked(mockClient.request).mock.calls[0][0]
+    // Hash is passed through directly (no SDK computation)
+    expect(requestCall.body.turnkeyPayload.parameters.payload).toBe(hashedAuth)
+    // Body contains unsignedTransaction, not chainId or hash
+    expect(requestCall.body.unsignedTransaction).toBe('abc123')
+    expect(requestCall.body.chainId).toBeUndefined()
+    expect(requestCall.body.hashedAuthorization).toBeUndefined()
+  })
+
+  it('propagates signing errors', async () => {
+    const mockClient = createMockClient(async () => {
+      throw new Error('Chain not allowed')
+    })
+
+    await expect(
+      sign7702Authorization(mockClient, {
+        organizationId: 'org-123',
+        projectId: 'proj-456',
+        token: 'token',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        unsignedTransaction: 'abc123',
+        hashedAuthorization: 'hash',
+      }),
+    ).rejects.toThrow('Chain not allowed')
+  })
+})
+
+// ----- getUserWallet tests -----
 
 describe('getUserWallet', () => {
   it('sends get user wallet request with correct parameters', async () => {
@@ -317,158 +761,5 @@ describe('getUserWallet', () => {
         token: 'token',
       }),
     ).rejects.toThrow('User not found')
-  })
-})
-
-describe('signRawPayload', () => {
-  it('sends sign raw payload request with default encoding and hash function', async () => {
-    const signatureHex = '0x1234567890abcdef' as const
-    const mockClient = createMockClient(async () => ({
-      signature: signatureHex,
-    }))
-
-    const result = await signRawPayload(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'bearer-token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      payload: 'deadbeef1234567890',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith({
-      path: 'proj-456/sign/raw-payload',
-      body: {
-        type: 'ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2',
-        timestampMs: expect.any(String),
-        organizationId: 'org-123',
-        parameters: {
-          signWith: '0x1234567890abcdef1234567890abcdef12345678',
-          payload: 'deadbeef1234567890',
-          encoding: 'PAYLOAD_ENCODING_HEXADECIMAL',
-          hashFunction: 'HASH_FUNCTION_NO_OP',
-        },
-      },
-      headers: {
-        Authorization: 'Bearer bearer-token',
-      },
-      stamp: true,
-      stampPostion: 'headers',
-    })
-    expect(result).toBe(signatureHex)
-  })
-
-  it('allows custom encoding type', async () => {
-    const mockClient = createMockClient(async () => ({ signature: '0xsig' }))
-
-    await signRawPayload(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      payload: 'payload',
-      encoding: 'PAYLOAD_ENCODING_EIP712',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: expect.objectContaining({
-          parameters: expect.objectContaining({
-            encoding: 'PAYLOAD_ENCODING_EIP712',
-          }),
-        }),
-      }),
-    )
-  })
-
-  it('allows custom hash function', async () => {
-    const mockClient = createMockClient(async () => ({ signature: '0xsig' }))
-
-    await signRawPayload(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      payload: 'payload',
-      hashFunction: 'HASH_FUNCTION_NO_OP',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: expect.objectContaining({
-          parameters: expect.objectContaining({
-            hashFunction: 'HASH_FUNCTION_NO_OP',
-          }),
-        }),
-      }),
-    )
-  })
-
-  it('returns signature as-is without adding 0x prefix', async () => {
-    // Unlike signTransaction, signRawPayload does NOT prepend 0x
-    const mockClient = createMockClient(async () => ({
-      signature: 'abcdef123456',
-    }))
-
-    const result = await signRawPayload(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      payload: 'payload',
-    })
-
-    // Returned as-is, no 0x prepended
-    expect(result).toBe('abcdef123456')
-  })
-
-  it('returns signature with 0x prefix unchanged', async () => {
-    const mockClient = createMockClient(async () => ({
-      signature: '0xabcdef123456',
-    }))
-
-    const result = await signRawPayload(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      payload: 'payload',
-    })
-
-    expect(result).toBe('0xabcdef123456')
-  })
-
-  it('requests stamping in headers', async () => {
-    const mockClient = createMockClient(async () => ({ signature: '0xsig' }))
-
-    await signRawPayload(mockClient, {
-      organizationId: 'org-123',
-      projectId: 'proj-456',
-      token: 'token',
-      address: '0x1234567890abcdef1234567890abcdef12345678',
-      payload: 'payload',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stamp: true,
-        stampPostion: 'headers',
-      }),
-    )
-  })
-
-  it('propagates signing errors', async () => {
-    const mockClient = createMockClient(async () => {
-      throw new Error('Invalid payload encoding')
-    })
-
-    await expect(
-      signRawPayload(mockClient, {
-        organizationId: 'org-123',
-        projectId: 'proj-456',
-        token: 'token',
-        address: '0x1234567890abcdef1234567890abcdef12345678',
-        payload: 'invalid-payload',
-      }),
-    ).rejects.toThrow('Invalid payload encoding')
   })
 })

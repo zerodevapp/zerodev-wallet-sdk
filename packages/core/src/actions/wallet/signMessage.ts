@@ -2,11 +2,11 @@ import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
 import {
   buildTurnkeyPayload,
-  computeDataPayloadHash,
+  computeMessagePayloadHash,
   sendSigningRequest,
 } from './signingUtils.js'
 
-export type SignTransactionParameters = {
+export type SignMessageParameters = {
   /** The organization ID */
   organizationId: string
   /** The project ID for the request */
@@ -15,20 +15,22 @@ export type SignTransactionParameters = {
   token: string
   /** The address to sign with */
   address: Hex
-  /** The unsigned transaction to sign (hex without 0x prefix) */
-  unsignedTransaction: string
+  /** The message to sign */
+  message: string
+  /** The encoding of the message ('utf8' or 'hex') */
+  encoding: 'utf8' | 'hex'
 }
 
-export type SignTransactionReturnType = Hex
+export type SignMessageReturnType = Hex
 
-export async function signTransaction(
+export async function signMessage(
   client: Client,
-  params: SignTransactionParameters,
-): Promise<SignTransactionReturnType> {
-  const { organizationId, projectId, token, address, unsignedTransaction } =
+  params: SignMessageParameters,
+): Promise<SignMessageReturnType> {
+  const { organizationId, projectId, token, address, message, encoding } =
     params
 
-  const payloadHash = computeDataPayloadHash(unsignedTransaction, 'hex')
+  const payloadHash = computeMessagePayloadHash(message, encoding)
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
@@ -38,8 +40,8 @@ export async function signTransaction(
   return sendSigningRequest(client, {
     projectId,
     token,
-    path: 'sign/transaction',
+    path: 'sign/message',
     turnkeyPayload,
-    bodyFields: { unsignedTransaction },
+    bodyFields: { message, encoding },
   })
 }

@@ -187,7 +187,9 @@ export function createProvider({
 
           if (!account) throw new Error('Not authenticated')
 
-          return await account.signMessage({ message })
+          return await account.signMessage({
+            message: { raw: message as `0x${string}` },
+          })
         }
 
         case 'eth_signTypedData_v4': {

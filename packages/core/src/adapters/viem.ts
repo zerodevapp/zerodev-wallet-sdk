@@ -1,14 +1,18 @@
 import {
+  bytesToHex,
+  concat,
+  getTypesForEIP712Domain,
   type Hex,
-  hashMessage,
+  hashTypedData,
   type LocalAccount,
+  numberToHex,
   parseSignature,
-  parseTransaction,
   type SerializeTransactionFn,
   type SignableMessage,
   serializeTransaction,
   serializeTypedData,
   type TransactionSerializable,
+  toRlp,
   zeroAddress,
 } from 'viem'
 import type {
@@ -17,7 +21,6 @@ import type {
 } from 'viem/accounts'
 import { toAccount } from 'viem/accounts'
 import { hashAuthorization } from 'viem/utils'
-import type { signRawPayload } from '../actions/index.js'
 import type { ZeroDevWalletClient } from '../client/index.js'
 
 export interface ToViemAccountParams {
@@ -44,21 +47,6 @@ export async function toViemAccount(
   } catch {
     address = zeroAddress
   }
-  const signRawPayloadInternal = async (
-    payload: string,
-    encoding: Parameters<
-      typeof signRawPayload
-    >[1]['encoding'] = 'PAYLOAD_ENCODING_HEXADECIMAL',
-  ) => {
-    return await client.signRawPayload({
-      organizationId,
-      projectId,
-      token: await getToken(),
-      address,
-      payload,
-      encoding,
-    })
-  }
 
   // Modified from: https://github.com/tkhq/sdk/blob/4e439bf2973ea13b51d981d7c24a4841d4e5fd5f/packages/viem/src/index.ts#L419-L461
   const signTransactionInternal = async <
@@ -84,27 +72,37 @@ export async function toViemAccount(
       unsignedTransaction: nonHexPrefixedSerializedTx,
     })
 
-    if (transaction.type === 'eip4844') {
-      // Grab components of the signature
-      const { r, s, v } = parseTransaction(signature)
-
-      // Recombine with the original transaction
-      return serializeTransaction(transaction, {
-        r: r!,
-        s: s!,
-        v: v!,
-      })
-    }
-
-    return signature
+    const { r, s, v, yParity } = parseSignature(signature)
+    return serializeTransaction(transaction, { r, s, v, yParity })
   }
 
   return toAccount({
     address,
 
     async signMessage({ message }: { message: SignableMessage }): Promise<Hex> {
-      const hashedMessage = hashMessage(message)
-      return signRawPayloadInternal(hashedMessage)
+      if (typeof message === 'string') {
+        return client.signMessage({
+          organizationId,
+          projectId,
+          token: await getToken(),
+          address,
+          message,
+          encoding: 'utf8',
+        })
+      }
+      // Raw message (Hex or ByteArray)
+      const raw =
+        typeof message.raw === 'string'
+          ? message.raw.replace(/^0x/, '')
+          : bytesToHex(message.raw).slice(2)
+      return client.signMessage({
+        organizationId,
+        projectId,
+        token: await getToken(),
+        address,
+        message: raw,
+        encoding: 'hex',
+      })
     },
 
     signTransaction: async <
@@ -123,11 +121,28 @@ export async function toViemAccount(
       return signTransactionInternal(transaction, serializer)
     },
     signTypedData: async (typedData) => {
-      const serializedTypedData = serializeTypedData(typedData)
-      return signRawPayloadInternal(
-        serializedTypedData,
-        'PAYLOAD_ENCODING_EIP712',
-      )
+      const serializedTypedData = serializeTypedData({
+        ...typedData,
+        types: {
+          ...typedData.types,
+          EIP712Domain: getTypesForEIP712Domain({
+            domain: typedData.domain as Parameters<
+              typeof getTypesForEIP712Domain
+            >[0]['domain'],
+          }),
+        },
+      } as Parameters<typeof serializeTypedData>[0])
+      return client.signTypedDataV4({
+        organizationId,
+        projectId,
+        token: await getToken(),
+        address,
+        unsignedTypedDataV4: serializedTypedData,
+        encoding: 'utf8',
+        typedDataHash: hashTypedData(
+          typedData as Parameters<typeof hashTypedData>[0],
+        ).slice(2),
+      })
     },
 
     async signAuthorization(
@@ -146,7 +161,24 @@ export async function toViemAccount(
         nonce,
       })
 
-      const signature = await signRawPayloadInternal(hashedAuthorization)
+      // Serialize EIP-7702 authorization: 0x05 || RLP([chainId, address, nonce])
+      const unsignedTransaction = concat([
+        '0x05',
+        toRlp([
+          chainId ? numberToHex(chainId) : '0x',
+          authAddress,
+          nonce ? numberToHex(nonce) : '0x',
+        ]),
+      ]).slice(2)
+
+      const signature = await client.sign7702Authorization({
+        organizationId,
+        projectId,
+        token: await getToken(),
+        address,
+        unsignedTransaction,
+        hashedAuthorization: hashedAuthorization.slice(2),
+      })
 
       const parsedSignature = parseSignature(signature)
 

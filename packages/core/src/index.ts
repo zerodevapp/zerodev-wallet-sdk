@@ -15,10 +15,16 @@ export type {
   OtpContact,
   RegisterWithOTPParameters,
   RegisterWithOTPReturnType,
-  SignRawPayloadParameters,
-  SignRawPayloadReturnType,
+  Sign7702AuthorizationParameters,
+  Sign7702AuthorizationReturnType,
+  SignMessageParameters,
+  SignMessageReturnType,
   SignTransactionParameters,
   SignTransactionReturnType,
+  SignTypedDataV4Parameters,
+  SignTypedDataV4ReturnType,
+  SignUserOperationParameters,
+  SignUserOperationReturnType,
 } from './actions/index.js'
 
 // Actions
@@ -31,8 +37,11 @@ export {
   getWhoami,
   loginWithOTP,
   registerWithOTP,
-  signRawPayload,
+  sign7702Authorization,
+  signMessage,
   signTransaction,
+  signTypedDataV4,
+  signUserOperation,
 } from './actions/index.js'
 export type { ToViemAccountParams } from './adapters/viem.js'
 // Adapters

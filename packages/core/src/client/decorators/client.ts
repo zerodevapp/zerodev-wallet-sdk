@@ -30,15 +30,22 @@ import {
   type RegisterWithPasskeyReturnType,
   registerWithOTP,
   registerWithPasskey,
-  type SignRawPayloadParameters,
-  type SignRawPayloadReturnType,
-  signRawPayload,
-} from '../../actions/index.js'
-import {
+  type Sign7702AuthorizationParameters,
+  type Sign7702AuthorizationReturnType,
+  type SignMessageParameters,
+  type SignMessageReturnType,
   type SignTransactionParameters,
   type SignTransactionReturnType,
+  type SignTypedDataV4Parameters,
+  type SignTypedDataV4ReturnType,
+  type SignUserOperationParameters,
+  type SignUserOperationReturnType,
+  sign7702Authorization,
+  signMessage,
   signTransaction,
-} from '../../actions/wallet/signTransaction.js'
+  signTypedDataV4,
+  signUserOperation,
+} from '../../actions/index.js'
 import type { Client } from '../types.js'
 
 /**
@@ -81,11 +88,9 @@ export type ZeroDevWalletActions = {
   ) => Promise<GetUserWalletReturnType>
 
   /**
-   * Signs a raw payload with the user's wallet
+   * Signs a message with the user's wallet
    */
-  signRawPayload: (
-    params: SignRawPayloadParameters,
-  ) => Promise<SignRawPayloadReturnType>
+  signMessage: (params: SignMessageParameters) => Promise<SignMessageReturnType>
 
   /**
    * Signs a transaction with the user's wallet
@@ -93,6 +98,27 @@ export type ZeroDevWalletActions = {
   signTransaction: (
     params: SignTransactionParameters,
   ) => Promise<SignTransactionReturnType>
+
+  /**
+   * Signs EIP-712 typed data with the user's wallet
+   */
+  signTypedDataV4: (
+    params: SignTypedDataV4Parameters,
+  ) => Promise<SignTypedDataV4ReturnType>
+
+  /**
+   * Signs a user operation with the user's wallet
+   */
+  signUserOperation: (
+    params: SignUserOperationParameters,
+  ) => Promise<SignUserOperationReturnType>
+
+  /**
+   * Signs an EIP-7702 authorization with the user's wallet
+   */
+  sign7702Authorization: (
+    params: Sign7702AuthorizationParameters,
+  ) => Promise<Sign7702AuthorizationReturnType>
 
   /**
    * Registers a passkey with the user's wallet
@@ -160,8 +186,11 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
 
     // Wallet actions
     getUserWallet: (params) => getUserWallet(client, params),
-    signRawPayload: (params) => signRawPayload(client, params),
+    signMessage: (params) => signMessage(client, params),
     signTransaction: (params) => signTransaction(client, params),
+    signTypedDataV4: (params) => signTypedDataV4(client, params),
+    signUserOperation: (params) => signUserOperation(client, params),
+    sign7702Authorization: (params) => sign7702Authorization(client, params),
     registerWithPasskey: (params) => registerWithPasskey(client, params),
     loginWithStamp: (params) => loginWithStamp(client, params),
     registerWithOTP: (params) => registerWithOTP(client, params),
