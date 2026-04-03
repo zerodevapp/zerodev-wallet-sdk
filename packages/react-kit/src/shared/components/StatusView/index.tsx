@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 
-import errorImg from '../../../assets/states/error.png'
-import loadingImg from '../../../assets/states/loading.png'
-import sendImg from '../../../assets/states/send.png'
-import successImg from '../../../assets/states/success.png'
+import errorImg from '../../../../../../assets/states/error.png'
+import loadingImg from '../../../../../../assets/states/loading.png'
+import sendImg from '../../../../../../assets/states/send.png'
+import successImg from '../../../../../../assets/states/success.png'
 import { cn } from '../../utils/common'
 
 export type StateImageName = 'error' | 'loading' | 'send' | 'success'
