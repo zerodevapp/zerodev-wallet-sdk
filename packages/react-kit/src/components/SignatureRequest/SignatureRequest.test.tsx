@@ -1,0 +1,117 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createStore } from '../../store'
+import type { PendingRequest } from '../../types'
+
+const mockStore = createStore()
+
+vi.mock('wagmi', () => ({
+  useConfig: () => ({
+    connectors: [
+      {
+        id: 'zerodev-wallet',
+        getKitStore: () => mockStore,
+      },
+    ],
+  }),
+}))
+
+import { SignatureRequest } from './index'
+
+function createMockPendingRequest(
+  overrides?: Partial<PendingRequest>,
+): PendingRequest {
+  return {
+    id: 'test-id',
+    method: 'eth_sendTransaction',
+    params: [{ to: '0x1234', value: '0x0' }],
+    resolve: vi.fn(),
+    reject: vi.fn(),
+    ...overrides,
+  } as PendingRequest
+}
+
+afterEach(() => {
+  cleanup()
+  mockStore.getState().setPendingRequest(null)
+  mockStore.getState().setUserConfirmationListenerActive(false)
+})
+
+describe('SignatureRequest', () => {
+  it('renders nothing when no pending request', () => {
+    const { container } = render(<SignatureRequest />)
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('registers on mount', () => {
+    render(<SignatureRequest />)
+    expect(mockStore.getState().userConfirmationListenerActive).toBe(true)
+  })
+
+  it('deregisters on unmount', () => {
+    const { unmount } = render(<SignatureRequest />)
+    expect(mockStore.getState().userConfirmationListenerActive).toBe(true)
+
+    unmount()
+    expect(mockStore.getState().userConfirmationListenerActive).toBe(false)
+  })
+
+  it('renders when pending request exists', () => {
+    const request = createMockPendingRequest()
+    mockStore.getState().setPendingRequest(request)
+
+    render(<SignatureRequest />)
+
+    expect(screen.getByText('Confirm Request')).toBeDefined()
+    expect(screen.getByText('eth_sendTransaction')).toBeDefined()
+    expect(screen.getByText('Confirm')).toBeDefined()
+    expect(screen.getByText('Reject')).toBeDefined()
+  })
+
+  it('displays request params', () => {
+    const request = createMockPendingRequest()
+    mockStore.getState().setPendingRequest(request)
+
+    render(<SignatureRequest />)
+
+    const pre = screen.getByText(/0x1234/)
+    expect(pre).toBeDefined()
+  })
+
+  it('calls resolve and clears on confirm click', () => {
+    const request = createMockPendingRequest()
+    mockStore.getState().setPendingRequest(request)
+
+    render(<SignatureRequest />)
+    fireEvent.click(screen.getByText('Confirm'))
+
+    expect(request.resolve).toHaveBeenCalled()
+    expect(mockStore.getState().pendingRequest).toBeNull()
+  })
+
+  it('calls reject and clears on reject click', () => {
+    const request = createMockPendingRequest()
+    mockStore.getState().setPendingRequest(request)
+
+    render(<SignatureRequest />)
+    fireEvent.click(screen.getByText('Reject'))
+
+    expect(request.reject).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'User rejected the request' }),
+    )
+    expect(mockStore.getState().pendingRequest).toBeNull()
+  })
+
+  it('rejects dangling request on unmount', () => {
+    const request = createMockPendingRequest()
+    mockStore.getState().setPendingRequest(request)
+
+    const { unmount } = render(<SignatureRequest />)
+    unmount()
+
+    expect(request.reject).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Confirmation listener unmounted' }),
+    )
+    expect(mockStore.getState().pendingRequest).toBeNull()
+  })
+})

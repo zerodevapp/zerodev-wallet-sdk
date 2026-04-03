@@ -2,9 +2,14 @@ import * as path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    nodePolyfills({ include: ['buffer'], globals: { Buffer: true } }),
+  ],
   resolve: {
     alias: {
       // Point to react-kit source so changes are picked up instantly during dev
@@ -17,5 +22,11 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    proxy: {
+      '/api': {
+        target: 'https://kms.staging.zerodev.app',
+        changeOrigin: true,
+      },
+    },
   },
 })

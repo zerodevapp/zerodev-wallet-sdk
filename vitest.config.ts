@@ -8,6 +8,10 @@ export default defineConfig({
         __dirname,
         'packages/core/src/index.ts',
       ),
+      '@zerodev/wallet-react': path.resolve(
+        __dirname,
+        'packages/react/src/index.ts',
+      ),
     },
   },
   test: {
