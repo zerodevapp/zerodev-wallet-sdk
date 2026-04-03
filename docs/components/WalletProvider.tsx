@@ -1,0 +1,28 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+import { type ReactNode, useState } from 'react'
+import { createConfig, http, WagmiProvider } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+
+const config = createConfig({
+  chains: [sepolia],
+  connectors: [
+    zeroDevKitWallet({
+      projectId: 'ad5725c6-06a7-4d28-80ba-a65c1e870128',
+      chains: [sepolia],
+    }),
+  ],
+  transports: {
+    [sepolia.id]: http(),
+  },
+})
+
+export function WalletProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient())
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={config}>{children}</WagmiProvider>
+    </QueryClientProvider>
+  )
+}

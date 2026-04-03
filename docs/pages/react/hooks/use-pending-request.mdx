@@ -1,0 +1,35 @@
+# usePendingRequest
+
+Access the pending signing request state. Use this to build a custom confirmation UI instead of the default `<SignatureRequest />`.
+
+## Import
+
+```tsx
+import { usePendingRequest } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+function MyCustomConfirmation() {
+  const { pendingRequest, confirm, reject, register, deregister } =
+    usePendingRequest()
+
+  useEffect(() => {
+    register()
+    return deregister
+  }, [register, deregister])
+
+  if (!pendingRequest) return null
+
+  return (
+    <div>
+      <p>{pendingRequest.method}</p>
+      <button onClick={confirm}>Approve</button>
+      <button onClick={reject}>Decline</button>
+    </div>
+  )
+}
+```
+
+You must call `register()` on mount and `deregister()` on unmount. Registration is what tells the kit connector to gate requests.

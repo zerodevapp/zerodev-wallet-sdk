@@ -1,0 +1,41 @@
+# ZeroDev React Kit
+
+UI components and enhanced connector for the ZeroDev Wallet SDK.
+
+- **Pre-built components** — `SignatureRequest`, `Button`, `CodeInput`, and more
+- **Kit connector** — wraps the base connector with signing confirmation, CAB fallback (coming soon)
+- **Hooks** — `usePendingRequest` for custom confirmation UIs
+- **Zero base changes** — the kit extends `@zerodev/wallet-react` without modifying it
+
+## Quick Start
+
+```bash
+pnpm add @zerodev/wallet-react-kit
+```
+
+```tsx
+import { zeroDevKitWallet, SignatureRequest } from '@zerodev/wallet-react-kit'
+import { createConfig } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+
+const config = createConfig({
+  connectors: [
+    zeroDevKitWallet({
+      projectId: 'your-project-id',
+      chains: [sepolia],
+    }),
+  ],
+  // ...
+})
+
+function App() {
+  return (
+    <>
+      <YourApp />
+      <SignatureRequest />
+    </>
+  )
+}
+```
+
+That's it. Transactions are gated with a confirmation UI by default.
