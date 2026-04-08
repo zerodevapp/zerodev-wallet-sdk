@@ -7,12 +7,10 @@ export default defineConfig({
     plugins: [tailwindcss()],
     resolve: {
       alias: {
-        '@zerodev/wallet-react-kit': new URL(
-          '../packages/react-kit/src/index.ts',
-          import.meta.url,
-        ).pathname,
+        '@zerodev/wallet-react-kit': new URL('../src/index.ts', import.meta.url)
+          .pathname,
         '@zerodev/wallet-react': new URL(
-          '../packages/react/src/index.ts',
+          '../../react/src/index.ts',
           import.meta.url,
         ).pathname,
       },

@@ -1,6 +1,5 @@
 packages:
   - 'packages/*'
-  - 'docs'
   - 'apps/*'
 
 # Security: Only install packages that are at least 24 hours old (1440 minutes)

@@ -41,7 +41,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docs:dev": "cd docs && vocs dev",
+    "docs:preview": "cd docs && vocs preview"
   },
   "keywords": [
     "react",
@@ -62,6 +64,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.90.21",
     "@storybook/addon-a11y": "^10.3.3",
     "@storybook/addon-docs": "^10.3.3",
     "@storybook/react-vite": "^10.3.3",
@@ -77,7 +80,9 @@
     "react-dom": "19.2.0",
     "storybook": "^10.3.3",
     "tailwindcss": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.2",
     "typescript": "5.9.3",
+    "vocs": "^1.4.1",
     "vite": "^6.4.1",
     "vite-plugin-svgr": "^5.0.0"
   },
