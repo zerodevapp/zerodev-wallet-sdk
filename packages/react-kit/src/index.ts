@@ -14,10 +14,15 @@ export type {
   ZeroDevKitConfig,
   ZeroDevKitConnectorParams,
 } from './connector.js'
+
 // Connector
 export { zeroDevKitWallet } from './connector.js'
 export { usePendingRequest } from './hooks/usePendingRequest.js'
+
 // Shared components
 export type { ButtonProps } from './shared/components/Button'
 export { Button } from './shared/components/Button'
+export type { WrapperProps, WrapperVariant } from './shared/components/Wrapper'
+export { Wrapper } from './shared/components/Wrapper'
+
 export type { PendingRequest, Request, RequestMethod } from './types.js'
