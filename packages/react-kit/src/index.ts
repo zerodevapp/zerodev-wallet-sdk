@@ -3,15 +3,15 @@
  * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 
-// Auth features
+// Auth
 export type { CodeInputProps } from './auth/components/CodeInput'
 export { CodeInput } from './auth/components/CodeInput'
+// Connector
 export type {
   SigningConfig,
   ZeroDevKitConfig,
   ZeroDevKitConnectorParams,
 } from './connector.js'
-// Connector
 export { zeroDevKitWallet } from './connector.js'
 // Shared components
 export type { ButtonProps } from './shared/components/Button'
