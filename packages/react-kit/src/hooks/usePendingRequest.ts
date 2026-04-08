@@ -19,36 +19,33 @@ export function usePendingRequest() {
   const [pendingRequest, setPendingRequestState] =
     useState<PendingRequest | null>(null)
   const storeRef = useRef<Store | null>(null)
-  const registered = useRef(false)
 
   useEffect(() => {
-    let cancelled = false
-    let unsubscribe: (() => void) | undefined
-
     const store = getStore(config)
     if (!store) return
 
     storeRef.current = store
-
-    // Apply deferred registration
-    if (registered.current) {
-      store.getState().setUserConfirmationListenerActive(true)
-    }
+    store.getState().setUserConfirmationListenerActive(true)
 
     // Sync initial state
     setPendingRequestState(store.getState().pendingRequest)
 
     // Subscribe to changes
-    unsubscribe = store.subscribe(
+    const unsubscribe = store.subscribe(
       (state: State) => state.pendingRequest,
-      (req: PendingRequest | null) => {
-        if (!cancelled) setPendingRequestState(req)
-      },
+      (req: PendingRequest | null) => setPendingRequestState(req),
     )
 
     return () => {
-      cancelled = true
-      unsubscribe?.()
+      unsubscribe()
+      const state = store.getState()
+      if (state.pendingRequest) {
+        state.pendingRequest.reject(
+          new Error('Confirmation listener unmounted'),
+        )
+        state.setPendingRequest(null)
+      }
+      state.setUserConfirmationListenerActive(false)
     }
   }, [config])
 
@@ -74,26 +71,5 @@ export function usePendingRequest() {
     }
   }, [])
 
-  const register = useCallback(() => {
-    registered.current = true
-    if (storeRef.current) {
-      storeRef.current.getState().setUserConfirmationListenerActive(true)
-    }
-  }, [])
-
-  const deregister = useCallback(() => {
-    registered.current = false
-    if (storeRef.current) {
-      const state = storeRef.current.getState()
-      if (state.pendingRequest) {
-        state.pendingRequest.reject(
-          new Error('Confirmation listener unmounted'),
-        )
-        state.setPendingRequest(null)
-      }
-      state.setUserConfirmationListenerActive(false)
-    }
-  }, [])
-
-  return { pendingRequest, confirm, reject, register, deregister }
+  return { pendingRequest, confirm, reject }
 }
