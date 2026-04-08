@@ -8,7 +8,7 @@ const config = createConfig({
   chains: [sepolia],
   connectors: [
     zeroDevKitWallet({
-      projectId: 'ad5725c6-06a7-4d28-80ba-a65c1e870128',
+      projectId: import.meta.env.VITE_ZERODEV_PROJECT_ID,
       chains: [sepolia],
     }),
   ],
