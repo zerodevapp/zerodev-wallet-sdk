@@ -1,7 +1,7 @@
 import { SignatureRequest } from '@zerodev/wallet-react-kit'
 import { parseEther } from 'viem'
 import { useAccount, useSendTransaction } from 'wagmi'
-import { ConnectButton } from './ConnectButton'
+import { ConnectButton } from '../ConnectButton'
 
 export default function SignatureRequestDemo() {
   const { isConnected, address } = useAccount()
