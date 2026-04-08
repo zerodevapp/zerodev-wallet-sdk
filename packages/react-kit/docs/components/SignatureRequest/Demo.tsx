@@ -21,7 +21,6 @@ export default function SignatureRequestDemo() {
 
   return (
     <div>
-      <ConnectButton />
       <button
         type="button"
         onClick={() =>
