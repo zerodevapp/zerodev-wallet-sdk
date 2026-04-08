@@ -22,6 +22,11 @@ export { usePendingRequest } from './hooks/usePendingRequest.js'
 // Shared components
 export type { ButtonProps } from './shared/components/Button'
 export { Button } from './shared/components/Button'
+export type {
+  StateImageName,
+  StatusViewProps,
+} from './shared/components/StatusView'
+export { StatusView } from './shared/components/StatusView'
 export type { WrapperProps, WrapperVariant } from './shared/components/Wrapper'
 export { Wrapper } from './shared/components/Wrapper'
 
