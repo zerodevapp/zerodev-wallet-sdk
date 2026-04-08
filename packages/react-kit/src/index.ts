@@ -3,22 +3,16 @@
  * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 
-// Auth components
+// Auth
 export type { CodeInputProps } from './auth/components/CodeInput'
 export { CodeInput } from './auth/components/CodeInput'
-
-// Signing
-export { SignatureRequest } from './components/SignatureRequest/index.js'
+// Connector
 export type {
   SigningConfig,
   ZeroDevKitConfig,
   ZeroDevKitConnectorParams,
 } from './connector.js'
-
-// Connector
 export { zeroDevKitWallet } from './connector.js'
-export { usePendingRequest } from './hooks/usePendingRequest.js'
-
 // Shared components
 export type { ButtonProps } from './shared/components/Button'
 export { Button } from './shared/components/Button'
@@ -33,5 +27,8 @@ export type { TextProps } from './shared/components/Text'
 export { Text } from './shared/components/Text'
 export type { WrapperProps, WrapperVariant } from './shared/components/Wrapper'
 export { Wrapper } from './shared/components/Wrapper'
+// Signing
+export { SignatureRequest } from './signing/components/SignatureRequest/index.js'
+export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 
 export type { PendingRequest, Request, RequestMethod } from './types.js'

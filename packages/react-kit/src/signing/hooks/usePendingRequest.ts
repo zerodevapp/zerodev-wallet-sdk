@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useConfig } from 'wagmi'
-import type { createStore, State } from '../store.js'
-import type { PendingRequest } from '../types.js'
+import type { createStore, State } from '../../store.js'
+import type { PendingRequest } from '../../types.js'
 
 type Store = ReturnType<typeof createStore>
 

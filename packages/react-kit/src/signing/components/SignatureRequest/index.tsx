@@ -1,7 +1,7 @@
 'use client'
 
+import { cn } from '../../../shared/utils/common.js'
 import { usePendingRequest } from '../../hooks/usePendingRequest.js'
-import { cn } from '../../shared/utils/common.js'
 
 // todo: proper UI
 export function SignatureRequest() {
