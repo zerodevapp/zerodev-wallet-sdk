@@ -84,7 +84,7 @@ describe('connector', () => {
       await new Promise((r) => setTimeout(r, 10))
       expect(resolved).toBe(false)
 
-      store.getState().pendingRequest?.resolve()
+      store.getState().pendingRequests[0]?.resolve()
       await requestPromise
       expect(resolved).toBe(true)
     })
@@ -158,13 +158,13 @@ describe('connector', () => {
       // Request should be pending
       await new Promise((r) => setTimeout(r, 10))
       expect(resolved).toBe(false)
-      expect(store.getState().pendingRequest).not.toBeNull()
-      expect(store.getState().pendingRequest?.method).toBe(
+      expect(store.getState().pendingRequests[0]).not.toBeNull()
+      expect(store.getState().pendingRequests[0]?.method).toBe(
         'eth_sendTransaction',
       )
 
       // Confirm — resolve the gate
-      store.getState().pendingRequest?.resolve()
+      store.getState().pendingRequests[0]?.resolve()
       const result = await requestPromise
       expect(resolved).toBe(true)
       expect(result).toBe('0xhash')
@@ -187,7 +187,7 @@ describe('connector', () => {
       })
 
       await new Promise((r) => setTimeout(r, 10))
-      store.getState().pendingRequest?.reject(new Error('User rejected'))
+      store.getState().pendingRequests[0]?.reject(new Error('User rejected'))
 
       await expect(requestPromise).rejects.toThrow('User rejected')
     })
@@ -214,7 +214,7 @@ describe('connector', () => {
         params: ['0xdata', '0xaddress'],
       })
       expect(result).toBe('0xhash')
-      expect(store.getState().pendingRequest).toBeNull()
+      expect(store.getState().pendingRequests).toEqual([])
     })
   })
 
@@ -223,7 +223,7 @@ describe('connector', () => {
       const connector = createKitConnector()
       const store = connector.getKitStore()
       expect(store).toBeDefined()
-      expect(store.getState().pendingRequest).toBeNull()
+      expect(store.getState().pendingRequests).toEqual([])
     })
   })
 })

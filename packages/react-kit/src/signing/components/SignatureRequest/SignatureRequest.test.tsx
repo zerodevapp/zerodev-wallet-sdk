@@ -24,7 +24,7 @@ function createMockPendingRequest(
   overrides?: Partial<PendingRequest>,
 ): PendingRequest {
   return {
-    id: 'test-id',
+    id: crypto.randomUUID(),
     method: 'eth_sendTransaction',
     params: [{ to: '0x1234', value: '0x0' }],
     resolve: vi.fn(),
@@ -35,7 +35,7 @@ function createMockPendingRequest(
 
 afterEach(() => {
   cleanup()
-  mockStore.getState().setPendingRequest(null)
+  mockStore.getState().clearPendingRequests()
   mockStore.getState().setUserConfirmationListenerActive(false)
 })
 
@@ -60,7 +60,7 @@ describe('SignatureRequest', () => {
 
   it('renders when pending request exists', () => {
     const request = createMockPendingRequest()
-    mockStore.getState().setPendingRequest(request)
+    mockStore.getState().addPendingRequest(request)
 
     render(<SignatureRequest />)
 
@@ -72,7 +72,7 @@ describe('SignatureRequest', () => {
 
   it('displays request params', () => {
     const request = createMockPendingRequest()
-    mockStore.getState().setPendingRequest(request)
+    mockStore.getState().addPendingRequest(request)
 
     render(<SignatureRequest />)
 
@@ -82,18 +82,18 @@ describe('SignatureRequest', () => {
 
   it('calls resolve and clears on confirm click', () => {
     const request = createMockPendingRequest()
-    mockStore.getState().setPendingRequest(request)
+    mockStore.getState().addPendingRequest(request)
 
     render(<SignatureRequest />)
     fireEvent.click(screen.getByText('Confirm'))
 
     expect(request.resolve).toHaveBeenCalled()
-    expect(mockStore.getState().pendingRequest).toBeNull()
+    expect(mockStore.getState().pendingRequests).toEqual([])
   })
 
   it('calls reject and clears on reject click', () => {
     const request = createMockPendingRequest()
-    mockStore.getState().setPendingRequest(request)
+    mockStore.getState().addPendingRequest(request)
 
     render(<SignatureRequest />)
     fireEvent.click(screen.getByText('Reject'))
@@ -101,12 +101,40 @@ describe('SignatureRequest', () => {
     expect(request.reject).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'User rejected the request' }),
     )
-    expect(mockStore.getState().pendingRequest).toBeNull()
+    expect(mockStore.getState().pendingRequests).toEqual([])
   })
 
-  it('rejects dangling request on unmount', () => {
+  it('does not show pending count with a single request', () => {
     const request = createMockPendingRequest()
-    mockStore.getState().setPendingRequest(request)
+    mockStore.getState().addPendingRequest(request)
+
+    render(<SignatureRequest />)
+
+    expect(screen.queryByText(/more pending/)).toBeNull()
+  })
+
+  it('shows singular pending text for one extra request', () => {
+    mockStore.getState().addPendingRequest(createMockPendingRequest())
+    mockStore.getState().addPendingRequest(createMockPendingRequest())
+
+    render(<SignatureRequest />)
+
+    expect(screen.getByText('+1 more pending request')).toBeDefined()
+  })
+
+  it('shows pending count when multiple requests are queued', () => {
+    mockStore.getState().addPendingRequest(createMockPendingRequest())
+    mockStore.getState().addPendingRequest(createMockPendingRequest())
+    mockStore.getState().addPendingRequest(createMockPendingRequest())
+
+    render(<SignatureRequest />)
+
+    expect(screen.getByText('+2 more pending requests')).toBeDefined()
+  })
+
+  it('rejects dangling requests on unmount', () => {
+    const request = createMockPendingRequest()
+    mockStore.getState().addPendingRequest(request)
 
     const { unmount } = render(<SignatureRequest />)
     unmount()
@@ -114,6 +142,6 @@ describe('SignatureRequest', () => {
     expect(request.reject).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'Confirmation listener unmounted' }),
     )
-    expect(mockStore.getState().pendingRequest).toBeNull()
+    expect(mockStore.getState().pendingRequests).toEqual([])
   })
 })

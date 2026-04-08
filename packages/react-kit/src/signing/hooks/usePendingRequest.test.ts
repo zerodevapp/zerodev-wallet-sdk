@@ -25,7 +25,7 @@ function createMockPendingRequest(
   overrides?: Partial<PendingRequest>,
 ): PendingRequest {
   return {
-    id: 'test-id',
+    id: crypto.randomUUID(),
     method: 'eth_sendTransaction',
     params: [{ to: '0x1234', value: '0x0' }],
     resolve: vi.fn(),
@@ -36,8 +36,7 @@ function createMockPendingRequest(
 
 afterEach(() => {
   cleanup()
-  // Reset store between tests
-  mockStore.getState().setPendingRequest(null)
+  mockStore.getState().clearPendingRequests()
   mockStore.getState().setUserConfirmationListenerActive(false)
 })
 
@@ -57,46 +56,66 @@ describe('usePendingRequest', () => {
       expect(mockStore.getState().userConfirmationListenerActive).toBe(false)
     })
 
-    it('rejects pending request on unmount', () => {
-      const request = createMockPendingRequest()
-      mockStore.getState().setPendingRequest(request)
+    it('rejects all pending requests on unmount', () => {
+      const request1 = createMockPendingRequest()
+      const request2 = createMockPendingRequest()
+      mockStore.getState().addPendingRequest(request1)
+      mockStore.getState().addPendingRequest(request2)
       const { unmount } = renderHook(() => usePendingRequest())
 
       unmount()
 
-      expect(request.reject).toHaveBeenCalledWith(
+      expect(request1.reject).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'Confirmation listener unmounted' }),
       )
-      expect(mockStore.getState().pendingRequest).toBeNull()
+      expect(request2.reject).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Confirmation listener unmounted' }),
+      )
+      expect(mockStore.getState().pendingRequests).toEqual([])
     })
   })
 
   describe('confirm', () => {
-    it('resolves pending request and clears it', () => {
+    it('resolves head request and removes it', () => {
       const request = createMockPendingRequest()
-      mockStore.getState().setPendingRequest(request)
+      mockStore.getState().addPendingRequest(request)
       const { result } = renderHook(() => usePendingRequest())
 
       act(() => result.current.confirm())
 
       expect(request.resolve).toHaveBeenCalled()
-      expect(mockStore.getState().pendingRequest).toBeNull()
+      expect(mockStore.getState().pendingRequests).toEqual([])
       expect(result.current.pendingRequest).toBeNull()
     })
 
-    it('is a no-op when no pending request', () => {
+    it('confirms first and second becomes head', () => {
+      const request1 = createMockPendingRequest()
+      const request2 = createMockPendingRequest()
+      mockStore.getState().addPendingRequest(request1)
+      mockStore.getState().addPendingRequest(request2)
       const { result } = renderHook(() => usePendingRequest())
 
       act(() => result.current.confirm())
 
-      expect(mockStore.getState().pendingRequest).toBeNull()
+      expect(request1.resolve).toHaveBeenCalled()
+      expect(request2.resolve).not.toHaveBeenCalled()
+      expect(result.current.pendingRequest).toBe(request2)
+      expect(result.current.pendingRequests).toEqual([request2])
+    })
+
+    it('is a no-op when no pending requests', () => {
+      const { result } = renderHook(() => usePendingRequest())
+
+      act(() => result.current.confirm())
+
+      expect(mockStore.getState().pendingRequests).toEqual([])
     })
   })
 
   describe('reject', () => {
-    it('rejects pending request and clears it', () => {
+    it('rejects head request and removes it', () => {
       const request = createMockPendingRequest()
-      mockStore.getState().setPendingRequest(request)
+      mockStore.getState().addPendingRequest(request)
       const { result } = renderHook(() => usePendingRequest())
 
       act(() => result.current.reject())
@@ -104,47 +123,92 @@ describe('usePendingRequest', () => {
       expect(request.reject).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'User rejected the request' }),
       )
-      expect(mockStore.getState().pendingRequest).toBeNull()
+      expect(mockStore.getState().pendingRequests).toEqual([])
       expect(result.current.pendingRequest).toBeNull()
     })
 
-    it('is a no-op when no pending request', () => {
+    it('rejects first and second becomes head', () => {
+      const request1 = createMockPendingRequest()
+      const request2 = createMockPendingRequest()
+      mockStore.getState().addPendingRequest(request1)
+      mockStore.getState().addPendingRequest(request2)
       const { result } = renderHook(() => usePendingRequest())
 
       act(() => result.current.reject())
 
-      expect(mockStore.getState().pendingRequest).toBeNull()
+      expect(request1.reject).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'User rejected the request' }),
+      )
+      expect(request2.reject).not.toHaveBeenCalled()
+      expect(result.current.pendingRequest).toBe(request2)
+      expect(result.current.pendingRequests).toEqual([request2])
+    })
+
+    it('is a no-op when no pending requests', () => {
+      const { result } = renderHook(() => usePendingRequest())
+
+      act(() => result.current.reject())
+
+      expect(mockStore.getState().pendingRequests).toEqual([])
     })
   })
 
-  describe('pendingRequest state', () => {
-    it('syncs initial pending request from store', () => {
+  describe('pendingRequests state', () => {
+    it('syncs initial pending requests from store', () => {
       const request = createMockPendingRequest()
-      mockStore.getState().setPendingRequest(request)
+      mockStore.getState().addPendingRequest(request)
 
       const { result } = renderHook(() => usePendingRequest())
 
       expect(result.current.pendingRequest).toBe(request)
+      expect(result.current.pendingRequests).toEqual([request])
     })
 
-    it('updates when store pendingRequest changes', () => {
+    it('updates when a new request is added to an empty queue', () => {
       const { result } = renderHook(() => usePendingRequest())
       expect(result.current.pendingRequest).toBeNull()
 
       const request = createMockPendingRequest()
-      act(() => mockStore.getState().setPendingRequest(request))
+      act(() => mockStore.getState().addPendingRequest(request))
 
       expect(result.current.pendingRequest).toBe(request)
+      expect(result.current.pendingRequests).toEqual([request])
     })
 
-    it('clears when store pendingRequest is set to null', () => {
-      const request = createMockPendingRequest()
-      mockStore.getState().setPendingRequest(request)
+    it('updates when a new request is added while one is pending', () => {
+      const request1 = createMockPendingRequest()
+      mockStore.getState().addPendingRequest(request1)
       const { result } = renderHook(() => usePendingRequest())
 
-      act(() => mockStore.getState().setPendingRequest(null))
+      const request2 = createMockPendingRequest()
+      act(() => mockStore.getState().addPendingRequest(request2))
+
+      expect(result.current.pendingRequest).toBe(request1)
+      expect(result.current.pendingRequests).toEqual([request1, request2])
+    })
+
+    it('updates when a request is removed while others are pending', () => {
+      const request1 = createMockPendingRequest()
+      const request2 = createMockPendingRequest()
+      mockStore.getState().addPendingRequest(request1)
+      mockStore.getState().addPendingRequest(request2)
+      const { result } = renderHook(() => usePendingRequest())
+
+      act(() => mockStore.getState().removePendingRequest(request1.id))
+
+      expect(result.current.pendingRequest).toBe(request2)
+      expect(result.current.pendingRequests).toEqual([request2])
+    })
+
+    it('clears when last request is removed', () => {
+      const request = createMockPendingRequest()
+      mockStore.getState().addPendingRequest(request)
+      const { result } = renderHook(() => usePendingRequest())
+
+      act(() => mockStore.getState().removePendingRequest(request.id))
 
       expect(result.current.pendingRequest).toBeNull()
+      expect(result.current.pendingRequests).toEqual([])
     })
   })
 })

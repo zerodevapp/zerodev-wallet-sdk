@@ -1,5 +1,9 @@
 import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
-import { Button, SignatureRequest } from '@zerodev/wallet-react-kit'
+import {
+  Button,
+  SignatureRequest,
+  usePendingRequest,
+} from '@zerodev/wallet-react-kit'
 import { useState } from 'react'
 import { parseEther } from 'viem'
 import {
@@ -86,8 +90,9 @@ function AuthForm() {
 function WalletPanel() {
   const { address } = useAccount()
   const { disconnect } = useDisconnect()
-  const { sendTransaction, isPending, isSuccess, isError, error, data } =
+  const { sendTransaction, isSuccess, isError, error, data } =
     useSendTransaction()
+  const { pendingRequests } = usePendingRequest()
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -105,11 +110,14 @@ function WalletPanel() {
       <p className="text-xs text-gray-400 break-all mb-4">{address}</p>
 
       <Button
-        text={isPending ? 'Awaiting confirmation...' : 'Send Transaction'}
+        text={
+          pendingRequests.length > 0
+            ? 'Queue another transaction'
+            : 'Send Transaction'
+        }
         onClick={() =>
           sendTransaction({ to: address!, value: parseEther('0'), data: '0x' })
         }
-        disabled={isPending}
       />
 
       {isSuccess && <p className="text-green-600 text-sm mt-2">tx: {data}</p>}

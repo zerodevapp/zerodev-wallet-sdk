@@ -6,7 +6,7 @@ function createMockPendingRequest(
   overrides?: Partial<PendingRequest>,
 ): PendingRequest {
   return {
-    id: 'test-id',
+    id: crypto.randomUUID(),
     method: 'eth_sendTransaction',
     params: [{ to: '0x1234', value: '0x0' }],
     resolve: vi.fn(),
@@ -20,19 +20,54 @@ describe('store', () => {
     const store = createStore()
     const state = store.getState()
 
-    expect(state.pendingRequest).toBeNull()
+    expect(state.pendingRequests).toEqual([])
     expect(state.userConfirmationListenerActive).toBe(false)
   })
 
-  it('sets and clears pending request', () => {
+  it('adds pending requests to the queue', () => {
+    const store = createStore()
+    const request1 = createMockPendingRequest()
+    const request2 = createMockPendingRequest()
+
+    store.getState().addPendingRequest(request1)
+    expect(store.getState().pendingRequests).toEqual([request1])
+
+    store.getState().addPendingRequest(request2)
+    expect(store.getState().pendingRequests).toEqual([request1, request2])
+  })
+
+  it('removes a pending request by id', () => {
+    const store = createStore()
+    const request1 = createMockPendingRequest()
+    const request2 = createMockPendingRequest()
+
+    store.getState().addPendingRequest(request1)
+    store.getState().addPendingRequest(request2)
+
+    store.getState().removePendingRequest(request1.id)
+    expect(store.getState().pendingRequests).toEqual([request2])
+  })
+
+  it('removing a non-existent id is a no-op', () => {
     const store = createStore()
     const request = createMockPendingRequest()
 
-    store.getState().setPendingRequest(request)
-    expect(store.getState().pendingRequest).toBe(request)
+    store.getState().addPendingRequest(request)
+    store.getState().removePendingRequest('non-existent')
 
-    store.getState().setPendingRequest(null)
-    expect(store.getState().pendingRequest).toBeNull()
+    expect(store.getState().pendingRequests).toEqual([request])
+  })
+
+  it('clears all pending requests', () => {
+    const store = createStore()
+    const request1 = createMockPendingRequest()
+    const request2 = createMockPendingRequest()
+
+    store.getState().addPendingRequest(request1)
+    store.getState().addPendingRequest(request2)
+
+    store.getState().clearPendingRequests()
+    expect(store.getState().pendingRequests).toEqual([])
   })
 
   it('toggles userConfirmationListenerActive', () => {
@@ -45,18 +80,18 @@ describe('store', () => {
     expect(store.getState().userConfirmationListenerActive).toBe(false)
   })
 
-  it('fires subscription on pendingRequest change', () => {
+  it('fires subscription on pendingRequests change', () => {
     const store = createStore()
     const listener = vi.fn()
     const request = createMockPendingRequest()
 
-    store.subscribe((state) => state.pendingRequest, listener)
+    store.subscribe((state) => state.pendingRequests, listener)
 
-    store.getState().setPendingRequest(request)
-    expect(listener).toHaveBeenCalledWith(request, null)
+    store.getState().addPendingRequest(request)
+    expect(listener).toHaveBeenCalledWith([request], [])
 
-    store.getState().setPendingRequest(null)
-    expect(listener).toHaveBeenCalledWith(null, request)
+    store.getState().removePendingRequest(request.id)
+    expect(listener).toHaveBeenCalledWith([], [request])
     expect(listener).toHaveBeenCalledTimes(2)
   })
 
@@ -64,7 +99,7 @@ describe('store', () => {
     const store = createStore()
     const listener = vi.fn()
 
-    store.subscribe((state) => state.pendingRequest, listener)
+    store.subscribe((state) => state.pendingRequests, listener)
 
     store.getState().setUserConfirmationListenerActive(true)
     expect(listener).not.toHaveBeenCalled()
@@ -75,9 +110,9 @@ describe('store', () => {
     const store2 = createStore()
     const request = createMockPendingRequest()
 
-    store1.getState().setPendingRequest(request)
+    store1.getState().addPendingRequest(request)
 
-    expect(store1.getState().pendingRequest).toBe(request)
-    expect(store2.getState().pendingRequest).toBeNull()
+    expect(store1.getState().pendingRequests).toEqual([request])
+    expect(store2.getState().pendingRequests).toEqual([])
   })
 })
