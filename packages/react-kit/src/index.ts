@@ -22,6 +22,8 @@ export { usePendingRequest } from './hooks/usePendingRequest.js'
 // Shared components
 export type { ButtonProps } from './shared/components/Button'
 export { Button } from './shared/components/Button'
+export type { InputProps } from './shared/components/Input'
+export { Input } from './shared/components/Input'
 export type {
   StateImageName,
   StatusViewProps,
