@@ -1,6 +1,21 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('../Icon', async () => {
+  const React = await import('react')
+
+  const MockIcon = ({
+    name,
+    ...props
+  }: { name: string } & React.SVGProps<SVGSVGElement>) =>
+    React.createElement('svg', { 'data-testid': `icon-${name}`, ...props })
+
+  return {
+    Icon: MockIcon,
+    icons: {},
+  }
+})
+
 import { Button } from './index'
 
 afterEach(() => {
@@ -135,6 +150,56 @@ describe('Button', () => {
       render(<Button text="Test" />)
       const button = screen.getByRole('button')
       expect(button).toBeDefined()
+    })
+  })
+
+  describe('icon rendering', () => {
+    it('renders a leading icon when iconName is provided', () => {
+      render(<Button text="Send" iconName="RocketIcon" />)
+      expect(screen.getByTestId('icon-RocketIcon')).toBeDefined()
+      expect(screen.getByText('Send')).toBeDefined()
+    })
+
+    it('renders a trailing icon when trailIcon is true', () => {
+      render(<Button text="Next" iconName="ArrowRightFillIcon" trailIcon />)
+      const icon = screen.getByTestId('icon-ArrowRightFillIcon')
+      const text = screen.getByText('Next')
+      // Icon should come after text in the DOM
+      expect(
+        text.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+    })
+
+    it('renders a leading icon before text when trailIcon is false', () => {
+      render(<Button text="Back" iconName="ArrowLeftIcon" />)
+      const icon = screen.getByTestId('icon-ArrowLeftIcon')
+      const text = screen.getByText('Back')
+      // Icon should come before text in the DOM
+      expect(
+        text.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_PRECEDING,
+      ).toBeTruthy()
+    })
+
+    it('renders icon without text', () => {
+      render(<Button iconName="CheckIcon" />)
+      expect(screen.getByTestId('icon-CheckIcon')).toBeDefined()
+    })
+
+    it('does not render icon when iconName is not provided', () => {
+      render(<Button text="No Icon" />)
+      expect(screen.queryByTestId(/^icon-/)).toBeNull()
+    })
+
+    it('applies text color classes to the icon', () => {
+      render(<Button text="Send" iconName="RocketIcon" action="primary" />)
+      const icon = screen.getByTestId('icon-RocketIcon')
+      expect(icon.getAttribute('class')).toContain('text-white')
+    })
+
+    it('applies secondary text color classes to the icon', () => {
+      render(<Button text="Send" iconName="RocketIcon" action="secondary" />)
+      const icon = screen.getByTestId('icon-RocketIcon')
+      expect(icon.getAttribute('class')).toContain('text-gray-900')
     })
   })
 })

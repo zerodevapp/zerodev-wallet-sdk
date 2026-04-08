@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-
+import { icons } from '../Icon'
 import { Button } from '.'
+
+const iconNames = Object.keys(icons)
 
 const meta = {
   title: 'Shared/Button',
@@ -13,6 +15,10 @@ const meta = {
     action: {
       control: 'select',
       options: ['primary', 'secondary', 'secondaryNeutral'],
+    },
+    iconName: {
+      control: 'select',
+      options: [undefined, ...iconNames],
     },
     text: { control: 'text' },
     disabled: { control: 'boolean' },
@@ -62,6 +68,38 @@ export const Disabled: Story = {
   },
 }
 
+export const WithLeadingIcon: Story = {
+  args: {
+    text: 'Send',
+    action: 'primary',
+    iconName: 'RocketIcon',
+  },
+}
+
+export const WithTrailingIcon: Story = {
+  args: {
+    text: 'Next',
+    action: 'primary',
+    iconName: 'ArrowRightFillIcon',
+    trailIcon: true,
+  },
+}
+
+export const IconOnly: Story = {
+  args: {
+    action: 'primary',
+    iconName: 'CheckIcon',
+  },
+}
+
+export const SecondaryWithIcon: Story = {
+  args: {
+    text: 'Copy',
+    action: 'secondary',
+    iconName: 'CopyIcon',
+  },
+}
+
 export const AllVariants: Story = {
   render: () => (
     <div className="flex flex-col gap-4 w-72">
@@ -69,6 +107,14 @@ export const AllVariants: Story = {
       <Button text="Secondary" action="secondary" />
       <Button text="Secondary Neutral" action="secondaryNeutral" />
       <Button text="Disabled" action="primary" disabled />
+      <Button text="With Icon" action="primary" iconName="RocketIcon" />
+      <Button
+        text="Trail Icon"
+        action="primary"
+        iconName="ArrowRightFillIcon"
+        trailIcon
+      />
+      <Button action="secondary" iconName="CheckIcon" />
     </div>
   ),
 }

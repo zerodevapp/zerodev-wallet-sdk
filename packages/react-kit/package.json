@@ -6,14 +6,14 @@
   "sideEffects": [
     "**/*.css"
   ],
-  "main": "./dist/_cjs/index.js",
-  "module": "./dist/_esm/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
   "types": "./dist/_types/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/_types/index.d.ts",
-      "import": "./dist/_esm/index.js",
-      "require": "./dist/_cjs/index.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     },
     "./styles.css": "./dist/styles.css"
   },
@@ -21,8 +21,6 @@
     "dist",
     "./src/**/*.ts",
     "./src/**/*.tsx",
-    "!dist/_esm/**/*.tsbuildinfo",
-    "!dist/_cjs/**/*.tsbuildinfo",
     "!dist/_types/**/*.tsbuildinfo",
     "!.env",
     "!./**/*.test.ts",
@@ -32,10 +30,9 @@
     "!.changeset"
   ],
   "scripts": {
-    "build": "pnpm run clean && pnpm run build:css && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
+    "build": "pnpm run clean && pnpm run build:css && pnpm run build:js && pnpm run build:types",
     "build:css": "npx @tailwindcss/cli -i ./src/styles.css -o ./dist/styles.css --minify",
-    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
-    "build:esm": "tsc --project ./tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
+    "build:js": "vite build",
     "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
     "dev": "tsc --watch",
     "dev:css": "npx @tailwindcss/cli -i ./src/styles.css -o ./dist/styles.css --watch",
@@ -55,9 +52,9 @@
     "web3"
   ],
   "peerDependencies": {
+    "@wagmi/core": "^2.22.0",
     "@zerodev/wallet-core": "workspace:*",
     "@zerodev/wallet-react": "workspace:*",
-    "@wagmi/core": "^2.22.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",
     "viem": "^2.38.0",
@@ -74,12 +71,15 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
     "postcss": "^8.5.8",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "storybook": "^10.3.3",
     "tailwindcss": "^4.2.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vite": "^6.4.1",
+    "vite-plugin-svgr": "^5.0.0"
   },
   "dependencies": {
     "clsx": "^2.1.1",
