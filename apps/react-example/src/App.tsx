@@ -95,42 +95,47 @@ function WalletPanel() {
   const { pendingRequests } = usePendingRequest()
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-semibold text-gray-900">Wallet</h2>
-        <button
-          type="button"
-          onClick={() => disconnect()}
-          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 cursor-pointer"
-        >
-          Disconnect
-        </button>
+    <>
+      <div className="rounded-xl border border-gray-200 bg-white p-6 gap shadow-sm">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Wallet</h2>
+          <button
+            type="button"
+            onClick={() => disconnect()}
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 cursor-pointer"
+          >
+            Disconnect
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400 break-all mb-4">{address}</p>
+
+        <Button
+          text={
+            pendingRequests.length > 0
+              ? 'Queue another transaction'
+              : 'Send Transaction'
+          }
+          onClick={() =>
+            sendTransaction({
+              to: address!,
+              value: parseEther('0'),
+              data: '0x',
+            })
+          }
+        />
+
+        {isSuccess && <p className="text-green-600 text-sm mt-2">tx: {data}</p>}
+        {isError && (
+          <p className="text-red-500 text-sm mt-2">
+            {error?.message?.includes('User rejected')
+              ? 'Rejected by user'
+              : error?.message}
+          </p>
+        )}
       </div>
-
-      <p className="text-xs text-gray-400 break-all mb-4">{address}</p>
-
-      <Button
-        text={
-          pendingRequests.length > 0
-            ? 'Queue another transaction'
-            : 'Send Transaction'
-        }
-        onClick={() =>
-          sendTransaction({ to: address!, value: parseEther('0'), data: '0x' })
-        }
-      />
-
-      {isSuccess && <p className="text-green-600 text-sm mt-2">tx: {data}</p>}
-      {isError && (
-        <p className="text-red-500 text-sm mt-2">
-          {error?.message?.includes('User rejected')
-            ? 'Rejected by user'
-            : error?.message}
-        </p>
-      )}
-
       <SignatureRequest />
-    </div>
+    </>
   )
 }
 
