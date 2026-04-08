@@ -1,18 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
 import { usePendingRequest } from '../../hooks/usePendingRequest.js'
 import { cn } from '../../shared/utils/common.js'
 
 // todo: proper UI
 export function SignatureRequest() {
-  const { pendingRequest, confirm, reject, register, deregister } =
-    usePendingRequest()
-
-  useEffect(() => {
-    register()
-    return deregister
-  }, [register, deregister])
+  const { pendingRequest, confirm, reject } = usePendingRequest()
 
   if (!pendingRequest) return null
 

@@ -3,18 +3,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from '../store'
 import type { PendingRequest } from '../types'
 
-// Mock wagmi's useConfig to return a connector with getKitStore
+// Mock wagmi's useConfig to return a connector with getKitStore.
+// Must be a stable reference (like real wagmi) so the effect doesn't re-run on every render.
 const mockStore = createStore()
+const mockConfig = {
+  connectors: [
+    {
+      id: 'zerodev-wallet',
+      getKitStore: () => mockStore,
+    },
+  ],
+}
 
 vi.mock('wagmi', () => ({
-  useConfig: () => ({
-    connectors: [
-      {
-        id: 'zerodev-wallet',
-        getKitStore: () => mockStore,
-      },
-    ],
-  }),
+  useConfig: () => mockConfig,
 }))
 
 import { usePendingRequest } from './usePendingRequest'
@@ -40,30 +42,27 @@ afterEach(() => {
 })
 
 describe('usePendingRequest', () => {
-  describe('register / deregister', () => {
-    it('register sets userConfirmationListenerActive to true', () => {
-      const { result } = renderHook(() => usePendingRequest())
-
-      act(() => result.current.register())
+  describe('lifecycle', () => {
+    it('sets userConfirmationListenerActive to true on mount', () => {
+      renderHook(() => usePendingRequest())
 
       expect(mockStore.getState().userConfirmationListenerActive).toBe(true)
     })
 
-    it('deregister sets userConfirmationListenerActive to false', () => {
-      mockStore.getState().setUserConfirmationListenerActive(true)
-      const { result } = renderHook(() => usePendingRequest())
+    it('sets userConfirmationListenerActive to false on unmount', () => {
+      const { unmount } = renderHook(() => usePendingRequest())
 
-      act(() => result.current.deregister())
+      unmount()
 
       expect(mockStore.getState().userConfirmationListenerActive).toBe(false)
     })
 
-    it('deregister rejects pending request if one exists', () => {
+    it('rejects pending request on unmount', () => {
       const request = createMockPendingRequest()
       mockStore.getState().setPendingRequest(request)
-      const { result } = renderHook(() => usePendingRequest())
+      const { unmount } = renderHook(() => usePendingRequest())
 
-      act(() => result.current.deregister())
+      unmount()
 
       expect(request.reject).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'Confirmation listener unmounted' }),

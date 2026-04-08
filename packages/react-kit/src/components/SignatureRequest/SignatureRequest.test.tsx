@@ -3,17 +3,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from '../../store'
 import type { PendingRequest } from '../../types'
 
+// Must be a stable reference (like real wagmi) so the effect doesn't re-run on every render.
 const mockStore = createStore()
+const mockConfig = {
+  connectors: [
+    {
+      id: 'zerodev-wallet',
+      getKitStore: () => mockStore,
+    },
+  ],
+}
 
 vi.mock('wagmi', () => ({
-  useConfig: () => ({
-    connectors: [
-      {
-        id: 'zerodev-wallet',
-        getKitStore: () => mockStore,
-      },
-    ],
-  }),
+  useConfig: () => mockConfig,
 }))
 
 import { SignatureRequest } from './index'
