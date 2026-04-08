@@ -29,6 +29,8 @@ export type {
   StatusViewProps,
 } from './shared/components/StatusView'
 export { StatusView } from './shared/components/StatusView'
+export type { TextProps } from './shared/components/Text'
+export { Text } from './shared/components/Text'
 export type { WrapperProps, WrapperVariant } from './shared/components/Wrapper'
 export { Wrapper } from './shared/components/Wrapper'
 
