@@ -5,7 +5,8 @@ import { usePendingRequest } from '../../hooks/usePendingRequest.js'
 
 // todo: proper UI
 export function SignatureRequest() {
-  const { pendingRequest, confirm, reject } = usePendingRequest()
+  const { pendingRequest, pendingRequests, confirm, reject } =
+    usePendingRequest()
 
   if (!pendingRequest) return null
 
@@ -23,6 +24,13 @@ export function SignatureRequest() {
       <pre className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 overflow-auto max-h-48 border border-gray-100">
         {JSON.stringify(pendingRequest.params, null, 2)}
       </pre>
+
+      {pendingRequests.length > 1 && (
+        <p className="text-xs text-gray-500 mt-3">
+          +{pendingRequests.length - 1} more pending{' '}
+          {pendingRequests.length - 1 === 1 ? 'request' : 'requests'}
+        </p>
+      )}
 
       <div className="flex gap-3 mt-4">
         <button

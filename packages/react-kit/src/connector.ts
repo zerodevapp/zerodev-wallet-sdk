@@ -31,7 +31,7 @@ function requireUserConfirmation(
   request: Request,
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    store.getState().setPendingRequest({
+    store.getState().addPendingRequest({
       id: crypto.randomUUID(),
       ...request,
       resolve,

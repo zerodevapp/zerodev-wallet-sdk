@@ -3,18 +3,28 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import type { PendingRequest } from './types.js'
 
 export type State = {
-  pendingRequest: PendingRequest | null
+  pendingRequests: PendingRequest[]
   userConfirmationListenerActive: boolean
-  setPendingRequest: (request: PendingRequest | null) => void
+  addPendingRequest: (request: PendingRequest) => void
+  removePendingRequest: (id: string) => void
+  clearPendingRequests: () => void
   setUserConfirmationListenerActive: (active: boolean) => void
 }
 
 export const createStore = () =>
   create<State>()(
     subscribeWithSelector((set) => ({
-      pendingRequest: null,
+      pendingRequests: [],
       userConfirmationListenerActive: false,
-      setPendingRequest: (request) => set({ pendingRequest: request }),
+      addPendingRequest: (request) =>
+        set((state) => ({
+          pendingRequests: [...state.pendingRequests, request],
+        })),
+      removePendingRequest: (id) =>
+        set((state) => ({
+          pendingRequests: state.pendingRequests.filter((r) => r.id !== id),
+        })),
+      clearPendingRequests: () => set({ pendingRequests: [] }),
       setUserConfirmationListenerActive: (active) =>
         set({ userConfirmationListenerActive: active }),
     })),
