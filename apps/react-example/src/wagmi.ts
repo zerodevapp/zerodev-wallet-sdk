@@ -16,7 +16,7 @@ export const wagmiConfig = createConfig({
           onSuccess: () => {
             // handle successful authentication
           },
-          onError: (error) => {
+          onError: (_error) => {
             // handle error
           },
         },

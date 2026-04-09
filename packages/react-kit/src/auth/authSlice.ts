@@ -30,7 +30,11 @@ export interface AuthSlice {
   }
 }
 
-export const createAuthSlice: StateCreator<AuthSlice> = (set, get) => ({
+export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (
+  set,
+  get,
+  _store,
+) => ({
   auth: {
     // Initial state
     step: 'initializing',

@@ -4,21 +4,31 @@ import { type AuthSlice, createAuthSlice } from './auth/authSlice'
 import type { PendingRequest } from './types.js'
 
 export type State = {
-  pendingRequest: PendingRequest | null
+  pendingRequests: PendingRequest[]
   userConfirmationListenerActive: boolean
-  setPendingRequest: (request: PendingRequest | null) => void
+  addPendingRequest: (request: PendingRequest) => void
+  removePendingRequest: (id: string) => void
+  clearPendingRequests: () => void
   setUserConfirmationListenerActive: (active: boolean) => void
 } & AuthSlice
 
 export const createStore = () =>
   create<State>()(
-    subscribeWithSelector((...a) => ({
-      pendingRequest: null,
+    subscribeWithSelector((set, get, store) => ({
+      pendingRequests: [],
       userConfirmationListenerActive: false,
-      setPendingRequest: (request) => a[0]({ pendingRequest: request }),
+      addPendingRequest: (request) =>
+        set((state) => ({
+          pendingRequests: [...state.pendingRequests, request],
+        })),
+      removePendingRequest: (id) =>
+        set((state) => ({
+          pendingRequests: state.pendingRequests.filter((r) => r.id !== id),
+        })),
+      clearPendingRequests: () => set({ pendingRequests: [] }),
       setUserConfirmationListenerActive: (active) =>
-        a[0]({ userConfirmationListenerActive: active }),
+        set({ userConfirmationListenerActive: active }),
 
-      ...createAuthSlice(...a),
+      ...createAuthSlice(set, get, store),
     })),
   )

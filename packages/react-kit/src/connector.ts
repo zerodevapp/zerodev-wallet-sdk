@@ -50,7 +50,12 @@ export function zeroDevKitWallet(
 
   // Initialize auth config if provided
   if (params.config?.auth) {
-    void store.getState().auth.initialize(params.config.auth)
+    store
+      .getState()
+      .auth.initialize(params.config.auth)
+      .catch(() => {
+        // Initialization errors are handled internally
+      })
   }
 
   return (wagmiConfig) => {
@@ -64,7 +69,12 @@ export function zeroDevKitWallet(
         // Reset auth state on disconnect
         if (params.config?.auth) {
           store.getState().auth.reset()
-          void store.getState().auth.initialize(params.config.auth)
+          store
+            .getState()
+            .auth.initialize(params.config.auth)
+            .catch(() => {
+              // Initialization errors are handled internally
+            })
         }
       },
 

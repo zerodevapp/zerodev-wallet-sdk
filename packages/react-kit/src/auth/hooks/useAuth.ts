@@ -116,7 +116,9 @@ export function useAuth() {
     resendOtp,
     selectMethod: useCallback(
       (
-        method: Parameters<typeof store.getState>['auth']['selectMethod'][0],
+        method: Parameters<
+          ReturnType<typeof store.getState>['auth']['selectMethod']
+        >[0],
       ) => {
         store.getState().auth.selectMethod(method)
       },
