@@ -3,10 +3,10 @@ export type AuthMethod = 'email' | 'google' | 'passkey' | 'injected-wallet'
 export type AuthStep =
   | 'initializing'
   | 'select-method'
-  | 'all-methods' // "Other login methods" screen
+  | 'all-methods'
   | 'email-input'
-  | 'email-verification' // Waiting for magic link
-  | 'otp-input' // Manual OTP code entry
+  | 'email-verification'
+  | 'otp-input'
   | 'verifying-otp'
   | 'passkey-prompt'
   | 'oauth-in-progress'
@@ -21,26 +21,31 @@ export interface AuthConfig {
   onError?: (error: unknown) => void
 }
 
-export interface AuthState {
-  // State
-  step: AuthStep
-  stepHistory: AuthStep[]
-  availableMethods: AuthMethod[]
-  email: string | null
-  otpId: string | null
-  error: { message: string; recoverable: boolean } | null
-  pendingMethod: AuthMethod | null
-  resendAvailableAt: number | null
-  config: AuthConfig | null
+export interface AuthStoreState {
+  // Auth state
+  authStep: AuthStep
+  authStepHistory: AuthStep[]
+  authAvailableMethods: AuthMethod[]
+  authEmail: string | null
+  authOtpId: string | null
+  authError: { message: string; recoverable: boolean } | null
+  authPendingMethod: AuthMethod | null
+  authResendAvailableAt: number | null
+  authConfig: AuthConfig | null
 
-  // Actions (called by UI)
-  initialize: (config: AuthConfig) => Promise<void>
-  selectMethod: (method: AuthMethod) => void
-  showAllMethods: () => void
-  submitEmail: (email: string) => Promise<void>
-  submitOtp: (code: string) => Promise<void>
-  resendOtp: () => Promise<void>
+  // Auth actions
+  initializeAuth: (config: AuthConfig) => Promise<void>
+  selectAuthMethod: (method: AuthMethod) => void
+  showAllAuthMethods: () => void
+  submitAuthEmail: (email: string) => void
+  submitAuthOtp: () => void
   switchToOtpInput: () => void
-  goBack: () => void
-  reset: () => void
+  goBackAuth: () => void
+  resetAuth: () => void
+  setAuthOtpId: (otpId: string) => void
+  setAuthResendAvailableAt: (timestamp: number) => void
+  setAuthError: (
+    error: { message: string; recoverable: boolean } | null,
+  ) => void
+  setAuthStep: (step: AuthStep) => void
 }

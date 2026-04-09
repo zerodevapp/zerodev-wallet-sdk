@@ -17,8 +17,8 @@ export function AuthExample() {
         connect({ connector })
       }
     },
-    onError: (error: unknown) => {
-      // console.error('Auth error:', error)
+    onError: () => {
+      // handle error
     },
   }
 

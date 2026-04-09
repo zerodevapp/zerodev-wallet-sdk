@@ -7,7 +7,6 @@ import { MethodPicker } from './MethodPicker'
 import { OtpInput } from './OtpInput'
 import { Verifying } from './Verifying'
 
-// Placeholder components for OAuth and Wallet flows
 function OAuthCallback() {
   return (
     <StatusView imageName="loading" title="Authenticating...">

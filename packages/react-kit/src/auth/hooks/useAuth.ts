@@ -73,7 +73,6 @@ export function useAuth() {
     }
   }
 
-  // Derived: resend countdown
   const [secondsUntilResend, setSecondsUntilResend] = useState(0)
   useEffect(() => {
     if (!resendAvailableAt) return
