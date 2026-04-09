@@ -39,17 +39,13 @@ export function Erc20Transfer({
     return <p className="text-sm text-red-500">Failed to load token details.</p>
   }
 
-  const displaySymbol = symbol ?? 'tokens'
-
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold text-gray-900">
-        Send {displaySymbol}
-      </h3>
+      <h3 className="text-lg font-semibold text-gray-900">Send {symbol}</h3>
 
       <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
         <p className="text-2xl font-bold text-gray-900">
-          {formatUnits(amount, decimals)} {displaySymbol}
+          {formatUnits(amount, decimals)} {symbol}
         </p>
         <div className="mt-2 text-sm text-gray-500">
           <span className="font-medium">To: </span>
