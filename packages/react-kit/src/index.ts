@@ -3,13 +3,12 @@
  * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 
-export { AuthProvider } from './auth/AuthProvider'
 // Auth
 export type { CodeInputProps } from './auth/components/CodeInput'
 export { CodeInput } from './auth/components/CodeInput'
 export { useAuth } from './auth/hooks/useAuth'
 export { AuthFlow } from './auth/pages/AuthFlow'
-export type { AuthConfig, AuthMethod, AuthStep } from './auth/types'
+export type { AuthMethod, AuthStep } from './auth/types'
 // Connector
 export type {
   SigningConfig,

@@ -2,59 +2,74 @@ import {
   useSendOTP as useAPISendOTP,
   useVerifyOTP as useAPIVerifyOTP,
 } from '@zerodev/wallet-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useConfig } from 'wagmi'
 import { useStore } from 'zustand'
-import { useAuthStore } from '../AuthProvider'
+import type { createStore } from '../../store'
+
+type Store = ReturnType<typeof createStore>
+
+function getKitStore(config: ReturnType<typeof useConfig>): Store | null {
+  const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
+  if (!connector || !('getKitStore' in connector)) return null
+  // @ts-expect-error - getKitStore is a custom method on the kit connector
+  return connector.getKitStore()
+}
 
 export function useAuth() {
-  const store = useAuthStore()
+  const config = useConfig()
+  const store = getKitStore(config)
 
-  const step = useStore(store, (state) => state.authStep)
-  const email = useStore(store, (state) => state.authEmail)
-  const error = useStore(store, (state) => state.authError)
-  const pendingMethod = useStore(store, (state) => state.authPendingMethod)
+  if (!store) {
+    throw new Error('useAuth must be used with zeroDevKitWallet connector')
+  }
+
+  const step = useStore(store, (state) => state.auth.step)
+  const email = useStore(store, (state) => state.auth.email)
+  const error = useStore(store, (state) => state.auth.error)
+  const pendingMethod = useStore(store, (state) => state.auth.pendingMethod)
   const availableMethods = useStore(
     store,
-    (state) => state.authAvailableMethods,
+    (state) => state.auth.availableMethods,
   )
   const resendAvailableAt = useStore(
     store,
-    (state) => state.authResendAvailableAt,
+    (state) => state.auth.resendAvailableAt,
   )
-  const otpId = useStore(store, (state) => state.authOtpId)
-  const config = useStore(store, (state) => state.authConfig)
+  const otpId = useStore(store, (state) => state.auth.otpId)
+  const authConfig = useStore(store, (state) => state.auth.config)
 
   const { mutateAsync: sendOtp } = useAPISendOTP()
   const { mutateAsync: verifyOtp } = useAPIVerifyOTP()
 
   const submitEmail = async (emailValue: string) => {
-    store.getState().submitAuthEmail(emailValue)
+    store.getState().auth.submitEmail(emailValue)
     try {
       const { otpId: newOtpId } = await sendOtp({ email: emailValue })
-      store.getState().setAuthOtpId(newOtpId)
-      store.getState().setAuthResendAvailableAt(Date.now() + 60000) // 60s cooldown
+      store.getState().auth.setOtpId(newOtpId)
+      store.getState().auth.setResendAvailableAt(Date.now() + 60000) // 60s cooldown
     } catch (err) {
-      store.getState().setAuthError({
+      store.getState().auth.setError({
         message: err instanceof Error ? err.message : 'Failed to send OTP',
         recoverable: true,
       })
-      store.getState().setAuthStep('error')
+      store.getState().auth.setStep('error')
     }
   }
 
   const submitOtp = async (code: string) => {
-    store.getState().submitAuthOtp(code)
+    store.getState().auth.submitOtp()
     try {
       await verifyOtp({ otpId: otpId!, code })
-      store.getState().setAuthStep('authenticated')
-      config?.onSuccess?.()
+      store.getState().auth.setStep('authenticated')
+      authConfig?.onSuccess?.()
     } catch (err) {
-      store.getState().setAuthError({
+      store.getState().auth.setError({
         message: err instanceof Error ? err.message : 'Invalid OTP code',
         recoverable: true,
       })
-      store.getState().setAuthStep('error')
-      config?.onError?.(err)
+      store.getState().auth.setStep('error')
+      authConfig?.onError?.(err)
     }
   }
 
@@ -63,16 +78,17 @@ export function useAuth() {
 
     try {
       const { otpId: newOtpId } = await sendOtp({ email })
-      store.getState().setAuthOtpId(newOtpId)
-      store.getState().setAuthResendAvailableAt(Date.now() + 60000) // 60s cooldown
+      store.getState().auth.setOtpId(newOtpId)
+      store.getState().auth.setResendAvailableAt(Date.now() + 60000) // 60s cooldown
     } catch (err) {
-      store.getState().setAuthError({
+      store.getState().auth.setError({
         message: err instanceof Error ? err.message : 'Failed to resend OTP',
         recoverable: true,
       })
     }
   }
 
+  // Derived: resend countdown
   const [secondsUntilResend, setSecondsUntilResend] = useState(0)
   useEffect(() => {
     if (!resendAvailableAt) return
@@ -98,11 +114,25 @@ export function useAuth() {
     submitEmail,
     submitOtp,
     resendOtp,
-    selectMethod: store.getState().selectAuthMethod,
-    showAllMethods: store.getState().showAllAuthMethods,
-    switchToOtpInput: store.getState().switchToOtpInput,
-    goBack: store.getState().goBackAuth,
-    reset: store.getState().resetAuth,
-    initialize: store.getState().initializeAuth,
+    selectMethod: useCallback(
+      (
+        method: Parameters<typeof store.getState>['auth']['selectMethod'][0],
+      ) => {
+        store.getState().auth.selectMethod(method)
+      },
+      [store],
+    ),
+    showAllMethods: useCallback(() => {
+      store.getState().auth.showAllMethods()
+    }, [store]),
+    switchToOtpInput: useCallback(() => {
+      store.getState().auth.switchToOtpInput()
+    }, [store]),
+    goBack: useCallback(() => {
+      store.getState().auth.goBack()
+    }, [store]),
+    reset: useCallback(() => {
+      store.getState().auth.reset()
+    }, [store]),
   }
 }

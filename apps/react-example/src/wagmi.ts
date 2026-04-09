@@ -9,6 +9,18 @@ export const wagmiConfig = createConfig({
       projectId: import.meta.env.VITE_ZERODEV_PROJECT_ID,
       proxyBaseUrl: '/api/v1',
       chains: [sepolia],
+      config: {
+        auth: {
+          magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+          enabledMethods: ['email', 'google', 'passkey'],
+          onSuccess: () => {
+            // handle successful authentication
+          },
+          onError: (error) => {
+            // handle error
+          },
+        },
+      },
     }),
   ],
   transports: {
