@@ -1,0 +1,36 @@
+import SignatureRequestExample from '../../../components/SignatureRequest'
+
+# Transaction Signing
+
+Show users what they're signing before it happens. The `<SignatureRequest />` component displays a confirmation UI whenever a transaction or message signing is requested, giving users a chance to review and approve or reject.
+
+## Import
+
+```tsx
+import { SignatureRequest } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+function App() {
+  const { sendTransaction } = useSendTransaction()
+
+  return (
+    <div>
+      <button onClick={() => sendTransaction({ to: '0x...', value: 100n })}>
+        Send
+      </button>
+      <SignatureRequest />
+    </div>
+  )
+}
+```
+
+No props needed. The component reads from the kit's internal store and renders when there's a pending request. When there's nothing pending, it renders nothing.
+
+## Live Example
+
+Click "Send Transaction" to see the confirmation UI appear.
+
+<SignatureRequestExample />

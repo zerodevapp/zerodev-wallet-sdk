@@ -1,0 +1,53 @@
+# Configuration
+
+The kit connector accepts all base `zeroDevWallet` params plus an optional `config` object for kit-specific features.
+
+## Basic
+
+```tsx
+import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+
+zeroDevKitWallet({
+  projectId: 'your-project-id',
+  chains: [sepolia],
+})
+```
+
+Signing confirmation is enabled by default (`prompt` mode). No extra config needed.
+
+## Signing
+
+Control whether transactions and signing requests show a confirmation UI. To display the confirmation UI, mount the [`<SignatureRequest />`](/react/features/signature-request) component in your app.
+
+```tsx
+zeroDevKitWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    signing: {
+      mode: 'prompt',
+    },
+  },
+})
+```
+
+### `config.signing`
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `"prompt"` or `"background"` | `"prompt"` | `prompt` shows confirmation UI. `background` skips it. |
+| `methods` | `RequestMethod[]` | `eth_sendTransaction`, `wallet_sendTransaction`, `personal_sign`, `eth_signTypedData_v4` | Which RPC methods trigger the confirmation UI. |
+
+### Background mode
+
+Set `mode: 'background'` to disable the signing gate entirely. Transactions execute immediately without confirmation UI.
+
+```tsx
+zeroDevKitWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    signing: { mode: 'background' },
+  },
+})
+```
