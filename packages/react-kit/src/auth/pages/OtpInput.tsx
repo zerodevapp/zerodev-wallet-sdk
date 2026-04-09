@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '../../shared/components/Button'
 import { CodeInput } from '../components/CodeInput'
-import { useAuth } from '../hooks'
+import { useAuth } from '../hooks/useAuth'
 
 export function OtpInput() {
   const { submitOtp, resendOtp, goBack, canResend, secondsUntilResend, email } =

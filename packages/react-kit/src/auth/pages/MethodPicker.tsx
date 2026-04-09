@@ -1,5 +1,5 @@
 import { Button } from '../../shared/components/Button'
-import { useAuth } from '../hooks'
+import { useAuth } from '../hooks/useAuth'
 import type { AuthMethod } from '../types'
 
 interface MethodPickerProps {
