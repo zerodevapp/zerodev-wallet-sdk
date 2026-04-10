@@ -16,8 +16,8 @@ export function EmailInput() {
 
     setError(null)
     try {
-      await sendOtp({ email })
-      goToStep({ step: 'email-verification', email })
+      const { otpId } = await sendOtp({ email })
+      goToStep({ step: 'otp-input', otpId })
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
