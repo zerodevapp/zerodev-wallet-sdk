@@ -34,5 +34,7 @@ export function useAuth() {
     goToStep: store.getState().auth.goToStep,
     goBack: store.getState().auth.goBack,
     reset: store.getState().auth.reset,
+    setEmail: store.getState().auth.setEmail,
+    setOtpId: store.getState().auth.setOtpId,
   }
 }

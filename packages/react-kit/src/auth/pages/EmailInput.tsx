@@ -5,19 +5,21 @@ import { Input } from '../../shared/components/Input'
 import { useAuth } from '../hooks/useAuth'
 
 export function EmailInput() {
-  const { goToStep, goBack } = useAuth()
-  const [email, setEmail] = useState('')
+  const { goToStep, goBack, setEmail, setOtpId } = useAuth()
+  const [emailInput, setEmailInput] = useState('')
   const { mutateAsync: sendOtp, isPending } = useSendOTP()
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || isPending) return
+    if (!emailInput || isPending) return
 
     setError(null)
     try {
-      const { otpId } = await sendOtp({ email })
-      goToStep({ step: 'otp-input', otpId })
+      const { otpId } = await sendOtp({ email: emailInput })
+      setEmail(emailInput)
+      setOtpId(otpId)
+      goToStep('otp-input')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
@@ -25,7 +27,7 @@ export function EmailInput() {
     }
   }
 
-  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-md">
@@ -40,8 +42,8 @@ export function EmailInput() {
         <Input
           type="email"
           placeholder="your@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={emailInput}
+          onChange={(e) => setEmailInput(e.target.value)}
           autoFocus
           disabled={isPending}
         />

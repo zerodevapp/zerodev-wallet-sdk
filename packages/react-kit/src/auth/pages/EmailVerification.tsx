@@ -3,7 +3,7 @@ import { StatusView } from '../../shared/components/StatusView'
 import { useAuth } from '../hooks/useAuth'
 
 export function EmailVerification() {
-  const { email, otpId, goToStep, goBack } = useAuth()
+  const { email, goToStep, goBack } = useAuth()
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-md">
@@ -15,7 +15,7 @@ export function EmailVerification() {
       <div className="flex flex-col gap-3">
         <Button
           text="Enter code manually"
-          onClick={() => goToStep({ step: 'otp-input', otpId: otpId! })}
+          onClick={() => goToStep('otp-input')}
           action="primary"
         />
 
