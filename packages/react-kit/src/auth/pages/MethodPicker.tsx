@@ -33,7 +33,7 @@ export function MethodPicker() {
           <Button
             key={method}
             text={METHOD_LABELS[method]}
-            onClick={() => goToStep({ step: METHOD_STEPS[method] })}
+            onClick={() => goToStep(METHOD_STEPS[method])}
             action="secondary"
           />
         ))}

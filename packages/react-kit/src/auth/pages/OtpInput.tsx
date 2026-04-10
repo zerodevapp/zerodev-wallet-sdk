@@ -5,11 +5,10 @@ import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
 export function OtpInput() {
-  const { email, otpId: initialOtpId, goToStep, goBack, config } = useAuth()
+  const { email, otpId, setOtpId, goToStep, goBack, config } = useAuth()
   const { mutateAsync: sendOtp } = useSendOTP()
   const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
 
-  const [otpId, setOtpId] = useState(initialOtpId)
   const [error, setError] = useState(false)
   const [resendAvailableAt, setResendAvailableAt] = useState(Date.now() + 60000)
   const [secondsUntilResend, setSecondsUntilResend] = useState(60)
@@ -33,7 +32,7 @@ export function OtpInput() {
     setError(false)
     try {
       await verifyOtp({ otpId, code })
-      goToStep({ step: 'authenticated' })
+      goToStep('authenticated')
       config?.onSuccess?.()
     } catch (err) {
       setError(true)

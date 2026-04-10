@@ -1,19 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { AuthConfig, AuthMethod, AuthStep } from './types'
 
-export type StepAction =
-  | { step: 'initializing' }
-  | { step: 'select-method' }
-  | { step: 'email-input' }
-  | { step: 'email-verification'; email: string }
-  | { step: 'otp-input'; otpId: string }
-  | { step: 'verifying-otp' }
-  | { step: 'passkey-prompt' }
-  | { step: 'oauth-in-progress' }
-  | { step: 'wallet-selection' }
-  | { step: 'authenticated' }
-  | { step: 'error' }
-
 export interface AuthStoreSlice {
   auth: {
     // State
@@ -21,12 +8,14 @@ export interface AuthStoreSlice {
     stepHistory: AuthStep[]
     enabledMethods: AuthMethod[]
     email: string | null
+    setEmail: (email: string) => void
     otpId: string | null
+    setOtpId: (otpId: string) => void
     config: AuthConfig | null
 
     // Actions
     initialize: (config: AuthConfig) => void
-    goToStep: (action: StepAction) => void
+    goToStep: (step: AuthStep) => void
     goBack: () => void
     reset: () => void
   }
@@ -59,13 +48,12 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
-    goToStep: (action: StepAction) => {
-      const { auth } = get()
+    goToStep: (step: AuthStep) => {
       set((state) => ({
         auth: {
           ...state.auth,
-          ...action,
-          stepHistory: [...state.auth.stepHistory, auth.step],
+          step,
+          stepHistory: [...state.auth.stepHistory, state.auth.step],
         },
       }))
     },
@@ -91,6 +79,24 @@ export const createAuthStoreSlice: StateCreator<
           stepHistory: [],
           email: null,
           otpId: null,
+        },
+      }))
+    },
+
+    setEmail: (email) => {
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          email,
+        },
+      }))
+    },
+
+    setOtpId: (otpId) => {
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          otpId,
         },
       }))
     },

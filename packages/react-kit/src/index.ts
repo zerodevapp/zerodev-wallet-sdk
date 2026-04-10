@@ -4,7 +4,6 @@
  */
 
 // Auth
-export type { StepAction } from './auth/authStoreSlice'
 export type { CodeInputProps } from './auth/components/CodeInput'
 export { CodeInput } from './auth/components/CodeInput'
 export { useAuth } from './auth/hooks/useAuth'
