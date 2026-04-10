@@ -1,11 +1,26 @@
 import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
+import { useConfig } from 'wagmi'
+import { useStore } from 'zustand'
 import { Button } from '../../shared/components/Button'
+import type { createStore } from '../../store'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
+type Store = ReturnType<typeof createStore>
+
+function getKitStore(config: ReturnType<typeof useConfig>): Store | null {
+  const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
+  if (!connector || !('getKitStore' in connector)) return null
+  // @ts-expect-error - getKitStore is a custom method on the kit connector
+  return connector.getKitStore()
+}
+
 export function OtpInput() {
-  const { email, otpId: initialOtpId, goToStep, goBack, config } = useAuth()
+  const { email, goToStep, goBack, config } = useAuth()
+  const wagmiConfig = useConfig()
+  const store = getKitStore(wagmiConfig)
+  const initialOtpId = useStore(store!, (state) => state.auth.otpId)
   const { mutateAsync: sendOtp } = useSendOTP()
   const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
 

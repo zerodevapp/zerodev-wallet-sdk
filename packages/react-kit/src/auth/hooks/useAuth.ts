@@ -21,14 +21,12 @@ export function useAuth() {
 
   const step = useStore(store, (state) => state.auth.step)
   const email = useStore(store, (state) => state.auth.email)
-  const otpId = useStore(store, (state) => state.auth.otpId)
   const enabledMethods = useStore(store, (state) => state.auth.enabledMethods)
   const authConfig = useStore(store, (state) => state.auth.config)
 
   return {
     step,
     email,
-    otpId,
     enabledMethods,
     config: authConfig,
     goToStep: store.getState().auth.goToStep,
