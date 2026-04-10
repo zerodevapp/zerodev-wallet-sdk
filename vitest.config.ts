@@ -12,6 +12,7 @@ export default defineConfig({
         __dirname,
         'packages/react/src/index.ts',
       ),
+      'react-native': 'react-native-web',
     },
   },
   test: {
