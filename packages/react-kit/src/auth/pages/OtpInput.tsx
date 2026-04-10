@@ -1,31 +1,76 @@
-import { useState } from 'react'
+import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
+import { useEffect, useState } from 'react'
 import { Button } from '../../shared/components/Button'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
 export function OtpInput() {
-  const { submitOtp, resendOtp, goBack, canResend, secondsUntilResend, email } =
-    useAuth()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState(false)
+  const { email, goToStep, goBack, config } = useAuth()
+  const { mutateAsync: sendOtp } = useSendOTP()
+  const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
 
-  const handleComplete = async (completedCode: string) => {
-    setIsSubmitting(true)
+  const [otpId, setOtpId] = useState<string | null>(null)
+  const [error, setError] = useState(false)
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(
+    null,
+  )
+  const [secondsUntilResend, setSecondsUntilResend] = useState(0)
+
+  // Send initial OTP when component mounts
+  useEffect(() => {
+    if (!email) return
+
+    sendOtp({ email })
+      .then(({ otpId: newOtpId }) => {
+        setOtpId(newOtpId)
+        setResendAvailableAt(Date.now() + 60000) // 60s cooldown
+      })
+      .catch(() => {
+        setError(true)
+      })
+  }, [email, sendOtp])
+
+  // Countdown timer for resend
+  useEffect(() => {
+    if (!resendAvailableAt) return
+    const interval = setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((resendAvailableAt - Date.now()) / 1000),
+      )
+      setSecondsUntilResend(remaining)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [resendAvailableAt])
+
+  const handleComplete = async (code: string) => {
+    if (!otpId) return
+
     setError(false)
     try {
-      await submitOtp(completedCode)
-    } catch {
+      await verifyOtp({ otpId, code })
+      goToStep({ step: 'authenticated' })
+      config?.onSuccess?.()
+    } catch (err) {
       setError(true)
-    } finally {
-      setIsSubmitting(false)
+      config?.onError?.(err)
     }
   }
 
   const handleResend = async () => {
-    if (!canResend) return
-    await resendOtp()
-    setError(false)
+    if (!email || secondsUntilResend > 0) return
+
+    try {
+      const { otpId: newOtpId } = await sendOtp({ email })
+      setOtpId(newOtpId)
+      setResendAvailableAt(Date.now() + 60000)
+      setError(false)
+    } catch {
+      setError(true)
+    }
   }
+
+  const canResend = secondsUntilResend <= 0
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-md">
@@ -39,11 +84,9 @@ export function OtpInput() {
       <div className="flex flex-col gap-4 items-center">
         <CodeInput
           length={6}
-          onChange={() => {
-            setError(false)
-          }}
+          onChange={() => setError(false)}
           onComplete={handleComplete}
-          disabled={isSubmitting}
+          disabled={isPending}
           error={error}
           autoFocus
         />
@@ -69,7 +112,7 @@ export function OtpInput() {
           text="Back"
           onClick={goBack}
           action="secondary"
-          disabled={isSubmitting}
+          disabled={isPending}
         />
       </div>
     </div>

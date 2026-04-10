@@ -1,22 +1,27 @@
+import { useSendOTP } from '@zerodev/wallet-react'
 import { useState } from 'react'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { useAuth } from '../hooks/useAuth'
 
 export function EmailInput() {
-  const { submitEmail, goBack } = useAuth()
+  const { goToStep, goBack } = useAuth()
   const [email, setEmail] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { mutateAsync: sendOtp, isPending } = useSendOTP()
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || isSubmitting) return
+    if (!email || isPending) return
 
-    setIsSubmitting(true)
+    setError(null)
     try {
-      await submitEmail(email)
-    } finally {
-      setIsSubmitting(false)
+      await sendOtp({ email })
+      goToStep({ step: 'email-verification', email })
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to send verification code',
+      )
     }
   }
 
@@ -38,13 +43,15 @@ export function EmailInput() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoFocus
-          disabled={isSubmitting}
+          disabled={isPending}
         />
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
 
         <Button
           type="submit"
-          text={isSubmitting ? 'Sending...' : 'Continue'}
-          disabled={!isValidEmail || isSubmitting}
+          text={isPending ? 'Sending...' : 'Continue'}
+          disabled={!isValidEmail || isPending}
           action="primary"
         />
 
@@ -53,7 +60,7 @@ export function EmailInput() {
           text="Back"
           onClick={goBack}
           action="secondary"
-          disabled={isSubmitting}
+          disabled={isPending}
         />
       </form>
     </div>

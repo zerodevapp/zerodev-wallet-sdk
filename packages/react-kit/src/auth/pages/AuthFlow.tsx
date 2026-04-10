@@ -35,8 +35,6 @@ export function AuthFlow() {
       )
     case 'select-method':
       return <MethodPicker />
-    case 'all-methods':
-      return <MethodPicker showAll />
     case 'email-input':
       return <EmailInput />
     case 'email-verification':
