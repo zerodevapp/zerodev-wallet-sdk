@@ -41,9 +41,7 @@ function WalletPanel() {
         />
         <Button
           text={
-            pendingRequests.length > 0
-              ? 'Queue ERC-20 transfer'
-              : 'Send ERC-20'
+            pendingRequests.length > 0 ? 'Queue ERC-20 transfer' : 'Send ERC-20'
           }
           onClick={() =>
             sendTransaction({
