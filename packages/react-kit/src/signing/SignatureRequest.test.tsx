@@ -18,7 +18,7 @@ vi.mock('wagmi', () => ({
   useConfig: () => mockConfig,
 }))
 
-import { SignatureRequest } from './SignatureRequest'
+import { SignatureRequest } from './index'
 
 function createMockPendingRequest(
   overrides?: Partial<PendingRequest>,

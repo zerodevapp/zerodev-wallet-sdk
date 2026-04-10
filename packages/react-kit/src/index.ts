@@ -31,8 +31,8 @@ export type { TextProps } from './shared/components/Text'
 export { Text } from './shared/components/Text'
 export type { WrapperProps, WrapperVariant } from './shared/components/Wrapper'
 export { Wrapper } from './shared/components/Wrapper'
-export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 // Signing
-export { SignatureRequest } from './signing/SignatureRequest.js'
+export { SignatureRequest } from './signing'
+export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 
 export type { PendingRequest, Request, RequestMethod } from './types.js'
