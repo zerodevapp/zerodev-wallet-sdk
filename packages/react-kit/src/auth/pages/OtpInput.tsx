@@ -5,30 +5,14 @@ import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
 export function OtpInput() {
-  const { email, goToStep, goBack, config } = useAuth()
+  const { email, otpId: initialOtpId, goToStep, goBack, config } = useAuth()
   const { mutateAsync: sendOtp } = useSendOTP()
   const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
 
-  const [otpId, setOtpId] = useState<string | null>(null)
+  const [otpId, setOtpId] = useState(initialOtpId)
   const [error, setError] = useState(false)
-  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(
-    null,
-  )
-  const [secondsUntilResend, setSecondsUntilResend] = useState(0)
-
-  // Send initial OTP when component mounts
-  useEffect(() => {
-    if (!email) return
-
-    sendOtp({ email })
-      .then(({ otpId: newOtpId }) => {
-        setOtpId(newOtpId)
-        setResendAvailableAt(Date.now() + 60000) // 60s cooldown
-      })
-      .catch(() => {
-        setError(true)
-      })
-  }, [email, sendOtp])
+  const [resendAvailableAt, setResendAvailableAt] = useState(Date.now() + 60000)
+  const [secondsUntilResend, setSecondsUntilResend] = useState(60)
 
   // Countdown timer for resend
   useEffect(() => {
