@@ -1,13 +1,18 @@
-import { Button, SignatureRequest } from '@zerodev/wallet-react-kit'
-import { parseEther } from 'viem'
+import {
+  Button,
+  SignatureRequest,
+  usePendingRequest,
+} from '@zerodev/wallet-react-kit'
+import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import { useAccount, useDisconnect, useSendTransaction } from 'wagmi'
 import { AuthExample } from './AuthExample'
 
 function WalletPanel() {
   const { address } = useAccount()
   const { disconnect } = useDisconnect()
-  const { sendTransaction, isPending, isSuccess, isError, error, data } =
+  const { sendTransaction, isSuccess, isError, error, data } =
     useSendTransaction()
+  const { pendingRequests } = usePendingRequest()
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -24,13 +29,32 @@ function WalletPanel() {
 
       <p className="text-xs text-gray-400 break-all mb-4">{address}</p>
 
-      <Button
-        text={isPending ? 'Awaiting confirmation...' : 'Send Transaction'}
-        onClick={() =>
-          sendTransaction({ to: address!, value: parseEther('0'), data: '0x' })
-        }
-        disabled={isPending}
-      />
+      <div className="flex gap-2">
+        <Button
+          text={pendingRequests.length > 0 ? 'Queue ETH transfer' : 'Send ETH'}
+          onClick={() =>
+            sendTransaction({
+              to: address!,
+              value: parseEther('0.01'),
+            })
+          }
+        />
+        <Button
+          text={
+            pendingRequests.length > 0 ? 'Queue ERC-20 transfer' : 'Send ERC-20'
+          }
+          onClick={() =>
+            sendTransaction({
+              to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: 'transfer',
+                args: [address!, 1000000n],
+              }),
+            })
+          }
+        />
+      </div>
 
       {isSuccess && <p className="text-green-600 text-sm mt-2">tx: {data}</p>}
       {isError && (
