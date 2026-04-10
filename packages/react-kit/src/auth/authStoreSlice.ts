@@ -26,7 +26,6 @@ export interface AuthStoreSlice {
     // Actions
     initialize: (config: AuthConfig) => void
     goToStep: (action: StepAction) => void
-    selectMethod: (method: AuthMethod) => void
     goBack: () => void
     reset: () => void
   }
@@ -63,55 +62,10 @@ export const createAuthStoreSlice: StateCreator<
       set((state) => ({
         auth: {
           ...state.auth,
-          step: action.step,
+          ...action,
           stepHistory: [...state.auth.stepHistory, auth.step],
-          // Merge any additional data from the action (like email)
-          ...('email' in action && { email: action.email }),
         },
       }))
-    },
-
-    selectMethod: (method: AuthMethod) => {
-      const { auth } = get()
-
-      switch (method) {
-        case 'email':
-          set((state) => ({
-            auth: {
-              ...state.auth,
-              step: 'email-input',
-              stepHistory: [...state.auth.stepHistory, auth.step],
-            },
-          }))
-          break
-        case 'passkey':
-          set((state) => ({
-            auth: {
-              ...state.auth,
-              step: 'passkey-prompt',
-              stepHistory: [...state.auth.stepHistory, auth.step],
-            },
-          }))
-          break
-        case 'google':
-          set((state) => ({
-            auth: {
-              ...state.auth,
-              step: 'oauth-in-progress',
-              stepHistory: [...state.auth.stepHistory, auth.step],
-            },
-          }))
-          break
-        case 'injected-wallet':
-          set((state) => ({
-            auth: {
-              ...state.auth,
-              step: 'wallet-selection',
-              stepHistory: [...state.auth.stepHistory, auth.step],
-            },
-          }))
-          break
-      }
     },
 
     goBack: () => {

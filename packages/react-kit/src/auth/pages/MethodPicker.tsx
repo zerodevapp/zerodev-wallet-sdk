@@ -1,6 +1,6 @@
 import { Button } from '../../shared/components/Button'
 import { useAuth } from '../hooks/useAuth'
-import type { AuthMethod } from '../types'
+import type { AuthMethod, AuthStep } from '../types'
 
 const METHOD_LABELS: Record<AuthMethod, string> = {
   email: 'Continue with Email',
@@ -9,8 +9,15 @@ const METHOD_LABELS: Record<AuthMethod, string> = {
   'injected-wallet': 'Continue with Wallet',
 }
 
+const METHOD_STEPS = {
+  email: 'email-input',
+  passkey: 'passkey-prompt',
+  google: 'oauth-in-progress',
+  'injected-wallet': 'wallet-selection',
+} as const satisfies Record<AuthMethod, AuthStep>
+
 export function MethodPicker() {
-  const { enabledMethods, selectMethod } = useAuth()
+  const { enabledMethods, goToStep } = useAuth()
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-md">
@@ -26,7 +33,7 @@ export function MethodPicker() {
           <Button
             key={method}
             text={METHOD_LABELS[method]}
-            onClick={() => selectMethod(method)}
+            onClick={() => goToStep({ step: METHOD_STEPS[method] })}
             action="secondary"
           />
         ))}
