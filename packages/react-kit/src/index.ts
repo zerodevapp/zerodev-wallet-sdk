@@ -4,8 +4,12 @@
  */
 
 // Auth
+export type { StepAction } from './auth/authStoreSlice'
 export type { CodeInputProps } from './auth/components/CodeInput'
 export { CodeInput } from './auth/components/CodeInput'
+export { useAuth } from './auth/hooks/useAuth'
+export { AuthFlow } from './auth/pages/AuthFlow'
+export type { AuthMethod, AuthStep } from './auth/types'
 // Connector
 export type {
   SigningConfig,

@@ -1,5 +1,9 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
+import {
+  type AuthStoreSlice,
+  createAuthStoreSlice,
+} from './auth/authStoreSlice'
 import type { PendingRequest } from './types.js'
 
 export type State = {
@@ -9,11 +13,11 @@ export type State = {
   removePendingRequest: (id: string) => void
   clearPendingRequests: () => void
   setUserConfirmationListenerActive: (active: boolean) => void
-}
+} & AuthStoreSlice
 
 export const createStore = () =>
   create<State>()(
-    subscribeWithSelector((set) => ({
+    subscribeWithSelector((set, get, store) => ({
       pendingRequests: [],
       userConfirmationListenerActive: false,
       addPendingRequest: (request) =>
@@ -27,5 +31,7 @@ export const createStore = () =>
       clearPendingRequests: () => set({ pendingRequests: [] }),
       setUserConfirmationListenerActive: (active) =>
         set({ userConfirmationListenerActive: active }),
+
+      ...createAuthStoreSlice(set, get, store),
     })),
   )

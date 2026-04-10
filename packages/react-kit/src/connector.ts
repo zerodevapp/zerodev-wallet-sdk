@@ -4,6 +4,7 @@ import type {
   ZeroDevWalletConnectorParams,
 } from '@zerodev/wallet-react'
 import { zeroDevWallet } from '@zerodev/wallet-react'
+import type { AuthConfig } from './auth/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
 
@@ -20,6 +21,7 @@ export type SigningConfig =
 
 export type ZeroDevKitConfig = {
   signing?: SigningConfig
+  auth?: AuthConfig
 }
 
 export type ZeroDevKitConnectorParams = ZeroDevWalletConnectorParams & {
@@ -46,11 +48,25 @@ export function zeroDevKitWallet(
   const baseFactory = zeroDevWallet(params)
   const store = createStore()
 
+  // Initialize auth config if provided
+  if (params.config?.auth) {
+    store.getState().auth.initialize(params.config.auth)
+  }
+
   return (wagmiConfig) => {
     const connector = baseFactory(wagmiConfig)
 
     return {
       ...connector,
+
+      async disconnect() {
+        await connector.disconnect?.()
+        // Reset auth state on disconnect
+        if (params.config?.auth) {
+          store.getState().auth.reset()
+          store.getState().auth.initialize(params.config.auth)
+        }
+      },
 
       async setup() {
         await connector.setup?.()
