@@ -36,3 +36,7 @@ blob-report/
 
 *storybook.log
 storybook-static
+storybook.requires.ts
+
+# Expo
+.expo
