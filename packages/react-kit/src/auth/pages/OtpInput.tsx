@@ -16,20 +16,6 @@ export function OtpInput() {
   )
   const [secondsUntilResend, setSecondsUntilResend] = useState(0)
 
-  // Send initial OTP when component mounts
-  useEffect(() => {
-    if (!email) return
-
-    sendOtp({ email })
-      .then(({ otpId: newOtpId }) => {
-        setOtpId(newOtpId)
-        setResendAvailableAt(Date.now() + 60000) // 60s cooldown
-      })
-      .catch(() => {
-        setError(true)
-      })
-  }, [email, sendOtp])
-
   // Countdown timer for resend
   useEffect(() => {
     if (!resendAvailableAt) return
