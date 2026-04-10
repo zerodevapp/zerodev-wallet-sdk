@@ -30,7 +30,6 @@ export function useAuth() {
     enabledMethods,
     config: authConfig,
     goToStep: store.getState().auth.goToStep,
-    selectMethod: store.getState().auth.selectMethod,
     goBack: store.getState().auth.goBack,
     reset: store.getState().auth.reset,
   }
