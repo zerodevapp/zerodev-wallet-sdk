@@ -6,7 +6,7 @@ export type StepAction =
   | { step: 'select-method' }
   | { step: 'email-input' }
   | { step: 'email-verification'; email: string }
-  | { step: 'otp-input' }
+  | { step: 'otp-input'; otpId: string }
   | { step: 'verifying-otp' }
   | { step: 'passkey-prompt' }
   | { step: 'oauth-in-progress' }
@@ -21,6 +21,7 @@ export interface AuthStoreSlice {
     stepHistory: AuthStep[]
     enabledMethods: AuthMethod[]
     email: string | null
+    otpId: string | null
     config: AuthConfig | null
 
     // Actions
@@ -43,6 +44,7 @@ export const createAuthStoreSlice: StateCreator<
     stepHistory: [],
     enabledMethods: [],
     email: null,
+    otpId: null,
     config: null,
 
     // Actions
@@ -88,6 +90,7 @@ export const createAuthStoreSlice: StateCreator<
           step: 'initializing',
           stepHistory: [],
           email: null,
+          otpId: null,
         },
       }))
     },
