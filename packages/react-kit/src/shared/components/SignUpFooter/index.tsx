@@ -1,23 +1,15 @@
-import { cn } from '../../utils/common'
 import { AppLogo } from '../AppLogo'
 import { Text } from '../Text'
 
 export function SignUpFooter({
-  isAndroidNavButtons = false,
   agreedToTerms,
   setAgreedToTerms,
 }: {
-  isAndroidNavButtons?: boolean
   agreedToTerms: boolean
   setAgreedToTerms: (agreed: boolean) => void
 }) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center gap-5',
-        isAndroidNavButtons && 'pb-8',
-      )}
-    >
+    <div className="flex flex-col items-center gap-5">
       <div className="flex flex-row items-center gap-2">
         <input
           type="checkbox"
