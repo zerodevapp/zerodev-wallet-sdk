@@ -72,7 +72,7 @@ export const WithLeadingIcon: Story = {
   args: {
     text: 'Send',
     action: 'primary',
-    iconName: 'RocketIcon',
+    iconName: 'rocket',
   },
 }
 
@@ -80,7 +80,7 @@ export const WithTrailingIcon: Story = {
   args: {
     text: 'Next',
     action: 'primary',
-    iconName: 'ArrowRightFillIcon',
+    iconName: 'arrowRightFill',
     trailIcon: true,
   },
 }
@@ -88,7 +88,7 @@ export const WithTrailingIcon: Story = {
 export const IconOnly: Story = {
   args: {
     action: 'primary',
-    iconName: 'CheckIcon',
+    iconName: 'check',
   },
 }
 
@@ -96,7 +96,7 @@ export const SecondaryWithIcon: Story = {
   args: {
     text: 'Copy',
     action: 'secondary',
-    iconName: 'CopyIcon',
+    iconName: 'copy',
   },
 }
 
@@ -107,14 +107,14 @@ export const AllVariants: Story = {
       <Button text="Secondary" action="secondary" />
       <Button text="Secondary Neutral" action="secondaryNeutral" />
       <Button text="Disabled" action="primary" disabled />
-      <Button text="With Icon" action="primary" iconName="RocketIcon" />
+      <Button text="With Icon" action="primary" iconName="rocket" />
       <Button
         text="Trail Icon"
         action="primary"
-        iconName="ArrowRightFillIcon"
+        iconName="arrowRightFill"
         trailIcon
       />
-      <Button action="secondary" iconName="CheckIcon" />
+      <Button action="secondary" iconName="check" />
     </div>
   ),
 }

@@ -34,13 +34,13 @@ describe('ListItem', () => {
   })
 
   it('renders icon when iconName is provided', () => {
-    render(<ListItem title="Test Title" iconName="WalletIcon" />)
-    expect(screen.getByTestId('icon-WalletIcon')).toBeDefined()
+    render(<ListItem title="Test Title" iconName="wallet" />)
+    expect(screen.getByTestId('icon-wallet')).toBeDefined()
   })
 
   it('renders chevron when chevron prop is true', () => {
     render(<ListItem title="Test Title" chevron />)
-    expect(screen.getByTestId('icon-ChevronRightIcon')).toBeDefined()
+    expect(screen.getByTestId('icon-chevronRight')).toBeDefined()
   })
 
   it('renders details when provided', () => {
