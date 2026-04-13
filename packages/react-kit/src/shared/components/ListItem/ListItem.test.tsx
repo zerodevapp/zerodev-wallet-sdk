@@ -43,6 +43,24 @@ describe('ListItem', () => {
     expect(screen.getByTestId('icon-chevronRight')).toBeDefined()
   })
 
+  it('renders badge when badgeProps is provided', () => {
+    render(
+      <ListItem
+        title="Test Title"
+        badgeProps={{ text: 'New', variant: 'secondary' }}
+      />,
+    )
+    expect(screen.getByText('New')).toBeDefined()
+  })
+
+  it('applies correct gap when badge is present', () => {
+    const { container } = render(
+      <ListItem title="Test Title" badgeProps={{ text: 'Badge' }} />,
+    )
+    const contentDiv = container.querySelector('.gap-2')
+    expect(contentDiv).not.toBeNull()
+  })
+
   it('renders details when provided', () => {
     render(
       <ListItem
