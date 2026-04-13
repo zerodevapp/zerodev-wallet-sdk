@@ -155,14 +155,14 @@ describe('Button', () => {
 
   describe('icon rendering', () => {
     it('renders a leading icon when iconName is provided', () => {
-      render(<Button text="Send" iconName="RocketIcon" />)
-      expect(screen.getByTestId('icon-RocketIcon')).toBeDefined()
+      render(<Button text="Send" iconName="rocket" />)
+      expect(screen.getByTestId('icon-rocket')).toBeDefined()
       expect(screen.getByText('Send')).toBeDefined()
     })
 
     it('renders a trailing icon when trailIcon is true', () => {
-      render(<Button text="Next" iconName="ArrowRightFillIcon" trailIcon />)
-      const icon = screen.getByTestId('icon-ArrowRightFillIcon')
+      render(<Button text="Next" iconName="arrowRightFill" trailIcon />)
+      const icon = screen.getByTestId('icon-arrowRightFill')
       const text = screen.getByText('Next')
       // Icon should come after text in the DOM
       expect(
@@ -171,8 +171,8 @@ describe('Button', () => {
     })
 
     it('renders a leading icon before text when trailIcon is false', () => {
-      render(<Button text="Back" iconName="ArrowLeftIcon" />)
-      const icon = screen.getByTestId('icon-ArrowLeftIcon')
+      render(<Button text="Back" iconName="arrowLeft" />)
+      const icon = screen.getByTestId('icon-arrowLeft')
       const text = screen.getByText('Back')
       // Icon should come before text in the DOM
       expect(
@@ -181,8 +181,8 @@ describe('Button', () => {
     })
 
     it('renders icon without text', () => {
-      render(<Button iconName="CheckIcon" />)
-      expect(screen.getByTestId('icon-CheckIcon')).toBeDefined()
+      render(<Button iconName="check" />)
+      expect(screen.getByTestId('icon-check')).toBeDefined()
     })
 
     it('does not render icon when iconName is not provided', () => {
@@ -191,14 +191,14 @@ describe('Button', () => {
     })
 
     it('applies text color classes to the icon', () => {
-      render(<Button text="Send" iconName="RocketIcon" action="primary" />)
-      const icon = screen.getByTestId('icon-RocketIcon')
+      render(<Button text="Send" iconName="rocket" action="primary" />)
+      const icon = screen.getByTestId('icon-rocket')
       expect(icon.getAttribute('class')).toContain('text-white')
     })
 
     it('applies secondary text color classes to the icon', () => {
-      render(<Button text="Send" iconName="RocketIcon" action="secondary" />)
-      const icon = screen.getByTestId('icon-RocketIcon')
+      render(<Button text="Send" iconName="rocket" action="secondary" />)
+      const icon = screen.getByTestId('icon-rocket')
       expect(icon.getAttribute('class')).toContain('text-gray-900')
     })
   })
