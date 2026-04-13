@@ -12,7 +12,6 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     agreedToTerms: { control: 'boolean' },
-    isAndroidNavButtons: { control: 'boolean' },
   },
 } satisfies Meta<typeof SignUpFooter>
 
@@ -59,26 +58,6 @@ export const Checked: Story = {
     return (
       <div className="w-96 p-6 bg-white rounded-lg">
         <SignUpFooter agreedToTerms={agreed} setAgreedToTerms={setAgreed} />
-      </div>
-    )
-  },
-}
-
-export const WithAndroidNavButtons: Story = {
-  args: {
-    agreedToTerms: false,
-    setAgreedToTerms: () => {},
-    isAndroidNavButtons: true,
-  },
-  render: () => {
-    const [agreed, setAgreed] = useState(false)
-    return (
-      <div className="w-96 p-6 bg-white rounded-lg">
-        <SignUpFooter
-          agreedToTerms={agreed}
-          setAgreedToTerms={setAgreed}
-          isAndroidNavButtons={true}
-        />
       </div>
     )
   },

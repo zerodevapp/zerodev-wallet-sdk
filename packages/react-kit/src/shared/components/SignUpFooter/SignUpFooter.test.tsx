@@ -43,6 +43,15 @@ describe('SignUpFooter', () => {
 
       expect(screen.getByTestId('app-logo')).toBeDefined()
     })
+
+    it('renders "Powered by:" text', () => {
+      const mockSetAgreed = vi.fn()
+      render(
+        <SignUpFooter agreedToTerms={false} setAgreedToTerms={mockSetAgreed} />,
+      )
+
+      expect(screen.getByText('Powered by:')).toBeDefined()
+    })
   })
 
   describe('checkbox state', () => {
@@ -91,46 +100,6 @@ describe('SignUpFooter', () => {
     })
   })
 
-  describe('Android navigation styling', () => {
-    it('applies pb-8 class when isAndroidNavButtons is true', () => {
-      const mockSetAgreed = vi.fn()
-      const { container } = render(
-        <SignUpFooter
-          agreedToTerms={false}
-          setAgreedToTerms={mockSetAgreed}
-          isAndroidNavButtons={true}
-        />,
-      )
-
-      const wrapper = container.firstChild as HTMLElement
-      expect(wrapper.className).toContain('pb-8')
-    })
-
-    it('does not apply pb-8 class when isAndroidNavButtons is false', () => {
-      const mockSetAgreed = vi.fn()
-      const { container } = render(
-        <SignUpFooter
-          agreedToTerms={false}
-          setAgreedToTerms={mockSetAgreed}
-          isAndroidNavButtons={false}
-        />,
-      )
-
-      const wrapper = container.firstChild as HTMLElement
-      expect(wrapper.className).not.toContain('pb-8')
-    })
-
-    it('defaults to false when isAndroidNavButtons is not provided', () => {
-      const mockSetAgreed = vi.fn()
-      const { container } = render(
-        <SignUpFooter agreedToTerms={false} setAgreedToTerms={mockSetAgreed} />,
-      )
-
-      const wrapper = container.firstChild as HTMLElement
-      expect(wrapper.className).not.toContain('pb-8')
-    })
-  })
-
   describe('layout', () => {
     it('renders with correct container classes', () => {
       const mockSetAgreed = vi.fn()
@@ -155,6 +124,17 @@ describe('SignUpFooter', () => {
       expect(checkboxRow).toBeDefined()
       expect(checkboxRow?.className).toContain('items-center')
       expect(checkboxRow?.className).toContain('gap-2')
+    })
+
+    it('renders logo section with correct layout', () => {
+      const mockSetAgreed = vi.fn()
+      const { container } = render(
+        <SignUpFooter agreedToTerms={false} setAgreedToTerms={mockSetAgreed} />,
+      )
+
+      const logoSection = container.querySelectorAll('.flex-row')[1]
+      expect(logoSection).toBeDefined()
+      expect(logoSection?.className).toContain('gap-1.5')
     })
   })
 })
