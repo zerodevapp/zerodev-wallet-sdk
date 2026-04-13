@@ -73,8 +73,6 @@ export function MultiRadialBackground() {
         role="img"
         aria-label="Decorative gradient background"
       >
-        <title>Decorative gradient background</title>
-        {/* Base solid */}
         <rect width="100%" height="100%" fill="#130E0B" />
         {layers.map((layer) => (
           <EllipticalRadial key={layer.id} layer={layer} />
