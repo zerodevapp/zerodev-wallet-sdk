@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes } from 'react'
 
 import { cn } from '../../utils/common'
 import { Badge, type BadgeProps } from '../Badge'
@@ -35,7 +35,7 @@ export function ListItemSkeleton({ className }: ListItemSkeletonProps) {
   )
 }
 
-export interface ListItemProps extends HTMLAttributes<HTMLButtonElement> {
+export interface ListItemProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconName?: IconName
   imageUri?: string
   title: string
@@ -71,6 +71,7 @@ export function ListItem({
         className={cn(
           'w-full flex flex-row justify-between items-center p-2 transition-colors',
           alert ? 'bg-solarOrange/15' : 'hover:bg-offWhite/50',
+          rest.disabled && 'opacity-50 cursor-not-allowed',
         )}
         {...rest}
       >

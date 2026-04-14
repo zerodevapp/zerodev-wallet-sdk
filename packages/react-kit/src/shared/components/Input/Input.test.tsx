@@ -238,4 +238,33 @@ describe('Input', () => {
       expect(input.className).toContain('outline-none')
     })
   })
+
+  describe('icon rendering', () => {
+    it('does not render icon when iconName is not provided', () => {
+      const { container } = render(<Input placeholder="No icon" />)
+      const svg = container.querySelector('svg')
+      expect(svg).toBeNull()
+    })
+
+    it('renders icon with wrapper for listItemStyle variant', () => {
+      const { container } = render(
+        <Input variant="listItemStyle" iconName="check" placeholder="List" />,
+      )
+      // Should have the icon wrapper div
+      const iconWrapper = container.querySelector('.bg-offWhite')
+      expect(iconWrapper).not.toBeNull()
+      expect(iconWrapper?.className).toContain('w-13')
+      expect(iconWrapper?.className).toContain('h-13')
+      expect(iconWrapper?.className).toContain('rounded-2xl')
+    })
+
+    it('does not render icon for ghost variant even if iconName is provided', () => {
+      const { container } = render(
+        <Input variant="ghost" iconName="check" placeholder="Ghost" />,
+      )
+      // Ghost variant doesn't use the Wrapper, so icon won't render
+      const svg = container.querySelector('svg')
+      expect(svg).toBeNull()
+    })
+  })
 })

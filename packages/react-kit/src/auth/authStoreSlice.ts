@@ -43,7 +43,7 @@ export const createAuthStoreSlice: StateCreator<
           ...state.auth,
           config,
           enabledMethods: config.enabledMethods,
-          step: 'select-method',
+          step: 'sign-up',
         },
       }))
     },
@@ -61,7 +61,7 @@ export const createAuthStoreSlice: StateCreator<
     goBack: () => {
       const { auth } = get()
       const newHistory = [...auth.stepHistory]
-      const previousStep = newHistory.pop() ?? 'select-method'
+      const previousStep = newHistory.pop() ?? 'sign-up'
       set((state) => ({
         auth: {
           ...state.auth,

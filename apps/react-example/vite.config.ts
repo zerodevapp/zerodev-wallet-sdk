@@ -3,10 +3,12 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import svgr from 'vite-plugin-svgr'
 
 export default defineConfig({
   plugins: [
     react(),
+    svgr({ svgrOptions: { exportType: 'default' } }),
     tailwindcss(),
     nodePolyfills({ include: ['buffer'], globals: { Buffer: true } }),
   ],

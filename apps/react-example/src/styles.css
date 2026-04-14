@@ -1,2 +1,8 @@
 @import "tailwindcss";
+/* TODO: how do we want to ship our custom tailwind config */
+@config "../../../packages/react-kit/tailwind.config.ts";
 @source "../../../packages/react-kit/src";
+
+html, body, #root {
+  height: 100%;
+}
