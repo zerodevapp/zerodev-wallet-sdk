@@ -49,7 +49,7 @@ describe('ScreenWrapper', () => {
       )
       const contentWrapper = container.querySelector('.bg-\\[\\#F7F5F0CC\\]')
       expect(contentWrapper).toBeDefined()
-      expect(contentWrapper?.className).toContain('rounded-[42px]')
+      expect(contentWrapper?.className).toContain('rounded-[30px]')
       expect(contentWrapper?.className).toContain('m-1.5')
       expect(contentWrapper?.className).toContain('px-4')
       expect(contentWrapper?.className).toContain('overflow-hidden')

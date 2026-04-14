@@ -1,11 +1,10 @@
-import { StatusView } from '../../shared/components/StatusView'
-import { useAuth } from '../hooks/useAuth'
-import { EmailInput } from './EmailInput'
-import { EmailVerification } from './EmailVerification'
-import { ErrorScreen } from './ErrorScreen'
-import { MethodPicker } from './MethodPicker'
-import { OtpInput } from './OtpInput'
-import { Verifying } from './Verifying'
+import { StatusView } from '../shared/components/StatusView'
+import { useAuth } from './hooks/useAuth'
+import { EmailVerification } from './pages/EmailVerification'
+import { ErrorScreen } from './pages/ErrorScreen'
+import { OtpInput } from './pages/OtpInput'
+import { SignUp } from './pages/SignUp'
+import { Verifying } from './pages/Verifying'
 
 function OAuthCallback() {
   return (
@@ -33,10 +32,8 @@ export function AuthFlow() {
           Setting up authentication...
         </StatusView>
       )
-    case 'select-method':
-      return <MethodPicker />
-    case 'email-input':
-      return <EmailInput />
+    case 'sign-up':
+      return <SignUp />
     case 'email-verification':
       return <EmailVerification />
     case 'otp-input':

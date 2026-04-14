@@ -28,7 +28,7 @@ export function SignUpFooter({
           </Text>
         </Text>
       </div>
-      <div className="gap-1.5 flex flex-row">
+      <div className="gap-1.5 flex flex-row items-center">
         <Text>Powered by:</Text>
         <AppLogo />
       </div>

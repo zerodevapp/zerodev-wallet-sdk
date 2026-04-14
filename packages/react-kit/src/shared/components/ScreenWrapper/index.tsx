@@ -18,9 +18,9 @@ export function ScreenWrapper({
   const paddingTop = TOP_NAV_HEIGHT + 20
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col relative overflow-hidden h-full">
       <MultiRadialBackground />
-      <div className="flex-1 bg-[#F7F5F0CC] m-1.5 px-4 overflow-hidden rounded-[42px]">
+      <div className="flex-1 bg-[#F7F5F0CC] m-1.5 px-4 overflow-hidden rounded-[30px] relative">
         {children({ paddingTop, paddingBottom })}
       </div>
     </div>
