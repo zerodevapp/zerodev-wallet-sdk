@@ -18,11 +18,10 @@ export function SignUp() {
   const [error, setError] = useState<string | null>(null)
 
   const handleGoogleAuth = () => {
-    goToStep('oauth-in-progress')
+    alert('Google authentication coming soon')
   }
 
   const handleTwitterAuth = () => {
-    // TODO: Implement Twitter auth when available
     alert('Twitter authentication coming soon')
   }
 
@@ -59,12 +58,9 @@ export function SignUp() {
 
   return (
     <ScreenWrapper>
-      {({ paddingTop, paddingBottom }) => (
+      {({ paddingTop }) => (
         <div
-          style={{
-            paddingTop: `${paddingTop}px`,
-            paddingBottom: `${paddingBottom}px`,
-          }}
+          style={{ paddingTop: `${paddingTop}px` }}
           className="h-full flex flex-col justify-between pb-6 overflow-y-auto"
         >
           <div className="flex-1 flex flex-col justify-center">
