@@ -33,7 +33,7 @@ export function SignUp() {
       const { otpId } = await sendOtp({ email: emailInput })
       setEmail(emailInput)
       setOtpId(otpId)
-      goToStep('otp-input')
+      goToStep('email-verification')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
