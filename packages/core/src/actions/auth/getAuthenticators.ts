@@ -9,53 +9,43 @@ export type GetAuthenticatorsParameters = {
   token: string
 }
 
-/** An OAuth authenticator linked to the user */
+/** An OAuth authenticator linked to the user (PascalCase from Go default marshaling) */
 export type OAuthAuthenticator = {
-  oauthProviderId?: string
-  providerName?: string
-  issuer?: string
-  audience?: string
-  subject?: string
-  createdAt?: string
+  Provider?: string
+  ClientId?: string
+  Subject?: string
   [key: string]: unknown
 }
 
-/** A passkey (WebAuthn) authenticator */
+/** A passkey (WebAuthn) authenticator (PascalCase from Go default marshaling) */
 export type PasskeyAuthenticator = {
-  authenticatorId?: string
-  authenticatorName?: string
-  credentialId?: string
-  createdAt?: string
+  RpId?: string
+  PublicKey?: string
+  CredentialId?: string
   [key: string]: unknown
 }
 
-/** An email contact linked to the user */
+/** An email contact linked to the user (PascalCase from Go default marshaling) */
 export type EmailContact = {
-  contactId?: string
-  email?: string
-  verified?: boolean
-  createdAt?: string
+  Email?: string
   [key: string]: unknown
 }
 
-/** An API key authenticator */
+/** An API key authenticator (PascalCase from Go default marshaling) */
 export type ApiKeyAuthenticator = {
-  apiKeyId?: string
-  apiKeyName?: string
-  publicKey?: string
-  createdAt?: string
+  ApiKey?: string
   [key: string]: unknown
 }
 
 export type GetAuthenticatorsReturnType = {
-  /** OAuth providers linked to the user */
-  oauths: OAuthAuthenticator[]
-  /** Passkey authenticators registered for the user */
-  passkeys: PasskeyAuthenticator[]
-  /** Email contacts associated with the user */
-  emailContacts: EmailContact[]
-  /** API keys associated with the user */
-  apiKeys: ApiKeyAuthenticator[]
+  /** OAuth providers linked to the user (null if none) */
+  oauths: OAuthAuthenticator[] | null
+  /** Passkey authenticators registered for the user (null if none) */
+  passkeys: PasskeyAuthenticator[] | null
+  /** Email contacts associated with the user (null if none) */
+  emailContacts: EmailContact[] | null
+  /** API keys associated with the user (null if none) */
+  apiKeys: ApiKeyAuthenticator[] | null
 }
 
 /**

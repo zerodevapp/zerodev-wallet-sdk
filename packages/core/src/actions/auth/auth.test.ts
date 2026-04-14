@@ -354,12 +354,12 @@ describe('registerWithPasskey', () => {
 
 describe('getAuthenticators', () => {
   const mockResponse = {
-    oauths: [{ oauthProviderId: 'op_1', providerName: 'google' }],
-    passkeys: [{ authenticatorId: 'auth_1', authenticatorName: 'YubiKey' }],
-    emailContacts: [
-      { contactId: 'c_1', email: 'user@example.com', verified: true },
+    oauths: [
+      { Provider: 'google', ClientId: 'some-client-id', Subject: 'sub' },
     ],
-    apiKeys: [{ apiKeyId: 'k_1', apiKeyName: 'cli' }],
+    passkeys: [{ RpId: 'example.com', PublicKey: 'pk', CredentialId: 'cred' }],
+    emailContacts: [{ Email: 'user@example.com' }],
+    apiKeys: [{ ApiKey: 'compressed-pub-key' }],
   }
 
   it('sends authenticators request with correct parameters', async () => {
@@ -397,8 +397,8 @@ describe('getAuthenticators', () => {
 
     expect(result.oauths).toHaveLength(1)
     expect(result.passkeys).toHaveLength(1)
-    expect(result.emailContacts[0]?.email).toBe('user@example.com')
-    expect(result.apiKeys[0]?.apiKeyName).toBe('cli')
+    expect(result.emailContacts[0]?.Email).toBe('user@example.com')
+    expect(result.apiKeys[0]?.ApiKey).toBe('compressed-pub-key')
   })
 
   it('requests stamping', async () => {
