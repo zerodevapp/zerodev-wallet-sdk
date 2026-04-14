@@ -69,7 +69,7 @@ export function ListItem({
       <button
         type="button"
         className={cn(
-          'w-full flex flex-row justify-between items-center p-2 transition-colors',
+          'w-full flex flex-row justify-between items-center p-2 transition-colors cursor-pointer',
           alert ? 'bg-solarOrange/15' : 'hover:bg-offWhite/50',
           rest.disabled && 'opacity-50 cursor-not-allowed',
         )}
