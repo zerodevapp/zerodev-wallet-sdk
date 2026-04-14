@@ -11,14 +11,18 @@ export {
   authenticateWithOAuth,
 } from './authenticateWithOAuth.js'
 export {
+  type ApiKeyAuthenticator,
+  type EmailContact,
+  type GetAuthenticatorsParameters,
+  type GetAuthenticatorsReturnType,
+  getAuthenticators,
+  type OAuthAuthenticator,
+  type PasskeyAuthenticator,
+} from './getAuthenticators.js'
+export {
   type GetAuthProxyConfigIdReturnType,
   getAuthProxyConfigId,
 } from './getAuthProxyConfigId.js'
-export {
-  type GetUserEmailParameters,
-  type GetUserEmailReturnType,
-  getUserEmail,
-} from './getUserEmail.js'
 export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,

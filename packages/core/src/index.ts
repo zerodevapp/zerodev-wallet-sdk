@@ -1,10 +1,14 @@
 export type {
   // Auth types
+  ApiKeyAuthenticator,
   AuthenticateWithEmailParameters,
   AuthenticateWithEmailReturnType,
   AuthenticateWithOAuthParameters,
   AuthenticateWithOAuthReturnType,
+  EmailContact,
   EmailCustomization,
+  GetAuthenticatorsParameters,
+  GetAuthenticatorsReturnType,
   // Wallet types
   GetUserWalletParameters,
   GetUserWalletReturnType,
@@ -12,7 +16,9 @@ export type {
   GetWhoamiReturnType,
   LoginWithOTPParameters,
   LoginWithOTPReturnType,
+  OAuthAuthenticator,
   OtpContact,
+  PasskeyAuthenticator,
   RegisterWithOTPParameters,
   RegisterWithOTPReturnType,
   Sign7702AuthorizationParameters,
@@ -32,6 +38,7 @@ export {
   // Auth actions
   authenticateWithEmail,
   authenticateWithOAuth,
+  getAuthenticators,
   // Wallet actions
   getUserWallet,
   getWhoami,

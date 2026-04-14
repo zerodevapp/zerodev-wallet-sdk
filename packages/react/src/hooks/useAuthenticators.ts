@@ -6,39 +6,42 @@ import {
   useQuery,
 } from '@tanstack/react-query'
 import { type Config, type ResolvedRegister, useConfig } from 'wagmi'
-import { getUserEmail } from '../actions.js'
+import { getAuthenticators } from '../actions.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined
 }
 
 /**
- * Hook to fetch user email address
+ * Hook to fetch all authenticators (oauths, passkeys, emailContacts, apiKeys)
+ * for the current user within the connected project/sub-organization.
  */
-export function useGetUserEmail<
+export function useAuthenticators<
   config extends Config = ResolvedRegister['config'],
->(parameters: useGetUserEmail.Parameters<config>): useGetUserEmail.ReturnType {
+>(
+  parameters: useAuthenticators.Parameters<config> = {},
+): useAuthenticators.ReturnType {
   const { query } = parameters
   const config = useConfig(parameters)
 
   return useQuery({
     ...query,
-    queryKey: ['getUserEmail'],
+    queryKey: ['authenticators'],
     queryFn: async () => {
-      return getUserEmail(config)
+      return getAuthenticators(config)
     },
     enabled: Boolean(config),
   })
 }
 
-export declare namespace useGetUserEmail {
+export declare namespace useAuthenticators {
   type Parameters<config extends Config = Config> = ConfigParameter<config> & {
     query?:
       | Omit<
           UseQueryOptions<
-            getUserEmail.ReturnType,
-            getUserEmail.ErrorType,
-            getUserEmail.ReturnType
+            getAuthenticators.ReturnType,
+            getAuthenticators.ErrorType,
+            getAuthenticators.ReturnType
           >,
           'queryKey' | 'queryFn'
         >
@@ -46,7 +49,7 @@ export declare namespace useGetUserEmail {
   }
 
   type ReturnType = UseQueryResult<
-    getUserEmail.ReturnType,
-    getUserEmail.ErrorType
+    getAuthenticators.ReturnType,
+    getAuthenticators.ErrorType
   >
 }

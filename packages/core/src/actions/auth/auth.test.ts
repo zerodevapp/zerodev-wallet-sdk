@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
 import { authenticateWithEmail } from './authenticateWithEmail.js'
 import { authenticateWithOAuth } from './authenticateWithOAuth.js'
-import { getUserEmail } from './getUserEmail.js'
+import { getAuthenticators } from './getAuthenticators.js'
 import { getWhoami } from './getWhoami.js'
 import { loginWithStamp } from './loginWithStamp.js'
 import { registerWithPasskey } from './registerWithPasskey.js'
@@ -352,23 +352,30 @@ describe('registerWithPasskey', () => {
   })
 })
 
-describe('getUserEmail', () => {
-  it('sends user email request with correct parameters', async () => {
-    const mockClient = createMockClient(async () => ({
-      email: 'user@example.com',
-    }))
+describe('getAuthenticators', () => {
+  const mockResponse = {
+    oauths: [{ oauthProviderId: 'op_1', providerName: 'google' }],
+    passkeys: [{ authenticatorId: 'auth_1', authenticatorName: 'YubiKey' }],
+    emailContacts: [
+      { contactId: 'c_1', email: 'user@example.com', verified: true },
+    ],
+    apiKeys: [{ apiKeyId: 'k_1', apiKeyName: 'cli' }],
+  }
 
-    const result = await getUserEmail(mockClient, {
-      organizationId: 'org-123',
+  it('sends authenticators request with correct parameters', async () => {
+    const mockClient = createMockClient(async () => mockResponse)
+
+    const result = await getAuthenticators(mockClient, {
+      subOrganizationId: 'suborg-123',
       projectId: 'proj-456',
       token: 'test-token',
     })
 
     expect(mockClient.request).toHaveBeenCalledWith({
-      path: 'proj-456/user-email',
+      path: 'proj-456/authenticators',
       method: 'POST',
       body: {
-        organizationId: 'org-123',
+        subOrganizationId: 'suborg-123',
       },
       headers: {
         Authorization: 'Bearer test-token',
@@ -376,29 +383,31 @@ describe('getUserEmail', () => {
       stamp: true,
       stampPostion: 'headers',
     })
-    expect(result).toEqual({ email: 'user@example.com' })
+    expect(result).toEqual(mockResponse)
   })
 
-  it('returns user email on success', async () => {
-    const mockClient = createMockClient(async () => ({
-      email: 'test@domain.com',
-    }))
+  it('returns authenticators grouped by type on success', async () => {
+    const mockClient = createMockClient(async () => mockResponse)
 
-    const result = await getUserEmail(mockClient, {
-      organizationId: 'org-123',
+    const result = await getAuthenticators(mockClient, {
+      subOrganizationId: 'suborg-123',
       projectId: 'proj-456',
       token: 'test-token',
     })
 
-    expect(result.email).toBe('test@domain.com')
+    expect(result.oauths).toHaveLength(1)
+    expect(result.passkeys).toHaveLength(1)
+    expect(result.emailContacts[0]?.email).toBe('user@example.com')
+    expect(result.apiKeys[0]?.apiKeyName).toBe('cli')
   })
 
   it('requests stamping', async () => {
-    const mockClient = createMockClient(async () => ({ email: 'a@b.com' }))
+    const mockClient = createMockClient(async () => mockResponse)
 
-    await getUserEmail(mockClient, {
-      organizationId: 'org-123',
+    await getAuthenticators(mockClient, {
+      subOrganizationId: 'suborg-123',
       projectId: 'proj-456',
+      token: 'test-token',
     })
 
     expect(mockClient.request).toHaveBeenCalledWith(
@@ -414,9 +423,10 @@ describe('getUserEmail', () => {
     })
 
     await expect(
-      getUserEmail(mockClient, {
-        organizationId: 'org-123',
+      getAuthenticators(mockClient, {
+        subOrganizationId: 'suborg-123',
         projectId: 'proj-456',
+        token: 'test-token',
       }),
     ).rejects.toThrow('User not found')
   })

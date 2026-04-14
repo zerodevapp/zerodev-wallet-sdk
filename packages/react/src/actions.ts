@@ -4,6 +4,7 @@ import {
   createIframeStamper,
   exportPrivateKey as exportPrivateKeySdk,
   exportWallet as exportWalletSdk,
+  type GetAuthenticatorsReturnType,
 } from '@zerodev/wallet-core'
 import type { OAuthProvider } from './oauth.js'
 import {
@@ -331,9 +332,12 @@ export declare namespace refreshSession {
 }
 
 /**
- * Get user email
+ * Fetch all authenticators (oauths, passkeys, emailContacts, apiKeys)
+ * for the current user within the connected project/sub-organization.
  */
-export async function getUserEmail(config: Config): Promise<{ email: string }> {
+export async function getAuthenticators(
+  config: Config,
+): Promise<GetAuthenticatorsReturnType> {
   const connector = getZeroDevConnector(config)
 
   // @ts-expect-error - getStore is a custom method
@@ -353,18 +357,18 @@ export async function getUserEmail(config: Config): Promise<{ email: string }> {
   }
 
   // Call the core SDK method
-  return await wallet.client.getUserEmail({
-    organizationId: session.organizationId,
+  return await wallet.client.getAuthenticators({
+    subOrganizationId: session.organizationId,
     projectId: oauthConfig.projectId,
     token: session.token,
   })
 }
 
-export declare namespace getUserEmail {
+export declare namespace getAuthenticators {
   type Parameters = {
     connector?: Connector
   }
-  type ReturnType = { email: string }
+  type ReturnType = GetAuthenticatorsReturnType
   type ErrorType = Error
 }
 
