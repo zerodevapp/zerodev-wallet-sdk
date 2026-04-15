@@ -10,13 +10,11 @@ const meta = {
   },
   tags: ['autodocs'],
   argTypes: {
-    length: { control: { type: 'number', min: 4, max: 8 } },
     disabled: { control: 'boolean' },
     error: { control: 'boolean' },
     autoFocus: { control: 'boolean' },
   },
   args: {
-    length: 6,
     disabled: false,
     error: false,
     autoFocus: false,
@@ -40,15 +38,11 @@ export const Disabled: Story = {
   },
 }
 
-export const FourDigits: Story = {
-  args: {
-    length: 4,
-  },
-}
-
 export const WithOnComplete: Story = {
   args: {
     onComplete: (code) => {
+      // biome-ignore lint/suspicious/noConsole: This is a demo/story
+      console.log(`Code complete: ${code}`)
       alert(`Code complete: ${code}`)
     },
   },
@@ -68,10 +62,6 @@ export const AllStates: Story = {
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-400 font-medium">Disabled</span>
         <CodeInput disabled />
-      </div>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-500 font-medium">4-digit</span>
-        <CodeInput length={4} />
       </div>
     </div>
   ),
