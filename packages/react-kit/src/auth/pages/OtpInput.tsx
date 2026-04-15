@@ -92,7 +92,7 @@ export function OtpInput() {
                 type="button"
                 disabled={!canResend}
                 onClick={handleResend}
-                className="underline disabled:opacity-50 disabled:cursor-not-allowed"
+                className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {canResend
                   ? 'Resend'

@@ -60,7 +60,7 @@ export function EmailVerification() {
                 type="button"
                 disabled={!canResend}
                 onClick={handleResendOtp}
-                className="underline disabled:opacity-50 disabled:cursor-not-allowed"
+                className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {canResend
                   ? 'Resend'
@@ -72,7 +72,7 @@ export function EmailVerification() {
               <button
                 type="button"
                 onClick={() => goToStep('otp-input')}
-                className="underline"
+                className="cursor-pointer underline"
               >
                 sign in manually instead
               </button>

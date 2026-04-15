@@ -109,7 +109,7 @@ export function SignUp() {
                   {emailInput && !isEmailLoading ? (
                     <button
                       type="button"
-                      className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors"
+                      className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
                       onClick={handleEmailSubmit}
                     >
                       <Icon name="chevronRight" />
