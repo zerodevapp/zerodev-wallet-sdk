@@ -22,8 +22,8 @@ export function ErrorScreen({
 
   return (
     <ScreenWrapper>
-      {({ paddingBottom }) => (
-        <div className="flex flex-1 flex-col gap-8 items-center justify-center">
+      {() => (
+        <div className="flex flex-1 flex-col gap-8 items-center justify-center h-full">
           <StatusView imageName="error" title={title}>
             <Text>{message}</Text>
           </StatusView>
@@ -44,10 +44,7 @@ export function ErrorScreen({
             )}
           </div>
 
-          <AppLogo
-            className="absolute self-center"
-            style={{ bottom: `${paddingBottom}px` }}
-          />
+          <AppLogo className="absolute self-center bottom-6" />
         </div>
       )}
     </ScreenWrapper>

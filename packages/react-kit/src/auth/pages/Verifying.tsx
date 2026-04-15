@@ -39,8 +39,8 @@ export function Verifying({ otp, otpSource }: VerifyingProps) {
 
   return (
     <ScreenWrapper>
-      {({ paddingBottom }) => (
-        <div className="flex flex-1 flex-col gap-8 items-center justify-center">
+      {() => (
+        <div className="flex flex-1 flex-col gap-8 items-center justify-center h-full">
           {isVerificationLoading && (
             <StatusView imageName="loading" title="Verifying Your Email">
               <Text>Please wait while we securely connect your wallet.</Text>
@@ -82,10 +82,7 @@ export function Verifying({ otp, otpSource }: VerifyingProps) {
             </>
           )}
 
-          <AppLogo
-            className="absolute self-center"
-            style={{ bottom: `${paddingBottom}px` }}
-          />
+          <AppLogo className="absolute self-center bottom-6" />
         </div>
       )}
     </ScreenWrapper>
