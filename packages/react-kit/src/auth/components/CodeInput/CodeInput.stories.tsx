@@ -11,12 +11,10 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     disabled: { control: 'boolean' },
-    error: { control: 'boolean' },
     autoFocus: { control: 'boolean' },
   },
   args: {
     disabled: false,
-    error: false,
     autoFocus: false,
   },
 } satisfies Meta<typeof CodeInput>
@@ -25,12 +23,6 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
-
-export const WithError: Story = {
-  args: {
-    error: true,
-  },
-}
 
 export const Disabled: Story = {
   args: {
@@ -54,10 +46,6 @@ export const AllStates: Story = {
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-500 font-medium">Default</span>
         <CodeInput />
-      </div>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-red-500 font-medium">Error</span>
-        <CodeInput error />
       </div>
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-400 font-medium">Disabled</span>
