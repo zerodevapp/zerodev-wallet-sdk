@@ -106,14 +106,15 @@ describe('StatusView', () => {
   })
 
   describe('structure', () => {
-    it('renders title in an h2 element', () => {
+    it('renders title with text-h2 styling', () => {
       render(
         <StatusView imageName="success" title="Success!">
           Done
         </StatusView>,
       )
-      const heading = screen.getByRole('heading', { level: 2 })
-      expect(heading.textContent).toBe('Success!')
+      const titleElement = screen.getByText('Success!')
+      expect(titleElement.className).toContain('text-h2')
+      expect(titleElement.className).toContain('text-center')
     })
   })
 })

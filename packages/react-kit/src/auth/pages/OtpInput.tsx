@@ -1,37 +1,37 @@
 import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
+import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
+import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
+import { Text } from '../../shared/components/Text'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
 export function OtpInput() {
-  const { email, otpId, setOtpId, goToStep, goBack, config } = useAuth()
-  const { mutateAsync: sendOtp } = useSendOTP()
+  const { email, otpId, setOtpId, goToStep, config } = useAuth()
+  const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
   const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
 
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState(false)
-  const [resendAvailableAt, setResendAvailableAt] = useState(Date.now() + 60000)
   const [secondsUntilResend, setSecondsUntilResend] = useState(60)
 
   // Countdown timer for resend
   useEffect(() => {
-    if (!resendAvailableAt) return
+    if (secondsUntilResend <= 0) return
+
     const interval = setInterval(() => {
-      const remaining = Math.max(
-        0,
-        Math.ceil((resendAvailableAt - Date.now()) / 1000),
-      )
-      setSecondsUntilResend(remaining)
+      setSecondsUntilResend((prev) => Math.max(0, prev - 1))
     }, 1000)
     return () => clearInterval(interval)
-  }, [resendAvailableAt])
+  }, [secondsUntilResend])
 
-  const handleComplete = async (code: string) => {
-    if (!otpId) return
+  const handleVerify = async () => {
+    if (!otp.trim() || !otpId) return
 
     setError(false)
     try {
-      await verifyOtp({ otpId, code })
+      await verifyOtp({ otpId, code: otp.trim() })
       goToStep('authenticated')
       config?.onSuccess?.()
     } catch (err) {
@@ -40,64 +40,70 @@ export function OtpInput() {
     }
   }
 
+  const handleComplete = (code: string) => {
+    setOtp(code)
+  }
+
   const handleResend = async () => {
-    if (!email || secondsUntilResend > 0) return
+    if (!email || secondsUntilResend > 0 || isSendOtpPending) return
 
     try {
       const { otpId: newOtpId } = await sendOtp({ email })
       setOtpId(newOtpId)
-      setResendAvailableAt(Date.now() + 60000)
+      setSecondsUntilResend(60)
       setError(false)
     } catch {
       setError(true)
     }
   }
 
-  const canResend = secondsUntilResend <= 0
+  const canResend = secondsUntilResend <= 0 && !isSendOtpPending
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-md">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-semibold">Enter verification code</h2>
-        <p className="text-base text-gray-600">
-          We sent a 6-digit code to {email}
-        </p>
-      </div>
+    <ScreenWrapper>
+      {() => (
+        <div className="flex flex-1 flex-col gap-8 justify-center items-center h-full">
+          <div className="flex flex-col gap-4">
+            <Text className="text-h2 text-center">Enter verification code</Text>
+            <Text className="text-center">
+              Enter the code from the email we sent to{' '}
+              <Text className="text-solarOrange">{email}</Text>
+            </Text>
+          </div>
 
-      <div className="flex flex-col gap-4 items-center">
-        <CodeInput
-          length={6}
-          onChange={() => setError(false)}
-          onComplete={handleComplete}
-          disabled={isPending}
-          error={error}
-          autoFocus
-        />
+          <CodeInput
+            onComplete={handleComplete}
+            onChange={() => setError(false)}
+            disabled={isPending}
+            error={error}
+            autoFocus
+          />
 
-        {error && (
-          <p className="text-sm text-red-500">
-            Invalid code. Please try again.
-          </p>
-        )}
-      </div>
+          <Button
+            text="Confirm code"
+            onClick={handleVerify}
+            disabled={!otp.trim() || isPending}
+          />
 
-      <div className="flex flex-col gap-3">
-        <Button
-          type="button"
-          text={canResend ? 'Resend code' : `Resend in ${secondsUntilResend}s`}
-          onClick={handleResend}
-          disabled={!canResend}
-          action="secondary"
-        />
+          <div className="flex flex-col gap-1">
+            <Text className="text-center">
+              Did not get an email?{' '}
+              <button
+                type="button"
+                disabled={!canResend}
+                onClick={handleResend}
+                className="underline disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {canResend
+                  ? 'Resend'
+                  : `Resend in ${secondsUntilResend} ${secondsUntilResend === 1 ? 'second' : 'seconds'}`}
+              </button>
+            </Text>
+          </div>
 
-        <Button
-          type="button"
-          text="Back"
-          onClick={goBack}
-          action="secondary"
-          disabled={isPending}
-        />
-      </div>
-    </div>
+          <AppLogo className="absolute self-center bottom-6" />
+        </div>
+      )}
+    </ScreenWrapper>
   )
 }
