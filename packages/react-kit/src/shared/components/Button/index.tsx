@@ -2,21 +2,22 @@ import type { ButtonHTMLAttributes } from 'react'
 
 import { cn } from '../../utils/common'
 import { Icon, type IconName } from '../Icon'
+import { Text } from '../Text'
 
 const baseClass =
   'flex items-center justify-center rounded-3xl h-16 w-full cursor-pointer transition-colors'
 
 const bgClasses: Record<NonNullable<ButtonProps['action']>, string> = {
-  primary: 'bg-gray-900/90 hover:bg-gray-900/93 active:bg-gray-900/95',
-  secondary:
-    'bg-white/50 hover:bg-white/70 active:bg-white/80 border border-gray-200',
-  secondaryNeutral: 'bg-gray-700/70 hover:bg-gray-700/80 active:bg-gray-700/90',
+  primary: 'bg-greyScale/90 hover:bg-greyScale/93 active:bg-greyScale/95',
+  secondary: 'bg-white/50 hover:bg-white/70 active:bg-white/80',
+  secondaryNeutral:
+    'bg-greyScale/70 hover:bg-greyScale/80 active:bg-greyScale/90',
 }
 
 const textClasses: Record<NonNullable<ButtonProps['action']>, string> = {
-  primary: 'text-white text-base',
-  secondary: 'text-gray-900 text-base',
-  secondaryNeutral: 'text-white text-base',
+  primary: 'text-white text-body1',
+  secondary: 'text-gray-900 text-body1',
+  secondaryNeutral: 'text-white text-body1',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -56,7 +57,7 @@ export function Button({
             className={cn('w-6 h-6', textClasses[action])}
           />
         )}
-        {text && <span className={textClasses[action]}>{text}</span>}
+        {text && <Text className={textClasses[action]}>{text}</Text>}
         {iconName && trailIcon && (
           <Icon
             name={iconName}
