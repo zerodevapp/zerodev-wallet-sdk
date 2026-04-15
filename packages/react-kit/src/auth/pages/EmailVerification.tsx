@@ -33,7 +33,7 @@ export function EmailVerification() {
       setOtpId(otpId)
       setSecondsLeftUntilResend(60)
     } catch {
-      // Error sending OTP - silently fail
+      // Error sending OTP
     }
   }
 

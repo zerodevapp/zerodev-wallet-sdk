@@ -23,9 +23,7 @@ function CharBox({ char, isFocused }: CharBoxProps) {
         isFocused && 'border-[1.5px] border-greyScale',
       )}
     >
-      <Text className="text-h2 text-greyScale font-sans font-medium">
-        {char}
-      </Text>
+      <Text className="text-h2">{char}</Text>
     </Wrapper>
   )
 }
