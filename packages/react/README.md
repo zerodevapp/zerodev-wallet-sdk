@@ -273,16 +273,17 @@ await exportPrivateKey.mutateAsync({
 })
 ```
 
-### Get User Email
+### Get Authenticators
 
 ```typescript
-const getUserEmail = useGetUserEmail()
+const { data: authenticators, isLoading } = useAuthenticators()
 
-// Fetch user's email from the backend
-const { email } = await getUserEmail.mutateAsync({
-  organizationId: session.organizationId,
-  projectId: 'your-project-id'
-})
+// `authenticators` contains all authenticators linked to the current user:
+//   { oauths, passkeys, emailContacts, apiKeys }
+console.log(authenticators?.oauths)
+console.log(authenticators?.passkeys)
+console.log(authenticators?.emailContacts)
+console.log(authenticators?.apiKeys)
 ```
 
 ## API Reference
@@ -301,7 +302,7 @@ All hooks follow the TanStack Query mutation pattern:
 - `useRefreshSession()` - Manually refresh session
 - `useExportWallet()` - Export wallet seed phrase
 - `useExportPrivateKey()` - Export wallet private key
-- `useGetUserEmail()` - Get user's email address
+- `useAuthenticators()` - Fetch all authenticators (oauths, passkeys, emailContacts, apiKeys) for the user
 
 ### Connector
 

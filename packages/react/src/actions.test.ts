@@ -10,7 +10,7 @@ import {
   authenticateOAuth,
   exportPrivateKey,
   exportWallet,
-  getUserEmail,
+  getAuthenticators,
   loginPasskey,
   refreshSession,
   registerPasskey,
@@ -48,7 +48,12 @@ function createMockWallet() {
     getPublicKey: vi.fn().mockResolvedValue('03abcdef123'),
     refreshSession: vi.fn().mockResolvedValue({ id: 'new-session-456' }),
     client: {
-      getUserEmail: vi.fn().mockResolvedValue({ email: 'user@example.com' }),
+      getAuthenticators: vi.fn().mockResolvedValue({
+        oauths: [],
+        passkeys: [],
+        emailContacts: [{ Email: 'user@example.com' }],
+        apiKeys: [],
+      }),
     },
   }
 }
@@ -432,8 +437,8 @@ describe('React Actions', () => {
     })
   })
 
-  describe('getUserEmail', () => {
-    it('calls wallet.client.getUserEmail with parameters', async () => {
+  describe('getAuthenticators', () => {
+    it('calls wallet.client.getAuthenticators with parameters', async () => {
       const wallet = createMockWallet()
       const session = {
         id: 'session-123',
@@ -444,18 +449,24 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await getUserEmail(config)
+      await getAuthenticators(config)
 
-      expect(wallet.client.getUserEmail).toHaveBeenCalledWith({
-        organizationId: 'org-123',
+      expect(wallet.client.getAuthenticators).toHaveBeenCalledWith({
+        subOrganizationId: 'org-123',
         projectId: 'proj-123',
         token: 'test-token',
       })
     })
 
-    it('returns email from wallet client', async () => {
+    it('returns authenticators from wallet client', async () => {
       const wallet = createMockWallet()
-      wallet.client.getUserEmail.mockResolvedValue({ email: 'test@test.com' })
+      const response = {
+        oauths: [{ Provider: 'google', ClientId: 'cid', Subject: 'sub' }],
+        passkeys: [],
+        emailContacts: [],
+        apiKeys: [],
+      }
+      wallet.client.getAuthenticators.mockResolvedValue(response)
       const session = {
         id: 'session-123',
         organizationId: 'org-123',
@@ -465,9 +476,9 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      const result = await getUserEmail(config)
+      const result = await getAuthenticators(config)
 
-      expect(result).toEqual({ email: 'test@test.com' })
+      expect(result).toEqual(response)
     })
 
     it('throws when wallet is not initialized', async () => {
@@ -475,12 +486,9 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await expect(
-        getUserEmail(config, {
-          organizationId: 'org-123',
-          projectId: 'proj-456',
-        }),
-      ).rejects.toThrow('Wallet not initialized')
+      await expect(getAuthenticators(config)).rejects.toThrow(
+        'Wallet not initialized',
+      )
     })
   })
 

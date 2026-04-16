@@ -10,15 +10,15 @@ import {
   type AuthenticateWithOAuthReturnType,
   authenticateWithEmail,
   authenticateWithOAuth,
+  type GetAuthenticatorsParameters,
+  type GetAuthenticatorsReturnType,
   type GetAuthProxyConfigIdReturnType,
-  type GetUserEmailParameters,
-  type GetUserEmailReturnType,
   type GetUserWalletParameters,
   type GetUserWalletReturnType,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
+  getAuthenticators,
   getAuthProxyConfigId,
-  getUserEmail,
   getUserWallet,
   getWhoami,
   type LoginWithOTPParameters,
@@ -73,11 +73,12 @@ export type ZeroDevWalletActions = {
   getWhoami: (params: GetWhoamiParameters) => Promise<GetWhoamiReturnType>
 
   /**
-   * Gets the user's email address
+   * Fetches all authenticators (oauths, passkeys, emailContacts, apiKeys)
+   * for the authenticated user within the given project/sub-organization
    */
-  getUserEmail: (
-    params: GetUserEmailParameters,
-  ) => Promise<GetUserEmailReturnType>
+  getAuthenticators: (
+    params: GetAuthenticatorsParameters,
+  ) => Promise<GetAuthenticatorsReturnType>
 
   // Wallet actions
   /**
@@ -182,7 +183,7 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     authenticateWithEmail: (params) => authenticateWithEmail(client, params),
     authenticateWithOAuth: (params) => authenticateWithOAuth(client, params),
     getWhoami: (params) => getWhoami(client, params),
-    getUserEmail: (params) => getUserEmail(client, params),
+    getAuthenticators: (params) => getAuthenticators(client, params),
 
     // Wallet actions
     getUserWallet: (params) => getUserWallet(client, params),
