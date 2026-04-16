@@ -10,6 +10,7 @@ type Provider = {
 
 type KitConnector = {
   setup?(): Promise<void>
+  disconnect?(): Promise<void>
   getProvider(): Promise<Provider>
   getKitStore(): ReturnType<typeof createStore>
 }
@@ -224,6 +225,136 @@ describe('connector', () => {
       const store = connector.getKitStore()
       expect(store).toBeDefined()
       expect(store.getState().pendingRequests).toEqual([])
+    })
+  })
+
+  describe('auth integration', () => {
+    it('initializes auth when config is provided', () => {
+      const authConfig = {
+        magicLinkBaseUrl: 'https://example.com/auth/verify',
+        enabledMethods: ['email' as const, 'google' as const],
+        onSuccess: vi.fn(),
+        onError: vi.fn(),
+      }
+      const connector = createKitConnector({
+        config: { auth: authConfig },
+      })
+      const store = connector.getKitStore()
+
+      expect(store.getState().auth.config).toEqual(authConfig)
+      expect(store.getState().auth.enabledMethods).toEqual(['email', 'google'])
+      expect(store.getState().auth.step).toBe('sign-up')
+    })
+
+    it('does not initialize auth when config is not provided', () => {
+      const connector = createKitConnector()
+      const store = connector.getKitStore()
+
+      expect(store.getState().auth.config).toBeNull()
+      expect(store.getState().auth.enabledMethods).toEqual([])
+      expect(store.getState().auth.step).toBe('initializing')
+    })
+
+    it('auth config works with signing config', () => {
+      const authConfig = {
+        magicLinkBaseUrl: 'https://example.com/auth/verify',
+        enabledMethods: ['passkey' as const],
+      }
+      const connector = createKitConnector({
+        config: {
+          auth: authConfig,
+          signing: { mode: 'prompt' },
+        },
+      })
+      const store = connector.getKitStore()
+
+      expect(store.getState().auth.config).toEqual(authConfig)
+      expect(store.getState().auth.enabledMethods).toEqual(['passkey'])
+    })
+
+    it('disconnect resets and reinitializes auth', async () => {
+      const authConfig = {
+        magicLinkBaseUrl: 'https://example.com/auth/verify',
+        enabledMethods: ['email' as const],
+      }
+      const connector = createKitConnector({
+        config: { auth: authConfig },
+      })
+      const store = connector.getKitStore()
+
+      // Change auth state
+      store.getState().auth.setEmail('test@example.com')
+      store.getState().auth.goToStep('email-verification')
+
+      expect(store.getState().auth.email).toBe('test@example.com')
+      expect(store.getState().auth.step).toBe('email-verification')
+
+      // Disconnect
+      await connector.disconnect?.()
+
+      // Auth should be reset and reinitialized
+      expect(store.getState().auth.email).toBeNull()
+      expect(store.getState().auth.step).toBe('sign-up')
+      expect(store.getState().auth.config).toEqual(authConfig)
+    })
+
+    it('supports all auth methods in config', () => {
+      const authConfig = {
+        magicLinkBaseUrl: 'https://example.com/auth/verify',
+        enabledMethods: [
+          'email' as const,
+          'google' as const,
+          'passkey' as const,
+          'injected-wallet' as const,
+        ],
+      }
+      const connector = createKitConnector({
+        config: { auth: authConfig },
+      })
+      const store = connector.getKitStore()
+
+      expect(store.getState().auth.enabledMethods).toEqual([
+        'email',
+        'google',
+        'passkey',
+        'injected-wallet',
+      ])
+    })
+
+    it('auth state persists across signing operations', async () => {
+      const authConfig = {
+        magicLinkBaseUrl: 'https://example.com/auth/verify',
+        enabledMethods: ['email' as const],
+      }
+      const connector = createKitConnector({
+        config: {
+          auth: authConfig,
+          signing: { mode: 'prompt' },
+        },
+      })
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().auth.setEmail('test@example.com')
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+
+      const requestPromise = provider.request({
+        method: 'eth_sendTransaction',
+        params: [{ to: '0x1' }],
+      })
+
+      // Auth state should still be present during signing gate
+      expect(store.getState().auth.email).toBe('test@example.com')
+
+      // Complete request
+      await new Promise((r) => setTimeout(r, 10))
+      store.getState().pendingRequests[0]?.resolve()
+      await requestPromise
+
+      // Auth state should still be present after signing
+      expect(store.getState().auth.email).toBe('test@example.com')
     })
   })
 })
