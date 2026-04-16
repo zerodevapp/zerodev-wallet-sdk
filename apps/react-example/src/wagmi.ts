@@ -7,7 +7,6 @@ export const wagmiConfig = createConfig({
   connectors: [
     zeroDevKitWallet({
       projectId: import.meta.env.VITE_ZERODEV_PROJECT_ID,
-      proxyBaseUrl: '/api/v1',
       chains: [sepolia],
       config: {
         auth: {
