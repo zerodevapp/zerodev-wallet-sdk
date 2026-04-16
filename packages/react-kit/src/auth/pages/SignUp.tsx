@@ -1,4 +1,4 @@
-import { useSendOTP } from '@zerodev/wallet-react'
+import { useAuthenticateOAuth, useSendOTP } from '@zerodev/wallet-react'
 import { useState } from 'react'
 
 import { Icon } from '../../shared/components/Icon'
@@ -10,15 +10,45 @@ import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
+// Helper to check if error is due to user closing OAuth window
+function isOAuthWindowClosedError(message: string): boolean {
+  return (
+    message.toLowerCase().includes('window') &&
+    message.toLowerCase().includes('closed')
+  )
+}
+
 export function SignUp() {
-  const { goToStep, setEmail, setOtpId } = useAuth()
+  const { goToStep, setEmail, setOtpId, config } = useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const { mutateAsync: sendOtp, isPending: isEmailLoading } = useSendOTP()
-  const [error, setError] = useState<string | null>(null)
+  const { mutateAsync: authenticateOAuth, isPending: isGoogleLoading } =
+    useAuthenticateOAuth({
+      mutation: {
+        onSuccess: async () => {
+          goToStep('authenticated')
+          config?.onSuccess?.()
+        },
+        onError: (err) => {
+          config?.onError?.(err)
+        },
+      },
+    })
 
-  const handleGoogleAuth = () => {
-    alert('Google authentication coming soon')
+  const [error, setError] = useState<string | null>(null)
+  const anyPending = isGoogleLoading || isEmailLoading
+
+  const handleGoogleAuth = async () => {
+    setError(null)
+    try {
+      await authenticateOAuth({ provider: 'google' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (!isOAuthWindowClosedError(message)) {
+        setError(message)
+      }
+    }
   }
 
   const handleTwitterAuth = () => {
@@ -26,7 +56,7 @@ export function SignUp() {
   }
 
   const handleEmailSubmit = async () => {
-    if (!emailInput || isEmailLoading) return
+    if (!emailInput || anyPending) return
 
     setError(null)
     try {
@@ -79,14 +109,14 @@ export function SignUp() {
                     iconName="google"
                     title="Google"
                     className="flex-1 rounded-3xl"
-                    disabled={isEmailLoading}
+                    disabled={anyPending}
                     onClick={handleGoogleAuth}
                   />
                   <ListItem
                     iconName="xTwitter"
                     title="X.com"
                     className="flex-1 rounded-3xl"
-                    disabled={isEmailLoading}
+                    disabled={anyPending}
                     onClick={handleTwitterAuth}
                   />
                 </div>
@@ -98,15 +128,15 @@ export function SignUp() {
                   type="email"
                   autoCapitalize="none"
                   autoComplete="email"
-                  disabled={isEmailLoading}
+                  disabled={anyPending}
                   variant="listItemStyle"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && emailInput && !isEmailLoading) {
+                    if (e.key === 'Enter' && emailInput && !anyPending) {
                       handleEmailSubmit()
                     }
                   }}
                 >
-                  {emailInput && !isEmailLoading ? (
+                  {emailInput && !anyPending ? (
                     <button
                       type="button"
                       className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
@@ -125,7 +155,7 @@ export function SignUp() {
               <ListItem
                 iconName="walletOutline"
                 title="Choose a wallet instead"
-                disabled={isEmailLoading}
+                disabled={anyPending}
                 onClick={handleChooseWallet}
                 chevron
                 className="rounded-3xl"
