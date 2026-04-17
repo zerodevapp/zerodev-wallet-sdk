@@ -2,9 +2,11 @@
 
 import type { Address, Hex } from 'viem'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
+import { Erc20Approval } from './pages/Erc20Approval.js'
 import { Erc20Transfer } from './pages/Erc20Transfer.js'
 import { EthTransfer } from './pages/EthTransfer.js'
 import { GenericRequest } from './pages/GenericRequest.js'
+import { decodeErc20Approval, isErc20Approval } from './utils/erc20Approval.js'
 import { decodeErc20Transfer, isErc20Transfer } from './utils/erc20Transfer.js'
 import { isEthTransfer } from './utils/ethTransfer.js'
 
@@ -38,6 +40,21 @@ export function SignatureRequest() {
               <Erc20Transfer
                 contract={tx.to as Address}
                 to={decoded.to}
+                amount={decoded.amount}
+                confirm={confirm}
+                reject={reject}
+              />
+            )
+          }
+        }
+
+        if (isErc20Approval(tx)) {
+          const decoded = decodeErc20Approval(tx)
+          if (decoded) {
+            return (
+              <Erc20Approval
+                contract={tx.to as Address}
+                spender={decoded.spender}
                 amount={decoded.amount}
                 confirm={confirm}
                 reject={reject}

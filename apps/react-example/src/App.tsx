@@ -54,6 +54,23 @@ function WalletPanel() {
             })
           }
         />
+        <Button
+          text={
+            pendingRequests.length > 0
+              ? 'Queue ERC-20 approval'
+              : 'Approve ERC-20'
+          }
+          onClick={() =>
+            sendTransaction({
+              to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: 'approve',
+                args: [address!, 1000000n],
+              }),
+            })
+          }
+        />
       </div>
 
       {isSuccess && <p className="text-green-600 text-sm mt-2">tx: {data}</p>}
