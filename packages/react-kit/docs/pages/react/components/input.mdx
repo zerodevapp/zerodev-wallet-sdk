@@ -1,0 +1,43 @@
+import { LiveExample } from '../../../components/LiveExample'
+import { Input } from '../../../../src/shared/components/Input'
+
+# Input
+
+A text input with multiple visual variants, optional leading icon, and multiline support.
+
+## Import
+
+```tsx
+import { Input } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+<Input placeholder="Enter your email" />
+<Input placeholder="Search" iconName="search" />
+<Input placeholder="Write a message..." multiline />
+<Input variant="ghost" placeholder="Editable text" />
+```
+
+## Props
+
+Extends `InputHTMLAttributes<HTMLInputElement>` (minus `children`) — all standard input attributes are supported.
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `variant` | `'default' \| 'ghost' \| 'listItemStyle'` | `'default'` | Visual style. `default` renders inside a frosted wrapper. `ghost` renders a plain input. `listItemStyle` renders in a list-item layout. |
+| `multiline` | `boolean` | `false` | Render as a textarea instead of an input. |
+| `iconName` | `IconName` | — | Optional leading icon. |
+| `children` | `ReactNode` | — | Optional trailing content (e.g. a currency label or action button). |
+
+## Live Example
+
+<LiveExample>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 280 }}>
+    <Input placeholder="Default input" />
+    <Input placeholder="With icon" iconName="email" />
+    <Input placeholder="Ghost variant" variant="ghost" />
+    <Input placeholder="Write a message..." multiline />
+  </div>
+</LiveExample>

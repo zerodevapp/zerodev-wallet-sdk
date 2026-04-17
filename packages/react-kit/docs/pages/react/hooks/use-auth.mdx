@@ -1,0 +1,68 @@
+# useAuth
+
+Access the current authentication state and control the auth flow. Use this to build custom auth UI or react to auth step changes.
+
+## Import
+
+```tsx
+import { useAuth } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+function AuthStatus() {
+  const { step, email, goToStep, reset } = useAuth()
+
+  if (step === 'authenticated') {
+    return <p>Signed in as {email}</p>
+  }
+
+  return (
+    <div>
+      <p>Current step: {step}</p>
+      <button onClick={reset}>Start over</button>
+    </div>
+  )
+}
+```
+
+## Return Value
+
+### State
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `step` | `AuthStep` | Current auth step (see [Auth Flow Steps](/react/features/authentication#auth-flow-steps)). |
+| `email` | `string \| null` | The email entered by the user, if any. |
+| `otpId` | `string \| null` | The OTP request identifier. |
+| `enabledMethods` | `AuthMethod[]` | Auth methods enabled in the connector config. |
+| `config` | `AuthConfig \| null` | The full auth configuration object. |
+
+### Actions
+
+| Method | Type | Description |
+| --- | --- | --- |
+| `goToStep` | `(step: AuthStep) => void` | Navigate to a specific auth step. |
+| `goBack` | `() => void` | Return to the previous step. |
+| `reset` | `() => void` | Reset auth state back to the initial step. |
+| `setEmail` | `(email: string) => void` | Store the user's email. |
+| `setOtpId` | `(otpId: string) => void` | Store the OTP request ID. |
+
+## Types
+
+```tsx
+type AuthMethod = 'email' | 'google' | 'passkey' | 'injected-wallet'
+
+type AuthStep =
+  | 'initializing'
+  | 'sign-up'
+  | 'email-verification'
+  | 'otp-input'
+  | 'verifying-otp'
+  | 'passkey-prompt'
+  | 'oauth-in-progress'
+  | 'wallet-selection'
+  | 'authenticated'
+  | 'error'
+```

@@ -1,0 +1,40 @@
+import { LiveExample } from '../../../components/LiveExample'
+import { Text } from '../../../../src/shared/components/Text'
+
+# Text
+
+A styled text element with consistent typography. Renders as `<p>` by default but can be changed to `<span>` or `<label>`.
+
+## Import
+
+```tsx
+import { Text } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+<Text>Default paragraph text</Text>
+<Text as="span" className="text-body1">Inline text</Text>
+<Text as="label">Form label</Text>
+```
+
+## Props
+
+Extends `HTMLAttributes<HTMLElement>` — all standard HTML attributes (`className`, `style`, etc.) are supported.
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `as` | `'p' \| 'span' \| 'label'` | `'p'` | The HTML element to render. |
+
+## Live Example
+
+<LiveExample>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <Text>Default paragraph text</Text>
+    <Text className="text-body1">Body 1 size</Text>
+    <Text className="text-body3">Body 3 size</Text>
+    <Text as="span">Inline span text</Text>
+    <Text as="label">Label text</Text>
+  </div>
+</LiveExample>

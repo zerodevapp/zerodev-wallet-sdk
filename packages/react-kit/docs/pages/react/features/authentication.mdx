@@ -1,0 +1,89 @@
+# Authentication
+
+The `<AuthFlow />` component provides a complete authentication UI out of the box. It handles email OTP, Google OAuth, passkey, and injected wallet flows — rendering the right screen for each step automatically.
+
+## Import
+
+```tsx
+import { AuthFlow } from '@zerodev/wallet-react-kit'
+```
+
+## Setup
+
+### 1. Configure auth in the connector
+
+```tsx
+import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+import { createConfig, http } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+
+export const config = createConfig({
+  chains: [sepolia],
+  connectors: [
+    zeroDevKitWallet({
+      projectId: 'your-project-id',
+      chains: [sepolia],
+      config: {
+        auth: {
+          magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+          enabledMethods: ['email', 'google', 'passkey'],
+          onSuccess: () => console.log('authenticated'),
+          onError: (error) => console.error(error),
+        },
+      },
+    }),
+  ],
+  transports: {
+    [sepolia.id]: http(),
+  },
+})
+```
+
+### 2. Render `<AuthFlow />` when the user is not connected
+
+```tsx
+import { useAccount } from 'wagmi'
+import { AuthFlow } from '@zerodev/wallet-react-kit'
+
+function App() {
+  const { isConnected } = useAccount()
+
+  if (!isConnected) {
+    return <AuthFlow />
+  }
+
+  return <YourApp />
+}
+```
+
+No props needed. `<AuthFlow />` reads from the kit's internal store and renders the correct screen based on the current auth step.
+
+## Auth Config
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `magicLinkBaseUrl` | `string` | Base URL for email magic links. |
+| `enabledMethods` | `AuthMethod[]` | Auth methods to offer. Options: `'email'`, `'google'`, `'passkey'`, `'injected-wallet'`. |
+| `onSuccess` | `() => void` | Called when authentication completes successfully. |
+| `onError` | `(error: unknown) => void` | Called when authentication fails. |
+
+## Auth Flow Steps
+
+The component automatically transitions through these steps:
+
+| Step | Description |
+| --- | --- |
+| `initializing` | Loading screen while auth sets up. |
+| `sign-up` | Main screen with enabled auth method options. |
+| `email-verification` | Waiting for the user to click the magic link sent to their email. |
+| `otp-input` | Manual OTP code entry (6-digit code). |
+| `verifying-otp` | Verifying the OTP code. |
+| `oauth-in-progress` | Waiting for OAuth to complete. |
+| `passkey-prompt` | Waiting for passkey authentication. |
+| `wallet-selection` | Wallet selection screen. |
+| `authenticated` | Renders nothing. The `onSuccess` callback fires. |
+| `error` | Error screen with retry options. |
+
+## Customizing Auth
+
+Use the [`useAuth`](/react/hooks/use-auth) hook to read auth state or control navigation between steps programmatically.

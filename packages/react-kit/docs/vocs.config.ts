@@ -1,10 +1,15 @@
 import tailwindcss from '@tailwindcss/vite'
+import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vocs'
 
 export default defineConfig({
   rootDir: '.',
   vite: {
-    plugins: [tailwindcss()],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plugins: [
+      tailwindcss(),
+      svgr({ svgrOptions: { exportType: 'default' } }) as any,
+    ],
     resolve: {
       alias: {
         '@zerodev/wallet-react-kit': new URL('../src/index.ts', import.meta.url)
@@ -40,6 +45,10 @@ export default defineConfig({
           text: 'Features',
           items: [
             {
+              text: 'Authentication',
+              link: '/react/features/authentication',
+            },
+            {
               text: 'Transaction Signing',
               link: '/react/features/transaction-signing',
             },
@@ -50,11 +59,20 @@ export default defineConfig({
           items: [
             { text: 'Button', link: '/react/components/button' },
             { text: 'CodeInput', link: '/react/components/code-input' },
+            { text: 'Icon', link: '/react/components/icon' },
+            { text: 'IconButton', link: '/react/components/icon-button' },
+            { text: 'Input', link: '/react/components/input' },
+            { text: 'StatusView', link: '/react/components/status-view' },
+            { text: 'Text', link: '/react/components/text' },
           ],
         },
         {
           text: 'Hooks',
           items: [
+            {
+              text: 'useAuth',
+              link: '/react/hooks/use-auth',
+            },
             {
               text: 'usePendingRequest',
               link: '/react/hooks/use-pending-request',

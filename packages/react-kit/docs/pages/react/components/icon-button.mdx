@@ -1,0 +1,37 @@
+import { LiveExample } from '../../../components/LiveExample'
+import { IconButton } from '../../../../src/shared/components/IconButton'
+
+# IconButton
+
+A square icon-only button wrapped in a frosted glass container.
+
+## Import
+
+```tsx
+import { IconButton } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+<IconButton iconName="check" onClick={handleConfirm} />
+<IconButton iconName="check" aria-label="Confirm" disabled />
+```
+
+## Props
+
+Extends `ButtonHTMLAttributes<HTMLButtonElement>` — all standard button attributes (`onClick`, `disabled`, `aria-label`, etc.) are supported.
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `iconName` | `IconName` | The icon to display. |
+
+## Live Example
+
+<LiveExample>
+  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+    <IconButton iconName="check" onClick={() => alert('clicked')} />
+    <IconButton iconName="copy" onClick={() => alert('copied')} />
+    <IconButton iconName="check" disabled />
+  </div>
+</LiveExample>

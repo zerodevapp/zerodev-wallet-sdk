@@ -1,0 +1,31 @@
+import IconDemo from '../../../components/IconDemo'
+
+# Icon
+
+Renders an SVG icon by name. Icons are loaded from the SDK's built-in icon set.
+
+## Import
+
+```tsx
+import { Icon } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+<Icon name="wallet" className="h-6 w-6 text-gray-900" />
+```
+
+## Props
+
+Extends `SVGProps<SVGSVGElement>` — all standard SVG attributes are supported.
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | The icon name. Corresponds to an SVG filename in the icon set. |
+
+Returns `null` if the icon name is not found.
+
+## Live Example
+
+<IconDemo />

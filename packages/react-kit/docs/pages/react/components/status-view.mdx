@@ -1,0 +1,53 @@
+import { LiveExample } from '../../../components/LiveExample'
+import { StatusView } from '../../../../src/shared/components/StatusView'
+
+# StatusView
+
+A centered status display with an image, title, and description text. Use it for loading, success, error, and confirmation states.
+
+## Import
+
+```tsx
+import { StatusView } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+<StatusView imageName="loading" title="Verifying...">
+  Please wait while we verify your email.
+</StatusView>
+
+<StatusView imageName="success" title="You're in!">
+  Your wallet has been created.
+</StatusView>
+
+<StatusView imageName="error" title="Something went wrong">
+  Please try again or choose another sign-in method.
+</StatusView>
+```
+
+## Props
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `imageName` | `'error' \| 'loading' \| 'send' \| 'success'` | The status image to display. |
+| `title` | `string` | Heading text. |
+| `children` | `ReactNode` | Description text below the title. |
+| `className` | `string` | Optional custom CSS classes. |
+
+## Live Example
+
+<LiveExample>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <StatusView imageName="loading" title="Loading...">
+      Please wait while we set things up.
+    </StatusView>
+    <StatusView imageName="success" title="Success!">
+      Your wallet has been created.
+    </StatusView>
+    <StatusView imageName="error" title="Something went wrong">
+      Please try again later.
+    </StatusView>
+  </div>
+</LiveExample>
