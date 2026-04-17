@@ -1,5 +1,6 @@
 {
   "name": "@zerodev/wallet-react-native-kit",
+  "private": true,
   "version": "0.0.1",
   "description": "React Native UI components for ZeroDev Wallet SDK",
   "main": "./dist/_cjs/index.js",
@@ -66,9 +67,9 @@
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3"
   },
-  "type": "module",
   "dependencies": {
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0"
-  }
+  },
+  "type": "module"
 }

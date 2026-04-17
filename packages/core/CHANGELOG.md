@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.16
+
+### Patch Changes
+
+- feat: support get-authenticators and remove get-email api
+
 ## 0.0.1-alpha.15
 
 ### Patch Changes
