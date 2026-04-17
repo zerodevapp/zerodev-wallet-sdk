@@ -9,31 +9,31 @@ export type GetAuthenticatorsParameters = {
   token: string
 }
 
-/** An OAuth authenticator linked to the user (PascalCase from Go default marshaling) */
+/** An OAuth authenticator linked to the user */
 export type OAuthAuthenticator = {
-  Provider?: string
-  ClientId?: string
-  Subject?: string
+  provider?: string
+  clientId?: string
+  subject?: string
   [key: string]: unknown
 }
 
-/** A passkey (WebAuthn) authenticator (PascalCase from Go default marshaling) */
+/** A passkey (WebAuthn) authenticator */
 export type PasskeyAuthenticator = {
-  RpId?: string
-  PublicKey?: string
-  CredentialId?: string
+  rpId?: string
+  publicKey?: string
+  credentialId?: string
   [key: string]: unknown
 }
 
-/** An email contact linked to the user (PascalCase from Go default marshaling) */
+/** An email contact linked to the user */
 export type EmailContact = {
-  Email?: string
+  email?: string
   [key: string]: unknown
 }
 
-/** An API key authenticator (PascalCase from Go default marshaling) */
+/** An API key authenticator */
 export type ApiKeyAuthenticator = {
-  ApiKey?: string
+  apiKey?: string
   [key: string]: unknown
 }
 
