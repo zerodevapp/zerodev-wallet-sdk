@@ -1,5 +1,4 @@
-import { LiveExample } from '../../../components/LiveExample'
-import { Text } from '../../../../src/shared/components/Text'
+import { StoryEmbed } from '../../../components/StoryEmbed'
 
 # Text
 
@@ -29,12 +28,4 @@ Extends `HTMLAttributes<HTMLElement>` — all standard HTML attributes (`classNa
 
 ## Live Example
 
-<LiveExample>
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-    <Text>Default paragraph text</Text>
-    <Text className="text-body1">Body 1 size</Text>
-    <Text className="text-body3">Body 3 size</Text>
-    <Text as="span">Inline span text</Text>
-    <Text as="label">Label text</Text>
-  </div>
-</LiveExample>
+<StoryEmbed id="shared-text--all-sizes" height={250} />

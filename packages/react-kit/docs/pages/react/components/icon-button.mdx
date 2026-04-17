@@ -1,5 +1,4 @@
-import { LiveExample } from '../../../components/LiveExample'
-import { IconButton } from '../../../../src/shared/components/IconButton'
+import { StoryEmbed } from '../../../components/StoryEmbed'
 
 # IconButton
 
@@ -28,10 +27,4 @@ Extends `ButtonHTMLAttributes<HTMLButtonElement>` — all standard button attrib
 
 ## Live Example
 
-<LiveExample>
-  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-    <IconButton iconName="check" onClick={() => alert('clicked')} />
-    <IconButton iconName="copy" onClick={() => alert('copied')} />
-    <IconButton iconName="check" disabled />
-  </div>
-</LiveExample>
+<StoryEmbed id="shared-iconbutton--default" />

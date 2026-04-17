@@ -1,5 +1,4 @@
-import { LiveExample } from '../../../components/LiveExample'
-import { CodeInput } from '../../../../src/auth/components/CodeInput'
+import { StoryEmbed } from '../../../components/StoryEmbed'
 
 # CodeInput
 
@@ -22,23 +21,4 @@ import { CodeInput } from '@zerodev/wallet-react-kit'
 
 ## Live Example
 
-<LiveExample>
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-    <div>
-      <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Default (6 digits)</p>
-      <CodeInput onComplete={(code) => alert(`Code: ${code}`)} />
-    </div>
-    <div>
-      <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>4 digits</p>
-      <CodeInput length={4} />
-    </div>
-    <div>
-      <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Error state</p>
-      <CodeInput error />
-    </div>
-    <div>
-      <p style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Disabled</p>
-      <CodeInput disabled />
-    </div>
-  </div>
-</LiveExample>
+<StoryEmbed id="auth-codeinput--all-states" height={300} />

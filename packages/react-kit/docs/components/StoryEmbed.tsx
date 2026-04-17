@@ -1,16 +1,12 @@
-import { type ComponentType, useEffect, useState } from 'react'
-import '../../styles.css'
+const STORYBOOK_URL = 'http://localhost:6006'
 
-export default function IconDemoLoader() {
-  const [Component, setComponent] = useState<ComponentType | null>(null)
+interface StoryEmbedProps {
+  id: string
+  height?: number
+}
 
-  useEffect(() => {
-    import('./Demo').then((mod) => {
-      setComponent(() => mod.default)
-    })
-  }, [])
-
-  if (!Component) {
+export function StoryEmbed({ id, height = 200 }: StoryEmbedProps) {
+  if (typeof window === 'undefined') {
     return (
       <div
         style={{
@@ -21,24 +17,26 @@ export default function IconDemoLoader() {
           background: '#f9fafb',
           color: '#999',
           fontSize: 13,
+          height,
         }}
       >
-        Loading...
+        Loading Storybook...
       </div>
     )
   }
 
   return (
-    <div
+    <iframe
+      src={`${STORYBOOK_URL}/iframe.html?id=${id}&viewMode=story`}
       style={{
+        width: '100%',
+        height,
         border: '1px solid #e5e7eb',
         borderRadius: 12,
-        padding: 24,
         marginTop: 16,
         background: '#f9fafb',
       }}
-    >
-      <Component />
-    </div>
+      title={id}
+    />
   )
 }

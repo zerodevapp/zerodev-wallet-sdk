@@ -1,5 +1,4 @@
-import { LiveExample } from '../../../components/LiveExample'
-import { StatusView } from '../../../../src/shared/components/StatusView'
+import { StoryEmbed } from '../../../components/StoryEmbed'
 
 # StatusView
 
@@ -38,16 +37,4 @@ import { StatusView } from '@zerodev/wallet-react-kit'
 
 ## Live Example
 
-<LiveExample>
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-    <StatusView imageName="loading" title="Loading...">
-      Please wait while we set things up.
-    </StatusView>
-    <StatusView imageName="success" title="Success!">
-      Your wallet has been created.
-    </StatusView>
-    <StatusView imageName="error" title="Something went wrong">
-      Please try again later.
-    </StatusView>
-  </div>
-</LiveExample>
+<StoryEmbed id="shared-statusview--success" height={300} />

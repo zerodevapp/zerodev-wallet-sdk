@@ -1,5 +1,4 @@
-import { LiveExample } from '../../../components/LiveExample'
-import { Input } from '../../../../src/shared/components/Input'
+import { StoryEmbed } from '../../../components/StoryEmbed'
 
 # Input
 
@@ -33,11 +32,4 @@ Extends `InputHTMLAttributes<HTMLInputElement>` (minus `children`) — all stand
 
 ## Live Example
 
-<LiveExample>
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 280 }}>
-    <Input placeholder="Default input" />
-    <Input placeholder="With icon" iconName="email" />
-    <Input placeholder="Ghost variant" variant="ghost" />
-    <Input placeholder="Write a message..." multiline />
-  </div>
-</LiveExample>
+<StoryEmbed id="shared-input--all-variants" height={400} />
