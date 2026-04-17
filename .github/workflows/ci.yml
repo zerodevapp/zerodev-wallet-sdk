@@ -136,8 +136,10 @@ jobs:
       - name: Extract demo branch from PR body
         id: demo-branch
         if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          BRANCH=$(echo "${{ github.event.pull_request.body }}" | grep -oE 'demo-branch:\s*\S+' | head -1 | sed 's/demo-branch:\s*//')
+          BRANCH=$(echo "$PR_BODY" | grep -oE 'demo-branch:[[:space:]]*[^[:space:]]+' | head -1 | sed 's/demo-branch:[[:space:]]*//')
           echo "ref=${BRANCH:-main}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout demo app
