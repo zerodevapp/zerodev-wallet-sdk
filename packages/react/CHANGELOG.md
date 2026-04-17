@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.17
+
+### Patch Changes
+
+- feat: support get-authenticators and remove get-email api
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.16
+
 ## 0.0.1-alpha.16
 
 ### Patch Changes
