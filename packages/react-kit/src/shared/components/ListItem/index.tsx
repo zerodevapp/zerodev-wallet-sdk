@@ -107,7 +107,7 @@ export function ListItem({
             )}
           </div>
         ) : chevron ? (
-          <Icon name="ChevronRightIcon" className="h-6 w-6" />
+          <Icon name="chevronRight" className="h-6 w-6" />
         ) : null}
       </button>
     </Wrapper>

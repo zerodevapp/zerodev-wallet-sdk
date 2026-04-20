@@ -49,7 +49,7 @@ type Story = StoryObj<typeof meta>
 
 export const WithIcon: Story = {
   args: {
-    iconName: 'WalletIcon',
+    iconName: 'wallet',
     title: 'Wallet',
     subtitle: 'Connected',
     chevron: true,
@@ -58,7 +58,7 @@ export const WithIcon: Story = {
 
 export const WithDetails: Story = {
   args: {
-    iconName: 'WalletIcon',
+    iconName: 'wallet',
     title: 'Transaction',
     subtitle: 'Pending',
     details: {
@@ -70,7 +70,7 @@ export const WithDetails: Story = {
 
 export const AlertState: Story = {
   args: {
-    iconName: 'WalletIcon',
+    iconName: 'warning',
     title: 'Action Required',
     subtitle: 'Review transaction',
     alert: true,

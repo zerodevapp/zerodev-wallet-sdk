@@ -32,7 +32,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    name: 'CheckIcon',
+    name: 'check',
     className: 'w-6 h-6 text-white',
   },
 }
