@@ -19,11 +19,23 @@ export function SignUpFooter({
         />
         <Text className="flex-1">
           I agree to the{' '}
-          <Text as="span" className="underline">
+          <Text
+            as="a"
+            href="https://zerodev.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
             Terms & Conditions
           </Text>{' '}
           and{' '}
-          <Text as="span" className="underline">
+          <Text
+            as="a"
+            href="https://zerodev.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
             Privacy Policy
           </Text>
         </Text>

@@ -58,7 +58,7 @@ describe('AppLogo', () => {
       render(<AppLogo className="h-[24px]" />)
       const icon = screen.getByTestId('icon-appLogo')
       expect(icon.className).toContain('h-[24px]')
-      expect(icon.className).not.toContain('h-[12px]')
+      expect(icon.className).not.toContain('h-[18px]')
     })
 
     it('works without className prop', () => {

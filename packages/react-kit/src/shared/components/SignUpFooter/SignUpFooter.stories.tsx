@@ -18,21 +18,6 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
-  args: {
-    agreedToTerms: false,
-    setAgreedToTerms: () => {},
-  },
-  render: () => {
-    const [agreed, setAgreed] = useState(false)
-    return (
-      <div className="w-96 p-6 bg-white rounded-lg">
-        <SignUpFooter agreedToTerms={agreed} setAgreedToTerms={setAgreed} />
-      </div>
-    )
-  },
-}
-
 export const Unchecked: Story = {
   args: {
     agreedToTerms: false,
