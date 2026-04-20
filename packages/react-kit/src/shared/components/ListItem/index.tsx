@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from 'react'
 
 import { cn } from '../../utils/common'
+import { Badge, type BadgeProps } from '../Badge'
 import { Icon, type IconName } from '../Icon'
 import { Text } from '../Text'
 import { Wrapper } from '../Wrapper'
@@ -39,6 +40,7 @@ export interface ListItemProps extends HTMLAttributes<HTMLButtonElement> {
   imageUri?: string
   title: string
   subtitle?: string
+  badgeProps?: BadgeProps
   details?: { text: string; subtext?: string }
   chevron?: boolean
   alert?: boolean
@@ -49,6 +51,7 @@ export function ListItem({
   imageUri,
   title,
   subtitle,
+  badgeProps,
   details,
   chevron,
   alert,
@@ -90,11 +93,17 @@ export function ListItem({
               />
             ) : null}
           </div>
-          <div className="flex flex-col justify-center text-left gap-1">
+          <div
+            className={cn(
+              'flex flex-col justify-center text-left',
+              badgeProps ? 'gap-2' : 'gap-1',
+            )}
+          >
             <Text className="text-body1">{title}</Text>
             {subtitle && (
               <Text className="text-body3 text-greyScale/50">{subtitle}</Text>
             )}
+            {badgeProps && <Badge {...badgeProps} />}
           </div>
         </div>
         {details ? (

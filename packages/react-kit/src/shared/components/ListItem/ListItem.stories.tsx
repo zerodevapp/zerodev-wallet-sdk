@@ -68,6 +68,19 @@ export const WithDetails: Story = {
   },
 }
 
+export const WithBadge: Story = {
+  args: {
+    iconName: 'wallet',
+    title: 'Verified Wallet',
+    badgeProps: {
+      text: 'Verified',
+      variant: 'secondary',
+      leadingIcon: 'check',
+    },
+    chevron: true,
+  },
+}
+
 export const AlertState: Story = {
   args: {
     iconName: 'warning',
