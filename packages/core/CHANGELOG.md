@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.17
+
+### Patch Changes
+
+- fix: update authenticator types to camelCase
+
 ## 0.0.1-alpha.16
 
 ### Patch Changes
