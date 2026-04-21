@@ -15,9 +15,10 @@ export function cn(...inputs: ClassValue[]) {
   return customTwMerge(clsx(inputs))
 }
 
-export function capitalizeFirst(str: string): string {
-  if (str.length === 0) return str
-  return str.charAt(0).toUpperCase() + str.slice(1)
+export function capitalizeFirst(str?: string | null): string {
+  if (!str) return ''
+  const first = str.at(0) ?? ''
+  return first.toUpperCase() + str.slice(1)
 }
 
 export function camelCaseToTitle(str: string): string {
