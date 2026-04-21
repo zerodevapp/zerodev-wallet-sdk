@@ -28,9 +28,7 @@ const meta = {
     iconName: 'wallet',
     children: (
       <div className="flex flex-col gap-2">
-        <Text>From: 0x1234...5678</Text>
-        <Text>To: 0xabcd...efab</Text>
-        <Text>Amount: 0.05 ETH</Text>
+        <Text>Some random text</Text>
       </div>
     ),
   },

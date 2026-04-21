@@ -31,17 +31,3 @@ export const Default: Story = {
     },
   },
 }
-
-export const SingleEntry: Story = {
-  args: {
-    details: {
-      Message: 'Sign in to zerodev.app',
-    },
-  },
-}
-
-export const Empty: Story = {
-  args: {
-    details: {},
-  },
-}
