@@ -51,7 +51,7 @@ function createMockWallet() {
       getAuthenticators: vi.fn().mockResolvedValue({
         oauths: [],
         passkeys: [],
-        emailContacts: [{ Email: 'user@example.com' }],
+        emailContacts: [{ email: 'user@example.com' }],
         apiKeys: [],
       }),
     },
@@ -461,7 +461,7 @@ describe('React Actions', () => {
     it('returns authenticators from wallet client', async () => {
       const wallet = createMockWallet()
       const response = {
-        oauths: [{ Provider: 'google', ClientId: 'cid', Subject: 'sub' }],
+        oauths: [{ provider: 'google', clientId: 'cid', subject: 'sub' }],
         passkeys: [],
         emailContacts: [],
         apiKeys: [],

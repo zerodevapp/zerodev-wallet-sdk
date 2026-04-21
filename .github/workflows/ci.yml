@@ -133,10 +133,20 @@ jobs:
       - name: Checkout SDK
         uses: actions/checkout@v4
 
+      - name: Extract demo branch from PR body
+        id: demo-branch
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          BRANCH=$(echo "$PR_BODY" | grep -oE 'demo-branch:[[:space:]]*[^[:space:]]+' | head -1 | sed 's/demo-branch:[[:space:]]*//')
+          echo "ref=${BRANCH:-main}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout demo app
         uses: actions/checkout@v4
         with:
           repository: zerodevapp/zerodev-signer-demo
+          ref: ${{ steps.demo-branch.outputs.ref || 'main' }}
           path: zerodev-signer-demo
 
       - name: Setup pnpm
