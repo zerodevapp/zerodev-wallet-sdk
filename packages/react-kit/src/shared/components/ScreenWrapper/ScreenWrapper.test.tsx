@@ -47,7 +47,7 @@ describe('ScreenWrapper', () => {
       const { container } = render(
         <ScreenWrapper>{() => <div>Content</div>}</ScreenWrapper>,
       )
-      const contentWrapper = container.querySelector('.bg-\\[\\#F7F5F0CC\\]')
+      const contentWrapper = container.querySelector('.bg-offWhite\\/85')
       expect(contentWrapper).toBeDefined()
       expect(contentWrapper?.className).toContain('rounded-[30px]')
       expect(contentWrapper?.className).toContain('m-1.5')

@@ -20,7 +20,7 @@ export function ScreenWrapper({
   return (
     <div className="flex-1 flex flex-col relative overflow-hidden h-full">
       <MultiRadialBackground />
-      <div className="flex-1 bg-[#F7F5F0CC] m-1.5 px-4 overflow-hidden rounded-[30px] relative">
+      <div className="flex-1 bg-offWhite/85 m-1.5 px-4 overflow-hidden rounded-[30px] relative">
         {children({ paddingTop, paddingBottom })}
       </div>
     </div>
