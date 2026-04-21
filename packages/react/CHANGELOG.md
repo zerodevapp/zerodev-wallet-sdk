@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.18
+
+### Patch Changes
+
+- fix: update authenticator types to camelCase
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.17
+
 ## 0.0.1-alpha.17
 
 ### Patch Changes
