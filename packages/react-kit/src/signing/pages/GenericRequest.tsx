@@ -1,5 +1,5 @@
 import type { PendingRequest } from '../../types.js'
-import { SigningActions } from '../components/SigningActions.js'
+import { SigningActions } from '../components/SigningActions'
 
 interface GenericRequestProps {
   request: PendingRequest

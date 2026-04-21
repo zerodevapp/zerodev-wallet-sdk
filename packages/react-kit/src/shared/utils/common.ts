@@ -14,3 +14,7 @@ const customTwMerge = extendTailwindMerge({
 export function cn(...inputs: ClassValue[]) {
   return customTwMerge(clsx(inputs))
 }
+
+export function shortenHex(hex: string, length = 4) {
+  return `${hex.slice(0, length + 2)}...${hex.slice(-length)}`
+}
