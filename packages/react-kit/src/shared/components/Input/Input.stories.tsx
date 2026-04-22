@@ -17,6 +17,7 @@ const meta = {
     multiline: { control: 'boolean' },
     placeholder: { control: 'text' },
     disabled: { control: 'boolean' },
+    iconName: { control: 'text' },
   },
   args: {
     variant: 'default',
@@ -87,6 +88,21 @@ export const WithChildren: Story = {
   ),
 }
 
+export const WithIcon: Story = {
+  args: {
+    iconName: 'check',
+    placeholder: 'Enter value',
+  },
+}
+
+export const WithIconListItemStyle: Story = {
+  args: {
+    variant: 'listItemStyle',
+    iconName: 'check',
+    placeholder: 'Amount',
+  },
+}
+
 export const AllVariants: Story = {
   render: () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -94,6 +110,12 @@ export const AllVariants: Story = {
       <Input variant="ghost" placeholder="Ghost variant" />
       <Input variant="listItemStyle" placeholder="List item variant" />
       <Input multiline placeholder="Multiline default" />
+      <Input iconName="check" placeholder="With icon" />
+      <Input
+        variant="listItemStyle"
+        iconName="check"
+        placeholder="List item with icon"
+      />
     </div>
   ),
 }

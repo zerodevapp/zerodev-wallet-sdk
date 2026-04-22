@@ -1,4 +1,5 @@
 import {
+  AuthFlow,
   Button,
   SignatureRequest,
   usePendingRequest,
@@ -10,7 +11,6 @@ import {
   useSendTransaction,
   useSignMessage,
 } from 'wagmi'
-import { AuthExample } from './AuthExample'
 
 function WalletPanel() {
   const { address } = useAccount()
@@ -144,25 +144,9 @@ function WalletPanel() {
 
 export function App() {
   const { isConnected } = useAccount()
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            ZeroDev React Kit — React Example
-          </h1>
-          <p className="mt-2 text-gray-500">
-            Interactive demo of{' '}
-            <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">
-              @zerodev/wallet-react-kit
-            </code>{' '}
-            components
-          </p>
-        </div>
-
-        {isConnected ? <WalletPanel /> : <AuthExample />}
-      </div>
+    <div className="mx-auto h-full w-[500px]">
+      {isConnected ? <WalletPanel /> : <AuthFlow />}
     </div>
   )
 }
