@@ -1,10 +1,10 @@
-import type { HTMLAttributes } from 'react'
+import type { AnchorHTMLAttributes, HTMLAttributes } from 'react'
 
 import { cn } from '../../utils/common'
 
-export interface TextProps extends HTMLAttributes<HTMLElement> {
-  as?: 'p' | 'span' | 'label'
-}
+export type TextProps =
+  | ({ as?: 'p' | 'span' | 'label' } & HTMLAttributes<HTMLElement>)
+  | ({ as: 'a' } & AnchorHTMLAttributes<HTMLAnchorElement>)
 
 export function Text({ as: Tag = 'p', className, ...props }: TextProps) {
   return (
@@ -13,7 +13,8 @@ export function Text({ as: Tag = 'p', className, ...props }: TextProps) {
         'font-medium font-sans text-body2 text-greyScale',
         className,
       )}
-      {...props}
+      {...(props as HTMLAttributes<HTMLElement> &
+        AnchorHTMLAttributes<HTMLAnchorElement>)}
     />
   )
 }
