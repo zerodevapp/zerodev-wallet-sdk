@@ -2,11 +2,16 @@
 
 import type { Address, Hex } from 'viem'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
+import { CollectionApproval } from './pages/CollectionApproval.js'
 import { Erc20Approval } from './pages/Erc20Approval.js'
 import { Erc20Transfer } from './pages/Erc20Transfer.js'
 import { EthTransfer } from './pages/EthTransfer.js'
 import { GenericRequest } from './pages/GenericRequest.js'
 import { PersonalSign } from './pages/PersonalSign.js'
+import {
+  decodeCollectionApproval,
+  isCollectionApproval,
+} from './utils/collectionApproval.js'
 import { decodeErc20Approval, isErc20Approval } from './utils/erc20Approval.js'
 import { decodeErc20Transfer, isErc20Transfer } from './utils/erc20Transfer.js'
 import { isEthTransfer } from './utils/ethTransfer.js'
@@ -57,6 +62,21 @@ export function SignatureRequest() {
                 contract={tx.to as Address}
                 spender={decoded.spender}
                 amount={decoded.amount}
+                confirm={confirm}
+                reject={reject}
+              />
+            )
+          }
+        }
+
+        if (isCollectionApproval(tx)) {
+          const decoded = decodeCollectionApproval(tx)
+          if (decoded) {
+            return (
+              <CollectionApproval
+                contract={tx.to as Address}
+                operator={decoded.operator}
+                approved={decoded.approved}
                 confirm={confirm}
                 reject={reject}
               />

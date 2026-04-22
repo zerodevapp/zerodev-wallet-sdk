@@ -84,6 +84,32 @@ function WalletPanel() {
           }
         />
         <Button
+          text="Collection Approval"
+          onClick={() =>
+            sendTransaction({
+              // Not an NFT — reusing USDC on Sepolia because it has a name() function,
+              // so the decoded UI loads fast. The setApprovalForAll calldata is the same regardless.
+              to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+              data: encodeFunctionData({
+                abi: [
+                  {
+                    type: 'function',
+                    name: 'setApprovalForAll',
+                    inputs: [
+                      { name: 'operator', type: 'address' },
+                      { name: 'approved', type: 'bool' },
+                    ],
+                    outputs: [],
+                    stateMutability: 'nonpayable',
+                  },
+                ],
+                functionName: 'setApprovalForAll',
+                args: [address!, true],
+              }),
+            })
+          }
+        />
+        <Button
           text="Sign Message"
           onClick={() => signMessage({ message: 'Hello from ZeroDev!' })}
         />
