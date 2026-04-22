@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Text } from '../../../shared/components/Text'
 import { Wrapper } from '../../../shared/components/Wrapper'
 import { cn } from '../../../shared/utils/common'
 
-const CODE_LENGTH = 6
-const CHAR_BOXES = Array.from({ length: CODE_LENGTH }, (_, i) => ({
-  id: `char-${i}`,
-  index: i,
-}))
+const MIN_LENGTH = 4
+const MAX_LENGTH = 8
+const DEFAULT_LENGTH = 6
+
+function clampLength(length: number): number {
+  return Math.max(MIN_LENGTH, Math.min(MAX_LENGTH, length))
+}
 
 interface CharBoxProps {
   char: string
@@ -34,6 +36,7 @@ export interface CodeInputProps {
   disabled?: boolean
   error?: boolean
   autoFocus?: boolean
+  length?: number
   'data-testid'?: string
 }
 
@@ -43,8 +46,19 @@ export function CodeInput({
   disabled = false,
   error = false,
   autoFocus = false,
+  length = DEFAULT_LENGTH,
   'data-testid': testId,
 }: CodeInputProps) {
+  const codeLength = clampLength(length)
+  const charBoxes = useMemo(
+    () =>
+      Array.from({ length: codeLength }, (_, i) => ({
+        id: `char-${i}`,
+        index: i,
+      })),
+    [codeLength],
+  )
+
   const [code, setCode] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -55,12 +69,16 @@ export function CodeInput({
     }
   }, [autoFocus, disabled])
 
+  useEffect(() => {
+    setCode((prev) => prev.slice(0, codeLength))
+  }, [codeLength])
+
   const handleChange = (text: string) => {
-    const sanitized = text.slice(0, CODE_LENGTH).toUpperCase()
+    const sanitized = text.slice(0, codeLength).toUpperCase()
     setCode(sanitized)
     onChange?.(sanitized)
 
-    if (sanitized.length === CODE_LENGTH) {
+    if (sanitized.length === codeLength) {
       // Makes sure onComplete is run on the next render cycle after the last char is rendered
       setTimeout(() => {
         onComplete?.(sanitized)
@@ -83,13 +101,13 @@ export function CodeInput({
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        maxLength={CODE_LENGTH}
+        maxLength={codeLength}
         disabled={disabled}
         className="absolute opacity-0 pointer-events-none"
         style={{ position: 'absolute', opacity: 0 }}
         aria-label="Verification code"
       />
-      {CHAR_BOXES.map((box) => (
+      {charBoxes.map((box) => (
         <CharBox
           key={box.id}
           char={code[box.index] ?? ''}

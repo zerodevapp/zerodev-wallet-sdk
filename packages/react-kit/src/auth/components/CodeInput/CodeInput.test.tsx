@@ -9,7 +9,7 @@ afterEach(() => {
 
 describe('CodeInput', () => {
   describe('rendering', () => {
-    it('renders 6 character boxes', () => {
+    it('renders 6 character boxes by default', () => {
       const { container } = render(<CodeInput />)
       const boxes = container.querySelectorAll('.backdrop-blur-md')
       expect(boxes).toHaveLength(6)
@@ -228,6 +228,69 @@ describe('CodeInput', () => {
       expect(textElements[3].textContent).toBe('')
       expect(textElements[4].textContent).toBe('')
       expect(textElements[5].textContent).toBe('')
+    })
+  })
+
+  describe('length prop', () => {
+    it('renders the requested number of boxes (4)', () => {
+      const { container } = render(<CodeInput length={4} />)
+      const boxes = container.querySelectorAll('.backdrop-blur-md')
+      expect(boxes).toHaveLength(4)
+    })
+
+    it('renders the requested number of boxes (8)', () => {
+      const { container } = render(<CodeInput length={8} />)
+      const boxes = container.querySelectorAll('.backdrop-blur-md')
+      expect(boxes).toHaveLength(8)
+    })
+
+    it('clamps lengths below 4 up to 4', () => {
+      const { container } = render(<CodeInput length={2} />)
+      const boxes = container.querySelectorAll('.backdrop-blur-md')
+      expect(boxes).toHaveLength(4)
+    })
+
+    it('clamps lengths above 8 down to 8', () => {
+      const { container } = render(<CodeInput length={12} />)
+      const boxes = container.querySelectorAll('.backdrop-blur-md')
+      expect(boxes).toHaveLength(8)
+    })
+
+    it('limits typed input to the configured length', () => {
+      const { container } = render(<CodeInput length={4} />)
+      const hiddenInput = container.querySelector(
+        'input[aria-label="Verification code"]',
+      ) as HTMLInputElement
+      fireEvent.change(hiddenInput, { target: { value: '1234567890' } })
+      expect(hiddenInput.value).toBe('1234')
+    })
+
+    it('fires onComplete at the configured length', async () => {
+      const onComplete = vi.fn()
+      const { container } = render(
+        <CodeInput length={4} onComplete={onComplete} />,
+      )
+      const hiddenInput = container.querySelector(
+        'input[aria-label="Verification code"]',
+      ) as HTMLInputElement
+
+      fireEvent.change(hiddenInput, { target: { value: '1234' } })
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      expect(onComplete).toHaveBeenCalledWith('1234')
+    })
+
+    it('does not fire onComplete at 6 chars when length is 8', () => {
+      const onComplete = vi.fn()
+      const { container } = render(
+        <CodeInput length={8} onComplete={onComplete} />,
+      )
+      const hiddenInput = container.querySelector(
+        'input[aria-label="Verification code"]',
+      ) as HTMLInputElement
+
+      fireEvent.change(hiddenInput, { target: { value: '123456' } })
+      expect(onComplete).not.toHaveBeenCalled()
     })
   })
 })
