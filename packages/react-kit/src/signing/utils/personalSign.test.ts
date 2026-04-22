@@ -16,9 +16,8 @@ describe('decodePersonalSignMessage', () => {
     )
   })
 
-  it('returns raw hex for malformed input', () => {
+  it('returns null for malformed input', () => {
     const badHex = '0xgg' as Hex
-    const result = decodePersonalSignMessage(badHex)
-    expect(result).toBe(badHex)
+    expect(decodePersonalSignMessage(badHex)).toBeNull()
   })
 })

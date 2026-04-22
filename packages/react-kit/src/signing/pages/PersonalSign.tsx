@@ -22,9 +22,18 @@ export function PersonalSign({
       <h3 className="text-lg font-semibold text-gray-900">Sign Message</h3>
 
       <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-        <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
-          {message}
-        </pre>
+        {message !== null ? (
+          <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
+            {message}
+          </pre>
+        ) : (
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Raw data:</p>
+            <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
+              {data}
+            </pre>
+          </div>
+        )}
         <div className="mt-2 text-sm text-gray-500">
           <span className="font-medium">Signer: </span>
           <span className="font-mono break-all">{address}</span>
