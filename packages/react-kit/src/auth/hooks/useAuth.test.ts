@@ -213,13 +213,12 @@ describe('useAuth', () => {
   it('handles complete email auth flow', () => {
     const store = createStore()
     const config = createMockAuthConfig()
+    store.getState().auth.initialize(config)
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result, rerender } = renderHook(() => useAuth())
 
-    // Initialize
     result.current.goToStep('sign-up')
-    store.getState().auth.initialize(config)
     rerender()
 
     // Enter email

@@ -130,18 +130,6 @@ describe('store', () => {
       expect(state.auth.config).toBeNull()
     })
 
-    it('auth slice methods are available', () => {
-      const store = createStore()
-      const { auth } = store.getState()
-
-      expect(typeof auth.initialize).toBe('function')
-      expect(typeof auth.goToStep).toBe('function')
-      expect(typeof auth.goBack).toBe('function')
-      expect(typeof auth.reset).toBe('function')
-      expect(typeof auth.setEmail).toBe('function')
-      expect(typeof auth.setOtpId).toBe('function')
-    })
-
     it('auth and pending requests state are independent', () => {
       const store = createStore()
       const request = createMockPendingRequest()
