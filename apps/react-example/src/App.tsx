@@ -10,6 +10,7 @@ import {
   useDisconnect,
   useSendTransaction,
   useSignMessage,
+  useSignTypedData,
 } from 'wagmi'
 
 function WalletPanel() {
@@ -24,6 +25,7 @@ function WalletPanel() {
     isError: signError,
     error: signMessageError,
   } = useSignMessage()
+  const { signTypedData } = useSignTypedData()
   const { pendingRequests } = usePendingRequest()
 
   return (
@@ -112,6 +114,31 @@ function WalletPanel() {
         <Button
           text="Sign Message"
           onClick={() => signMessage({ message: 'Hello from ZeroDev!' })}
+        />
+        <Button
+          text="Sign Typed Data"
+          onClick={() =>
+            signTypedData({
+              domain: {
+                name: 'Example DApp',
+                chainId: 11155111,
+                verifyingContract: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+              },
+              types: {
+                Mail: [
+                  { name: 'from', type: 'string' },
+                  { name: 'to', type: 'string' },
+                  { name: 'contents', type: 'string' },
+                ],
+              },
+              primaryType: 'Mail',
+              message: {
+                from: 'Alice',
+                to: 'Bob',
+                contents: 'Hello from ZeroDev!',
+              },
+            })
+          }
         />
       </div>
 
