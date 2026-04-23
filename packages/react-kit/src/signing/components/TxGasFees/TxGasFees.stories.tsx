@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { type GasFee, TxGasFeesSkeleton, TxGasFeesUI } from '.'
+import { type GasFee, TxGasFees, TxGasFeesSkeleton } from '.'
 
 const gasFees: GasFee[] = [
   { tier: 'low', duration: 120, fee: '0.0001 ETH', feeUsd: '$0.30' },
@@ -10,7 +10,7 @@ const gasFees: GasFee[] = [
 
 const meta = {
   title: 'Signing/TxGasFees',
-  component: TxGasFeesUI,
+  component: TxGasFees,
   parameters: {
     layout: 'centered',
   },
@@ -35,7 +35,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof TxGasFeesUI>
+} satisfies Meta<typeof TxGasFees>
 
 export default meta
 type Story = StoryObj<typeof meta>

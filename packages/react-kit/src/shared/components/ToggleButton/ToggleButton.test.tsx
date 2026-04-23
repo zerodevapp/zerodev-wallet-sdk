@@ -59,7 +59,7 @@ describe('ToggleButton', () => {
     it('uses the solarOrange hex color when value is true', () => {
       const { container } = render(<ToggleButton value={true} />)
       const thumb = container.querySelector('.rounded-full')
-      expect(thumb?.className).toContain('bg-[#E76000]')
+      expect(thumb?.className).toContain('bg-solarOrange')
     })
 
     it('uses greyScale/30 when value is false', () => {

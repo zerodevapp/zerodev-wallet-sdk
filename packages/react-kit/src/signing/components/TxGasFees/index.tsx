@@ -73,7 +73,7 @@ export function TxGasFeesSkeleton() {
   )
 }
 
-export function TxGasFeesUI({
+export function TxGasFees({
   selectedGasTier,
   gasFees,
   slippage,
