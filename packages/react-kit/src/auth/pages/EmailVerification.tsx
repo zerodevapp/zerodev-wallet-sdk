@@ -1,14 +1,14 @@
+import { useSendMagicLink } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
-import { useSendMagicLink } from '../hooks/useSendMagicLink'
 
 export function EmailVerification() {
-  const { email, goToStep } = useAuth()
-  const { sendMagicLink, isPending: isSendMagicLinkPending } =
+  const { email, config: authConfig, setOtpId, goToStep } = useAuth()
+  const { mutateAsync: sendMagicLink, isPending: isSendMagicLinkPending } =
     useSendMagicLink()
 
   const [secondsLeftUntilResend, setSecondsLeftUntilResend] = useState(60)
@@ -27,10 +27,14 @@ export function EmailVerification() {
   }, [secondsLeftUntilResend])
 
   const handleResendOtp = async () => {
-    if (!email || !canResend) return
+    if (!email || !canResend || !authConfig) return
 
     try {
-      await sendMagicLink({ email })
+      const { otpId } = await sendMagicLink({
+        email,
+        redirectURL: `${authConfig.magicLinkBaseUrl}/auth/verify-email?otp=%s&otpSource=email`,
+      })
+      setOtpId(otpId)
       setSecondsLeftUntilResend(60)
     } catch {
       // Error sending magic link
