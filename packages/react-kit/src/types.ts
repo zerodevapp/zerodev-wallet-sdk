@@ -1,4 +1,10 @@
-import type { Hex, RpcTransactionRequest } from 'viem'
+import type { Address, Hex, RpcTransactionRequest } from 'viem'
+
+export type BatchCall = {
+  to?: Address
+  data?: Hex
+  value?: Hex
+}
 
 // todo: these should be moved to core package and exported from there
 export type Request =
@@ -9,6 +15,17 @@ export type Request =
   | {
       method: 'wallet_sendTransaction'
       params: [transaction: RpcTransactionRequest]
+    }
+  | {
+      method: 'wallet_sendCalls'
+      params: [
+        {
+          version: string
+          chainId: Hex
+          from: Address
+          calls: BatchCall[]
+        },
+      ]
     }
   | {
       method: 'personal_sign'

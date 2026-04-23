@@ -11,6 +11,7 @@ import type { Request, RequestMethod } from './types.js'
 const DEFAULT_SIGNING_PROMPT_METHODS: RequestMethod[] = [
   'eth_sendTransaction',
   'wallet_sendTransaction',
+  'wallet_sendCalls',
   'personal_sign',
   'eth_signTypedData_v4',
 ]
