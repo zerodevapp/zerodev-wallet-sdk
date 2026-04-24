@@ -5,6 +5,7 @@ import loadingImg from '../../../../../../assets/states/loading.png'
 import sendImg from '../../../../../../assets/states/send.png'
 import successImg from '../../../../../../assets/states/success.png'
 import { cn } from '../../utils/common'
+import { Text } from '../Text'
 
 export type StateImageName = 'error' | 'loading' | 'send' | 'success'
 
@@ -36,8 +37,8 @@ export function StatusView({
         className="w-[118px] h-[118px] bg-transparent"
       />
       <div className="flex flex-col gap-4 items-center">
-        <h2 className="text-2xl font-semibold text-center">{title}</h2>
-        <p className="text-base text-center">{children}</p>
+        <Text className="text-h2 text-center whitespace-pre-wrap">{title}</Text>
+        <Text className="text-center whitespace-pre-wrap">{children}</Text>
       </div>
     </div>
   )

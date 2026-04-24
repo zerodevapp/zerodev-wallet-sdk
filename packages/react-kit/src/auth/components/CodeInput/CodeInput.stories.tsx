@@ -10,16 +10,14 @@ const meta = {
   },
   tags: ['autodocs'],
   argTypes: {
-    length: { control: { type: 'number', min: 4, max: 8 } },
     disabled: { control: 'boolean' },
-    error: { control: 'boolean' },
     autoFocus: { control: 'boolean' },
+    length: { control: { type: 'number', min: 4, max: 8, step: 1 } },
   },
   args: {
-    length: 6,
     disabled: false,
-    error: false,
     autoFocus: false,
+    length: 6,
   },
 } satisfies Meta<typeof CodeInput>
 
@@ -28,15 +26,19 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-export const WithError: Story = {
-  args: {
-    error: true,
-  },
-}
-
 export const Disabled: Story = {
   args: {
     disabled: true,
+  },
+}
+
+export const WithOnComplete: Story = {
+  args: {
+    onComplete: (code) => {
+      // biome-ignore lint/suspicious/noConsole: This is a demo/story
+      console.log(`Code complete: ${code}`)
+      alert(`Code complete: ${code}`)
+    },
   },
 }
 
@@ -46,11 +48,9 @@ export const FourDigits: Story = {
   },
 }
 
-export const WithOnComplete: Story = {
+export const EightDigits: Story = {
   args: {
-    onComplete: (code) => {
-      alert(`Code complete: ${code}`)
-    },
+    length: 8,
   },
 }
 
@@ -58,20 +58,20 @@ export const AllStates: Story = {
   render: () => (
     <div className="flex flex-col gap-8 items-center">
       <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-500 font-medium">Default</span>
-        <CodeInput />
+        <span className="text-sm text-gray-500 font-medium">Default (6)</span>
+        <CodeInput onComplete={() => window.alert('Completed')} />
       </div>
       <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-red-500 font-medium">Error</span>
-        <CodeInput error />
+        <span className="text-sm text-gray-500 font-medium">4 digits</span>
+        <CodeInput length={4} />
+      </div>
+      <div className="flex flex-col gap-2 items-center">
+        <span className="text-sm text-gray-500 font-medium">8 digits</span>
+        <CodeInput length={8} />
       </div>
       <div className="flex flex-col gap-2 items-center">
         <span className="text-sm text-gray-400 font-medium">Disabled</span>
         <CodeInput disabled />
-      </div>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-500 font-medium">4-digit</span>
-        <CodeInput length={4} />
       </div>
     </div>
   ),

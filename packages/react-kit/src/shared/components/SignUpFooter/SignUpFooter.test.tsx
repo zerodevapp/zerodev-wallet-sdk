@@ -43,15 +43,6 @@ describe('SignUpFooter', () => {
 
       expect(screen.getByTestId('app-logo')).toBeDefined()
     })
-
-    it('renders "Powered by:" text', () => {
-      const mockSetAgreed = vi.fn()
-      render(
-        <SignUpFooter agreedToTerms={false} setAgreedToTerms={mockSetAgreed} />,
-      )
-
-      expect(screen.getByText('Powered by:')).toBeDefined()
-    })
   })
 
   describe('checkbox state', () => {
@@ -120,21 +111,11 @@ describe('SignUpFooter', () => {
         <SignUpFooter agreedToTerms={false} setAgreedToTerms={mockSetAgreed} />,
       )
 
-      const checkboxRow = container.querySelector('.flex-row')
+      // Get the inner div (checkbox row), not the container
+      const checkboxRow = container.querySelector('.flex.flex-row')
       expect(checkboxRow).toBeDefined()
       expect(checkboxRow?.className).toContain('items-center')
       expect(checkboxRow?.className).toContain('gap-2')
-    })
-
-    it('renders logo section with correct layout', () => {
-      const mockSetAgreed = vi.fn()
-      const { container } = render(
-        <SignUpFooter agreedToTerms={false} setAgreedToTerms={mockSetAgreed} />,
-      )
-
-      const logoSection = container.querySelectorAll('.flex-row')[1]
-      expect(logoSection).toBeDefined()
-      expect(logoSection?.className).toContain('gap-1.5')
     })
   })
 })

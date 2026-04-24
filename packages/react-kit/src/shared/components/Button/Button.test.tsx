@@ -52,13 +52,13 @@ describe('Button', () => {
     it('applies primary classes by default', () => {
       render(<Button text="Primary" />)
       const button = screen.getByRole('button')
-      expect(button.className).toContain('bg-gray-900/90')
+      expect(button.className).toContain('bg-greyScale/90')
     })
 
     it('applies primary classes when action="primary"', () => {
       render(<Button text="Primary" action="primary" />)
       const button = screen.getByRole('button')
-      expect(button.className).toContain('bg-gray-900/90')
+      expect(button.className).toContain('bg-greyScale/90')
     })
 
     it('applies secondary classes when action="secondary"', () => {
@@ -70,7 +70,7 @@ describe('Button', () => {
     it('applies secondaryNeutral classes when action="secondaryNeutral"', () => {
       render(<Button text="Neutral" action="secondaryNeutral" />)
       const button = screen.getByRole('button')
-      expect(button.className).toContain('bg-gray-700/70')
+      expect(button.className).toContain('bg-greyScale/70')
     })
 
     it('applies correct text classes for primary action', () => {

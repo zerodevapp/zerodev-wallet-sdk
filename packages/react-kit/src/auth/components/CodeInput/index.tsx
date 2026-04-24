@@ -1,155 +1,119 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { Text } from '../../../shared/components/Text'
+import { Wrapper } from '../../../shared/components/Wrapper'
 import { cn } from '../../../shared/utils/common'
 
+const MIN_LENGTH = 4
+const MAX_LENGTH = 8
+const DEFAULT_LENGTH = 6
+
+function clampLength(length: number): number {
+  return Math.max(MIN_LENGTH, Math.min(MAX_LENGTH, length))
+}
+
+interface CharBoxProps {
+  char: string
+  isFocused: boolean
+}
+
+function CharBox({ char, isFocused }: CharBoxProps) {
+  return (
+    <Wrapper
+      className={cn(
+        'h-16 w-14 rounded-lg flex items-center justify-center',
+        isFocused && 'border-[1.5px] border-greyScale',
+      )}
+    >
+      <Text className="text-h2">{char}</Text>
+    </Wrapper>
+  )
+}
+
 export interface CodeInputProps {
-  length?: number
   onChange?: (code: string) => void
   onComplete?: (code: string) => void
   disabled?: boolean
   error?: boolean
   autoFocus?: boolean
+  length?: number
   'data-testid'?: string
 }
 
 export function CodeInput({
-  length = 6,
   onChange,
   onComplete,
   disabled = false,
   error = false,
   autoFocus = false,
+  length = DEFAULT_LENGTH,
   'data-testid': testId,
 }: CodeInputProps) {
-  const [values, setValues] = useState<string[]>(Array(length).fill(''))
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const digitKeys = useRef(Array.from({ length }, (_, i) => `digit-${i}`))
+  const codeLength = clampLength(length)
+  const charBoxes = useMemo(
+    () =>
+      Array.from({ length: codeLength }, (_, i) => ({
+        id: `char-${i}`,
+        index: i,
+      })),
+    [codeLength],
+  )
+
+  const [code, setCode] = useState('')
+  const [isFocused, setIsFocused] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setValues(Array(length).fill(''))
-    digitKeys.current = Array.from({ length }, (_, i) => `digit-${i}`)
-    inputRefs.current = inputRefs.current.slice(0, length)
-  }, [length])
-  const focusIndex = (index: number) => {
-    inputRefs.current[index]?.focus()
-  }
+    if (autoFocus && !disabled) {
+      inputRef.current?.focus()
+    }
+  }, [autoFocus, disabled])
 
   useEffect(() => {
-    if (autoFocus) {
-      inputRefs.current[0]?.focus()
-    }
-  }, [autoFocus])
+    setCode((prev) => prev.slice(0, codeLength))
+  }, [codeLength])
 
-  const handleChange = (index: number, raw: string) => {
-    // Accept only the last digit typed (handles Android auto-fill sending full string)
-    const digit = raw.replace(/\D/g, '').slice(-1)
-    const next = [...values]
-    next[index] = digit
-    setValues(next)
+  const handleChange = (text: string) => {
+    const sanitized = text.slice(0, codeLength).toUpperCase()
+    setCode(sanitized)
+    onChange?.(sanitized)
 
-    const code = next.join('')
-    onChange?.(code)
-    if (digit && index < length - 1) {
-      focusIndex(index + 1)
-    }
-    if (code.replace(/\s/g, '').length === length && !next.includes('')) {
-      onComplete?.(code)
-    }
-  }
-
-  const handleKeyDown = (
-    index: number,
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    // Handle digit keys directly so that typing the same digit still advances focus.
-    // The browser skips onChange when the value doesn't actually change (e.g. "5" → "5"),
-    // so we bypass it entirely for digit input.
-    if (/^\d$/.test(e.key)) {
-      e.preventDefault()
-      handleChange(index, e.key)
-      return
-    }
-
-    if (e.key === 'Backspace') {
-      if (values[index]) {
-        const next = [...values]
-        next[index] = ''
-        setValues(next)
-        onChange?.(next.join(''))
-      } else if (index > 0) {
-        focusIndex(index - 1)
-        const next = [...values]
-        next[index - 1] = ''
-        setValues(next)
-        onChange?.(next.join(''))
-      }
-      e.preventDefault()
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      e.preventDefault()
-      focusIndex(index - 1)
-    } else if (e.key === 'ArrowRight' && index < length - 1) {
-      e.preventDefault()
-      focusIndex(index + 1)
-    }
-  }
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    const pasted = e.clipboardData
-      .getData('text')
-      .replace(/\D/g, '')
-      .slice(0, length)
-    if (!pasted) return
-    const next = [...values]
-    for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i] ?? ''
-    }
-    setValues(next)
-    const code = next.join('')
-    onChange?.(code)
-    const focusTarget = Math.min(pasted.length, length - 1)
-    focusIndex(focusTarget)
-    if (pasted.length === length) {
-      onComplete?.(code)
+    if (sanitized.length === codeLength) {
+      // Makes sure onComplete is run on the next render cycle after the last char is rendered
+      setTimeout(() => {
+        onComplete?.(sanitized)
+        inputRef.current?.blur()
+      }, 0)
     }
   }
 
   return (
-    <div className="flex gap-3" data-testid={testId}>
-      {digitKeys.current.map((key, i) => (
-        <input
-          key={key}
-          ref={(el) => {
-            inputRefs.current[i] = el
-          }}
-          type="text"
-          inputMode="numeric"
-          pattern="\d*"
-          maxLength={1}
-          value={values[i] ?? ''}
-          disabled={disabled}
-          aria-label={`Digit ${i + 1}`}
-          data-testid={testId ? `${testId}-${i}` : undefined}
-          onChange={(e) => {
-            handleChange(i, e.target.value)
-          }}
-          onKeyDown={(e) => {
-            handleKeyDown(i, e)
-          }}
-          onPaste={handlePaste}
-          onFocus={(e) => {
-            e.target.select()
-          }}
-          className={cn(
-            'w-12 h-14 text-center text-xl font-semibold rounded-xl border-2 outline-none transition-colors',
-            'bg-white text-gray-900 caret-transparent',
-            error
-              ? 'border-red-500 focus:border-red-600'
-              : 'border-gray-200 focus:border-gray-900',
-            disabled && 'opacity-50 cursor-not-allowed bg-gray-100',
-          )}
+    <button
+      type="button"
+      className="flex flex-row items-center justify-between gap-2 w-full cursor-text"
+      onClick={() => inputRef.current?.focus()}
+      disabled={disabled}
+      data-testid={testId}
+    >
+      <input
+        ref={inputRef}
+        value={code}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        maxLength={codeLength}
+        disabled={disabled}
+        className="absolute opacity-0 pointer-events-none"
+        style={{ position: 'absolute', opacity: 0 }}
+        aria-label="Verification code"
+      />
+      {charBoxes.map((box) => (
+        <CharBox
+          key={box.id}
+          char={code[box.index] ?? ''}
+          isFocused={!error && isFocused && box.index === code.length}
         />
       ))}
-    </div>
+    </button>
   )
 }
