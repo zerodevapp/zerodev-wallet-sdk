@@ -49,6 +49,10 @@ export type { DetailsContainerProps } from './signing/components/DetailsContaine
 export { DetailsContainer } from './signing/components/DetailsContainer'
 export type { InfoCardProps } from './signing/components/InfoCard'
 export { InfoCard } from './signing/components/InfoCard'
+export type { SmartFundingProps } from './signing/components/SmartFunding'
+export { SmartFunding } from './signing/components/SmartFunding'
+export type { SmartFundingGasDetailsProps } from './signing/components/SmartFundingGasDetails'
+export { SmartFundingGasDetails } from './signing/components/SmartFundingGasDetails'
 export type {
   GasFee,
   GasTier,
