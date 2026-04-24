@@ -8,7 +8,7 @@ import {
 } from 'viem'
 import { useReadContract } from 'wagmi'
 import type { BatchCall } from '../../types.js'
-import { SigningActions } from '../components/SigningActions.js'
+import { SigningActions } from '../components/SigningActions'
 import {
   decodeCollectionApproval,
   isCollectionApproval,
