@@ -96,7 +96,7 @@ describe('SmartFundingGasDetails', () => {
 
     it('renders a RouteItem per bridge entry', () => {
       render(<SmartFundingGasDetails {...baseProps} />)
-      expect(screen.getByText('Arbitrum')).toBeDefined()
+      expect(screen.getAllByText('Arbitrum').length).toBeGreaterThan(0)
       expect(screen.getByText('Optimism')).toBeDefined()
     })
 
