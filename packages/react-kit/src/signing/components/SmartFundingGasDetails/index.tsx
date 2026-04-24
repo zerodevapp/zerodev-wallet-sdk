@@ -76,7 +76,7 @@ export function SmartFundingGasDetails({
               <Text>{bridge.length} Bridge</Text>
               {bridge.map((gasRoute, key) => (
                 <RouteItem
-                  key={'bridge' + key.toString()}
+                  key={`bridge${key.toString()}`}
                   source={gasRoute.source}
                   destination={gasRoute.destination}
                   gasFee={gasRoute.gasFee}
@@ -90,7 +90,7 @@ export function SmartFundingGasDetails({
               <Text>{swapped.length} Swapped</Text>
               {swapped.map((gasRoute, key) => (
                 <RouteItem
-                  key={'swap' + key.toString()}
+                  key={`swap${key.toString()}`}
                   source={gasRoute.source}
                   destination={gasRoute.destination}
                   gasFee={gasRoute.gasFee}
@@ -103,7 +103,7 @@ export function SmartFundingGasDetails({
             <Text>Fees:</Text>
             {providerFees.map((item, key) => (
               <DataRow
-                key={'fee' + key.toString()}
+                key={`fee${key.toString()}`}
                 label={`${item.provider} Fee (${item.percentage}%)`}
                 value={item.fee}
                 iconName="gasStation"
