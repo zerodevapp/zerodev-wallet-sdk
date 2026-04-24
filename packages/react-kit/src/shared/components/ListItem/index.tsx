@@ -108,7 +108,7 @@ export function ListItem({
           </div>
         </div>
         {details ? (
-          <div className="flex flex-col">
+          <div className="flex flex-col pr-1">
             <Text className="text-body1">{details.text}</Text>
             {details.subtext && (
               <Text className="text-body3 text-greyScale/50 self-end">
@@ -117,7 +117,9 @@ export function ListItem({
             )}
           </div>
         ) : chevron ? (
-          <Icon name="chevronRight" className="h-6 w-6" />
+          <div className="w-13 h-13 flex items-center justify-center">
+            <Icon name="chevronRight" className="h-6 w-6" />
+          </div>
         ) : null}
       </button>
     </Wrapper>
