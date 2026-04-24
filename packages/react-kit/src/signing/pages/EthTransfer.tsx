@@ -1,5 +1,5 @@
 import { type Address, formatEther, type Hex } from 'viem'
-import { SigningActions } from '../components/SigningActions.js'
+import { SigningActions } from '../components/SigningActions'
 
 interface EthTransferProps {
   to: Address

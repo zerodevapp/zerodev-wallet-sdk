@@ -1,5 +1,5 @@
 import type { Hex } from 'viem'
-import { SigningActions } from '../components/SigningActions.js'
+import { SigningActions } from '../components/SigningActions'
 import { decodePersonalSignMessage } from '../utils/personalSign.js'
 
 interface PersonalSignProps {

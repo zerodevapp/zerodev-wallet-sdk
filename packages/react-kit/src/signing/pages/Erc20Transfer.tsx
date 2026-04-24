@@ -1,6 +1,6 @@
 import { type Address, erc20Abi, formatUnits } from 'viem'
 import { useReadContract } from 'wagmi'
-import { SigningActions } from '../components/SigningActions.js'
+import { SigningActions } from '../components/SigningActions'
 
 interface Erc20TransferProps {
   contract: Address
