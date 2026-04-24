@@ -27,11 +27,7 @@ export function AuthFlow() {
 
   switch (step) {
     case 'initializing':
-      return (
-        <StatusView imageName="loading" title="Initializing...">
-          Setting up authentication...
-        </StatusView>
-      )
+      return null
     case 'sign-up':
       return <SignUp />
     case 'email-verification':

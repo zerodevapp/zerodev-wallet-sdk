@@ -43,7 +43,6 @@ export const createAuthStoreSlice: StateCreator<
           ...state.auth,
           config,
           enabledMethods: config.enabledMethods,
-          step: 'sign-up',
         },
       }))
     },

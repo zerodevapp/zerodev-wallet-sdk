@@ -66,17 +66,11 @@ vi.mock('./hooks/useAuth', () => ({
 }))
 
 describe('AuthFlow', () => {
-  it('renders initializing state', () => {
+  it('renders nothing in initializing state', () => {
     mockStep = 'initializing'
-    render(<AuthFlow />)
+    const { container } = render(<AuthFlow />)
 
-    expect(screen.getByTestId('status-view')).toBeDefined()
-    expect(screen.getByTestId('status-title').textContent).toBe(
-      'Initializing...',
-    )
-    expect(screen.getByTestId('status-content').textContent).toBe(
-      'Setting up authentication...',
-    )
+    expect(container.firstChild).toBeNull()
   })
 
   it('renders sign-up page', () => {
