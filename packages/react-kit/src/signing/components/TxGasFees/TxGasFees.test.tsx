@@ -16,7 +16,7 @@ vi.mock('../../../shared/components/Icon', async () => {
   }
 })
 
-import { type GasFee, TxGasFeesSkeleton, TxGasFeesUI } from './index'
+import { type GasFee, TxGasFees, TxGasFeesSkeleton } from './index'
 
 afterEach(() => {
   cleanup()
@@ -28,10 +28,10 @@ const gasFees: GasFee[] = [
   { tier: 'fast', duration: 10, fee: '0.001 ETH', feeUsd: '$3.00' },
 ]
 
-describe('TxGasFeesUI', () => {
+describe('TxGasFees', () => {
   describe('rendering', () => {
     it('renders the header with the gas icon and title', () => {
-      render(<TxGasFeesUI selectedGasTier="market" gasFees={gasFees} />)
+      render(<TxGasFees selectedGasTier="market" gasFees={gasFees} />)
       expect(screen.getByText('Estimated Gas Fees')).toBeDefined()
       expect(screen.getAllByTestId('icon-lightingFill').length).toBeGreaterThan(
         0,
@@ -39,20 +39,20 @@ describe('TxGasFeesUI', () => {
     })
 
     it('renders the selected tier label inside the tier selector pill', () => {
-      render(<TxGasFeesUI selectedGasTier="fast" gasFees={gasFees} />)
+      render(<TxGasFees selectedGasTier="fast" gasFees={gasFees} />)
       // 'Fast' appears twice: once in the selector pill, once in the ListItem
       expect(screen.getAllByText('Fast')).toHaveLength(2)
     })
 
     it('renders one row per gas tier', () => {
-      render(<TxGasFeesUI selectedGasTier="market" gasFees={gasFees} />)
+      render(<TxGasFees selectedGasTier="market" gasFees={gasFees} />)
       expect(screen.getByText('Low')).toBeDefined()
       expect(screen.getAllByText('Market').length).toBeGreaterThan(0)
       expect(screen.getByText('Fast')).toBeDefined()
     })
 
     it('renders fee and feeUsd as details for each tier', () => {
-      render(<TxGasFeesUI selectedGasTier="market" gasFees={gasFees} />)
+      render(<TxGasFees selectedGasTier="market" gasFees={gasFees} />)
       expect(screen.getByText('0.0001 ETH')).toBeDefined()
       expect(screen.getByText('$0.30')).toBeDefined()
       expect(screen.getByText('0.001 ETH')).toBeDefined()
@@ -63,7 +63,7 @@ describe('TxGasFeesUI', () => {
   describe('tier icons', () => {
     it('uses the hourglass icon for the low tier', () => {
       render(
-        <TxGasFeesUI
+        <TxGasFees
           selectedGasTier="low"
           gasFees={[{ tier: 'low', duration: 0, fee: 'x' }]}
         />,
@@ -73,7 +73,7 @@ describe('TxGasFeesUI', () => {
 
     it('uses the rocket icon for the market tier', () => {
       render(
-        <TxGasFeesUI
+        <TxGasFees
           selectedGasTier="market"
           gasFees={[{ tier: 'market', duration: 0, fee: 'x' }]}
         />,
@@ -83,7 +83,7 @@ describe('TxGasFeesUI', () => {
 
     it('uses the lightingFill icon for the fast tier (in addition to header)', () => {
       render(
-        <TxGasFeesUI
+        <TxGasFees
           selectedGasTier="fast"
           gasFees={[{ tier: 'fast', duration: 0, fee: 'x' }]}
         />,
@@ -95,7 +95,7 @@ describe('TxGasFeesUI', () => {
 
   describe('selected tier display', () => {
     it('shows the selected tier fee and feeUsd in the Fee DataRow', () => {
-      render(<TxGasFeesUI selectedGasTier="market" gasFees={gasFees} />)
+      render(<TxGasFees selectedGasTier="market" gasFees={gasFees} />)
       expect(screen.getByText('0.0005 ETH ($1.50)')).toBeDefined()
     })
   })
@@ -103,11 +103,7 @@ describe('TxGasFeesUI', () => {
   describe('slippage', () => {
     it('renders a Slippage row when slippage is provided', () => {
       render(
-        <TxGasFeesUI
-          selectedGasTier="market"
-          gasFees={gasFees}
-          slippage={0.5}
-        />,
+        <TxGasFees selectedGasTier="market" gasFees={gasFees} slippage={0.5} />,
       )
       expect(screen.getByText('Slippage')).toBeDefined()
       expect(screen.getByText('0.5%')).toBeDefined()
@@ -115,14 +111,14 @@ describe('TxGasFeesUI', () => {
 
     it('renders Slippage when slippage is 0 (falsy but defined)', () => {
       render(
-        <TxGasFeesUI selectedGasTier="market" gasFees={gasFees} slippage={0} />,
+        <TxGasFees selectedGasTier="market" gasFees={gasFees} slippage={0} />,
       )
       expect(screen.getByText('Slippage')).toBeDefined()
       expect(screen.getByText('0%')).toBeDefined()
     })
 
     it('omits the Slippage row when slippage is undefined', () => {
-      render(<TxGasFeesUI selectedGasTier="market" gasFees={gasFees} />)
+      render(<TxGasFees selectedGasTier="market" gasFees={gasFees} />)
       expect(screen.queryByText('Slippage')).toBeNull()
     })
   })
