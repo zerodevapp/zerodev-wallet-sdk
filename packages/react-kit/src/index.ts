@@ -20,6 +20,8 @@ export { zeroDevKitWallet } from './connector.js'
 export type { ButtonProps } from './shared/components/Button'
 export { Button } from './shared/components/Button'
 export { Icon } from './shared/components/Icon'
+export type { IconButtonProps } from './shared/components/IconButton'
+export { IconButton } from './shared/components/IconButton'
 export type { InputProps } from './shared/components/Input'
 export { Input } from './shared/components/Input'
 export type {
