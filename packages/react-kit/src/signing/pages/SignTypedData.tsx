@@ -1,5 +1,5 @@
 import type { Hex } from 'viem'
-import { SigningActions } from '../components/SigningActions.js'
+import { SigningActions } from '../components/SigningActions'
 import { type DecodedTypedData, decodeTypedData } from '../utils/typedData.js'
 
 interface SignTypedDataProps {
