@@ -2,6 +2,7 @@
 
 import type { Address, Hex } from 'viem'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
+import { BatchCalls } from './pages/BatchCalls.js'
 import { CollectionApproval } from './pages/CollectionApproval.js'
 import { Erc20Approval } from './pages/Erc20Approval.js'
 import { Erc20Transfer } from './pages/Erc20Transfer.js'
@@ -85,6 +86,11 @@ export function SignatureRequest() {
           }
         }
         break
+      }
+
+      case 'wallet_sendCalls': {
+        const { calls } = pendingRequest.params[0]
+        return <BatchCalls calls={calls} confirm={confirm} reject={reject} />
       }
 
       case 'personal_sign': {

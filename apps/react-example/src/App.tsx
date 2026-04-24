@@ -8,6 +8,7 @@ import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
   useDisconnect,
+  useSendCalls,
   useSendTransaction,
   useSignMessage,
   useSignTypedData,
@@ -26,6 +27,7 @@ function WalletPanel() {
     error: signMessageError,
   } = useSignMessage()
   const { signTypedData } = useSignTypedData()
+  const { sendCalls } = useSendCalls()
   const { pendingRequests } = usePendingRequest()
 
   return (
@@ -137,6 +139,27 @@ function WalletPanel() {
                 to: 'Bob',
                 contents: 'Hello from ZeroDev!',
               },
+            })
+          }
+        />
+        <Button
+          text="Batch Calls"
+          onClick={() =>
+            sendCalls({
+              calls: [
+                {
+                  to: address!,
+                  value: parseEther('0.01'),
+                },
+                {
+                  to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+                  data: encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: 'transfer',
+                    args: [address!, 1000000n],
+                  }),
+                },
+              ],
             })
           }
         />
