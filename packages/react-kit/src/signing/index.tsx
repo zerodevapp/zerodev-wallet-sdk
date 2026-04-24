@@ -8,6 +8,7 @@ import { Erc20Transfer } from './pages/Erc20Transfer.js'
 import { EthTransfer } from './pages/EthTransfer.js'
 import { GenericRequest } from './pages/GenericRequest.js'
 import { PersonalSign } from './pages/PersonalSign.js'
+import { SignTypedData } from './pages/SignTypedData.js'
 import {
   decodeCollectionApproval,
   isCollectionApproval,
@@ -92,6 +93,18 @@ export function SignatureRequest() {
           <PersonalSign
             data={data}
             address={address}
+            confirm={confirm}
+            reject={reject}
+          />
+        )
+      }
+
+      case 'eth_signTypedData_v4': {
+        const [address, typedData] = pendingRequest.params
+        return (
+          <SignTypedData
+            address={address}
+            typedData={typedData}
             confirm={confirm}
             reject={reject}
           />
