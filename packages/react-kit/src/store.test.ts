@@ -115,4 +115,48 @@ describe('store', () => {
     expect(store1.getState().pendingRequests).toEqual([request])
     expect(store2.getState().pendingRequests).toEqual([])
   })
+
+  describe('auth slice', () => {
+    it('includes auth slice in initial state', () => {
+      const store = createStore()
+      const state = store.getState()
+
+      expect(state.auth).toBeDefined()
+      expect(state.auth.step).toBe('initializing')
+      expect(state.auth.stepHistory).toEqual([])
+      expect(state.auth.enabledMethods).toEqual([])
+      expect(state.auth.email).toBeNull()
+      expect(state.auth.otpId).toBeNull()
+      expect(state.auth.config).toBeNull()
+    })
+
+    it('auth and pending requests state are independent', () => {
+      const store = createStore()
+      const request = createMockPendingRequest()
+
+      store.getState().addPendingRequest(request)
+      store.getState().auth.setEmail('test@example.com')
+
+      expect(store.getState().pendingRequests).toHaveLength(1)
+      expect(store.getState().auth.email).toBe('test@example.com')
+    })
+
+    it('subscriptions work for both slices', () => {
+      const store = createStore()
+      const requestListener = vi.fn()
+      const authListener = vi.fn()
+      const request = createMockPendingRequest()
+
+      store.subscribe((state) => state.pendingRequests, requestListener)
+      store.subscribe((state) => state.auth.step, authListener)
+
+      store.getState().addPendingRequest(request)
+      expect(requestListener).toHaveBeenCalledTimes(1)
+      expect(authListener).not.toHaveBeenCalled()
+
+      store.getState().auth.goToStep('sign-up')
+      expect(authListener).toHaveBeenCalledTimes(1)
+      expect(requestListener).toHaveBeenCalledTimes(1)
+    })
+  })
 })
