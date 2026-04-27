@@ -67,7 +67,7 @@ export function CollectionApproval({
         )}
       </div>
 
-      <SigningActions confirm={confirm} reject={reject} />
+      <SigningActions onConfirm={confirm} onReject={reject} />
     </div>
   )
 }

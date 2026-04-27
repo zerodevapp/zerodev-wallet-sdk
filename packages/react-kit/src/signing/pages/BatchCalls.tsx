@@ -230,7 +230,7 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
         <CallItem key={`${call.to ?? 'unknown'}-${i}`} call={call} />
       ))}
 
-      <SigningActions confirm={confirm} reject={reject} />
+      <SigningActions onConfirm={confirm} onReject={reject} />
     </div>
   )
 }

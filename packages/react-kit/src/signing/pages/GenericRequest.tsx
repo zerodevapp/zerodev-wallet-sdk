@@ -28,7 +28,7 @@ export function GenericRequest({
       </pre>
 
       <div className="mt-4">
-        <SigningActions confirm={confirm} reject={reject} />
+        <SigningActions onConfirm={confirm} onReject={reject} />
       </div>
     </>
   )
