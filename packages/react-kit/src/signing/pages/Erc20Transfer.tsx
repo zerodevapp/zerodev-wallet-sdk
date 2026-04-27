@@ -1,5 +1,9 @@
 import { type Address, erc20Abi, formatUnits } from 'viem'
 import { useReadContract } from 'wagmi'
+
+import { Text } from '../../shared/components/Text'
+import { ArrowCardPair } from '../components/ArrowCardPair'
+import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
 
 interface Erc20TransferProps {
@@ -32,30 +36,30 @@ export function Erc20Transfer({
   const isLoading = symbolLoading || decimalsLoading
 
   if (isLoading) {
-    return <p className="text-sm text-gray-500">Loading token details...</p>
+    return <Text>Loading token details...</Text>
   }
 
   if (!decimals || !symbol) {
-    return <p className="text-sm text-red-500">Failed to load token details.</p>
+    return <Text>Failed to load token details.</Text>
   }
+
+  const formattedAmount = formatUnits(amount, decimals)
 
   return (
     <SigningLayout onConfirm={confirm} onReject={reject}>
-      <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">Send {symbol}</h3>
-
-        <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-          <p className="text-2xl font-bold text-gray-900">
-            {formatUnits(amount, decimals)} {symbol}
-          </p>
-          <div className="mt-2 text-sm text-gray-500">
-            <span className="font-medium">To: </span>
-            <span className="font-mono break-all">{to}</span>
-          </div>
-          <div className="mt-1 text-sm text-gray-500">
-            <span className="font-medium">Contract: </span>
-            <span className="font-mono break-all">{contract}</span>
-          </div>
+      <div className="flex flex-col gap-2 pt-4">
+        <div className="flex flex-col items-center justify-center gap-2 pb-2">
+          <Text className="text-h2">Send Token</Text>
+          <Text className="text-center">
+            You are about to send {formattedAmount} {symbol} to {to}.
+          </Text>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Text className="text-body1">You&#39;re sending</Text>
+          <ArrowCardPair
+            topCard={<InfoCard title={`${formattedAmount} ${symbol}`} />}
+            bottomCard={<InfoCard title={to} subtitle="Recipient" />}
+          />
         </div>
       </div>
     </SigningLayout>
