@@ -79,7 +79,7 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.step).toBe('sign-up')
+    expect(result.current.step).toBe('initializing')
     expect(result.current.enabledMethods).toEqual([
       'email',
       'google',
@@ -178,6 +178,7 @@ describe('useAuth', () => {
 
     // Change store state
     store.getState().auth.initialize(config)
+    store.getState().auth.goToStep('sign-up')
     rerender()
 
     expect(result.current.step).toBe('sign-up')
@@ -187,6 +188,7 @@ describe('useAuth', () => {
     const store = createStore()
     const config = createMockAuthConfig()
     store.getState().auth.initialize(config)
+    store.getState().auth.goToStep('sign-up')
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result, rerender } = renderHook(() => useAuth())

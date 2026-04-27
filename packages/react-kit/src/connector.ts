@@ -60,6 +60,29 @@ export function zeroDevKitWallet(
     return {
       ...connector,
 
+      async connect(connectParams) {
+        const isAuthorized = await connector.isAuthorized()
+        if (
+          !isAuthorized &&
+          params.config?.auth &&
+          store.getState().auth.step === 'initializing'
+        ) {
+          store.getState().auth.goToStep('sign-up')
+          await new Promise<void>((resolve) => {
+            const unsub = store.subscribe(
+              (state) => state.auth.step,
+              (step) => {
+                if (step === 'authenticated') {
+                  unsub()
+                  resolve()
+                }
+              },
+            )
+          })
+        }
+        return connector.connect(connectParams)
+      },
+
       async disconnect() {
         await connector.disconnect?.()
         // Reset auth state on disconnect

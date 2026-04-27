@@ -7,6 +7,7 @@ import {
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
+  useConnect,
   useDisconnect,
   useSendCalls,
   useSendTransaction,
@@ -193,10 +194,25 @@ function WalletPanel() {
 }
 
 export function App() {
+  const { connect, connectors } = useConnect()
   const { isConnected } = useAccount()
+
   return (
-    <div className="mx-auto h-full w-[500px]">
-      {isConnected ? <WalletPanel /> : <AuthFlow />}
+    <div className="mx-auto h-[800px] w-[500px]">
+      {!isConnected ? (
+        <>
+          <button
+            type="button"
+            onClick={() => connect({ connector: connectors[0] })}
+            className="mb-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 cursor-pointer"
+          >
+            Connect
+          </button>
+          <AuthFlow />
+        </>
+      ) : (
+        <WalletPanel />
+      )}
     </div>
   )
 }
