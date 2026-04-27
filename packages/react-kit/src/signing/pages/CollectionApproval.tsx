@@ -1,6 +1,6 @@
 import type { Address } from 'viem'
 import { useReadContract } from 'wagmi'
-import { SigningActions } from '../components/SigningActions'
+import { SigningLayout } from '../components/SigningLayout'
 
 const nameAbi = [
   {
@@ -42,32 +42,32 @@ export function CollectionApproval({
   const displayName = name || contract
 
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold text-gray-900">
-        {approved ? 'Approve Collection' : 'Revoke Collection Approval'}
-      </h3>
+    <SigningLayout onConfirm={confirm} onReject={reject}>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold text-gray-900">
+          {approved ? 'Approve Collection' : 'Revoke Collection Approval'}
+        </h3>
 
-      <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-        <p className="text-2xl font-bold text-gray-900">
-          {approved ? 'Grant Access' : 'Revoke Access'}
-        </p>
-        <div className="mt-2 text-sm text-gray-500">
-          <span className="font-medium">Collection: </span>
-          <span className="font-mono break-all">{displayName}</span>
-        </div>
-        <div className="mt-1 text-sm text-gray-500">
-          <span className="font-medium">Operator: </span>
-          <span className="font-mono break-all">{operator}</span>
-        </div>
-        {name && (
-          <div className="mt-1 text-sm text-gray-500">
-            <span className="font-medium">Contract: </span>
-            <span className="font-mono break-all">{contract}</span>
+        <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-gray-900">
+            {approved ? 'Grant Access' : 'Revoke Access'}
+          </p>
+          <div className="mt-2 text-sm text-gray-500">
+            <span className="font-medium">Collection: </span>
+            <span className="font-mono break-all">{displayName}</span>
           </div>
-        )}
+          <div className="mt-1 text-sm text-gray-500">
+            <span className="font-medium">Operator: </span>
+            <span className="font-mono break-all">{operator}</span>
+          </div>
+          {name && (
+            <div className="mt-1 text-sm text-gray-500">
+              <span className="font-medium">Contract: </span>
+              <span className="font-mono break-all">{contract}</span>
+            </div>
+          )}
+        </div>
       </div>
-
-      <SigningActions onConfirm={confirm} onReject={reject} />
-    </div>
+    </SigningLayout>
   )
 }

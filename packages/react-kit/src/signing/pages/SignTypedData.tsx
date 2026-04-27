@@ -1,5 +1,5 @@
 import type { Hex } from 'viem'
-import { SigningActions } from '../components/SigningActions'
+import { SigningLayout } from '../components/SigningLayout'
 import { type DecodedTypedData, decodeTypedData } from '../utils/typedData.js'
 
 interface SignTypedDataProps {
@@ -61,23 +61,25 @@ export function SignTypedData({
 
   if (!decoded) {
     return (
-      <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">Sign Typed Data</h3>
-        <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-          <p className="text-xs text-gray-500 mb-1">Raw data:</p>
-          <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
-            {typedData}
-          </pre>
+      <SigningLayout onConfirm={confirm} onReject={reject}>
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Sign Typed Data
+          </h3>
+          <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Raw data:</p>
+            <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
+              {typedData}
+            </pre>
+          </div>
         </div>
-        <SigningActions onConfirm={confirm} onReject={reject} />
-      </div>
+      </SigningLayout>
     )
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <SigningLayout onConfirm={confirm} onReject={reject}>
       <DecodedView decoded={decoded} address={address} />
-      <SigningActions onConfirm={confirm} onReject={reject} />
-    </div>
+    </SigningLayout>
   )
 }

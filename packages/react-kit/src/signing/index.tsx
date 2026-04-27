@@ -1,6 +1,5 @@
-'use client'
-
 import type { Address, Hex } from 'viem'
+import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
 import { BatchCalls } from './pages/BatchCalls.js'
 import { CollectionApproval } from './pages/CollectionApproval.js'
@@ -128,15 +127,18 @@ export function SignatureRequest() {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 mt-4 shadow-sm">
-      {renderContent()}
-
-      {pendingRequests.length > 1 && (
-        <p className="text-xs text-gray-500 mt-3">
-          +{pendingRequests.length - 1} more pending{' '}
-          {pendingRequests.length - 1 === 1 ? 'request' : 'requests'}
-        </p>
+    <ScreenWrapper>
+      {({ paddingTop }) => (
+        <div style={{ paddingTop }}>
+          {renderContent()}
+          {pendingRequests.length > 1 && (
+            <p className="text-xs text-gray-500 mt-3">
+              +{pendingRequests.length - 1} more pending{' '}
+              {pendingRequests.length - 1 === 1 ? 'request' : 'requests'}
+            </p>
+          )}
+        </div>
       )}
-    </div>
+    </ScreenWrapper>
   )
 }

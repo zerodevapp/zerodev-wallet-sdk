@@ -1,5 +1,5 @@
 import type { Hex } from 'viem'
-import { SigningActions } from '../components/SigningActions'
+import { SigningLayout } from '../components/SigningLayout'
 import { decodePersonalSignMessage } from '../utils/personalSign.js'
 
 interface PersonalSignProps {
@@ -18,29 +18,29 @@ export function PersonalSign({
   const message = decodePersonalSignMessage(data)
 
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold text-gray-900">Sign Message</h3>
+    <SigningLayout onConfirm={confirm} onReject={reject}>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold text-gray-900">Sign Message</h3>
 
-      <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-        {message !== null ? (
-          <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
-            {message}
-          </pre>
-        ) : (
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Raw data:</p>
+        <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
+          {message !== null ? (
             <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
-              {data}
+              {message}
             </pre>
+          ) : (
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Raw data:</p>
+              <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
+                {data}
+              </pre>
+            </div>
+          )}
+          <div className="mt-2 text-sm text-gray-500">
+            <span className="font-medium">Signer: </span>
+            <span className="font-mono break-all">{address}</span>
           </div>
-        )}
-        <div className="mt-2 text-sm text-gray-500">
-          <span className="font-medium">Signer: </span>
-          <span className="font-mono break-all">{address}</span>
         </div>
       </div>
-
-      <SigningActions onConfirm={confirm} onReject={reject} />
-    </div>
+    </SigningLayout>
   )
 }

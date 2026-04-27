@@ -8,7 +8,7 @@ import {
 } from 'viem'
 import { useReadContract } from 'wagmi'
 import type { BatchCall } from '../../types.js'
-import { SigningActions } from '../components/SigningActions'
+import { SigningLayout } from '../components/SigningLayout'
 import {
   decodeCollectionApproval,
   isCollectionApproval,
@@ -220,17 +220,17 @@ function CallItem({ call }: { call: BatchCall }) {
 
 export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold text-gray-900">
-        Batch Transaction ({calls.length}{' '}
-        {calls.length === 1 ? 'call' : 'calls'})
-      </h3>
+    <SigningLayout onConfirm={confirm} onReject={reject}>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Batch Transaction ({calls.length}{' '}
+          {calls.length === 1 ? 'call' : 'calls'})
+        </h3>
 
-      {calls.map((call, i) => (
-        <CallItem key={`${call.to ?? 'unknown'}-${i}`} call={call} />
-      ))}
-
-      <SigningActions onConfirm={confirm} onReject={reject} />
-    </div>
+        {calls.map((call, i) => (
+          <CallItem key={`${call.to ?? 'unknown'}-${i}`} call={call} />
+        ))}
+      </div>
+    </SigningLayout>
   )
 }
