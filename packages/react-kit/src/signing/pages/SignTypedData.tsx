@@ -69,7 +69,7 @@ export function SignTypedData({
             {typedData}
           </pre>
         </div>
-        <SigningActions confirm={confirm} reject={reject} />
+        <SigningActions onConfirm={confirm} onReject={reject} />
       </div>
     )
   }
@@ -77,7 +77,7 @@ export function SignTypedData({
   return (
     <div className="flex flex-col gap-3">
       <DecodedView decoded={decoded} address={address} />
-      <SigningActions confirm={confirm} reject={reject} />
+      <SigningActions onConfirm={confirm} onReject={reject} />
     </div>
   )
 }

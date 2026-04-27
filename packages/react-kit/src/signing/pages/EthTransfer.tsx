@@ -23,7 +23,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
         </div>
       </div>
 
-      <SigningActions confirm={confirm} reject={reject} />
+      <SigningActions onConfirm={confirm} onReject={reject} />
     </div>
   )
 }

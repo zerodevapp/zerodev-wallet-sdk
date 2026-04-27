@@ -57,7 +57,7 @@ export function Erc20Transfer({
         </div>
       </div>
 
-      <SigningActions confirm={confirm} reject={reject} />
+      <SigningActions onConfirm={confirm} onReject={reject} />
     </div>
   )
 }

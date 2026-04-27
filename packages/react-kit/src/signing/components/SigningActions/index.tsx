@@ -1,15 +1,44 @@
 import { Button } from '../../../shared/components/Button'
+import { Text } from '../../../shared/components/Text'
+import { Wrapper } from '../../../shared/components/Wrapper'
 
 interface SigningActionsProps {
-  confirm: () => void
-  reject: () => void
+  onConfirm: () => void
+  onReject: () => void
+  disabled?: boolean
 }
 
-export function SigningActions({ confirm, reject }: SigningActionsProps) {
+export function SigningActions({
+  onConfirm,
+  onReject,
+  disabled,
+}: SigningActionsProps) {
   return (
-    <div className="flex gap-3">
-      <Button text="Reject" onClick={reject} action="secondary" />
-      <Button text="Confirm" onClick={confirm} action="primary" />
-    </div>
+    <Wrapper className="p-1 gap-2 mb-1.5 -mx-1.5 rounded-3xl">
+      <div className="flex flex-row items-center gap-1">
+        <Button
+          text="Reject"
+          action="secondary"
+          className="flex-1"
+          onClick={onReject}
+        />
+        <Button
+          text="Confirm"
+          className="flex-1"
+          disabled={disabled}
+          onClick={onConfirm}
+        />
+      </div>
+      <Text className="self-center text-body3">
+        By continuing, you accept the{' '}
+        <Text as="span" className="underline">
+          Terms
+        </Text>{' '}
+        and{' '}
+        <Text as="span" className="underline">
+          Privacy Policy
+        </Text>
+      </Text>
+    </Wrapper>
   )
 }
