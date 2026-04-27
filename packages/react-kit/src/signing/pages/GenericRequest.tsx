@@ -1,5 +1,5 @@
 import type { PendingRequest } from '../../types.js'
-import { SigningActions } from '../components/SigningActions'
+import { SigningLayout } from '../components/SigningLayout'
 
 interface GenericRequestProps {
   request: PendingRequest
@@ -13,7 +13,7 @@ export function GenericRequest({
   reject,
 }: GenericRequestProps) {
   return (
-    <>
+    <SigningLayout onConfirm={confirm} onReject={reject}>
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         Confirm Request
       </h3>
@@ -26,10 +26,6 @@ export function GenericRequest({
       <pre className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 overflow-auto max-h-48 border border-gray-100">
         {JSON.stringify(request.params, null, 2)}
       </pre>
-
-      <div className="mt-4">
-        <SigningActions onConfirm={confirm} onReject={reject} />
-      </div>
-    </>
+    </SigningLayout>
   )
 }

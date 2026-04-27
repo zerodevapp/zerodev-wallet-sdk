@@ -29,13 +29,25 @@ export function SigningActions({
           onClick={onConfirm}
         />
       </div>
-      <Text className="self-center text-body3">
+      <Text className="text-center text-body3">
         By continuing, you accept the{' '}
-        <Text as="span" className="underline">
+        <Text
+          as="a"
+          href="https://zerodev.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
           Terms
         </Text>{' '}
         and{' '}
-        <Text as="span" className="underline">
+        <Text
+          as="a"
+          href="https://zerodev.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
           Privacy Policy
         </Text>
       </Text>
