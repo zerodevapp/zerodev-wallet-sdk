@@ -45,6 +45,8 @@ export { Wrapper } from './shared/components/Wrapper'
 
 // Signing
 export { SignatureRequest } from './signing'
+export type { AllocationModuleProps } from './signing/components/AllocationModule'
+export { AllocationModule } from './signing/components/AllocationModule'
 export type { DetailsContainerProps } from './signing/components/DetailsContainer'
 export { DetailsContainer } from './signing/components/DetailsContainer'
 export type { InfoCardProps } from './signing/components/InfoCard'
@@ -53,12 +55,19 @@ export type { SmartFundingProps } from './signing/components/SmartFunding'
 export { SmartFunding } from './signing/components/SmartFunding'
 export type { SmartFundingGasDetailsProps } from './signing/components/SmartFundingGasDetails'
 export { SmartFundingGasDetails } from './signing/components/SmartFundingGasDetails'
+export type { TxDetailsItemProps } from './signing/components/TxDetailsItem'
+export { TxDetailsItem } from './signing/components/TxDetailsItem'
 export type {
   GasFee,
   GasTier,
   TxGasFeesProps,
 } from './signing/components/TxGasFees'
 export { TxGasFees } from './signing/components/TxGasFees'
+export type {
+  Dapp,
+  TxInformationProps,
+} from './signing/components/TxInformation'
+export { TxInformation } from './signing/components/TxInformation'
 export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 
 export type { PendingRequest, Request, RequestMethod } from './types.js'
