@@ -14,7 +14,7 @@ Either is fine. This repo supports both: `EXPO_PUBLIC_REDIRECT_URI`,
 when set, opts into the App Link path; when unset,
 `Linking.createURL('oauth-callback')` builds the custom-scheme fallback.
 Both branches land in the same `Linking.addEventListener('url', ...)`
-handler inside [`oauth/createNativeOAuthGetSessionId.ts`](../oauth/createNativeOAuthGetSessionId.ts).
+handler inside [`src/oauth/createNativeOAuthGetSessionId.ts`](../src/oauth/createNativeOAuthGetSessionId.ts).
 
 This doc covers the App Link wiring. If you just want a custom scheme,
 leave `EXPO_PUBLIC_REDIRECT_URI` unset — no further setup needed.

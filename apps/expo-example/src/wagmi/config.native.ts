@@ -1,9 +1,9 @@
 import { zeroDevWallet } from '@zerodev/wallet-react'
 import { createConfig, createStorage, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
-import { asyncSessionStorage } from './lib/asyncSessionStorage'
-import { createReactNativePasskeyStamper } from './lib/reactNativePasskeyStamper'
-import { createSecureStoreStamper } from './lib/secureStoreStamper'
+import { asyncSessionStorage } from '@/lib/asyncSessionStorage'
+import { createReactNativePasskeyStamper } from '@/lib/reactNativePasskeyStamper'
+import { createSecureStoreStamper } from '@/lib/secureStoreStamper'
 
 const ZERODEV_PROJECT_ID = process.env.EXPO_PUBLIC_ZERODEV_PROJECT_ID ?? ''
 // RP_ID needs to be the same as Origin

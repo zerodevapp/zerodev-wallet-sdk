@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { REDIRECT_URI } from '../oauth/redirectUri'
+import { REDIRECT_URI } from '@/oauth/redirectUri'
 
 /**
  * Debug helper: displays the computed OAuth redirect URI and a Copy button so
