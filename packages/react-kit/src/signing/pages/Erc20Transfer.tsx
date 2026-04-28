@@ -5,6 +5,8 @@ import { Text } from '../../shared/components/Text'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
+import { type GasFee, type GasTier, TxGasFees } from '../components/TxGasFees'
+import { type Dapp, TxInformation } from '../components/TxInformation'
 
 interface Erc20TransferProps {
   contract: Address
@@ -12,6 +14,13 @@ interface Erc20TransferProps {
   amount: bigint
   confirm: () => void
   reject: () => void
+  dapp: Dapp
+  selectedGasTier: GasTier
+  gasFees: GasFee[]
+  slippage?: number
+  tokenSubtitle: string
+  tokenImageSource: string
+  recipientImageSource: string
 }
 
 export function Erc20Transfer({
@@ -20,6 +29,13 @@ export function Erc20Transfer({
   amount,
   confirm,
   reject,
+  dapp,
+  selectedGasTier,
+  gasFees,
+  slippage,
+  tokenSubtitle,
+  tokenImageSource,
+  recipientImageSource,
 }: Erc20TransferProps) {
   const { data: symbol, isLoading: symbolLoading } = useReadContract({
     address: contract,
@@ -54,11 +70,29 @@ export function Erc20Transfer({
             You are about to send {formattedAmount} {symbol} to {to}.
           </Text>
         </div>
+        <TxInformation dapp={dapp} />
         <div className="flex flex-col gap-2">
           <Text className="text-body1">You&#39;re sending</Text>
           <ArrowCardPair
-            topCard={<InfoCard title={`${formattedAmount} ${symbol}`} />}
-            bottomCard={<InfoCard title={to} subtitle="Recipient" />}
+            topCard={
+              <InfoCard
+                title={`${formattedAmount} ${symbol}`}
+                subtitle={tokenSubtitle}
+                imageSource={tokenImageSource}
+              />
+            }
+            bottomCard={
+              <InfoCard
+                title={to}
+                subtitle="Recipient"
+                imageSource={recipientImageSource}
+              />
+            }
+          />
+          <TxGasFees
+            selectedGasTier={selectedGasTier}
+            gasFees={gasFees}
+            {...(slippage !== undefined && { slippage })}
           />
         </div>
       </div>

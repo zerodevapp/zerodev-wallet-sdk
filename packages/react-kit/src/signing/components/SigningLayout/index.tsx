@@ -46,8 +46,8 @@ export function SigningLayout({
   error,
 }: SigningLayoutProps) {
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-2 pb-2">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pb-2">
         {children}
         {!!error && <AlertView {...getTxErrorInfo(error)} />}
       </div>
