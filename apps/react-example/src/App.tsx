@@ -1,10 +1,12 @@
 import {
   AuthFlow,
   Button,
+  type PendingRequest,
+  type Request,
   SignatureRequest,
   usePendingRequest,
 } from '@zerodev/wallet-react-kit'
-
+import { useId, useState } from 'react'
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
@@ -15,6 +17,46 @@ import {
   useSignMessage,
   useSignTypedData,
 } from 'wagmi'
+
+type SignatureRequestMode = 'default' | 'children' | 'controlled'
+
+function CustomConfirmUI({
+  pendingRequest,
+  confirm,
+  reject,
+}: {
+  pendingRequest: PendingRequest | null
+  confirm: () => void
+  reject: () => void
+}) {
+  if (!pendingRequest) return null
+  return (
+    <div className="mt-4 rounded-xl border border-purple-300 bg-purple-50 p-4">
+      <h3 className="text-sm font-semibold text-purple-900 mb-2">
+        Custom UI: {pendingRequest.method}
+      </h3>
+      <pre className="text-xs text-purple-800 mb-3 max-h-32 overflow-auto">
+        {JSON.stringify(pendingRequest.params, null, 2)}
+      </pre>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={confirm}
+          className="flex-1 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700 cursor-pointer"
+        >
+          Custom Confirm
+        </button>
+        <button
+          type="button"
+          onClick={reject}
+          className="flex-1 rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-300 cursor-pointer"
+        >
+          Custom Reject
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function WalletPanel() {
   const { address } = useAccount()
@@ -32,6 +74,31 @@ function WalletPanel() {
   const { sendCalls } = useSendCalls()
   const { pendingRequests } = usePendingRequest()
 
+  const [mode, setMode] = useState<SignatureRequestMode>('default')
+  const [controlledRequest, setControlledRequest] = useState<Request | null>(
+    null,
+  )
+  const modeSelectId = useId()
+
+  function handleControlledSendEth() {
+    setControlledRequest({
+      method: 'eth_sendTransaction',
+      params: [
+        {
+          from: address!,
+          to: address!,
+          value: `0x${parseEther('0.01').toString(16)}`,
+        },
+      ],
+    })
+  }
+
+  function handleControlledConfirm() {
+    if (!controlledRequest) return
+    sendTransaction({ to: address!, value: parseEther('0.01') })
+    setControlledRequest(null)
+  }
+
   return (
     <>
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -48,83 +115,110 @@ function WalletPanel() {
 
         <p className="text-xs text-gray-400 break-all mb-4">{address}</p>
 
-        <div className="flex flex-col gap-2">
-          <Button
-            text={
-              pendingRequests.length > 0 ? 'Queue ETH transfer' : 'Send ETH'
-            }
-            onClick={() =>
-              sendTransaction({
-                to: address!,
-                value: parseEther('0.01'),
-              })
-            }
-          />
-          <Button
-            text={
-              pendingRequests.length > 0
-                ? 'Queue ERC-20 transfer'
-                : 'Send ERC-20'
-            }
-            onClick={() =>
-              sendTransaction({
-                to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
-                data: encodeFunctionData({
-                  abi: erc20Abi,
-                  functionName: 'transfer',
-                  args: [address!, 1000000n],
-                }),
-              })
-            }
-          />
-          <Button
-            text={
-              pendingRequests.length > 0
-                ? 'Queue ERC-20 approval'
-                : 'Approve ERC-20'
-            }
-            onClick={() =>
-              sendTransaction({
-                to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
-                data: encodeFunctionData({
-                  abi: erc20Abi,
-                  functionName: 'approve',
-                  args: [address!, 1000000n],
-                }),
-              })
-            }
-          />
-          <Button
-            text="Collection Approval"
-            onClick={() =>
-              sendTransaction({
-                // Not an NFT — reusing USDC on Sepolia because it has a name() function,
-                // so the decoded UI loads fast. The setApprovalForAll calldata is the same regardless.
-                to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-                data: encodeFunctionData({
-                  abi: [
-                    {
-                      type: 'function',
-                      name: 'setApprovalForAll',
-                      inputs: [
-                        { name: 'operator', type: 'address' },
-                        { name: 'approved', type: 'bool' },
-                      ],
-                      outputs: [],
-                      stateMutability: 'nonpayable',
-                    },
-                  ],
-                  functionName: 'setApprovalForAll',
-                  args: [address!, true],
-                }),
-              })
-            }
-          />
-          <Button
-            text="Sign Message"
-            onClick={() => signMessage({ message: 'Hello from ZeroDev!' })}
-          />
-          <Button
+        <div className="mb-4 rounded-lg bg-gray-50 p-3">
+          <label
+            htmlFor={modeSelectId}
+            className="block text-xs font-medium text-gray-700 mb-1"
+          >
+            SignatureRequest mode
+          </label>
+          <select
+            id={modeSelectId}
+            value={mode}
+            onChange={(e) => {
+              setMode(e.target.value as SignatureRequestMode)
+              setControlledRequest(null)
+            }}
+            className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900"
+          >
+            <option value="default">Mode 1: default UI</option>
+            <option value="children">
+              Mode 2: custom UI via children function
+            </option>
+            <option value="controlled">
+              Mode 3: default UI via controlled props
+            </option>
+          </select>
+        </div>
+
+        {mode !== 'controlled' && (
+          <div className="flex flex-col gap-2">
+            <Button
+              text={
+                pendingRequests.length > 0 ? 'Queue ETH transfer' : 'Send ETH'
+              }
+              onClick={() =>
+                sendTransaction({
+                  to: address!,
+                  value: parseEther('0.01'),
+                })
+              }
+            />
+            <Button
+              text={
+                pendingRequests.length > 0
+                  ? 'Queue ERC-20 transfer'
+                  : 'Send ERC-20'
+              }
+              onClick={() =>
+                sendTransaction({
+                  to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
+                  data: encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: 'transfer',
+                    args: [address!, 1000000n],
+                  }),
+                })
+              }
+            />
+            <Button
+              text={
+                pendingRequests.length > 0
+                  ? 'Queue ERC-20 approval'
+                  : 'Approve ERC-20'
+              }
+              onClick={() =>
+                sendTransaction({
+                  to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
+                  data: encodeFunctionData({
+                    abi: erc20Abi,
+                    functionName: 'approve',
+                    args: [address!, 1000000n],
+                  }),
+                })
+              }
+            />
+            <Button
+              text="Collection Approval"
+              onClick={() =>
+                sendTransaction({
+                  // Not an NFT — reusing USDC on Sepolia because it has a name() function,
+                  // so the decoded UI loads fast. The setApprovalForAll calldata is the same regardless.
+                  to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+                  data: encodeFunctionData({
+                    abi: [
+                      {
+                        type: 'function',
+                        name: 'setApprovalForAll',
+                        inputs: [
+                          { name: 'operator', type: 'address' },
+                          { name: 'approved', type: 'bool' },
+                        ],
+                        outputs: [],
+                        stateMutability: 'nonpayable',
+                      },
+                    ],
+                    functionName: 'setApprovalForAll',
+                    args: [address!, true],
+                  }),
+                })
+              }
+            />
+            <Button
+              text="Sign Message"
+              onClick={() => signMessage({ message: 'Hello from ZeroDev!' })}
+            />
+<Button
             text="Sign Typed Data"
             onClick={() =>
               signTypedData({
@@ -173,28 +267,42 @@ function WalletPanel() {
               })
             }
           />
-          <Button
-            text="Batch Calls"
-            onClick={() =>
-              sendCalls({
-                calls: [
-                  {
-                    to: address!,
-                    value: parseEther('0.01'),
-                  },
-                  {
-                    to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-                    data: encodeFunctionData({
-                      abi: erc20Abi,
-                      functionName: 'transfer',
-                      args: [address!, 1000000n],
-                    }),
-                  },
-                ],
-              })
-            }
-          />
-        </div>
+            <Button
+              text="Batch Calls"
+              onClick={() =>
+                sendCalls({
+                  calls: [
+                    {
+                      to: address!,
+                      value: parseEther('0.01'),
+                    },
+                    {
+                      to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+                      data: encodeFunctionData({
+                        abi: erc20Abi,
+                        functionName: 'transfer',
+                        args: [address!, 1000000n],
+                      }),
+                    },
+                  ],
+                })
+              }
+            />
+          </div>
+        )}
+
+        {mode === 'controlled' && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-gray-500">
+              In controlled mode the app captures the request locally, renders
+              the default UI, and dispatches the tx itself on confirm.
+            </p>
+            <Button
+              text="Send ETH (controlled)"
+              onClick={handleControlledSendEth}
+            />
+          </div>
+        )}
 
         {isSuccess && <p className="text-green-600 text-sm mt-2">tx: {data}</p>}
         {isError && (
@@ -218,7 +326,28 @@ function WalletPanel() {
           </p>
         )}
       </div>
-      <SignatureRequest />
+
+      {mode === 'default' && <SignatureRequest />}
+
+      {mode === 'children' && (
+        <SignatureRequest>
+          {({ pendingRequest, confirm, reject }) => (
+            <CustomConfirmUI
+              pendingRequest={pendingRequest}
+              confirm={confirm}
+              reject={reject}
+            />
+          )}
+        </SignatureRequest>
+      )}
+
+      {mode === 'controlled' && controlledRequest && (
+        <SignatureRequest
+          request={controlledRequest}
+          onConfirm={handleControlledConfirm}
+          onReject={() => setControlledRequest(null)}
+        />
+      )}
     </>
   )
 }

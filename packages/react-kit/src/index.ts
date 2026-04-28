@@ -44,6 +44,7 @@ export type { WrapperProps, WrapperVariant } from './shared/components/Wrapper'
 export { Wrapper } from './shared/components/Wrapper'
 
 // Signing
+export type { SignatureRequestProps } from './signing'
 export { SignatureRequest } from './signing'
 export type { AllocationModuleProps } from './signing/components/AllocationModule'
 export { AllocationModule } from './signing/components/AllocationModule'

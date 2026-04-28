@@ -1,8 +1,8 @@
-import type { PendingRequest } from '../../types.js'
+import type { Request } from '../../types.js'
 import { SigningLayout } from '../components/SigningLayout'
 
 interface GenericRequestProps {
-  request: PendingRequest
+  request: Request
   confirm: () => void
   reject: () => void
 }
