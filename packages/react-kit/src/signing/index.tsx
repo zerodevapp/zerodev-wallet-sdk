@@ -1,5 +1,7 @@
 import type { Address, Hex } from 'viem'
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
+import type { GasFee, GasTier } from './components/TxGasFees/index.js'
+import type { Dapp } from './components/TxInformation/index.js'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
 import { BatchCalls } from './pages/BatchCalls.js'
 import { CollectionApproval } from './pages/CollectionApproval.js'
@@ -17,11 +19,39 @@ import { decodeErc20Approval, isErc20Approval } from './utils/erc20Approval.js'
 import { decodeErc20Transfer, isErc20Transfer } from './utils/erc20Transfer.js'
 import { isEthTransfer } from './utils/ethTransfer.js'
 
-export function SignatureRequest() {
+export interface SignatureRequestProps {
+  dapp: Dapp
+  selectedGasTier: GasTier
+  gasFees: GasFee[]
+  slippage?: number
+  tokenSubtitle: string
+  tokenImageSource: string
+  recipientImageSource: string
+}
+
+export function SignatureRequest({
+  dapp,
+  selectedGasTier,
+  gasFees,
+  slippage,
+  tokenSubtitle,
+  tokenImageSource,
+  recipientImageSource,
+}: SignatureRequestProps) {
   const { pendingRequest, pendingRequests, confirm, reject } =
     usePendingRequest()
 
   if (!pendingRequest) return null
+
+  const transferDisplay = {
+    dapp,
+    selectedGasTier,
+    gasFees,
+    ...(slippage !== undefined && { slippage }),
+    tokenSubtitle,
+    tokenImageSource,
+    recipientImageSource,
+  }
 
   function renderContent() {
     switch (pendingRequest.method) {
@@ -36,6 +66,7 @@ export function SignatureRequest() {
               value={tx.value as Hex}
               confirm={confirm}
               reject={reject}
+              {...transferDisplay}
             />
           )
         }
@@ -50,6 +81,7 @@ export function SignatureRequest() {
                 amount={decoded.amount}
                 confirm={confirm}
                 reject={reject}
+                {...transferDisplay}
               />
             )
           }
