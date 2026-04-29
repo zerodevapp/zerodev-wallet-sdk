@@ -62,7 +62,7 @@ export function CollectionApproval({
           </div>
           {name && (
             <div className="mt-1 text-sm text-gray-500">
-              <span className="font-medium">Contract: </span>
+              <span className="font-medium">Contraddct: </span>
               <span className="font-mono break-all">{contract}</span>
             </div>
           )}
