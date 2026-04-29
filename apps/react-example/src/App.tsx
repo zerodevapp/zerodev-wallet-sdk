@@ -4,6 +4,7 @@ import {
   SignatureRequest,
   usePendingRequest,
 } from '@zerodev/wallet-react-kit'
+
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
@@ -129,21 +130,44 @@ function WalletPanel() {
               signTypedData({
                 domain: {
                   name: 'Example DApp',
+                  version: '1',
                   chainId: 11155111,
                   verifyingContract:
                     '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
                 },
                 types: {
+                  Person: [
+                    { name: 'name', type: 'string' },
+                    { name: 'wallets', type: 'address[]' },
+                  ],
                   Mail: [
-                    { name: 'from', type: 'string' },
-                    { name: 'to', type: 'string' },
+                    { name: 'from', type: 'Person' },
+                    { name: 'to', type: 'Person[]' },
                     { name: 'contents', type: 'string' },
                   ],
                 },
                 primaryType: 'Mail',
                 message: {
-                  from: 'Alice',
-                  to: 'Bob',
+                  from: {
+                    name: 'Alice',
+                    wallets: [
+                      '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+                      '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
+                    ],
+                  },
+                  to: [
+                    {
+                      name: 'Bob',
+                      wallets: [
+                        '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+                        '0xB0B0000000000000000000000000000000000000',
+                      ],
+                    },
+                    {
+                      name: 'Charlie',
+                      wallets: ['0xC0FFEE0000000000000000000000000000000000'],
+                    },
+                  ],
                   contents: 'Hello from ZeroDev!',
                 },
               })

@@ -1,6 +1,12 @@
 import type { Hex } from 'viem'
+
+import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
+import { DataRow } from '../components/DataRow'
+import { DetailsContainer } from '../components/DetailsContainer'
 import { SigningLayout } from '../components/SigningLayout'
-import { type DecodedTypedData, decodeTypedData } from '../utils/typedData.js'
+import { TypedDataMessage } from '../components/TypedDataMessage'
+import { decodeTypedData } from '../utils/typedData.js'
 
 interface SignTypedDataProps {
   address: Hex
@@ -9,50 +15,7 @@ interface SignTypedDataProps {
   reject: () => void
 }
 
-function renderFields(fields: Record<string, unknown>) {
-  return Object.entries(fields).map(([key, value]) => (
-    <div key={key} className="mt-1 text-sm text-gray-500">
-      <span className="font-medium">{key}: </span>
-      <span className="font-mono break-all">
-        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-      </span>
-    </div>
-  ))
-}
-
-function DecodedView({
-  decoded,
-  address,
-}: {
-  decoded: DecodedTypedData
-  address: Hex
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold text-gray-900">
-        Sign {decoded.primaryType}
-      </h3>
-
-      <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-        {renderFields(decoded.message)}
-        <div className="mt-2 text-sm text-gray-500">
-          <span className="font-medium">Signer: </span>
-          <span className="font-mono break-all">{address}</span>
-        </div>
-      </div>
-
-      {Object.keys(decoded.domain).length > 0 && (
-        <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-          <p className="text-sm font-medium text-gray-700">Domain</p>
-          {renderFields(decoded.domain)}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function SignTypedData({
-  address,
   typedData,
   confirm,
   reject,
@@ -77,9 +40,46 @@ export function SignTypedData({
     )
   }
 
+  const { domain, message, primaryType, types } = decoded
+  const name = domain.name as string | undefined
+  const version = domain.version as string | undefined
+  const chainId = domain.chainId as number | string | undefined
+  const verifyingContract = domain.verifyingContract as string | undefined
+  const hasDomain = Object.keys(domain).length > 0
+
   return (
     <SigningLayout onConfirm={confirm} onReject={reject}>
-      <DecodedView decoded={decoded} address={address} />
+      <div className="flex flex-col gap-2 pt-4">
+        <div className="flex flex-col items-center justify-center gap-2 pb-2">
+          <Text className="text-h2">Signature Request</Text>
+          <Text className="text-center">
+            Review request details before you confirm.
+          </Text>
+        </div>
+        {hasDomain && (
+          <DetailsContainer title="Domain" iconName="info">
+            <DataRow label="Name" value={name} />
+            <DataRow label="Version" value={version} />
+            <DataRow
+              label="Network"
+              value={chainId !== undefined ? String(chainId) : undefined}
+            />
+            <DataRow
+              label="Contract"
+              value={
+                verifyingContract ? shortenHex(verifyingContract) : undefined
+              }
+            />
+          </DetailsContainer>
+        )}
+        <DetailsContainer title="Message" iconName="message">
+          <TypedDataMessage
+            message={message}
+            primaryType={primaryType}
+            types={types}
+          />
+        </DetailsContainer>
+      </div>
     </SigningLayout>
   )
 }
