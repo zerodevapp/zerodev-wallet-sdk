@@ -21,6 +21,10 @@ export function capitalizeFirst(str?: string | null): string {
   return first.toUpperCase() + str.slice(1)
 }
 
+export function shortenHex(hex: string, length = 4) {
+  return `${hex.slice(0, length + 2)}...${hex.slice(-length)}`
+}
+
 export function camelCaseToTitle(str: string): string {
   if (str.length === 0 || str.at(0) === str.at(0)?.toUpperCase()) {
     return str

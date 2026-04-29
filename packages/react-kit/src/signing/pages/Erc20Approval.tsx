@@ -1,6 +1,13 @@
 import { type Address, erc20Abi, formatUnits, maxUint256 } from 'viem'
 import { useReadContract } from 'wagmi'
+
+import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
+import { ArrowCardPair } from '../components/ArrowCardPair'
+import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
+import { type GasFee, type GasTier, TxGasFees } from '../components/TxGasFees'
+import { type Dapp, TxInformation } from '../components/TxInformation'
 
 interface Erc20ApprovalProps {
   contract: Address
@@ -8,6 +15,13 @@ interface Erc20ApprovalProps {
   amount: bigint
   confirm: () => void
   reject: () => void
+  dapp: Dapp
+  selectedGasTier: GasTier
+  gasFees: GasFee[]
+  slippage?: number
+  tokenSubtitle: string
+  tokenImageSource: string
+  spenderImageSource: string
 }
 
 export function Erc20Approval({
@@ -16,6 +30,13 @@ export function Erc20Approval({
   amount,
   confirm,
   reject,
+  dapp,
+  selectedGasTier,
+  gasFees,
+  slippage,
+  tokenSubtitle,
+  tokenImageSource,
+  spenderImageSource,
 }: Erc20ApprovalProps) {
   const { data: symbol, isLoading: symbolLoading } = useReadContract({
     address: contract,
@@ -32,35 +53,52 @@ export function Erc20Approval({
   const isLoading = symbolLoading || decimalsLoading
 
   if (isLoading) {
-    return <p className="text-sm text-gray-500">Loading token details...</p>
+    return <Text>Loading token details...</Text>
   }
 
   if (!decimals || !symbol) {
-    return <p className="text-sm text-red-500">Failed to load token details.</p>
+    return <Text>Failed to load token details.</Text>
   }
 
   const isUnlimited = amount === maxUint256
   const formattedAmount = isUnlimited
     ? 'Unlimited'
-    : `${formatUnits(amount, decimals)} ${symbol}`
+    : formatUnits(amount, decimals)
 
   return (
     <SigningLayout onConfirm={confirm} onReject={reject}>
-      <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Approve {symbol}
-        </h3>
-
-        <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-          <p className="text-2xl font-bold text-gray-900">{formattedAmount}</p>
-          <div className="mt-2 text-sm text-gray-500">
-            <span className="font-medium">Spenderss: </span>
-            <span className="font-mono break-all">{spender}</span>
-          </div>
-          <div className="mt-1 text-sm text-gray-500">
-            <span className="font-medium">Token: </span>
-            <span className="font-mono break-all">{contract}</span>
-          </div>
+      <div className="flex flex-col gap-2 pt-4">
+        <div className="flex flex-col items-center justify-center gap-2 pb-2">
+          <Text className="text-h2">Approve Token Spending</Text>
+          <Text className="text-center">
+            This contract is requesting permission to spend your {symbol}. This
+            is required for future transactions.
+          </Text>
+        </div>
+        <TxInformation dapp={dapp} />
+        <div className="flex flex-col gap-2">
+          <Text className="text-body1">You&#39;re approving:</Text>
+          <ArrowCardPair
+            topCard={
+              <InfoCard
+                title={`${formattedAmount} ${symbol}`}
+                subtitle={tokenSubtitle}
+                imageSource={tokenImageSource}
+              />
+            }
+            bottomCard={
+              <InfoCard
+                title="Spender"
+                subtitle={shortenHex(spender)}
+                imageSource={spenderImageSource}
+              />
+            }
+          />
+          <TxGasFees
+            selectedGasTier={selectedGasTier}
+            gasFees={gasFees}
+            {...(slippage !== undefined && { slippage })}
+          />
         </div>
       </div>
     </SigningLayout>
