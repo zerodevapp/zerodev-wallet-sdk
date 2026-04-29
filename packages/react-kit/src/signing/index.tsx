@@ -128,8 +128,8 @@ export function SignatureRequest() {
 
   return (
     <ScreenWrapper>
-      {({ paddingTop }) => (
-        <div style={{ paddingTop }}>
+      {() => (
+        <div className="h-full flex flex-col" style={{ paddingTop: 20 }}>
           {renderContent()}
           {pendingRequests.length > 1 && (
             <p className="text-xs text-gray-500 mt-3">
