@@ -25,6 +25,8 @@ const MOCK_TOKEN_SUBTITLE = '$175.00 USD'
 const MOCK_TOKEN_IMAGE_SOURCE = 'https://img.icons8.com/color/1200/ethereum.jpg'
 const MOCK_RECIPIENT_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/identicon/svg?seed=recipient'
+const MOCK_SPENDER_IMAGE_SOURCE =
+  'https://api.dicebear.com/7.x/identicon/svg?seed=spender'
 
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
@@ -224,6 +226,7 @@ function WalletPanel() {
         tokenSubtitle={MOCK_TOKEN_SUBTITLE}
         tokenImageSource={MOCK_TOKEN_IMAGE_SOURCE}
         recipientImageSource={MOCK_RECIPIENT_IMAGE_SOURCE}
+        spenderImageSource={MOCK_SPENDER_IMAGE_SOURCE}
       />
     </>
   )

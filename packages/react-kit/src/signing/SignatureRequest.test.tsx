@@ -50,6 +50,7 @@ const mockSignatureRequestProps: SignatureRequestProps = {
   tokenSubtitle: '$100.00 USD',
   tokenImageSource: 'https://example.com/token.png',
   recipientImageSource: 'https://example.com/recipient.png',
+  spenderImageSource: 'https://example.com/spender.png',
 }
 
 afterEach(() => {

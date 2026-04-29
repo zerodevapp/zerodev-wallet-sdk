@@ -27,6 +27,7 @@ export interface SignatureRequestProps {
   tokenSubtitle: string
   tokenImageSource: string
   recipientImageSource: string
+  spenderImageSource: string
 }
 
 export function SignatureRequest({
@@ -37,20 +38,30 @@ export function SignatureRequest({
   tokenSubtitle,
   tokenImageSource,
   recipientImageSource,
+  spenderImageSource,
 }: SignatureRequestProps) {
   const { pendingRequest, pendingRequests, confirm, reject } =
     usePendingRequest()
 
   if (!pendingRequest) return null
 
-  const transferDisplay = {
+  const baseDisplay = {
     dapp,
     selectedGasTier,
     gasFees,
     ...(slippage !== undefined && { slippage }),
     tokenSubtitle,
     tokenImageSource,
+  }
+
+  const transferDisplay = {
+    ...baseDisplay,
     recipientImageSource,
+  }
+
+  const approvalDisplay = {
+    ...baseDisplay,
+    spenderImageSource,
   }
 
   function renderContent() {
@@ -97,6 +108,7 @@ export function SignatureRequest({
                 amount={decoded.amount}
                 confirm={confirm}
                 reject={reject}
+                {...approvalDisplay}
               />
             )
           }
