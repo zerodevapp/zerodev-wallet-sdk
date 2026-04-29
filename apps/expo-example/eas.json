@@ -7,7 +7,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_ZERODEV_PROJECT_ID": "your-zerodev-project-id"
+        "EXPO_PUBLIC_ZERODEV_PROJECT_ID": "ad5725c6-06a7-4d28-80ba-a65c1e870128",
+        "EXPO_PUBLIC_USE_APP_LINKS": "true"
       },
       "android": {
         "buildType": "apk",

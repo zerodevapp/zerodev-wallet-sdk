@@ -68,9 +68,30 @@ class SecureStoreStamperInner {
   }
 }
 
+async function warmApiKeyStamperForMetroDev(
+  inner: SecureStoreStamperInner,
+): Promise<void> {
+  // biome-ignore lint/correctness/noUndeclaredVariables: This variable is set to true when react-native is running in Dev mode
+  if (!__DEV__) return
+
+  // In Expo dev, Turnkey's API key stamper loads its React Native signer with a
+  // dynamic import the first time `stamp()` runs. OTP verification is usually
+  // the first code path that stamps a payload, and if the app was backgrounded
+  // while the user copied the code, Metro can serve that lazy module after
+  // foregrounding and trigger a full JS reload. Warming the stamper during dev
+  // startup makes Metro load the signer while the app is foregrounded; production
+  // builds do not use Metro and skip this block via `__DEV__`.
+  try {
+    await inner.stamp('{"purpose":"metro-dev-warmup"}')
+  } catch (error) {
+    console.warn('Failed to warm API key stamper in dev:', error)
+  }
+}
+
 export async function createSecureStoreStamper(): Promise<ZDApiKeyStamper> {
   const inner = new SecureStoreStamperInner()
   await inner.init()
+  await warmApiKeyStamperForMetroDev(inner)
 
   let pendingKeyPair: { publicKey: string; privateKey: string } | null = null
 
