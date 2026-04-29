@@ -27,6 +27,8 @@ const MOCK_RECIPIENT_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/identicon/svg?seed=recipient'
 const MOCK_SPENDER_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/identicon/svg?seed=spender'
+const MOCK_COLLECTION_IMAGE_SOURCE =
+  'https://api.dicebear.com/7.x/shapes/svg?seed=collection'
 
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
@@ -227,6 +229,7 @@ function WalletPanel() {
         tokenImageSource={MOCK_TOKEN_IMAGE_SOURCE}
         recipientImageSource={MOCK_RECIPIENT_IMAGE_SOURCE}
         spenderImageSource={MOCK_SPENDER_IMAGE_SOURCE}
+        collectionImageSource={MOCK_COLLECTION_IMAGE_SOURCE}
       />
     </>
   )
