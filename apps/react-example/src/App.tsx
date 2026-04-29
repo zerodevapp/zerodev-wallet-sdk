@@ -1,35 +1,9 @@
 import {
   AuthFlow,
   Button,
-  type Dapp,
-  type GasFee,
   SignatureRequest,
   usePendingRequest,
 } from '@zerodev/wallet-react-kit'
-
-const MOCK_DAPP: Dapp = {
-  name: 'Example DApp',
-  domain: 'example.com',
-  network: 'ethereum',
-  imageSource:
-    'https://dashboard-assets.dappradar.com/document/21036/pixels-dapp-games-matic-logo_414127e7ef6b3ed6c2b671286864baa0.png',
-}
-
-const MOCK_GAS_FEES: GasFee[] = [
-  { tier: 'low', duration: 60, fee: '0.0002 ETH', feeUsd: '$0.50' },
-  { tier: 'market', duration: 30, fee: '0.0004 ETH', feeUsd: '$1.00' },
-  { tier: 'fast', duration: 15, fee: '0.0008 ETH', feeUsd: '$2.00' },
-]
-
-const MOCK_TOKEN_SUBTITLE = '$175.00 USD'
-const MOCK_TOKEN_IMAGE_SOURCE = 'https://img.icons8.com/color/1200/ethereum.jpg'
-const MOCK_RECIPIENT_IMAGE_SOURCE =
-  'https://api.dicebear.com/7.x/identicon/svg?seed=recipient'
-const MOCK_SPENDER_IMAGE_SOURCE =
-  'https://api.dicebear.com/7.x/identicon/svg?seed=spender'
-const MOCK_COLLECTION_IMAGE_SOURCE =
-  'https://api.dicebear.com/7.x/shapes/svg?seed=collection'
-
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
@@ -220,17 +194,7 @@ function WalletPanel() {
           </p>
         )}
       </div>
-      <SignatureRequest
-        dapp={MOCK_DAPP}
-        selectedGasTier="market"
-        gasFees={MOCK_GAS_FEES}
-        slippage={0.5}
-        tokenSubtitle={MOCK_TOKEN_SUBTITLE}
-        tokenImageSource={MOCK_TOKEN_IMAGE_SOURCE}
-        recipientImageSource={MOCK_RECIPIENT_IMAGE_SOURCE}
-        spenderImageSource={MOCK_SPENDER_IMAGE_SOURCE}
-        collectionImageSource={MOCK_COLLECTION_IMAGE_SOURCE}
-      />
+      <SignatureRequest />
     </>
   )
 }
