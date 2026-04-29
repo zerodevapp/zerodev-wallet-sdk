@@ -218,55 +218,55 @@ function WalletPanel() {
               text="Sign Message"
               onClick={() => signMessage({ message: 'Hello from ZeroDev!' })}
             />
-<Button
-            text="Sign Typed Data"
-            onClick={() =>
-              signTypedData({
-                domain: {
-                  name: 'Example DApp',
-                  version: '1',
-                  chainId: 11155111,
-                  verifyingContract:
-                    '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-                },
-                types: {
-                  Person: [
-                    { name: 'name', type: 'string' },
-                    { name: 'wallets', type: 'address[]' },
-                  ],
-                  Mail: [
-                    { name: 'from', type: 'Person' },
-                    { name: 'to', type: 'Person[]' },
-                    { name: 'contents', type: 'string' },
-                  ],
-                },
-                primaryType: 'Mail',
-                message: {
-                  from: {
-                    name: 'Alice',
-                    wallets: [
-                      '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
-                      '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
+            <Button
+              text="Sign Typed Data"
+              onClick={() =>
+                signTypedData({
+                  domain: {
+                    name: 'Example DApp',
+                    version: '1',
+                    chainId: 11155111,
+                    verifyingContract:
+                      '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+                  },
+                  types: {
+                    Person: [
+                      { name: 'name', type: 'string' },
+                      { name: 'wallets', type: 'address[]' },
+                    ],
+                    Mail: [
+                      { name: 'from', type: 'Person' },
+                      { name: 'to', type: 'Person[]' },
+                      { name: 'contents', type: 'string' },
                     ],
                   },
-                  to: [
-                    {
-                      name: 'Bob',
+                  primaryType: 'Mail',
+                  message: {
+                    from: {
+                      name: 'Alice',
                       wallets: [
-                        '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
-                        '0xB0B0000000000000000000000000000000000000',
+                        '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+                        '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
                       ],
                     },
-                    {
-                      name: 'Charlie',
-                      wallets: ['0xC0FFEE0000000000000000000000000000000000'],
-                    },
-                  ],
-                  contents: 'Hello from ZeroDev!',
-                },
-              })
-            }
-          />
+                    to: [
+                      {
+                        name: 'Bob',
+                        wallets: [
+                          '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+                          '0xB0B0000000000000000000000000000000000000',
+                        ],
+                      },
+                      {
+                        name: 'Charlie',
+                        wallets: ['0xC0FFEE0000000000000000000000000000000000'],
+                      },
+                    ],
+                    contents: 'Hello from ZeroDev!',
+                  },
+                })
+              }
+            />
             <Button
               text="Batch Calls"
               onClick={() =>
