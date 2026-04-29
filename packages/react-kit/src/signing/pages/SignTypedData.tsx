@@ -6,6 +6,7 @@ import { DataRow } from '../components/DataRow'
 import { DetailsContainer } from '../components/DetailsContainer'
 import { SigningLayout } from '../components/SigningLayout'
 import { type Dapp, TxInformation } from '../components/TxInformation'
+import { TypedDataMessage } from '../components/TypedDataMessage'
 import { decodeTypedData } from '../utils/typedData.js'
 
 interface SignTypedDataProps {
@@ -14,24 +15,6 @@ interface SignTypedDataProps {
   confirm: () => void
   reject: () => void
   dapp: Dapp
-}
-
-function MessageContent({ message }: { message: Record<string, unknown> }) {
-  return (
-    <>
-      {Object.entries(message).map(([key, value]) => (
-        <DataRow
-          key={key}
-          label={key}
-          value={
-            typeof value === 'object' && value !== null
-              ? JSON.stringify(value)
-              : String(value)
-          }
-        />
-      ))}
-    </>
-  )
 }
 
 export function SignTypedData({
@@ -60,7 +43,7 @@ export function SignTypedData({
     )
   }
 
-  const { domain, message } = decoded
+  const { domain, message, primaryType, types } = decoded
   const name = domain.name as string | undefined
   const version = domain.version as string | undefined
   const chainId = domain.chainId as number | string | undefined
@@ -94,7 +77,11 @@ export function SignTypedData({
           </DetailsContainer>
         )}
         <DetailsContainer title="Message" iconName="message">
-          <MessageContent message={message} />
+          <TypedDataMessage
+            message={message}
+            primaryType={primaryType}
+            types={types}
+          />
         </DetailsContainer>
       </div>
     </SigningLayout>
