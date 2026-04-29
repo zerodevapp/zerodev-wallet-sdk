@@ -64,8 +64,7 @@ describe('SignatureRequest', () => {
 
     render(<SignatureRequest />)
 
-    expect(screen.getByText('Confirm Request')).toBeDefined()
-    expect(screen.getByText('eth_sendTransaction')).toBeDefined()
+    expect(screen.getByText('Confirm Transaction')).toBeDefined()
     expect(screen.getByText('Confirm')).toBeDefined()
     expect(screen.getByText('Reject')).toBeDefined()
   })
