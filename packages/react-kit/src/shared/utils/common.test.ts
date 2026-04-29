@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { camelCaseToTitle, capitalizeFirst, cn } from './common'
+import { camelCaseToTitle, capitalizeFirst, cn, shortenHex } from './common'
 
 describe('cn', () => {
   it('joins multiple class strings', () => {
@@ -49,6 +49,27 @@ describe('capitalizeFirst', () => {
 
   it('only capitalizes the first letter, not the rest', () => {
     expect(capitalizeFirst('hELLO')).toBe('HELLO')
+  })
+})
+
+describe('shortenHex', () => {
+  it('shortens a 0x address with the default 4 chars on each side', () => {
+    expect(shortenHex('0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8')).toBe(
+      '0x94a9...E4C8',
+    )
+  })
+
+  it('respects the length parameter', () => {
+    expect(shortenHex('0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', 6)).toBe(
+      '0x94a9D9...d5E4C8',
+    )
+  })
+
+  it('keeps the 0x prefix on the leading slice', () => {
+    const result = shortenHex('0xabcdef0123456789abcdef0123456789abcdef01', 3)
+    expect(result.startsWith('0xabc')).toBe(true)
+    expect(result.endsWith('f01')).toBe(true)
+    expect(result).toContain('...')
   })
 })
 
