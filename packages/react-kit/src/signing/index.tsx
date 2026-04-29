@@ -156,6 +156,7 @@ export function SignatureRequest({
             typedData={typedData}
             confirm={confirm}
             reject={reject}
+            dapp={dapp}
           />
         )
       }
