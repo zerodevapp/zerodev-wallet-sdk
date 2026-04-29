@@ -1,7 +1,7 @@
 import type { Address, Hex } from 'viem'
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
-import type { GasFee, GasTier } from './components/TxGasFees/index.js'
-import type { Dapp } from './components/TxInformation/index.js'
+import type { GasFee, GasTier } from './components/TxGasFees'
+import type { Dapp } from './components/TxInformation'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
 import { BatchCalls } from './pages/BatchCalls.js'
 import { CollectionApproval } from './pages/CollectionApproval.js'
@@ -156,7 +156,6 @@ export function SignatureRequest({
             typedData={typedData}
             confirm={confirm}
             reject={reject}
-            dapp={dapp}
           />
         )
       }

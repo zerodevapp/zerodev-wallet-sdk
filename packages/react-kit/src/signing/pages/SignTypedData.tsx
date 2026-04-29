@@ -5,7 +5,6 @@ import { shortenHex } from '../../shared/utils/common'
 import { DataRow } from '../components/DataRow'
 import { DetailsContainer } from '../components/DetailsContainer'
 import { SigningLayout } from '../components/SigningLayout'
-import { type Dapp, TxInformation } from '../components/TxInformation'
 import { TypedDataMessage } from '../components/TypedDataMessage'
 import { decodeTypedData } from '../utils/typedData.js'
 
@@ -14,14 +13,12 @@ interface SignTypedDataProps {
   typedData: string
   confirm: () => void
   reject: () => void
-  dapp: Dapp
 }
 
 export function SignTypedData({
   typedData,
   confirm,
   reject,
-  dapp,
 }: SignTypedDataProps) {
   const decoded = decodeTypedData(typedData)
 
@@ -59,7 +56,6 @@ export function SignTypedData({
             Review request details before you confirm.
           </Text>
         </div>
-        <TxInformation dapp={dapp} />
         {hasDomain && (
           <DetailsContainer title="Domain" iconName="info">
             <DataRow label="Name" value={name} />
