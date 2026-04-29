@@ -138,13 +138,19 @@ export async function authenticateOAuth(
   }
 
   // Build OAuth URL that redirects to backend
-  // Use current origin as redirect - SDK auto-detects callback on any page
+  // Preserve the caller's full path so the popup lands on the same route
+  // (e.g. /dashboard) where the SDK is mounted, not just the origin.
+  const returnUrl = new URL(window.location.href)
+  returnUrl.hash = ''
+  returnUrl.searchParams.set('oauth_success', 'true')
+  returnUrl.searchParams.set('oauth_provider', parameters.provider)
+
   const oauthUrl = buildBackendOAuthUrl({
     provider: parameters.provider,
     backendUrl: oauthConfig.backendUrl,
     projectId: oauthConfig.projectId,
     publicKey,
-    returnTo: `${window.location.origin}?oauth_success=true&oauth_provider=${parameters.provider}`,
+    returnTo: returnUrl.toString(),
   })
 
   // Open popup
