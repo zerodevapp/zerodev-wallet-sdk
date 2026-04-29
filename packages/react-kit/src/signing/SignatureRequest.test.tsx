@@ -51,6 +51,7 @@ const mockSignatureRequestProps: SignatureRequestProps = {
   tokenImageSource: 'https://example.com/token.png',
   recipientImageSource: 'https://example.com/recipient.png',
   spenderImageSource: 'https://example.com/spender.png',
+  collectionImageSource: 'https://example.com/collection.png',
 }
 
 afterEach(() => {

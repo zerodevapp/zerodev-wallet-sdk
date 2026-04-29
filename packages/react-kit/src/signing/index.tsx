@@ -28,6 +28,7 @@ export interface SignatureRequestProps {
   tokenImageSource: string
   recipientImageSource: string
   spenderImageSource: string
+  collectionImageSource: string
 }
 
 export function SignatureRequest({
@@ -39,6 +40,7 @@ export function SignatureRequest({
   tokenImageSource,
   recipientImageSource,
   spenderImageSource,
+  collectionImageSource,
 }: SignatureRequestProps) {
   const { pendingRequest, pendingRequests, confirm, reject } =
     usePendingRequest()
@@ -50,17 +52,25 @@ export function SignatureRequest({
     selectedGasTier,
     gasFees,
     ...(slippage !== undefined && { slippage }),
-    tokenSubtitle,
-    tokenImageSource,
   }
 
   const transferDisplay = {
     ...baseDisplay,
+    tokenSubtitle,
+    tokenImageSource,
     recipientImageSource,
   }
 
   const approvalDisplay = {
     ...baseDisplay,
+    tokenSubtitle,
+    tokenImageSource,
+    spenderImageSource,
+  }
+
+  const collectionApprovalDisplay = {
+    ...baseDisplay,
+    collectionImageSource,
     spenderImageSource,
   }
 
@@ -124,6 +134,7 @@ export function SignatureRequest({
                 approved={decoded.approved}
                 confirm={confirm}
                 reject={reject}
+                {...collectionApprovalDisplay}
               />
             )
           }
