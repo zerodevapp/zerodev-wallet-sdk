@@ -144,7 +144,7 @@ function WalletPanel() {
                 message: {
                   from: 'Alice',
                   to: 'Bob',
-                  contents: 'Hello from ZeroDev!',
+                  contents: 'Hello from ZeroDev! test',
                 },
               })
             }
