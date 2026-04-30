@@ -1,12 +1,16 @@
 /**
- * Temporary email service using mail.gw API.
- * Port of doorway-kms/pkg/test/temp_mail_api.go
+ * Temporary email service using the mail.tm/mail.gw API.
  *
- * Note: The mail.gw API returns plain JSON arrays/objects
- * (not hydra:member wrapped like the older API version).
+ * Both endpoints serve the same backend; mail.gw has been intermittently
+ * unreachable (HTTP 502) so we default to mail.tm. Override via
+ * `MAIL_API_BASE` if a different mirror is needed.
+ *
+ * Response handling tolerates both shapes the API has shipped:
+ *   - bare JSON arrays / objects (newer mail.gw responses)
+ *   - `hydra:member`-wrapped collections (older / mail.tm responses)
  */
 
-const MAIL_API_BASE = 'https://api.mail.gw'
+const MAIL_API_BASE = process.env.MAIL_API_BASE || 'https://api.mail.tm'
 
 export type TempEmailAccount = {
   address: string

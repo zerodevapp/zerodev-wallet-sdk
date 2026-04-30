@@ -10,7 +10,16 @@ export interface AuthStoreSlice {
     email: string | null
     setEmail: (email: string) => void
     otpId: string | null
-    setOtpId: (otpId: string) => void
+    /**
+     * HPKE encryption target bundle returned by the latest `sendOTP` call.
+     * Required by `verifyOTP` so the OTP attempt can be sealed to the enclave.
+     */
+    otpEncryptionTargetBundle: string | null
+    /** Set both fields produced by `sendOTP` together. */
+    setOtpSession: (input: {
+      otpId: string
+      otpEncryptionTargetBundle: string
+    }) => void
     config: AuthConfig | null
 
     // Actions
@@ -34,6 +43,7 @@ export const createAuthStoreSlice: StateCreator<
     enabledMethods: [],
     email: null,
     otpId: null,
+    otpEncryptionTargetBundle: null,
     config: null,
 
     // Actions
@@ -78,6 +88,7 @@ export const createAuthStoreSlice: StateCreator<
           stepHistory: [],
           email: null,
           otpId: null,
+          otpEncryptionTargetBundle: null,
         },
       }))
     },
@@ -91,11 +102,12 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
-    setOtpId: (otpId) => {
+    setOtpSession: ({ otpId, otpEncryptionTargetBundle }) => {
       set((state) => ({
         auth: {
           ...state.auth,
           otpId,
+          otpEncryptionTargetBundle,
         },
       }))
     },

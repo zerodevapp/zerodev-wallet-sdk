@@ -58,6 +58,8 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
     "@turnkey/http": "^3.12.1",
     "@turnkey/iframe-stamper": "^2.5.0",
     "@turnkey/indexed-db-stamper": "^1.1.1",
@@ -68,6 +70,7 @@
     "viem": "^2.38.0"
   },
   "devDependencies": {
+    "@hpke/core": "^1.9.0",
     "@types/node": "^20.0.0",
     "typescript": "5.9.3"
   },

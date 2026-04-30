@@ -10,10 +10,11 @@ export type AuthProxyClientConfig = {
 export type AuthProxyVerifyOtpRequest = {
   /** The OTP ID from registration */
   otpId: string
-  /** The OTP code entered by the user */
-  otpCode: string
-  /** The public key to associate with the verification */
-  public_key: string
+  /**
+   * HPKE-sealed bundle containing `{otp_code, public_key}` encrypted to the
+   * enclave's per-session target key. Produced by `encryptOtpAttempt`.
+   */
+  encryptedOtpBundle: string
 }
 
 export type AuthProxyVerifyOtpResponse = {
@@ -62,15 +63,20 @@ export function createAuthProxyClient(config: AuthProxyClientConfig) {
 
   return {
     /**
-     * Verifies an OTP code with Turnkey's Auth Proxy
+     * Verifies an OTP attempt with Turnkey's Auth Proxy.
      *
-     * Returns a verificationToken that should be passed to the backend's
-     * /auth/login/otp endpoint along with a client signature.
+     * The `encryptedOtpBundle` is HPKE-sealed `{otp_code, public_key}` JSON
+     * (see `encryptOtpAttempt`). The auth proxy forwards the ciphertext to
+     * the TLS Fetcher enclave, which decrypts it, verifies the OTP code, and
+     * returns a `verificationToken` bound to the embedded public key.
+     *
+     * Pass the returned `verificationToken` to `/auth/login/otp` along with
+     * a client signature to complete the login.
      */
     async verifyOtp(
       params: AuthProxyVerifyOtpRequest,
     ): Promise<AuthProxyVerifyOtpResponse> {
-      return request<AuthProxyVerifyOtpResponse>('/v1/otp_verify', params)
+      return request<AuthProxyVerifyOtpResponse>('/v1/otp_verify_v2', params)
     },
   }
 }

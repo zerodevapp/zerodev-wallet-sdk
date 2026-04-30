@@ -271,16 +271,22 @@ describe('React Actions', () => {
       expect(authCall).not.toHaveProperty('emailCustomization')
     })
 
-    it('returns otpId from wallet auth', async () => {
+    it('returns otpId and otpEncryptionTargetBundle from wallet auth', async () => {
       const wallet = createMockWallet()
-      wallet.auth.mockResolvedValue({ otpId: 'otp-456' })
+      wallet.auth.mockResolvedValue({
+        otpId: 'otp-456',
+        otpEncryptionTargetBundle: 'bundle-from-auth',
+      })
       const store = createMockStore(wallet)
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
       const result = await sendOTP(config, { email: 'user@example.com' })
 
-      expect(result).toEqual({ otpId: 'otp-456' })
+      expect(result).toEqual({
+        otpId: 'otp-456',
+        otpEncryptionTargetBundle: 'bundle-from-auth',
+      })
     })
 
     it('includes email customization when provided', async () => {
@@ -323,13 +329,18 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await verifyOTP(config, { code: '123456', otpId: 'otp-123' })
+      await verifyOTP(config, {
+        code: '123456',
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-stub',
+      })
 
       expect(wallet.auth).toHaveBeenCalledWith({
         type: 'otp',
         mode: 'verifyOtp',
         otpId: 'otp-123',
         otpCode: '123456',
+        otpEncryptionTargetBundle: 'bundle-stub',
       })
     })
 
@@ -341,7 +352,11 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await verifyOTP(config, { code: '123456', otpId: 'otp-123' })
+      await verifyOTP(config, {
+        code: '123456',
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-stub',
+      })
 
       expect(store.getState().setEoaAccount).toHaveBeenCalledWith({
         address: '0xverified',
@@ -357,7 +372,11 @@ describe('React Actions', () => {
       const connector = createMockConnector(store)
       const config = createMockConfig(connector)
 
-      await verifyOTP(config, { code: '123456', otpId: 'otp-123' })
+      await verifyOTP(config, {
+        code: '123456',
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-stub',
+      })
 
       expect(wagmiConnect).toHaveBeenCalledWith(config, { connector })
     })
@@ -368,7 +387,11 @@ describe('React Actions', () => {
       const config = createMockConfig(connector)
 
       await expect(
-        verifyOTP(config, { code: '123456', otpId: 'otp-123' }),
+        verifyOTP(config, {
+          code: '123456',
+          otpId: 'otp-123',
+          otpEncryptionTargetBundle: 'bundle-stub',
+        }),
       ).rejects.toThrow('Wallet not initialized')
     })
   })

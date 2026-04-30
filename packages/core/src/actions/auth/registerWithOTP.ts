@@ -31,6 +31,12 @@ export type RegisterWithOTPParameters = {
 export type RegisterWithOTPReturnType = {
   /** The OTP ID needed for verification */
   otpId: string
+  /**
+   * Signed encryption target bundle issued by the TLS Fetcher enclave for
+   * this OTP session. Passed verbatim to the verify step so the SDK can
+   * HPKE-encrypt the OTP attempt to the enclave's ephemeral target key.
+   */
+  otpEncryptionTargetBundle: string
 }
 
 /**

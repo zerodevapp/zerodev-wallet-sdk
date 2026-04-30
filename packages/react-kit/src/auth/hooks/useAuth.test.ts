@@ -88,16 +88,20 @@ describe('useAuth', () => {
     expect(result.current.config).toEqual(config)
   })
 
-  it('returns email and otpId from store', () => {
+  it('returns email, otpId, and otpEncryptionTargetBundle from store', () => {
     const store = createStore()
     store.getState().auth.setEmail('user@example.com')
-    store.getState().auth.setOtpId('otp-123')
+    store.getState().auth.setOtpSession({
+      otpId: 'otp-123',
+      otpEncryptionTargetBundle: 'bundle-xyz',
+    })
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result } = renderHook(() => useAuth())
 
     expect(result.current.email).toBe('user@example.com')
     expect(result.current.otpId).toBe('otp-123')
+    expect(result.current.otpEncryptionTargetBundle).toBe('bundle-xyz')
   })
 
   it('exposes goToStep function', () => {
@@ -156,15 +160,19 @@ describe('useAuth', () => {
     expect(store.getState().auth.email).toBe('new@example.com')
   })
 
-  it('exposes setOtpId function', () => {
+  it('exposes setOtpSession function', () => {
     const store = createStore()
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result } = renderHook(() => useAuth())
 
-    result.current.setOtpId('otp-456')
+    result.current.setOtpSession({
+      otpId: 'otp-456',
+      otpEncryptionTargetBundle: 'bundle-456',
+    })
 
     expect(store.getState().auth.otpId).toBe('otp-456')
+    expect(store.getState().auth.otpEncryptionTargetBundle).toBe('bundle-456')
   })
 
   it('reactively updates when store changes', () => {
@@ -230,11 +238,15 @@ describe('useAuth', () => {
     expect(result.current.email).toBe('user@example.com')
     expect(result.current.step).toBe('email-verification')
 
-    // Set OTP ID
-    result.current.setOtpId('otp-123')
+    // Set OTP session
+    result.current.setOtpSession({
+      otpId: 'otp-123',
+      otpEncryptionTargetBundle: 'bundle-123',
+    })
     result.current.goToStep('otp-input')
     rerender()
     expect(result.current.otpId).toBe('otp-123')
+    expect(result.current.otpEncryptionTargetBundle).toBe('bundle-123')
     expect(result.current.step).toBe('otp-input')
 
     // Verify

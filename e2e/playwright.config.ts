@@ -20,6 +20,9 @@ export default defineConfig({
     baseURL: process.env.DEMO_APP_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Local backend uses a self-signed TLS cert. Opt in via env so CI /
+    // staging runs (where backend has a real cert) stay strict.
+    ignoreHTTPSErrors: process.env.ALLOW_SELF_SIGNED_TLS === '1',
   },
   projects: [
     {

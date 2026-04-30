@@ -19,7 +19,7 @@ function isOAuthWindowClosedError(message: string): boolean {
 }
 
 export function SignUp() {
-  const { goToStep, setEmail, setOtpId, config } = useAuth()
+  const { goToStep, setEmail, setOtpSession, config } = useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const { mutateAsync: sendOtp, isPending: isEmailLoading } = useSendOTP()
@@ -60,9 +60,11 @@ export function SignUp() {
 
     setError(null)
     try {
-      const { otpId } = await sendOtp({ email: emailInput })
+      const { otpId, otpEncryptionTargetBundle } = await sendOtp({
+        email: emailInput,
+      })
       setEmail(emailInput)
-      setOtpId(otpId)
+      setOtpSession({ otpId, otpEncryptionTargetBundle })
       goToStep('email-verification')
     } catch (err) {
       setError(
