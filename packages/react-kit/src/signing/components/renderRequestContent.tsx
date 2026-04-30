@@ -44,6 +44,7 @@ export function renderRequestContent(
           return (
             <Erc20Transfer
               contract={tx.to as Address}
+              data={tx.data as Hex}
               to={decoded.to}
               amount={decoded.amount}
               confirm={confirm}
@@ -59,6 +60,7 @@ export function renderRequestContent(
           return (
             <Erc20Approval
               contract={tx.to as Address}
+              data={tx.data as Hex}
               spender={decoded.spender}
               amount={decoded.amount}
               confirm={confirm}
@@ -74,6 +76,7 @@ export function renderRequestContent(
           return (
             <CollectionApproval
               contract={tx.to as Address}
+              data={tx.data as Hex}
               operator={decoded.operator}
               approved={decoded.approved}
               confirm={confirm}

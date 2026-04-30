@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ZeroDevWalletState } from '@zerodev/wallet-react'
 import type { Address, Hex } from 'viem'
-import { useAccount, useConfig } from 'wagmi'
+import { useChainId, useConfig } from 'wagmi'
 
 type UseGasEstimateParams = {
   to: Address
@@ -13,12 +13,12 @@ type UseGasEstimateParams = {
 
 export function useGasEstimate({ to, value, data }: UseGasEstimateParams) {
   const config = useConfig()
-  const { chainId } = useAccount()
+  const chainId = useChainId()
 
   return useQuery({
     queryKey: ['userop-gas-estimate', chainId, to, value, data],
     refetchInterval: 12_000,
-    enabled: !!chainId,
+    retry: false,
     queryFn: async (): Promise<bigint | null> => {
       const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
       if (!connector || !('getStore' in connector)) return null

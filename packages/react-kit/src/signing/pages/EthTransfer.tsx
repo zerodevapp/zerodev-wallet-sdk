@@ -23,7 +23,11 @@ interface EthTransferProps {
 export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
   const formattedAmount = formatEther(BigInt(value))
 
-  const { data: gasEstimate, isFetching } = useGasEstimate({ to, value })
+  const {
+    data: gasEstimate,
+    isFetching,
+    isError,
+  } = useGasEstimate({ to, value })
 
   const confirmDisabled = isFetching || gasEstimate == null
 
@@ -61,9 +65,11 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
           <DataRow
             label="Network fee"
             value={
-              gasEstimate != null && !isFetching
-                ? formatGasFee(gasEstimate)
-                : 'Estimating...'
+              isError
+                ? 'Error'
+                : gasEstimate != null && !isFetching
+                  ? formatGasFee(gasEstimate)
+                  : 'Estimating...'
             }
             iconName="gasStation"
           />
