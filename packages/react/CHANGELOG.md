@@ -1,5 +1,11 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.19
+
+### Patch Changes
+
+- fix(react): preserve caller's pathname in OAuth `returnTo` so the popup lands on the same route as the parent. Previously the SDK used `window.location.origin` only, which redirected the popup to `/`. If `/` rendered a different app (or no SDK provider), the OAuth callback handler never ran and the popup hung.
+
 ## 0.0.1-alpha.18
 
 ### Patch Changes

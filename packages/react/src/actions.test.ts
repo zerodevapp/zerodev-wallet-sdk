@@ -577,6 +577,32 @@ describe('React Actions', () => {
       })
     })
 
+    it('preserves the caller pathname in returnTo so popup lands on the same route', async () => {
+      const original = window.location.href
+      window.history.replaceState({}, '', '/dashboard?utm=src#section')
+
+      const wallet = createMockWallet()
+      const store = createMockStore(wallet)
+      const connector = createMockConnector(store)
+      const config = createMockConfig(connector)
+
+      mockOpenOAuthPopup.mockReturnValue({ closed: false } as Window)
+      mockListenForOAuthMessage.mockImplementation(() => () => {})
+
+      authenticateOAuth(config, { provider: 'google' }).catch(() => {})
+      await new Promise((r) => setTimeout(r, 10))
+
+      const returnTo = mockBuildBackendOAuthUrl.mock.calls[0][0].returnTo
+      const parsed = new URL(returnTo)
+      expect(parsed.pathname).toBe('/dashboard')
+      expect(parsed.searchParams.get('oauth_success')).toBe('true')
+      expect(parsed.searchParams.get('oauth_provider')).toBe('google')
+      expect(parsed.searchParams.get('utm')).toBe('src')
+      expect(parsed.hash).toBe('')
+
+      window.history.replaceState({}, '', original)
+    })
+
     it('completes full OAuth success flow with sessionId', async () => {
       const wallet = createMockWallet()
       wallet.getSession.mockResolvedValue({ id: 'oauth-session' })
