@@ -1,24 +1,19 @@
-import type { Address } from 'viem'
+import type { Address, Hex } from 'viem'
 import { useReadContract } from 'wagmi'
 
 import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
+import { DataRow } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
-import { type GasFee, type GasTier, TxGasFees } from '../components/TxGasFees'
+import { useGasEstimate } from '../hooks/useGasEstimate'
+import { formatGasFee } from '../utils/formatGasFee'
 
 const COLLECTION_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/shapes/svg?seed=collection'
 const SPENDER_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/identicon/svg?seed=spender'
-const SELECTED_GAS_TIER: GasTier = 'market'
-const GAS_FEES: GasFee[] = [
-  { tier: 'low', duration: 60, fee: '0.0002 ETH', feeUsd: '$0.50' },
-  { tier: 'market', duration: 30, fee: '0.0004 ETH', feeUsd: '$1.00' },
-  { tier: 'fast', duration: 15, fee: '0.0008 ETH', feeUsd: '$2.00' },
-]
-const SLIPPAGE = 0.5
 
 const nameAbi = [
   {
@@ -32,6 +27,7 @@ const nameAbi = [
 
 interface CollectionApprovalProps {
   contract: Address
+  data: Hex
   operator: Address
   approved: boolean
   confirm: () => void
@@ -40,6 +36,7 @@ interface CollectionApprovalProps {
 
 export function CollectionApproval({
   contract,
+  data,
   operator,
   approved,
   confirm,
@@ -51,6 +48,15 @@ export function CollectionApproval({
     functionName: 'name',
   })
 
+  const {
+    data: gasEstimate,
+    isFetching: gasFetching,
+    isError: gasError,
+  } = useGasEstimate({
+    to: contract,
+    data,
+  })
+
   if (isLoading) {
     return <Text>Loading collection details...</Text>
   }
@@ -59,9 +65,14 @@ export function CollectionApproval({
   const cardSubtitle = approved
     ? 'Grant Collection Approval'
     : 'Revoke Collection Approval'
+  const confirmDisabled = gasFetching || gasEstimate == null
 
   return (
-    <SigningLayout onConfirm={confirm} onReject={reject}>
+    <SigningLayout
+      onConfirm={confirm}
+      onReject={reject}
+      disabled={confirmDisabled}
+    >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
           <Text className="text-h2">
@@ -95,10 +106,16 @@ export function CollectionApproval({
               />
             }
           />
-          <TxGasFees
-            selectedGasTier={SELECTED_GAS_TIER}
-            gasFees={GAS_FEES}
-            slippage={SLIPPAGE}
+          <DataRow
+            label="Network fee"
+            value={
+              gasError
+                ? 'Error'
+                : gasEstimate != null && !gasFetching
+                  ? formatGasFee(gasEstimate)
+                  : 'Estimating...'
+            }
+            iconName="gasStation"
           />
         </div>
       </div>
