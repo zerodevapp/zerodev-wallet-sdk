@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import type { PendingRequest, Request } from '../types.js'
 import { renderRequestContent } from './components/renderRequestContent.js'
@@ -10,19 +10,24 @@ type RenderPropArgs = {
   reject: () => void
 }
 
+type StyleProps = {
+  className?: string | undefined
+  style?: CSSProperties | undefined
+}
+
 export type SignatureRequestProps =
-  | {
+  | (StyleProps & {
       request?: never
       onConfirm?: never
       onReject?: never
       children?: (args: RenderPropArgs) => ReactNode
-    }
-  | {
+    })
+  | (StyleProps & {
       request: Request
       onConfirm: () => void
       onReject: () => void
       children?: never
-    }
+    })
 
 export function SignatureRequest(props: SignatureRequestProps = {}) {
   if (props.request) {
@@ -31,11 +36,16 @@ export function SignatureRequest(props: SignatureRequestProps = {}) {
         request={props.request}
         onConfirm={props.onConfirm}
         onReject={props.onReject}
+        className={props.className}
+        style={props.style}
       />
     )
   }
   return (
-    <UncontrolledSignatureRequest>
+    <UncontrolledSignatureRequest
+      className={props.className}
+      style={props.style}
+    >
       {props.children}
     </UncontrolledSignatureRequest>
   )
@@ -45,13 +55,15 @@ function ControlledSignatureRequest({
   request,
   onConfirm,
   onReject,
+  className,
+  style,
 }: {
   request: Request
   onConfirm: () => void
   onReject: () => void
-}) {
+} & StyleProps) {
   return (
-    <ScreenWrapper>
+    <ScreenWrapper className={className} style={style}>
       {({ paddingTop }) => (
         <div style={{ paddingTop }}>
           {renderRequestContent(request, onConfirm, onReject)}
@@ -63,9 +75,11 @@ function ControlledSignatureRequest({
 
 function UncontrolledSignatureRequest({
   children,
+  className,
+  style,
 }: {
   children: ((args: RenderPropArgs) => ReactNode) | undefined
-}) {
+} & StyleProps) {
   const { pendingRequest, pendingRequests, confirm, reject } =
     usePendingRequest()
 
@@ -75,7 +89,7 @@ function UncontrolledSignatureRequest({
 
   if (!pendingRequest) return null
   return (
-    <ScreenWrapper>
+    <ScreenWrapper className={className} style={style}>
       {() => (
         <div className="h-full flex flex-col" style={{ paddingTop: 20 }}>
           {renderRequestContent(pendingRequest, confirm, reject)}
