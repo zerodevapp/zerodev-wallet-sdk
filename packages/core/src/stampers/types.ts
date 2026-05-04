@@ -33,7 +33,7 @@ export type IframeStamper = Stamper & {
 export type ApiKeyStamper = Stamper & {
   /** Generate + activate a new key pair immediately (simple cases: login init, logout). */
   resetKeyPair: () => Promise<void>
-  /** Generate a new key pair internally, return its public key, but keep the OLD key active for stamp(). */
+  /** Generate a new key pair internally, return its compressed public key, but keep the OLD key active for stamp(). */
   prepareKeyRotation: () => Promise<string>
   /** Promote the pending key to active. Call after the server accepts the new key. */
   commitKeyRotation: () => Promise<void>
