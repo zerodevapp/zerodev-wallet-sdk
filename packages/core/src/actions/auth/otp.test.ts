@@ -34,7 +34,10 @@ function createMockClient(
 
 describe('registerWithOTP', () => {
   it('sends OTP init request with correct parameters', async () => {
-    const mockClient = createMockClient(async () => ({ otpId: 'otp-123' }))
+    const mockClient = createMockClient(async () => ({
+      otpId: 'otp-123',
+      otpEncryptionTargetBundle: 'bundle-stub',
+    }))
 
     const result = await registerWithOTP(mockClient, {
       email: 'user@example.com',
@@ -57,11 +60,17 @@ describe('registerWithOTP', () => {
         emailCustomization: undefined,
       },
     })
-    expect(result).toEqual({ otpId: 'otp-123' })
+    expect(result).toEqual({
+      otpId: 'otp-123',
+      otpEncryptionTargetBundle: 'bundle-stub',
+    })
   })
 
   it('includes email customization when provided', async () => {
-    const mockClient = createMockClient(async () => ({ otpId: 'otp-123' }))
+    const mockClient = createMockClient(async () => ({
+      otpId: 'otp-123',
+      otpEncryptionTargetBundle: 'bundle-stub',
+    }))
 
     await registerWithOTP(mockClient, {
       email: 'user@example.com',
@@ -87,7 +96,10 @@ describe('registerWithOTP', () => {
   })
 
   it('supports SMS contact type', async () => {
-    const mockClient = createMockClient(async () => ({ otpId: 'otp-sms' }))
+    const mockClient = createMockClient(async () => ({
+      otpId: 'otp-sms',
+      otpEncryptionTargetBundle: 'bundle-stub',
+    }))
 
     await registerWithOTP(mockClient, {
       email: 'user@example.com',

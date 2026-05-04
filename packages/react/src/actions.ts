@@ -218,7 +218,7 @@ export async function sendOTP(
     otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   },
-): Promise<{ otpId: string }> {
+): Promise<{ otpId: string; otpEncryptionTargetBundle: string }> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
 
   // @ts-expect-error - getStore is a custom method
@@ -242,6 +242,7 @@ export async function sendOTP(
 
   return {
     otpId: result.otpId,
+    otpEncryptionTargetBundle: result.otpEncryptionTargetBundle,
   }
 }
 
@@ -252,7 +253,7 @@ export declare namespace sendOTP {
     otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   }
-  type ReturnType = { otpId: string }
+  type ReturnType = { otpId: string; otpEncryptionTargetBundle: string }
   type ErrorType = Error
 }
 
@@ -264,6 +265,8 @@ export async function verifyOTP(
   parameters: {
     code: string
     otpId: string
+    /** Encryption target bundle returned by the matching `sendOTP` call. */
+    otpEncryptionTargetBundle: string
     connector?: Connector
   },
 ): Promise<void> {
@@ -280,6 +283,7 @@ export async function verifyOTP(
     mode: 'verifyOtp',
     otpId: parameters.otpId,
     otpCode: parameters.code,
+    otpEncryptionTargetBundle: parameters.otpEncryptionTargetBundle,
   })
 
   const [session, eoaAccount] = await Promise.all([
@@ -298,6 +302,7 @@ export declare namespace verifyOTP {
   type Parameters = {
     code: string
     otpId: string
+    otpEncryptionTargetBundle: string
     connector?: Connector
   }
   type ReturnType = void
@@ -515,7 +520,7 @@ export async function sendMagicLink(
     otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   },
-): Promise<{ otpId: string }> {
+): Promise<{ otpId: string; otpEncryptionTargetBundle: string }> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
 
   // @ts-expect-error - getStore is a custom method
@@ -536,6 +541,7 @@ export async function sendMagicLink(
 
   return {
     otpId: result.otpId,
+    otpEncryptionTargetBundle: result.otpEncryptionTargetBundle,
   }
 }
 
@@ -546,7 +552,7 @@ export declare namespace sendMagicLink {
     otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   }
-  type ReturnType = { otpId: string }
+  type ReturnType = { otpId: string; otpEncryptionTargetBundle: string }
   type ErrorType = Error
 }
 
@@ -558,6 +564,8 @@ export async function verifyMagicLink(
   parameters: {
     otpId: string
     code: string
+    /** Encryption target bundle returned by the matching `sendMagicLink` call. */
+    otpEncryptionTargetBundle: string
     connector?: Connector
   },
 ): Promise<void> {
@@ -574,6 +582,7 @@ export async function verifyMagicLink(
     mode: 'verify',
     otpId: parameters.otpId,
     code: parameters.code,
+    otpEncryptionTargetBundle: parameters.otpEncryptionTargetBundle,
   })
 
   const [session, eoaAccount] = await Promise.all([
@@ -592,6 +601,7 @@ export declare namespace verifyMagicLink {
   type Parameters = {
     otpId: string
     code: string
+    otpEncryptionTargetBundle: string
     connector?: Connector
   }
   type ReturnType = void

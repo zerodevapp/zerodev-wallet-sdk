@@ -13,7 +13,7 @@ interface VerifyingProps {
 }
 
 export function Verifying({ otp, otpSource }: VerifyingProps) {
-  const { otpId, goToStep, config } = useAuth()
+  const { otpId, otpEncryptionTargetBundle, goToStep, config } = useAuth()
   const {
     mutate: verifyOtp,
     error: verificationError,
@@ -32,10 +32,24 @@ export function Verifying({ otp, otpSource }: VerifyingProps) {
 
   // Auto-verify when component mounts with OTP
   useEffect(() => {
-    if (!otpId || !otp || isVerificationLoading || verificationError) return
+    if (
+      !otpId ||
+      !otpEncryptionTargetBundle ||
+      !otp ||
+      isVerificationLoading ||
+      verificationError
+    )
+      return
 
-    verifyOtp({ otpId, code: otp })
-  }, [otpId, otp, isVerificationLoading, verificationError, verifyOtp])
+    verifyOtp({ otpId, code: otp, otpEncryptionTargetBundle })
+  }, [
+    otpId,
+    otpEncryptionTargetBundle,
+    otp,
+    isVerificationLoading,
+    verificationError,
+    verifyOtp,
+  ])
 
   return (
     <ScreenWrapper>

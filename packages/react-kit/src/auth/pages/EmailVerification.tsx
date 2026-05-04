@@ -7,7 +7,7 @@ import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
 export function EmailVerification() {
-  const { email, setOtpId, goToStep } = useAuth()
+  const { email, setOtpSession, goToStep } = useAuth()
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
 
   const [secondsLeftUntilResend, setSecondsLeftUntilResend] = useState(60)
@@ -29,8 +29,8 @@ export function EmailVerification() {
     if (!email || !canResend) return
 
     try {
-      const { otpId } = await sendOtp({ email })
-      setOtpId(otpId)
+      const { otpId, otpEncryptionTargetBundle } = await sendOtp({ email })
+      setOtpSession({ otpId, otpEncryptionTargetBundle })
       setSecondsLeftUntilResend(60)
     } catch {
       // Error sending OTP

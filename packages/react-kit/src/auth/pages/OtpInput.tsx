@@ -8,7 +8,14 @@ import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
 export function OtpInput() {
-  const { email, otpId, setOtpId, goToStep, config } = useAuth()
+  const {
+    email,
+    otpId,
+    otpEncryptionTargetBundle,
+    setOtpSession,
+    goToStep,
+    config,
+  } = useAuth()
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
   const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
 
@@ -27,11 +34,15 @@ export function OtpInput() {
   }, [secondsUntilResend])
 
   const handleVerify = async () => {
-    if (!otp.trim() || !otpId) return
+    if (!otp.trim() || !otpId || !otpEncryptionTargetBundle) return
 
     setError(false)
     try {
-      await verifyOtp({ otpId, code: otp.trim() })
+      await verifyOtp({
+        otpId,
+        code: otp.trim(),
+        otpEncryptionTargetBundle,
+      })
       goToStep('authenticated')
       config?.onSuccess?.()
     } catch (err) {
@@ -48,8 +59,12 @@ export function OtpInput() {
     if (!email || secondsUntilResend > 0 || isSendOtpPending) return
 
     try {
-      const { otpId: newOtpId } = await sendOtp({ email })
-      setOtpId(newOtpId)
+      const { otpId: newOtpId, otpEncryptionTargetBundle: newBundle } =
+        await sendOtp({ email })
+      setOtpSession({
+        otpId: newOtpId,
+        otpEncryptionTargetBundle: newBundle,
+      })
       setSecondsUntilResend(60)
       setError(false)
     } catch {

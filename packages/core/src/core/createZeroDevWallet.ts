@@ -25,6 +25,7 @@ import {
 } from '../storage/manager.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
+import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
 import {
   base64UrlEncode,
   generateCompressedPublicKeyFromKeyPair,
@@ -72,6 +73,11 @@ export type AuthParams =
       mode: 'verifyOtp'
       otpId: string
       otpCode: string
+      /**
+       * The encryption target bundle returned by the matching `sendOtp` call.
+       * Required — used to HPKE-encrypt the OTP attempt to the enclave.
+       */
+      otpEncryptionTargetBundle: string
     }
   | {
       type: 'magicLink'
@@ -85,6 +91,11 @@ export type AuthParams =
       mode: 'verify'
       otpId: string
       code: string
+      /**
+       * The encryption target bundle returned by the matching `sendMagicLink`
+       * (a.k.a. magicLink `send`) call. Required for the encrypted-OTP flow.
+       */
+      otpEncryptionTargetBundle: string
     }
 
 export interface ZeroDevWalletSDK {
@@ -379,6 +390,7 @@ export async function createZeroDevWallet(
                 mode: 'verifyOtp',
                 otpId: params.otpId,
                 otpCode: params.code,
+                otpEncryptionTargetBundle: params.otpEncryptionTargetBundle,
               }
             }
           } else {
@@ -401,7 +413,7 @@ export async function createZeroDevWallet(
           }
 
           if (otpParams.mode === 'verifyOtp') {
-            const { otpId, otpCode } = otpParams
+            const { otpId, otpCode, otpEncryptionTargetBundle } = otpParams
 
             // Step 1: Generate new key pair
             await client.indexedDbStamper.resetKeyPair()
@@ -411,7 +423,15 @@ export async function createZeroDevWallet(
               throw new Error('Failed to get public key')
             }
 
-            // Step 2: Verify OTP via Auth Proxy
+            // Step 2a: HPKE-seal the OTP attempt to the enclave's per-session
+            // target key. The auth proxy never sees the plaintext OTP code.
+            const encryptedOtpBundle = await encryptOtpAttempt({
+              otpCode,
+              publicKey: targetPublicKey,
+              encryptionTargetBundle: otpEncryptionTargetBundle,
+            })
+
+            // Step 2b: Verify OTP via Auth Proxy
             if (!cachedAuthProxyConfigId) {
               const { authProxyConfigId } = await client.getAuthProxyConfigId()
               cachedAuthProxyConfigId = authProxyConfigId
@@ -422,8 +442,7 @@ export async function createZeroDevWallet(
 
             const { verificationToken } = await authProxyClient.verifyOtp({
               otpId,
-              otpCode,
-              public_key: targetPublicKey,
+              encryptedOtpBundle,
             })
 
             // Step 3: Build client signature

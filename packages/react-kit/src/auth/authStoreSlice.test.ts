@@ -148,7 +148,10 @@ describe('authStoreSlice', () => {
       store.getState().auth.initialize(config)
 
       store.getState().auth.setEmail('test@example.com')
-      store.getState().auth.setOtpId('otp-123')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-123',
+      })
       store.getState().auth.goToStep('email-verification')
       store.getState().auth.goToStep('otp-input')
 
@@ -185,23 +188,39 @@ describe('authStoreSlice', () => {
     })
   })
 
-  describe('setOtpId', () => {
-    it('sets the otpId', () => {
+  describe('setOtpSession', () => {
+    it('sets otpId and otpEncryptionTargetBundle together', () => {
       const store = createStore()
 
-      store.getState().auth.setOtpId('otp-abc-123')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-abc-123',
+        otpEncryptionTargetBundle: 'bundle-abc',
+      })
 
       expect(store.getState().auth.otpId).toBe('otp-abc-123')
+      expect(store.getState().auth.otpEncryptionTargetBundle).toBe('bundle-abc')
     })
 
-    it('updates otpId value', () => {
+    it('replaces previous values on subsequent calls', () => {
       const store = createStore()
 
-      store.getState().auth.setOtpId('otp-first')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-first',
+        otpEncryptionTargetBundle: 'bundle-first',
+      })
       expect(store.getState().auth.otpId).toBe('otp-first')
+      expect(store.getState().auth.otpEncryptionTargetBundle).toBe(
+        'bundle-first',
+      )
 
-      store.getState().auth.setOtpId('otp-second')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-second',
+        otpEncryptionTargetBundle: 'bundle-second',
+      })
       expect(store.getState().auth.otpId).toBe('otp-second')
+      expect(store.getState().auth.otpEncryptionTargetBundle).toBe(
+        'bundle-second',
+      )
     })
   })
 
@@ -221,7 +240,10 @@ describe('authStoreSlice', () => {
       expect(store.getState().auth.step).toBe('email-verification')
 
       // OTP sent
-      store.getState().auth.setOtpId('otp-123')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-123',
+      })
       store.getState().auth.goToStep('otp-input')
       expect(store.getState().auth.step).toBe('otp-input')
 
@@ -253,7 +275,10 @@ describe('authStoreSlice', () => {
       store.getState().auth.goToStep('sign-up')
       store.getState().auth.setEmail('user@example.com')
       store.getState().auth.goToStep('email-verification')
-      store.getState().auth.setOtpId('otp-123')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-123',
+      })
       store.getState().auth.goToStep('otp-input')
 
       // User goes back to change email
@@ -275,7 +300,10 @@ describe('authStoreSlice', () => {
       store.getState().auth.initialize(config)
       store.getState().auth.setEmail('user@example.com')
       store.getState().auth.goToStep('email-verification')
-      store.getState().auth.setOtpId('otp-123')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-123',
+      })
       store.getState().auth.goToStep('otp-input')
 
       // Error occurs
@@ -326,7 +354,10 @@ describe('authStoreSlice', () => {
 
       store.subscribe((state) => state.auth.email, listener)
 
-      store.getState().auth.setOtpId('otp-123')
+      store.getState().auth.setOtpSession({
+        otpId: 'otp-123',
+        otpEncryptionTargetBundle: 'bundle-123',
+      })
       expect(listener).not.toHaveBeenCalled()
     })
   })

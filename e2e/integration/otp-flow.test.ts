@@ -16,6 +16,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
+import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
 import {
   getAuthProxyConfigId,
@@ -97,6 +98,7 @@ describe('OTP Authentication Flow', () => {
       },
     })
     expect(registerResult.otpId).toBeTruthy()
+    expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()
     console.log(`OTP initiated, otpId: ${registerResult.otpId}`)
 
     // Step 5: Poll for email and extract OTP code
@@ -110,12 +112,17 @@ describe('OTP Authentication Flow', () => {
     expect(otpCode).toBeTruthy()
     console.log(`Extracted OTP code: ${otpCode}`)
 
-    // Step 6: Verify OTP with Auth Proxy
+    // Step 6: HPKE-seal the OTP attempt to the enclave's per-session target
+    // key, then verify with Auth Proxy.
+    const encryptedOtpBundle = await encryptOtpAttempt({
+      otpCode: otpCode!,
+      publicKey: publicKey!,
+      encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+    })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })
     const verifyResult = await authProxyClient.verifyOtp({
       otpId: registerResult.otpId,
-      otpCode: otpCode!,
-      public_key: publicKey!,
+      encryptedOtpBundle,
     })
     expect(verifyResult.verificationToken).toBeTruthy()
     console.log('OTP verified with Auth Proxy')
@@ -185,12 +192,16 @@ describe('OTP Authentication Flow', () => {
     })
 
     // Try to verify with a wrong code
+    const wrongEncryptedBundle = await encryptOtpAttempt({
+      otpCode: 'WRONG12',
+      publicKey: publicKey!,
+      encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+    })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })
     await expect(
       authProxyClient.verifyOtp({
         otpId: registerResult.otpId,
-        otpCode: 'WRONG12',
-        public_key: publicKey!,
+        encryptedOtpBundle: wrongEncryptedBundle,
       }),
     ).rejects.toThrow()
   })

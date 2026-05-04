@@ -19,6 +19,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
+import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
 import {
   getAuthProxyConfigId,
@@ -109,6 +110,7 @@ describe('Magic Link Authentication Flow', () => {
       },
     })
     expect(registerResult.otpId).toBeTruthy()
+    expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()
     console.log(`OTP initiated with magic link, otpId: ${registerResult.otpId}`)
 
     // Step 5: Poll for email and extract OTP code from magic link URL
@@ -131,12 +133,16 @@ describe('Magic Link Authentication Flow', () => {
     expect(otpCode).toBeTruthy()
     console.log(`Extracted OTP code: ${otpCode}`)
 
-    // Step 6: Verify OTP with Auth Proxy (same as regular OTP flow)
+    // Step 6: HPKE-seal the OTP attempt and verify with Auth Proxy.
+    const encryptedOtpBundle = await encryptOtpAttempt({
+      otpCode: otpCode!,
+      publicKey: publicKey!,
+      encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+    })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })
     const verifyResult = await authProxyClient.verifyOtp({
       otpId: registerResult.otpId,
-      otpCode: otpCode!,
-      public_key: publicKey!,
+      encryptedOtpBundle,
     })
     expect(verifyResult.verificationToken).toBeTruthy()
     console.log('OTP verified with Auth Proxy')
