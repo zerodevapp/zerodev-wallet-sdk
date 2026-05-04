@@ -42,3 +42,18 @@ export function DataRow({
     </div>
   )
 }
+
+interface DataRowSkeletonProps {
+  className?: string
+}
+
+export function DataRowSkeleton({ className }: DataRowSkeletonProps) {
+  return (
+    <div
+      className={cn('flex flex-row items-center justify-between', className)}
+    >
+      <div className="w-20 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+      <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+    </div>
+  )
+}

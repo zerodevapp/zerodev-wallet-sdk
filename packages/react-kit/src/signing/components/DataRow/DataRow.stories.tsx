@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { icons } from '../../../shared/components/Icon'
 import { Text } from '../../../shared/components/Text'
-import { DataRow } from '.'
+import { DataRow, DataRowSkeleton } from '.'
 
 const iconNames = Object.keys(icons)
 
@@ -69,4 +69,8 @@ export const WithCustomValue: Story = {
     label: 'status',
     value: <Text className="text-solarOrange">Pending</Text>,
   },
+}
+
+export const Skeleton: StoryObj<typeof DataRowSkeleton> = {
+  render: () => <DataRowSkeleton />,
 }
