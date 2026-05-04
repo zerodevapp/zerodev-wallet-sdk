@@ -75,16 +75,32 @@ export async function createNewAccount(): Promise<TempEmailAccount> {
   const address = `email_${randomHex}@${domain}`
   const password = '123456'
 
-  // Create account
-  const createRes = await fetch(`${MAIL_API_BASE}/accounts`, {
-    method: 'POST',
-    headers: defaultHeaders,
-    body: JSON.stringify({ address, password }),
-  })
-  if (!createRes.ok) {
-    const text = await createRes.text()
+  // Create account. mail.tm rate-limits account creation aggressively
+  // (~3–5/min). On 429 we back off and retry; for any other failure we
+  // fail loud immediately.
+  const ACCOUNT_CREATE_ATTEMPTS = 5
+  let createRes: Response | undefined
+  for (let attempt = 0; attempt < ACCOUNT_CREATE_ATTEMPTS; attempt++) {
+    createRes = await fetch(`${MAIL_API_BASE}/accounts`, {
+      method: 'POST',
+      headers: defaultHeaders,
+      body: JSON.stringify({ address, password }),
+    })
+    if (createRes.ok) break
+    if (createRes.status !== 429) {
+      const text = await createRes.text()
+      throw new Error(
+        `Failed to create email account: ${createRes.status} ${text}`,
+      )
+    }
+    // Exponential backoff: 5s, 10s, 20s, 40s. mail.tm's window is short
+    // enough that this almost always recovers within two retries.
+    const delayMs = 5_000 * 2 ** attempt
+    await new Promise((r) => setTimeout(r, delayMs))
+  }
+  if (!createRes || !createRes.ok) {
     throw new Error(
-      `Failed to create email account: ${createRes.status} ${text}`,
+      `Failed to create email account after ${ACCOUNT_CREATE_ATTEMPTS} attempts: ${createRes?.status ?? 'no response'}`,
     )
   }
 
