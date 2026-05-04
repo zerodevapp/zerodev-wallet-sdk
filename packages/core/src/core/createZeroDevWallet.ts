@@ -188,7 +188,7 @@ export async function createZeroDevWallet(
       if (!activeSession) {
         throw new Error('No active session')
       }
-      if (activeSession.stamperType === 'indexedDb') {
+      if (activeSession.stamperType === 'apiKey') {
         const compressedPublicKeyHex =
           await client.apiKeyStamper.prepareKeyRotation()
         const data = await client.loginWithStamp({
@@ -203,7 +203,7 @@ export async function createZeroDevWallet(
           id: `session_indexedDb_${Date.now()}`,
           userId: parsedSession.userId,
           organizationId: parsedSession.organizationId,
-          stamperType: 'indexedDb',
+          stamperType: 'apiKey',
           sessionType: SessionType.READ_WRITE,
           token: data.session,
           expiry: parsedSession.expiry,
@@ -233,7 +233,7 @@ export async function createZeroDevWallet(
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
               organizationId: parsedSession.organizationId,
-              stamperType: 'indexedDb',
+              stamperType: 'apiKey',
               sessionType: parsedSession.sessionType || SessionType.READ_WRITE,
               token: data.session,
               expiry: parsedSession.expiry,
@@ -278,7 +278,7 @@ export async function createZeroDevWallet(
             const parsedSession = parseSession(loginData.session)
             const session: ZeroDevWalletSession = {
               id: `session_indexedDb_${Date.now()}`,
-              stamperType: 'indexedDb',
+              stamperType: 'apiKey',
               createdAt: Date.now(),
               sessionType: SessionType.READ_WRITE,
               userId: parsedSession.userId,
@@ -310,7 +310,7 @@ export async function createZeroDevWallet(
             const parsedSession = parseSession(loginData.session)
             const session: ZeroDevWalletSession = {
               id: `session_indexedDb_${Date.now()}`,
-              stamperType: 'indexedDb',
+              stamperType: 'apiKey',
               createdAt: Date.now(),
               sessionType: SessionType.READ_WRITE,
               userId: parsedSession.userId,
@@ -425,7 +425,7 @@ export async function createZeroDevWallet(
                 id: `session_otp_${Date.now()}`,
                 userId: parsedSession.userId,
                 organizationId: parsedSession.organizationId,
-                stamperType: 'indexedDb',
+                stamperType: 'apiKey',
                 sessionType:
                   parsedSession.sessionType || SessionType.READ_WRITE,
                 token: data.session,

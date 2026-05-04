@@ -40,7 +40,6 @@ function createMockClient(
       init: vi.fn().mockResolvedValue(undefined),
       publicKey: vi.fn().mockReturnValue('mock-public-key'),
       injectCredentialBundle: vi.fn().mockResolvedValue(undefined),
-      getStamperType: vi.fn().mockReturnValue('indexedDb'),
       clear: vi.fn().mockResolvedValue(undefined),
     } as unknown as Client['apiKeyStamper'],
     passkeyStamper: {

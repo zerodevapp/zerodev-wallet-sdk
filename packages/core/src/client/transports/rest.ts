@@ -1,6 +1,7 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
 import type { ApiKeyStamper, PasskeyStamper } from '../../stampers/types.js'
+import type { StamperType } from '../../types/session.js'
 
 export type RestRequestArgs = {
   path: string
@@ -8,8 +9,7 @@ export type RestRequestArgs = {
   body?: any
   headers?: Record<string, string>
   stamp?: boolean
-  // TODO: @stamper-type - Derive type from `StamperType`
-  stampWith?: 'apiKey' | 'passkey'
+  stampWith?: StamperType
   stampPostion?: 'body' | 'headers'
   /** Include credentials (cookies) in the request */
   credentials?: RequestCredentials

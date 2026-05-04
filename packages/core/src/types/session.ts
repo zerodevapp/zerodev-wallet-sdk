@@ -3,8 +3,7 @@ export enum SessionType {
   READ_WRITE = 'SESSION_TYPE_READ_WRITE',
 }
 
-// TODO: Change `stamperType` to `"apiKey" | "passkey"`
-export type StamperType = 'iframe' | 'indexedDb' | 'passkey'
+export type StamperType = 'apiKey' | 'passkey'
 
 export type ZeroDevWalletSession = {
   id: string
