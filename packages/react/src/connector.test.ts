@@ -59,10 +59,6 @@ vi.mock('@zerodev/wallet-core', () => ({
   }),
 }))
 
-vi.mock('./oauth.js', () => ({
-  handleOAuthCallback: vi.fn(),
-}))
-
 import { zeroDevWallet } from './connector.js'
 
 type ConnectorInstance = ReturnType<ReturnType<typeof zeroDevWallet>>

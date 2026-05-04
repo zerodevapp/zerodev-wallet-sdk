@@ -6,17 +6,11 @@ import {
   exportWallet as exportWalletSdk,
   type GetAuthenticatorsReturnType,
 } from '@zerodev/wallet-core'
-import type { OAuthProvider } from './oauth.js'
-import {
-  listenForOAuthMessage,
-  openOAuthPopup,
-  verifyGoogleLoginUrl,
-} from './oauth.js'
 
 /**
  * Get ZeroDev connector from config
  */
-function getZeroDevConnector(config: Config): Connector {
+export function getZeroDevConnector(config: Config): Connector {
   const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
   if (!connector) {
     throw new Error('ZeroDev connector not found in Wagmi config')
@@ -102,109 +96,6 @@ export async function loginPasskey(
 
 export declare namespace loginPasskey {
   type Parameters = void | {
-    connector?: Connector
-  }
-  type ReturnType = void
-  type ErrorType = Error
-}
-
-/**
- * Authenticate with OAuth (opens popup)
- * Uses backend OAuth flow where the backend handles PKCE and token exchange
- */
-export async function authenticateOAuth(
-  config: Config,
-  parameters: {
-    provider: OAuthProvider
-    connector?: Connector
-  },
-): Promise<void> {
-  const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-  const oauthConfig = store.getState().oauthConfig
-
-  if (!wallet) throw new Error('Wallet not initialized')
-  if (!oauthConfig) {
-    throw new Error('Wallet not initialized. Please wait for connector setup.')
-  }
-
-  // Get wallet public key for the OAuth flow
-  const publicKey = await wallet.getPublicKey()
-  if (!publicKey) {
-    throw new Error('Failed to get wallet public key')
-  }
-
-  // Build OAuth URL that redirects to backend
-  // Preserve the caller's full path so the popup lands on the same route
-  // (e.g. /dashboard) where the SDK is mounted, not just the origin.
-  const returnUrl = new URL(window.location.href)
-  returnUrl.hash = ''
-  returnUrl.searchParams.set('oauth_success', 'true')
-  returnUrl.searchParams.set('oauth_provider', parameters.provider)
-
-  // Fetch the Google OAuth URL from the backend, then verify its `nonce`
-  // matches sha256(pub_key) before opening the popup. Audit finding
-  // TOB-KMS-1: the backend is not a trusted party, so the SDK must bind the
-  // OIDC flow to its own pubkey rather than trust whatever URL it receives.
-  const oauthUrl = await wallet.client.getOAuthLoginUrl({
-    provider: parameters.provider,
-    projectId: oauthConfig.projectId,
-    publicKey,
-    returnTo: returnUrl.toString(),
-  })
-  verifyGoogleLoginUrl(oauthUrl, publicKey)
-
-  // Open popup (only after verification — never flash an unverified URL)
-  const authWindow = openOAuthPopup(oauthUrl)
-
-  if (!authWindow) {
-    throw new Error(`Failed to open ${parameters.provider} login window.`)
-  }
-
-  // Listen for OAuth completion via postMessage
-  return new Promise<void>((resolve, reject) => {
-    const cleanup = listenForOAuthMessage(
-      authWindow,
-      window.location.origin,
-      async (sessionId) => {
-        try {
-          // Complete OAuth authentication with wallet-core
-          await wallet.auth({
-            type: 'oauth',
-            provider: parameters.provider,
-            sessionId,
-          })
-
-          const [session, eoaAccount] = await Promise.all([
-            wallet.getSession(),
-            wallet.toAccount(),
-          ])
-
-          store.getState().setEoaAccount(eoaAccount)
-          store.getState().setSession(session || null)
-
-          // Auto-connect to Wagmi
-          await wagmiConnect(config, { connector })
-
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      },
-      (error) => {
-        cleanup()
-        reject(error)
-      },
-    )
-  })
-}
-
-export declare namespace authenticateOAuth {
-  type Parameters = {
-    provider: OAuthProvider
     connector?: Connector
   }
   type ReturnType = void

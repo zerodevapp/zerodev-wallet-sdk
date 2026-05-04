@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useAccount, WagmiProvider } from 'wagmi'
 import { ChainSwitcher } from './components/ChainSwitcher'
 import { ConnectionStatusBar } from './components/ConnectionStatusBar'
+import { GoogleAuth } from './components/GoogleAuth'
 import { OTPAuth } from './components/OTPAuth'
 import { PasskeyAuth } from './components/PasskeyAuth'
 import { SendTransaction } from './components/SendTransaction'
@@ -21,6 +22,7 @@ function Content() {
       <ConnectionStatusBar />
       <ChainSwitcher />
       <ScrollView contentContainerStyle={styles.content}>
+        <GoogleAuth />
         <PasskeyAuth />
         <OTPAuth />
         {status === 'connected' && <SendTransaction />}

@@ -8,22 +8,38 @@ const appPackageJson = path.resolve(__dirname, 'package.json')
 // Packages that must resolve to a single copy to avoid duplicate
 // React contexts. pnpm creates separate .pnpm entries with different
 // peer-dep hashes for the app vs workspace packages.
-const singletonPackages = new Set([
-  'react',
+// Only redirected when imported from workspace packages (packages/*).
+const workspaceSingletons = new Set([
   'wagmi',
-  // @wagmi/core is not explicitly used in the app but to make this work we needed to add it to package.json dependencies.
   '@wagmi/core',
   '@tanstack/react-query',
 ])
 
+// Packages that must resolve to the app's copy globally — safe because
+// they are leaf packages with no internal dependencies that would break.
+const globalSingletons = new Set([
+  'react',
+  'react-dom',
+  'react-native',
+  'tslib',
+])
+
+// Check if moduleName matches or is a sub-path of any package in the set
+// e.g. "react-dom/client" matches "react-dom"
+function matchesSingleton(moduleName, singletonSet) {
+  for (const pkg of singletonSet) {
+    if (moduleName === pkg || moduleName.startsWith(pkg + '/')) return true
+  }
+  return false
+}
+
 const originalResolveRequest = config.resolver.resolveRequest
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Only redirect imports originating from workspace packages
-  // (e.g. packages/react/), not from within .pnpm dependency trees.
-  if (
-    singletonPackages.has(moduleName) &&
+  const fromWorkspace =
+    matchesSingleton(moduleName, workspaceSingletons) &&
     context.originModulePath.startsWith(packagesDir)
-  ) {
+
+  if (fromWorkspace || matchesSingleton(moduleName, globalSingletons)) {
     return context.resolveRequest(
       { ...context, originModulePath: appPackageJson },
       moduleName,
