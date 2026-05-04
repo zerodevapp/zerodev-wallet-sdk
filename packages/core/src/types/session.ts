@@ -12,8 +12,7 @@ export type ZeroDevWalletSession = {
   organizationId: string
   stamperType: StamperType
   sessionType?: SessionType
-  token?: string
-  publicKey: string
+  token: string
   expiry: number
   createdAt: number
 }

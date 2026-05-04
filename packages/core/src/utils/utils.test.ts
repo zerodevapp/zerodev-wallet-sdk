@@ -35,7 +35,6 @@ describe('parseSession', () => {
       organizationId: 'org-456',
       expiry: 1700000000,
       token: 'test-public-key',
-      publicKey: 'test-public-key',
     })
   })
 
@@ -47,7 +46,7 @@ describe('parseSession', () => {
       stamperType: 'iframe' as const,
       expiry: 1700000000,
       createdAt: 1699900000,
-      publicKey: 'test-public-key',
+      token: 'test-public-key',
     }
 
     const result = parseSession(session)

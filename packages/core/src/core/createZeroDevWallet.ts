@@ -205,7 +205,6 @@ export async function createZeroDevWallet(
           organizationId: parsedSession.organizationId,
           stamperType: 'indexedDb',
           sessionType: SessionType.READ_WRITE,
-          publicKey: compressedPublicKeyHex,
           token: data.session,
           expiry: parsedSession.expiry,
           createdAt: Date.now(),
@@ -230,7 +229,6 @@ export async function createZeroDevWallet(
           if (data.session) {
             // Parse the JWT to get session data
             const parsedSession = parseSession(data.session)
-            const publicKey = await client.apiKeyStamper.getPublicKey()
             const session: ZeroDevWalletSession = {
               id: `session_oauth_${Date.now()}`,
               userId: parsedSession.userId,
@@ -240,7 +238,6 @@ export async function createZeroDevWallet(
               token: data.session,
               expiry: parsedSession.expiry,
               createdAt: Date.now(),
-              publicKey: publicKey || '',
             }
             await sessionStorageManager.storeSession(session, session.id)
           }
@@ -289,7 +286,6 @@ export async function createZeroDevWallet(
               expiry:
                 Date.now() +
                 Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
-              publicKey: compressedPublicKeyHex,
               token: loginData.session,
             }
             await sessionStorageManager.storeSession(session, session.id)
@@ -322,7 +318,6 @@ export async function createZeroDevWallet(
               expiry:
                 Date.now() +
                 Number(DEFAULT_SESSION_EXPIRATION_IN_SECONDS) * 1000,
-              publicKey: generatedPublicKey,
               token: loginData.session,
             }
             await sessionStorageManager.storeSession(session, session.id)
@@ -436,7 +431,6 @@ export async function createZeroDevWallet(
                 token: data.session,
                 expiry: parsedSession.expiry,
                 createdAt: Date.now(),
-                publicKey: parsedSession.publicKey,
               }
               await sessionStorageManager.storeSession(session, session.id)
             }
