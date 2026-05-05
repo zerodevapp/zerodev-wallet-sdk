@@ -15,6 +15,7 @@
  *   - tkhq/go-sdk/pkg/enclave_encrypt
  */
 
+import { gcm } from '@noble/ciphers/aes.js'
 import { p256 } from '@noble/curves/nist.js'
 import { expand, extract } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
@@ -165,42 +166,15 @@ function keySchedule(
   return { key, baseNonce }
 }
 
-// Web Crypto's BufferSource type rejects `Uint8Array<ArrayBufferLike>` (which
-// noble/v2 returns) under strict TS lib settings because the underlying buffer
-// could in principle be a SharedArrayBuffer. Copy into a fresh ArrayBuffer to
-// satisfy the type.
-function toArrayBuffer(u8: Uint8Array): ArrayBuffer {
-  const out = new ArrayBuffer(u8.byteLength)
-  new Uint8Array(out).set(u8)
-  return out
-}
-
-async function aesGcmSeal(
+function aesGcmSeal(
   key: Uint8Array,
   nonce: Uint8Array,
   aad: Uint8Array,
   plaintext: Uint8Array,
-): Promise<Uint8Array> {
-  // Web Crypto returns ciphertext || tag (16 bytes appended). Matches the
-  // single-blob format Turnkey's `Sealer.Seal` produces.
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    toArrayBuffer(key),
-    { name: 'AES-GCM' },
-    /* extractable */ false,
-    ['encrypt'],
-  )
-  const ct = await crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv: toArrayBuffer(nonce),
-      additionalData: toArrayBuffer(aad),
-      tagLength: 128,
-    },
-    cryptoKey,
-    toArrayBuffer(plaintext),
-  )
-  return new Uint8Array(ct)
+): Uint8Array {
+  // Returns ciphertext || tag (16 bytes appended) — matches the single-blob
+  // format Turnkey's `Sealer.Seal` and Web Crypto's AES-GCM produce.
+  return gcm(key, nonce, aad).encrypt(plaintext)
 }
 
 export type HpkeSealResult = {
@@ -239,7 +213,7 @@ export async function hpkeSealP256({
 
   // First message of the context, sequence 0 → nonce = base_nonce.
   const aad = concat(enc, receiverPublicKey)
-  const ciphertext = await aesGcmSeal(key, baseNonce, aad, plaintext)
+  const ciphertext = aesGcmSeal(key, baseNonce, aad, plaintext)
 
   return { encappedPublic: enc, ciphertext }
 }
