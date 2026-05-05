@@ -11,10 +11,6 @@ export async function createWebauthnStamper({
   const inner = new TurnkeyWebauthnStamper({ rpId })
 
   return {
-    async getPublicKey() {
-      //   return await inner.();
-      return null
-    },
     async stamp(payload: string) {
       return await inner.stamp(payload)
     },

@@ -5,8 +5,6 @@ export type Stamp = {
 }
 
 export type Stamper = {
-  /** retrieve public key compressed or otherwise as per the stamper */
-  getPublicKey: () => Promise<string | null>
   /** produce Turnkey header value for a given request body */
   stamp: (payload: string) => Promise<Stamp>
   /** clear local state (embedded key, IDB keypair, etc.) */
@@ -16,6 +14,8 @@ export type Stamper = {
 export type KeyFormat = 'Hexadecimal' | 'Solana'
 
 export type IframeStamper = Stamper & {
+  /** retrieve public key compressed or otherwise as per the stamper */
+  getPublicKey: () => Promise<string | null>
   init(): Promise<string>
   injectCredentialBundle(bundle: string): Promise<boolean>
   injectWalletExportBundle(
@@ -31,6 +31,8 @@ export type IframeStamper = Stamper & {
 }
 
 export type ApiKeyStamper = Stamper & {
+  /** retrieve public key compressed or otherwise as per the stamper */
+  getPublicKey: () => Promise<string | null>
   /** Generate + activate a new key pair immediately (simple cases: login init, logout). */
   resetKeyPair: () => Promise<void>
   /** Generate a new key pair internally, return its compressed public key, but keep the OLD key active for stamp(). */
