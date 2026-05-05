@@ -3,6 +3,7 @@
  * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 
+export type { AuthFlowProps, AuthFlowRenderArgs } from './auth'
 export { AuthFlow } from './auth'
 
 // Auth

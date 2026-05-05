@@ -1,12 +1,14 @@
+import { useSendMagicLink, useVerifyMagicLink } from '@zerodev/wallet-react'
 import {
   AuthFlow,
+  type AuthFlowRenderArgs,
   Button,
   type PendingRequest,
   type Request,
   SignatureRequest,
   usePendingRequest,
 } from '@zerodev/wallet-react-kit'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
@@ -19,6 +21,135 @@ import {
 } from 'wagmi'
 
 type SignatureRequestMode = 'default' | 'children' | 'controlled'
+type AuthFlowMode = 'default' | 'children'
+
+const AUTH_MODE_STORAGE_KEY = 'react-example:authMode'
+
+function readPersistedAuthMode(): AuthFlowMode {
+  if (typeof window === 'undefined') return 'default'
+  const value = window.localStorage.getItem(AUTH_MODE_STORAGE_KEY)
+  return value === 'children' ? 'children' : 'default'
+}
+
+function getCodeFromUrl(): string | null {
+  if (typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search).get('code')
+}
+
+function stripCodeFromUrl(): void {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('code')) return
+  url.searchParams.delete('code')
+  window.history.replaceState({}, '', url.toString())
+}
+
+// Module-scope guard: survives React 18 strict-mode remounts of the component,
+// which a useRef inside the component would not.
+let didVerifyForThisLoad = false
+
+function CustomAuthUI({ auth }: { auth: AuthFlowRenderArgs }) {
+  const {
+    step,
+    email,
+    otpId,
+    otpEncryptionTargetBundle,
+    config,
+    goToStep,
+    setEmail,
+    setOtpSession,
+    clearOtpSession,
+  } = auth
+  const [emailInput, setEmailInput] = useState('')
+  const { mutateAsync: sendMagicLink, isPending: isSending } =
+    useSendMagicLink()
+  const {
+    mutate: verifyMagicLink,
+    isPending: isVerifying,
+    error: verifyError,
+  } = useVerifyMagicLink({
+    mutation: {
+      onSuccess: () => {
+        clearOtpSession()
+        stripCodeFromUrl()
+        goToStep('authenticated')
+        config?.onSuccess?.()
+      },
+      onError: (err) => config?.onError?.(err),
+    },
+  })
+
+  useEffect(() => {
+    if (step !== 'verifying-otp' || didVerifyForThisLoad) return
+    const code = getCodeFromUrl()
+    if (!code || !otpId || !otpEncryptionTargetBundle) return
+    didVerifyForThisLoad = true
+    verifyMagicLink({ otpId, code, otpEncryptionTargetBundle })
+  }, [step, otpId, otpEncryptionTargetBundle, verifyMagicLink])
+
+  async function handleSend() {
+    if (!emailInput.trim() || !config) return
+    const result = await sendMagicLink({
+      email: emailInput,
+      redirectURL: config.magicLinkBaseUrl,
+    })
+    setEmail(emailInput)
+    setOtpSession(result)
+    goToStep('email-verification')
+  }
+
+  if (step === 'sign-up' || step === 'initializing') {
+    return (
+      <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+        <h3 className="text-sm font-semibold text-emerald-900 mb-2">
+          Custom Auth UI
+        </h3>
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={emailInput}
+          onChange={(e) => setEmailInput(e.target.value)}
+          className="w-full rounded-md border border-emerald-300 bg-white px-2 py-1 text-sm mb-2"
+        />
+        <button
+          type="button"
+          disabled={!emailInput.trim() || isSending}
+          onClick={handleSend}
+          className="w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+        >
+          {isSending ? 'Sending magic link...' : 'Send magic link'}
+        </button>
+      </div>
+    )
+  }
+
+  if (step === 'email-verification') {
+    return (
+      <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
+        Magic link sent to <span className="font-semibold">{email}</span>. Check
+        your inbox.
+      </div>
+    )
+  }
+
+  if (step === 'verifying-otp') {
+    return (
+      <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
+        {verifyError ? (
+          <span className="text-red-700">
+            Verify failed: {verifyError.message}
+          </span>
+        ) : isVerifying ? (
+          'Verifying...'
+        ) : (
+          'Preparing verification...'
+        )}
+      </div>
+    )
+  }
+
+  return null
+}
 
 function CustomConfirmUI({
   pendingRequest,
@@ -355,11 +486,37 @@ function WalletPanel() {
 export function App() {
   const { connect, connectors } = useConnect()
   const { isConnected } = useAccount()
+  const [authMode, setAuthMode] = useState<AuthFlowMode>(readPersistedAuthMode)
+  const authModeSelectId = useId()
 
   return (
     <div className="mx-auto h-[800px] w-[500px]">
       {!isConnected ? (
         <>
+          <div className="mb-4 rounded-lg bg-gray-50 p-3">
+            <label
+              htmlFor={authModeSelectId}
+              className="block text-xs font-medium text-gray-700 mb-1"
+            >
+              AuthFlow mode
+            </label>
+            <select
+              id={authModeSelectId}
+              value={authMode}
+              onChange={(e) => {
+                const next = e.target.value as AuthFlowMode
+                setAuthMode(next)
+                window.localStorage.setItem(AUTH_MODE_STORAGE_KEY, next)
+              }}
+              className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900"
+            >
+              <option value="default">Mode 1: default UI</option>
+              <option value="children">
+                Mode 2: custom UI via children function
+              </option>
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={() => connect({ connector: connectors[0] })}
@@ -367,7 +524,11 @@ export function App() {
           >
             Connect
           </button>
-          <AuthFlow />
+
+          {authMode === 'default' && <AuthFlow />}
+          {authMode === 'children' && (
+            <AuthFlow>{(auth) => <CustomAuthUI auth={auth} />}</AuthFlow>
+          )}
         </>
       ) : (
         <WalletPanel />
