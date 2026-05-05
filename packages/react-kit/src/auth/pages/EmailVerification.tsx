@@ -1,4 +1,4 @@
-import { useSendOTP } from '@zerodev/wallet-react'
+import { useSendMagicLink } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
@@ -7,11 +7,12 @@ import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
 export function EmailVerification() {
-  const { email, setOtpSession, goToStep } = useAuth()
-  const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
+  const { email, setOtpSession, config } = useAuth()
+  const { mutateAsync: sendMagicLink, isPending: isSendPending } =
+    useSendMagicLink()
 
   const [secondsLeftUntilResend, setSecondsLeftUntilResend] = useState(60)
-  const canResend = secondsLeftUntilResend <= 0 && !isSendOtpPending
+  const canResend = secondsLeftUntilResend <= 0 && !isSendPending
 
   useEffect(() => {
     if (secondsLeftUntilResend <= 0) return
@@ -25,15 +26,18 @@ export function EmailVerification() {
     }
   }, [secondsLeftUntilResend])
 
-  const handleResendOtp = async () => {
+  const handleResend = async () => {
     if (!email || !canResend) return
 
     try {
-      const { otpId, otpEncryptionTargetBundle } = await sendOtp({ email })
+      const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
+        email,
+        redirectURL: config?.magicLinkBaseUrl ?? '',
+      })
       setOtpSession({ otpId, otpEncryptionTargetBundle })
       setSecondsLeftUntilResend(60)
     } catch {
-      // Error sending OTP
+      // Error resending magic link
     }
   }
 
@@ -59,22 +63,12 @@ export function EmailVerification() {
               <button
                 type="button"
                 disabled={!canResend}
-                onClick={handleResendOtp}
+                onClick={handleResend}
                 className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {canResend
                   ? 'Resend'
                   : `Resend in ${secondsLeftUntilResend} ${secondsLeftUntilResend === 1 ? 'second' : 'seconds'}`}
-              </button>
-            </Text>
-            <Text className="text-center">
-              Or{' '}
-              <button
-                type="button"
-                onClick={() => goToStep('otp-input')}
-                className="cursor-pointer underline"
-              >
-                sign in manually instead
               </button>
             </Text>
           </div>

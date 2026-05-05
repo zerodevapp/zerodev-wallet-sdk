@@ -1,4 +1,8 @@
-import { useAuthenticateOAuth, useSendOTP } from '@zerodev/wallet-react'
+import {
+  useAuthenticateOAuth,
+  useSendMagicLink,
+  useSendOTP,
+} from '@zerodev/wallet-react'
 import { useState } from 'react'
 
 import { Icon } from '../../shared/components/Icon'
@@ -22,7 +26,11 @@ export function SignUp() {
   const { goToStep, setEmail, setOtpSession, config } = useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [emailInput, setEmailInput] = useState('')
-  const { mutateAsync: sendOtp, isPending: isEmailLoading } = useSendOTP()
+  const useOtp = config?.emailAuthMethod === 'otp'
+  const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
+  const { mutateAsync: sendMagicLink, isPending: isSendMagicLinkPending } =
+    useSendMagicLink()
+  const isEmailLoading = useOtp ? isSendOtpPending : isSendMagicLinkPending
   const { mutateAsync: authenticateOAuth, isPending: isGoogleLoading } =
     useAuthenticateOAuth({
       mutation: {
@@ -60,12 +68,15 @@ export function SignUp() {
 
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = await sendOtp({
-        email: emailInput,
-      })
+      const { otpId, otpEncryptionTargetBundle } = useOtp
+        ? await sendOtp({ email: emailInput })
+        : await sendMagicLink({
+            email: emailInput,
+            redirectURL: config?.magicLinkBaseUrl ?? '',
+          })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep('email-verification')
+      goToStep(useOtp ? 'otp-input' : 'email-verification')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
