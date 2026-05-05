@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { StatusView } from '../shared/components/StatusView'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
@@ -5,6 +6,11 @@ import { ErrorScreen } from './pages/ErrorScreen'
 import { OtpInput } from './pages/OtpInput'
 import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
+
+function hasMagicLinkCodeInUrl(): boolean {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).has('code')
+}
 
 function OAuthCallback() {
   return (
@@ -23,7 +29,13 @@ function WalletSelection() {
 }
 
 export function AuthFlow() {
-  const { step } = useAuth()
+  const { step, goToStep } = useAuth()
+
+  useEffect(() => {
+    if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
+      goToStep('verifying-otp')
+    }
+  }, [step, goToStep])
 
   switch (step) {
     case 'initializing':

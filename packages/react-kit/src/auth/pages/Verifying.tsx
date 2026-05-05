@@ -1,5 +1,5 @@
 import { useVerifyMagicLink } from '@zerodev/wallet-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
@@ -13,8 +13,17 @@ function getCodeFromUrl(): string | null {
 }
 
 export function Verifying() {
-  const { otpId, otpEncryptionTargetBundle, goToStep, config } = useAuth()
+  const {
+    otpId,
+    otpEncryptionTargetBundle,
+    goToStep,
+    clearOtpSession,
+    config,
+  } = useAuth()
   const [code] = useState<string | null>(getCodeFromUrl)
+
+  // ref to prevent useEffect firing twice in dev's StrictMode
+  const hasVerifiedRef = useRef(false)
   const {
     mutate: verifyMagicLink,
     error: verificationError,
@@ -22,6 +31,7 @@ export function Verifying() {
   } = useVerifyMagicLink({
     mutation: {
       onSuccess: async () => {
+        clearOtpSession()
         goToStep('authenticated')
         config?.onSuccess?.()
       },
@@ -32,24 +42,12 @@ export function Verifying() {
   })
 
   useEffect(() => {
-    if (
-      !otpId ||
-      !otpEncryptionTargetBundle ||
-      !code ||
-      isVerificationLoading ||
-      verificationError
-    )
+    if (hasVerifiedRef.current || !otpId || !otpEncryptionTargetBundle || !code)
       return
 
+    hasVerifiedRef.current = true
     verifyMagicLink({ otpId, code, otpEncryptionTargetBundle })
-  }, [
-    otpId,
-    otpEncryptionTargetBundle,
-    code,
-    isVerificationLoading,
-    verificationError,
-    verifyMagicLink,
-  ])
+  }, [otpId, otpEncryptionTargetBundle, code, verifyMagicLink])
 
   return (
     <ScreenWrapper>

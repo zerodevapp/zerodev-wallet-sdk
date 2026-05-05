@@ -10,7 +10,7 @@ export const wagmiConfig = createConfig({
       chains: [sepolia],
       config: {
         auth: {
-          magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+          magicLinkBaseUrl: 'http://localhost:3000/verify',
           enabledMethods: ['email', 'google', 'passkey'],
           onSuccess: () => {
             // handle successful authentication

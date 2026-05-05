@@ -1,6 +1,47 @@
 import type { StateCreator } from 'zustand'
 import type { AuthConfig, AuthMethod, AuthStep } from './types'
 
+const OTP_SESSION_STORAGE_KEY = 'zerodev:auth:otpSession'
+
+type StoredOtpSession = {
+  otpId: string
+  otpEncryptionTargetBundle: string
+}
+
+function readStoredOtpSession(): StoredOtpSession | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(OTP_SESSION_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as StoredOtpSession
+    if (!parsed?.otpId || !parsed?.otpEncryptionTargetBundle) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeStoredOtpSession(session: StoredOtpSession): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(
+      OTP_SESSION_STORAGE_KEY,
+      JSON.stringify(session),
+    )
+  } catch {
+    // ignore
+  }
+}
+
+function clearStoredOtpSession(): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(OTP_SESSION_STORAGE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export interface AuthStoreSlice {
   auth: {
     // State
@@ -20,6 +61,8 @@ export interface AuthStoreSlice {
       otpId: string
       otpEncryptionTargetBundle: string
     }) => void
+    /** Clear the persisted OTP session after a successful verify. */
+    clearOtpSession: () => void
     config: AuthConfig | null
 
     // Actions
@@ -48,11 +91,16 @@ export const createAuthStoreSlice: StateCreator<
 
     // Actions
     initialize: (config: AuthConfig) => {
+      const stored = readStoredOtpSession()
       set((state) => ({
         auth: {
           ...state.auth,
           config,
           enabledMethods: config.enabledMethods,
+          ...(stored && {
+            otpId: stored.otpId,
+            otpEncryptionTargetBundle: stored.otpEncryptionTargetBundle,
+          }),
         },
       }))
     },
@@ -81,6 +129,7 @@ export const createAuthStoreSlice: StateCreator<
     },
 
     reset: () => {
+      clearStoredOtpSession()
       set((state) => ({
         auth: {
           ...state.auth,
@@ -103,11 +152,23 @@ export const createAuthStoreSlice: StateCreator<
     },
 
     setOtpSession: ({ otpId, otpEncryptionTargetBundle }) => {
+      writeStoredOtpSession({ otpId, otpEncryptionTargetBundle })
       set((state) => ({
         auth: {
           ...state.auth,
           otpId,
           otpEncryptionTargetBundle,
+        },
+      }))
+    },
+
+    clearOtpSession: () => {
+      clearStoredOtpSession()
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          otpId: null,
+          otpEncryptionTargetBundle: null,
         },
       }))
     },
