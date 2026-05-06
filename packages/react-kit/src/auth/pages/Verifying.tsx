@@ -1,5 +1,5 @@
 import { useVerifyMagicLink } from '@zerodev/wallet-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
@@ -12,6 +12,18 @@ function getCodeFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get('code')
 }
 
+function stripCodeFromUrl(): void {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('code')) return
+  url.searchParams.delete('code')
+  window.history.replaceState({}, '', url.toString())
+}
+
+// Module-scope guard: survives React 18 strict-mode remounts, which would
+// reset a per-component useRef.
+let didVerifyForThisLoad = false
+
 export function Verifying() {
   const {
     otpId,
@@ -22,8 +34,6 @@ export function Verifying() {
   } = useAuth()
   const [code] = useState<string | null>(getCodeFromUrl)
 
-  // ref to prevent useEffect firing twice in dev's StrictMode
-  const hasVerifiedRef = useRef(false)
   const {
     mutate: verifyMagicLink,
     error: verificationError,
@@ -32,6 +42,7 @@ export function Verifying() {
     mutation: {
       onSuccess: async () => {
         clearOtpSession()
+        stripCodeFromUrl()
         goToStep('authenticated')
         config?.onSuccess?.()
       },
@@ -42,10 +53,10 @@ export function Verifying() {
   })
 
   useEffect(() => {
-    if (hasVerifiedRef.current || !otpId || !otpEncryptionTargetBundle || !code)
+    if (didVerifyForThisLoad || !otpId || !otpEncryptionTargetBundle || !code)
       return
 
-    hasVerifiedRef.current = true
+    didVerifyForThisLoad = true
     verifyMagicLink({ otpId, code, otpEncryptionTargetBundle })
   }, [otpId, otpEncryptionTargetBundle, code, verifyMagicLink])
 

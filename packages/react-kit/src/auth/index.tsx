@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { StatusView } from '../shared/components/StatusView'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
@@ -28,14 +28,25 @@ function WalletSelection() {
   )
 }
 
-export function AuthFlow() {
-  const { step, goToStep } = useAuth()
+export type AuthFlowRenderArgs = ReturnType<typeof useAuth>
+
+export interface AuthFlowProps {
+  children?: (args: AuthFlowRenderArgs) => ReactNode
+}
+
+export function AuthFlow({ children }: AuthFlowProps = {}) {
+  const auth = useAuth()
+  const { step, goToStep } = auth
 
   useEffect(() => {
     if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
       goToStep('verifying-otp')
     }
   }, [step, goToStep])
+
+  if (typeof children === 'function') {
+    return children(auth)
+  }
 
   switch (step) {
     case 'initializing':
