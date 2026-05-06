@@ -64,8 +64,7 @@ describe('SignatureRequest', () => {
 
     render(<SignatureRequest />)
 
-    expect(screen.getByText('Confirm Request')).toBeDefined()
-    expect(screen.getByText('eth_sendTransaction')).toBeDefined()
+    expect(screen.getByText('Confirm Transaction')).toBeDefined()
     expect(screen.getByText('Confirm')).toBeDefined()
     expect(screen.getByText('Reject')).toBeDefined()
   })
@@ -76,8 +75,11 @@ describe('SignatureRequest', () => {
 
     render(<SignatureRequest />)
 
-    const pre = screen.getByText(/0x1234/)
-    expect(pre).toBeDefined()
+    // Transaction Summary starts collapsed; expand it to reveal params.
+    const [toggleButton] = screen.getAllByRole('button')
+    fireEvent.click(toggleButton)
+
+    expect(screen.getByText(/0x1234/)).toBeDefined()
   })
 
   it('calls resolve and clears on confirm click', () => {
