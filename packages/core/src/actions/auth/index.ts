@@ -24,6 +24,11 @@ export {
   getAuthProxyConfigId,
 } from './getAuthProxyConfigId.js'
 export {
+  type GetOAuthLoginUrlParameters,
+  type GetOAuthLoginUrlReturnType,
+  getOAuthLoginUrl,
+} from './getOAuthLoginUrl.js'
+export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getWhoami,

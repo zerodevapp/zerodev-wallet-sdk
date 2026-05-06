@@ -25,7 +25,7 @@ vi.mock('@wagmi/core/actions', () => ({
 
 // Mock OAuth utilities
 vi.mock('./oauth.js', () => ({
-  buildBackendOAuthUrl: vi.fn().mockReturnValue('https://oauth.example.com'),
+  verifyGoogleLoginUrl: vi.fn(),
   openOAuthPopup: vi.fn(),
   listenForOAuthMessage: vi.fn(),
 }))
@@ -54,6 +54,11 @@ function createMockWallet() {
         emailContacts: [{ email: 'user@example.com' }],
         apiKeys: [],
       }),
+      getOAuthLoginUrl: vi
+        .fn()
+        .mockResolvedValue(
+          'https://accounts.google.com/o/oauth2/v2/auth?nonce=stub',
+        ),
     },
   }
 }
@@ -518,13 +523,14 @@ describe('React Actions', () => {
   describe('authenticateOAuth', () => {
     let mockOpenOAuthPopup: ReturnType<typeof vi.fn>
     let mockListenForOAuthMessage: ReturnType<typeof vi.fn>
-    let mockBuildBackendOAuthUrl: ReturnType<typeof vi.fn>
+    let mockVerifyGoogleLoginUrl: ReturnType<typeof vi.fn>
 
     beforeEach(async () => {
       const oauthModule = await import('./oauth.js')
       mockOpenOAuthPopup = vi.mocked(oauthModule.openOAuthPopup)
       mockListenForOAuthMessage = vi.mocked(oauthModule.listenForOAuthMessage)
-      mockBuildBackendOAuthUrl = vi.mocked(oauthModule.buildBackendOAuthUrl)
+      mockVerifyGoogleLoginUrl = vi.mocked(oauthModule.verifyGoogleLoginUrl)
+      mockVerifyGoogleLoginUrl.mockReset()
     })
 
     it('throws when wallet is not initialized', async () => {
@@ -575,7 +581,7 @@ describe('React Actions', () => {
       ).rejects.toThrow('Failed to open google login window')
     })
 
-    it('builds OAuth URL with correct parameters', async () => {
+    it('fetches the login URL via wallet.client.getOAuthLoginUrl', async () => {
       const wallet = createMockWallet()
       wallet.getPublicKey.mockResolvedValue('03abcdef123456')
       const store = createMockStore(wallet)
@@ -591,13 +597,57 @@ describe('React Actions', () => {
 
       await new Promise((r) => setTimeout(r, 10))
 
-      expect(mockBuildBackendOAuthUrl).toHaveBeenCalledWith({
+      expect(wallet.client.getOAuthLoginUrl).toHaveBeenCalledWith({
         provider: 'google',
-        backendUrl: 'https://api.example.com',
         projectId: 'proj-123',
         publicKey: '03abcdef123456',
         returnTo: expect.stringContaining('oauth_success=true'),
       })
+    })
+
+    it('verifies the login URL with the wallet pubkey before opening the popup', async () => {
+      const wallet = createMockWallet()
+      wallet.getPublicKey.mockResolvedValue('03abcdef')
+      ;(
+        wallet.client.getOAuthLoginUrl as ReturnType<typeof vi.fn>
+      ).mockResolvedValue('https://accounts.google.com/x')
+      const store = createMockStore(wallet)
+      const connector = createMockConnector(store)
+      const config = createMockConfig(connector)
+
+      mockOpenOAuthPopup.mockReturnValue({ closed: false } as Window)
+      mockListenForOAuthMessage.mockImplementation(() => () => {})
+
+      authenticateOAuth(config, { provider: 'google' }).catch(() => {})
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(mockVerifyGoogleLoginUrl).toHaveBeenCalledWith(
+        'https://accounts.google.com/x',
+        '03abcdef',
+      )
+      // Order: verify must happen before openOAuthPopup
+      const verifyOrder = mockVerifyGoogleLoginUrl.mock.invocationCallOrder[0]
+      const popupOrder = mockOpenOAuthPopup.mock.invocationCallOrder[0]
+      expect(verifyOrder).toBeLessThan(popupOrder)
+    })
+
+    it('does NOT open popup when nonce verification fails', async () => {
+      const wallet = createMockWallet()
+      ;(
+        wallet.client.getOAuthLoginUrl as ReturnType<typeof vi.fn>
+      ).mockResolvedValue('https://accounts.google.com/x?nonce=wrong')
+      const store = createMockStore(wallet)
+      const connector = createMockConnector(store)
+      const config = createMockConfig(connector)
+
+      mockVerifyGoogleLoginUrl.mockImplementation(() => {
+        throw new Error('login URL nonce does not match public key hash')
+      })
+
+      await expect(
+        authenticateOAuth(config, { provider: 'google' }),
+      ).rejects.toThrow(/nonce does not match public key hash/)
+      expect(mockOpenOAuthPopup).not.toHaveBeenCalled()
     })
 
     it('preserves the caller pathname in returnTo so popup lands on the same route', async () => {
@@ -615,7 +665,10 @@ describe('React Actions', () => {
       authenticateOAuth(config, { provider: 'google' }).catch(() => {})
       await new Promise((r) => setTimeout(r, 10))
 
-      const returnTo = mockBuildBackendOAuthUrl.mock.calls[0][0].returnTo
+      const getOAuthMock = wallet.client.getOAuthLoginUrl as ReturnType<
+        typeof vi.fn
+      >
+      const returnTo = getOAuthMock.mock.calls[0][0].returnTo
       const parsed = new URL(returnTo)
       expect(parsed.pathname).toBe('/dashboard')
       expect(parsed.searchParams.get('oauth_success')).toBe('true')

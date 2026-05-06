@@ -13,10 +13,11 @@ export { useVerifyMagicLink } from './hooks/useVerifyMagicLink.js'
 export { useVerifyOTP } from './hooks/useVerifyOTP.js'
 export type { OAuthMessageData, OAuthProvider } from './oauth.js'
 export {
-  buildBackendOAuthUrl,
+  generateOAuthNonce,
   handleOAuthCallback,
   listenForOAuthMessage,
   OAUTH_PROVIDERS,
+  verifyGoogleLoginUrl,
 } from './oauth.js'
 export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
