@@ -13,6 +13,7 @@ export function OtpInput() {
     otpId,
     otpEncryptionTargetBundle,
     setOtpSession,
+    clearOtpSession,
     goToStep,
     config,
   } = useAuth()
@@ -43,6 +44,7 @@ export function OtpInput() {
         code: otp.trim(),
         otpEncryptionTargetBundle,
       })
+      clearOtpSession()
       goToStep('authenticated')
       config?.onSuccess?.()
     } catch (err) {

@@ -1,5 +1,5 @@
-import { useVerifyOTP } from '@zerodev/wallet-react'
-import { useEffect } from 'react'
+import { useVerifyMagicLink } from '@zerodev/wallet-react'
+import { useEffect, useRef, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
@@ -7,20 +7,31 @@ import { StatusView } from '../../shared/components/StatusView'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
-interface VerifyingProps {
-  otp?: string
-  otpSource?: 'input' | 'link'
+function getCodeFromUrl(): string | null {
+  if (typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search).get('code')
 }
 
-export function Verifying({ otp, otpSource }: VerifyingProps) {
-  const { otpId, otpEncryptionTargetBundle, goToStep, config } = useAuth()
+export function Verifying() {
   const {
-    mutate: verifyOtp,
+    otpId,
+    otpEncryptionTargetBundle,
+    goToStep,
+    clearOtpSession,
+    config,
+  } = useAuth()
+  const [code] = useState<string | null>(getCodeFromUrl)
+
+  // ref to prevent useEffect firing twice in dev's StrictMode
+  const hasVerifiedRef = useRef(false)
+  const {
+    mutate: verifyMagicLink,
     error: verificationError,
     isPending: isVerificationLoading,
-  } = useVerifyOTP({
+  } = useVerifyMagicLink({
     mutation: {
       onSuccess: async () => {
+        clearOtpSession()
         goToStep('authenticated')
         config?.onSuccess?.()
       },
@@ -30,26 +41,13 @@ export function Verifying({ otp, otpSource }: VerifyingProps) {
     },
   })
 
-  // Auto-verify when component mounts with OTP
   useEffect(() => {
-    if (
-      !otpId ||
-      !otpEncryptionTargetBundle ||
-      !otp ||
-      isVerificationLoading ||
-      verificationError
-    )
+    if (hasVerifiedRef.current || !otpId || !otpEncryptionTargetBundle || !code)
       return
 
-    verifyOtp({ otpId, code: otp, otpEncryptionTargetBundle })
-  }, [
-    otpId,
-    otpEncryptionTargetBundle,
-    otp,
-    isVerificationLoading,
-    verificationError,
-    verifyOtp,
-  ])
+    hasVerifiedRef.current = true
+    verifyMagicLink({ otpId, code, otpEncryptionTargetBundle })
+  }, [otpId, otpEncryptionTargetBundle, code, verifyMagicLink])
 
   return (
     <ScreenWrapper>
@@ -61,7 +59,7 @@ export function Verifying({ otp, otpSource }: VerifyingProps) {
             </StatusView>
           )}
 
-          {!otp && !isVerificationLoading && (
+          {!code && !isVerificationLoading && (
             <StatusView imageName="error" title="Invalid Link">
               <Text>
                 This verification link is invalid or incomplete.
@@ -79,20 +77,11 @@ export function Verifying({ otp, otpSource }: VerifyingProps) {
                   timeout, an expired link, or a cancelled request.
                 </Text>
               </StatusView>
-              <div className="flex flex-col gap-1">
-                {otpSource === 'input' && (
-                  <Button
-                    action="primary"
-                    text="Try again"
-                    onClick={() => goToStep('otp-input')}
-                  />
-                )}
-                <Button
-                  action={otpSource === 'input' ? 'secondary' : 'primary'}
-                  onClick={() => goToStep('sign-up')}
-                  text="Choose another sign-in method"
-                />
-              </div>
+              <Button
+                action="primary"
+                onClick={() => goToStep('sign-up')}
+                text="Choose another sign-in method"
+              />
             </>
           )}
 

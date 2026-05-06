@@ -41,5 +41,6 @@ export function useAuth() {
     reset: store.getState().auth.reset,
     setEmail: store.getState().auth.setEmail,
     setOtpSession: store.getState().auth.setOtpSession,
+    clearOtpSession: store.getState().auth.clearOtpSession,
   }
 }
