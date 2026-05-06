@@ -1,5 +1,5 @@
 import { type ComponentType, useEffect, useState } from 'react'
-import '../../../dist/styles.css'
+import '../../styles.css'
 
 /**
  * Lazy-loading wrapper that avoids SSR issues with wagmi/wallet code.
