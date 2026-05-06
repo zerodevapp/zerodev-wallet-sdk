@@ -12,7 +12,7 @@ const config = createConfig({
       chains: [sepolia],
       config: {
         auth: {
-          magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+          magicLinkBaseUrl: 'http://localhost:5173/verify',
           enabledMethods: ['email', 'google', 'passkey'],
         },
       },
