@@ -7,8 +7,14 @@ import {
   maxUint256,
 } from 'viem'
 import { useReadContract } from 'wagmi'
+
+import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
 import type { BatchCall } from '../../types.js'
+import { DataRow } from '../components/DataRow'
+import { DetailsContainer } from '../components/DetailsContainer'
 import { SigningLayout } from '../components/SigningLayout'
+import { TxDetailsItem } from '../components/TxDetailsItem'
 import {
   decodeCollectionApproval,
   isCollectionApproval,
@@ -17,24 +23,33 @@ import { decodeErc20Approval, isErc20Approval } from '../utils/erc20Approval.js'
 import { decodeErc20Transfer, isErc20Transfer } from '../utils/erc20Transfer.js'
 import { isEthTransfer } from '../utils/ethTransfer.js'
 
+const GAS_FEE = '0.00008 ETH ($0.28)'
+const EXECUTION_TIME = '≈ 1 sec'
+
 interface BatchCallsProps {
   calls: BatchCall[]
   confirm: () => void
   reject: () => void
 }
 
-function EthTransferItem({ to, value }: { to: Address; value: Hex }) {
+function EthTransferItem({
+  to,
+  value,
+  index,
+}: {
+  to: Address
+  value: Hex
+  index: number
+}) {
   return (
-    <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-      <p className="text-sm font-medium text-gray-700">Send ETH</p>
-      <p className="text-lg font-bold text-gray-900">
-        {formatEther(BigInt(value))} ETH
-      </p>
-      <div className="mt-1 text-sm text-gray-500">
-        <span className="font-medium">To: </span>
-        <span className="font-mono break-all">{to}</span>
-      </div>
-    </div>
+    <TxDetailsItem
+      title="Send ETH"
+      index={index}
+      data={{
+        To: shortenHex(to),
+        Amount: `${formatEther(BigInt(value))} ETH`,
+      }}
+    />
   )
 }
 
@@ -42,10 +57,12 @@ function Erc20TransferItem({
   contract,
   to,
   amount,
+  index,
 }: {
   contract: Address
   to: Address
   amount: bigint
+  index: number
 }) {
   const { data: symbol } = useReadContract({
     address: contract,
@@ -60,19 +77,17 @@ function Erc20TransferItem({
 
   const formatted =
     decimals != null ? formatUnits(amount, decimals) : String(amount)
-  const label = symbol ?? contract
+  const symbolStr = symbol ?? ''
 
   return (
-    <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-      <p className="text-sm font-medium text-gray-700">Send {label}</p>
-      <p className="text-lg font-bold text-gray-900">
-        {formatted} {symbol ?? ''}
-      </p>
-      <div className="mt-1 text-sm text-gray-500">
-        <span className="font-medium">To: </span>
-        <span className="font-mono break-all">{to}</span>
-      </div>
-    </div>
+    <TxDetailsItem
+      title={`Send ${symbol ?? 'ERC-20'}`}
+      index={index}
+      data={{
+        To: shortenHex(to),
+        Amount: `${formatted} ${symbolStr}`.trim(),
+      }}
+    />
   )
 }
 
@@ -80,10 +95,12 @@ function Erc20ApprovalItem({
   contract,
   spender,
   amount,
+  index,
 }: {
   contract: Address
   spender: Address
   amount: bigint
+  index: number
 }) {
   const { data: symbol } = useReadContract({
     address: contract,
@@ -97,23 +114,21 @@ function Erc20ApprovalItem({
   })
 
   const isUnlimited = amount === maxUint256
-  const formatted = isUnlimited
+  const allowance = isUnlimited
     ? 'Unlimited'
     : decimals != null
-      ? `${formatUnits(amount, decimals)} ${symbol ?? ''}`
+      ? `${formatUnits(amount, decimals)} ${symbol ?? ''}`.trim()
       : String(amount)
 
   return (
-    <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-      <p className="text-sm font-medium text-gray-700">
-        Approve {symbol ?? contract}
-      </p>
-      <p className="text-lg font-bold text-gray-900">{formatted}</p>
-      <div className="mt-1 text-sm text-gray-500">
-        <span className="font-medium">Spender: </span>
-        <span className="font-mono break-all">{spender}</span>
-      </div>
-    </div>
+    <TxDetailsItem
+      title="Approval"
+      index={index}
+      data={{
+        Spender: shortenHex(spender),
+        Allowance: allowance,
+      }}
+    />
   )
 }
 
@@ -121,59 +136,48 @@ function CollectionApprovalItem({
   contract,
   operator,
   approved,
+  index,
 }: {
   contract: Address
   operator: Address
   approved: boolean
+  index: number
 }) {
   return (
-    <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-      <p className="text-sm font-medium text-gray-700">
-        {approved ? 'Approve Collection' : 'Revoke Collection Approval'}
-      </p>
-      <div className="mt-1 text-sm text-gray-500">
-        <span className="font-medium">Contract: </span>
-        <span className="font-mono break-all">{contract}</span>
-      </div>
-      <div className="mt-1 text-sm text-gray-500">
-        <span className="font-medium">Operator: </span>
-        <span className="font-mono break-all">{operator}</span>
-      </div>
-    </div>
+    <TxDetailsItem
+      title="Collection Approval"
+      index={index}
+      data={{
+        Contract: shortenHex(contract),
+        Operator: shortenHex(operator),
+        Approved: approved ? 'Yes' : 'No',
+      }}
+    />
   )
 }
 
-function UnknownCallItem({ call }: { call: BatchCall }) {
-  return (
-    <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-      <p className="text-sm font-medium text-gray-700">Contract Call</p>
-      {call.to && (
-        <div className="mt-1 text-sm text-gray-500">
-          <span className="font-medium">To: </span>
-          <span className="font-mono break-all">{call.to}</span>
-        </div>
-      )}
-      {call.value && BigInt(call.value) > 0n && (
-        <div className="mt-1 text-sm text-gray-500">
-          <span className="font-medium">Value: </span>
-          <span>{formatEther(BigInt(call.value))} ETH</span>
-        </div>
-      )}
-      {call.data && (
-        <div className="mt-1 text-sm text-gray-500">
-          <span className="font-medium">Data: </span>
-          <span className="font-mono break-all">{call.data}</span>
-        </div>
-      )}
-    </div>
-  )
+function UnknownCallItem({ call, index }: { call: BatchCall; index: number }) {
+  const data: Record<string, string> = {}
+  if (call.to) data.To = shortenHex(call.to)
+  if (call.value && BigInt(call.value) > 0n) {
+    data.Value = `${formatEther(BigInt(call.value))} ETH`
+  }
+  if (call.data) data.Data = call.data
+
+  return <TxDetailsItem title="Unknown Message" index={index} data={data} />
 }
 
-function CallItem({ call }: { call: BatchCall }) {
+function CallItem({ call, index }: { call: BatchCall; index: number }) {
   const tx = call as Parameters<typeof isEthTransfer>[0]
 
   if (isEthTransfer(tx)) {
-    return <EthTransferItem to={call.to as Address} value={call.value as Hex} />
+    return (
+      <EthTransferItem
+        to={call.to as Address}
+        value={call.value as Hex}
+        index={index}
+      />
+    )
   }
 
   if (isErc20Transfer(tx)) {
@@ -184,6 +188,7 @@ function CallItem({ call }: { call: BatchCall }) {
           contract={call.to as Address}
           to={decoded.to}
           amount={decoded.amount}
+          index={index}
         />
       )
     }
@@ -197,6 +202,7 @@ function CallItem({ call }: { call: BatchCall }) {
           contract={call.to as Address}
           spender={decoded.spender}
           amount={decoded.amount}
+          index={index}
         />
       )
     }
@@ -210,26 +216,44 @@ function CallItem({ call }: { call: BatchCall }) {
           contract={call.to as Address}
           operator={decoded.operator}
           approved={decoded.approved}
+          index={index}
         />
       )
     }
   }
 
-  return <UnknownCallItem call={call} />
+  return <UnknownCallItem call={call} index={index} />
 }
 
 export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
   return (
     <SigningLayout onConfirm={confirm} onReject={reject}>
-      <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Batch Transaction ({calls.length}{' '}
-          {calls.length === 1 ? 'call' : 'calls'})
-        </h3>
-
-        {calls.map((call, i) => (
-          <CallItem key={`${call.to ?? 'unknown'}-${i}`} call={call} />
-        ))}
+      <div className="flex flex-col gap-2 pt-4">
+        <div className="flex flex-col items-center justify-center gap-2 pb-2">
+          <Text className="text-h2">Confirm Transaction</Text>
+        </div>
+        <DetailsContainer
+          title="Transaction Details"
+          iconName="arrowSwapHorizontal"
+        >
+          <div className="flex flex-col gap-1">
+            {calls.map((call, i) => (
+              <CallItem
+                key={`${call.to ?? 'unknown'}-${i}`}
+                call={call}
+                index={i + 1}
+              />
+            ))}
+          </div>
+        </DetailsContainer>
+        <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+          <DataRow label="Fee" value={GAS_FEE} iconName="gasStation" />
+          <DataRow
+            label="Total execution time"
+            value={EXECUTION_TIME}
+            iconName="clock"
+          />
+        </DetailsContainer>
       </div>
     </SigningLayout>
   )
