@@ -1,4 +1,10 @@
+import { formatEther, type Hex, hexToBigInt, toHex } from 'viem'
+
+import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
 import type { Request } from '../../types.js'
+import { DataRow } from '../components/DataRow'
+import { DetailsContainer } from '../components/DetailsContainer'
 import { SigningLayout } from '../components/SigningLayout'
 
 interface GenericRequestProps {
@@ -12,20 +18,61 @@ export function GenericRequest({
   confirm,
   reject,
 }: GenericRequestProps) {
+  if (
+    request.method !== 'eth_sendTransaction' &&
+    request.method !== 'wallet_sendTransaction'
+  ) {
+    return (
+      <SigningLayout onConfirm={confirm} onReject={reject}>
+        <div className="flex flex-col gap-2 pt-4">
+          <div className="flex flex-col items-center justify-center gap-2 pb-2">
+            <Text className="text-h2">Confirm Request</Text>
+          </div>
+          <div className="text-sm">
+            <span className="font-medium text-gray-500">Method: </span>
+            <span className="text-gray-900">{request.method}</span>
+          </div>
+          <pre className="rounded-lg bg-gray-50 p-3 text-xs text-gray-700 overflow-auto max-h-48 border border-gray-100">
+            {JSON.stringify(request.params, null, 2)}
+          </pre>
+        </div>
+      </SigningLayout>
+    )
+  }
+
+  const [{ data = '0x', to, value = toHex(0) }] = request.params
+
   return (
     <SigningLayout onConfirm={confirm} onReject={reject}>
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Confirm Request
-      </h3>
-
-      <div className="text-sm mb-2">
-        <span className="font-medium text-gray-500">Method: </span>
-        <span className="text-gray-900">{request.method}</span>
+      <div className="flex flex-col gap-2 pt-4">
+        <div className="flex flex-col items-center justify-center gap-2 pb-2">
+          <Text className="text-h2">Confirm Transaction</Text>
+        </div>
+        <DetailsContainer
+          title="Transaction Summary"
+          iconName="arrowSwapHorizontal"
+          collapsible
+        >
+          <DataRow label="To" value={shortenHex((to ?? '0x') as string)} />
+          <DataRow
+            label="Value"
+            value={`${formatEther(hexToBigInt(value as Hex))} ETH`}
+          />
+          <DataRow label="Data" value={shortenHex(data as Hex)} />
+        </DetailsContainer>
+        <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+          <DataRow
+            label="Fee"
+            value="0.00008 ETH ($0.28)"
+            iconName="gasStation"
+          />
+          <DataRow
+            label="Total execution time"
+            value="≈ 1 sec"
+            iconName="clock"
+          />
+        </DetailsContainer>
       </div>
-
-      <pre className="mt-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 overflow-auto max-h-48 border border-gray-100">
-        {JSON.stringify(request.params, null, 2)}
-      </pre>
     </SigningLayout>
   )
 }

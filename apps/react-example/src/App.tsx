@@ -302,6 +302,21 @@ function WalletPanel() {
             >
               Batch Calls
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                sendTransaction({
+                  // Arbitrary calldata that doesn't match any known decoder,
+                  // so the SignatureRequest falls through to GenericRequest.
+                  to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+                  data: '0xdeadbeef',
+                  value: parseEther('0.001'),
+                })
+              }
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              Generic Request
+            </button>
           </div>
         )}
 
