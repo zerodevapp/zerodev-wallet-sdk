@@ -43,9 +43,10 @@ describe('parseSession', () => {
       id: 'session-id',
       userId: 'user-123',
       organizationId: 'org-456',
-      stamperType: 'iframe' as const,
+      stamperType: 'apiKey' as const,
       expiry: 1700000000,
       createdAt: 1699900000,
+      token: 'test-public-key',
     }
 
     const result = parseSession(session)

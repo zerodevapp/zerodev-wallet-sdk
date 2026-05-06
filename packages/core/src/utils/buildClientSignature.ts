@@ -1,4 +1,4 @@
-import type { IndexedDbStamper } from '../stampers/types.js'
+import type { ApiKeyStamper } from '../stampers/types.js'
 import { derToRawSignature } from './derToRawSignature.js'
 
 export type BuildClientSignatureParams = {
@@ -6,8 +6,8 @@ export type BuildClientSignatureParams = {
   verificationToken: string
   /** The compressed public key hex */
   publicKey: string
-  /** The IndexedDB stamper for signing */
-  stamper: IndexedDbStamper
+  /** The API key stamper for signing */
+  stamper: ApiKeyStamper
 }
 
 /**

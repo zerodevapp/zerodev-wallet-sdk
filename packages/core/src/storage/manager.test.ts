@@ -25,7 +25,8 @@ function createSession(
     id: `session-${Math.random().toString(36).slice(2)}`,
     userId: 'user-123',
     organizationId: 'org-456',
-    stamperType: 'iframe',
+    stamperType: 'apiKey',
+    token: 'mock-token',
     expiry: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now (in seconds)
     createdAt: Date.now(),
     ...overrides,

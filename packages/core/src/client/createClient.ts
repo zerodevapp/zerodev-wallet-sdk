@@ -16,8 +16,8 @@ export function createBaseClient<
 >(config: ClientConfig): Client<extended> {
   const {
     transport,
-    indexedDbStamper,
-    webauthnStamper,
+    apiKeyStamper,
+    passkeyStamper,
     organizationId,
     key = 'zeroDevWallet',
     name = 'ZeroDev Wallet Client',
@@ -29,8 +29,8 @@ export function createBaseClient<
     request,
     value,
   } = transport({
-    indexedDbStamper,
-    webauthnStamper,
+    apiKeyStamper,
+    passkeyStamper,
   })
   const transportInstance = { ...transportConfig, ...value }
 
@@ -39,8 +39,8 @@ export function createBaseClient<
   const client = {
     transport: transportInstance,
     request,
-    indexedDbStamper,
-    webauthnStamper,
+    apiKeyStamper,
+    passkeyStamper,
     organizationId,
     key,
     name,

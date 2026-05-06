@@ -47,7 +47,7 @@ export async function sendSigningRequest(
 
   // Inner stamp over the Turnkey payload (for Turnkey verification)
   const innerBodyString = canonicalizeEx(turnkeyPayload)
-  const innerStamp = await client.indexedDbStamper.stamp(innerBodyString)
+  const innerStamp = await client.apiKeyStamper.stamp(innerBodyString)
 
   // Build full body with inner stamp embedded
   const fullBody = {
@@ -61,7 +61,7 @@ export async function sendSigningRequest(
 
   // Outer stamp over full body (for KMS middleware)
   const fullBodyString = canonicalizeEx(fullBody)
-  const outerStamp = await client.indexedDbStamper.stamp(fullBodyString)
+  const outerStamp = await client.apiKeyStamper.stamp(fullBodyString)
 
   const { signature } = await client.request({
     path: `${projectId}/${path}`,

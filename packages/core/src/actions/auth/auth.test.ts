@@ -35,17 +35,16 @@ function createMockClient(
     request: vi.fn(
       requestImpl || (async () => ({})),
     ) as unknown as Client['request'],
-    indexedDbStamper: {
+    apiKeyStamper: {
       stamp: vi.fn().mockResolvedValue(mockStamp),
       init: vi.fn().mockResolvedValue(undefined),
       publicKey: vi.fn().mockReturnValue('mock-public-key'),
       injectCredentialBundle: vi.fn().mockResolvedValue(undefined),
-      getStamperType: vi.fn().mockReturnValue('indexedDb'),
       clear: vi.fn().mockResolvedValue(undefined),
-    } as unknown as Client['indexedDbStamper'],
-    webauthnStamper: {
+    } as unknown as Client['apiKeyStamper'],
+    passkeyStamper: {
       stamp: vi.fn().mockResolvedValue(mockStamp),
-    } as unknown as Client['webauthnStamper'],
+    } as unknown as Client['passkeyStamper'],
     key: 'test-client',
     name: 'Test Client',
     type: 'zeroDevWalletClient',
@@ -194,11 +193,11 @@ describe('loginWithStamp', () => {
     })
 
     // Verify indexedDb stamper was used
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalled()
-    expect(mockClient.webauthnStamper.stamp).not.toHaveBeenCalled()
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalled()
+    expect(mockClient.passkeyStamper.stamp).not.toHaveBeenCalled()
 
     // Verify the stamp payload structure
-    const stampCall = vi.mocked(mockClient.indexedDbStamper.stamp).mock.calls[0]
+    const stampCall = vi.mocked(mockClient.apiKeyStamper.stamp).mock.calls[0]
     const stampPayload = JSON.parse(stampCall[0] as string)
     expect(stampPayload).toMatchObject({
       organizationId: 'org-123',
@@ -228,7 +227,7 @@ describe('loginWithStamp', () => {
     expect(result).toEqual({ session: 'session-jwt' })
   })
 
-  it('uses webauthn stamper when specified', async () => {
+  it('uses passkey stamper when specified', async () => {
     const mockClient = createMockClient(async () => ({
       session: 'session-jwt',
     }))
@@ -237,14 +236,14 @@ describe('loginWithStamp', () => {
       projectId: 'proj-456',
       organizationId: 'org-123',
       targetPublicKey: '03abcdef',
-      stampWith: 'webauthn',
+      stampWith: 'passkey',
     })
 
-    expect(mockClient.webauthnStamper.stamp).toHaveBeenCalled()
-    expect(mockClient.indexedDbStamper.stamp).not.toHaveBeenCalled()
+    expect(mockClient.passkeyStamper.stamp).toHaveBeenCalled()
+    expect(mockClient.apiKeyStamper.stamp).not.toHaveBeenCalled()
   })
 
-  it('uses indexedDb stamper when explicitly specified', async () => {
+  it('uses apiKey stamper when explicitly specified', async () => {
     const mockClient = createMockClient(async () => ({
       session: 'session-jwt',
     }))
@@ -253,11 +252,11 @@ describe('loginWithStamp', () => {
       projectId: 'proj-456',
       organizationId: 'org-123',
       targetPublicKey: '03abcdef',
-      stampWith: 'indexedDb',
+      stampWith: 'apiKey',
     })
 
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalled()
-    expect(mockClient.webauthnStamper.stamp).not.toHaveBeenCalled()
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalled()
+    expect(mockClient.passkeyStamper.stamp).not.toHaveBeenCalled()
   })
 
   it('includes timestamp in request body', async () => {
@@ -282,7 +281,7 @@ describe('loginWithStamp', () => {
 
   it('propagates stamper errors', async () => {
     const mockClient = createMockClient()
-    vi.mocked(mockClient.indexedDbStamper.stamp).mockRejectedValue(
+    vi.mocked(mockClient.apiKeyStamper.stamp).mockRejectedValue(
       new Error('Stamper unavailable'),
     )
 
@@ -445,7 +444,7 @@ describe('getWhoami', () => {
     })
 
     // Should call stamper twice (inner stamp + outer stamp)
-    expect(mockClient.indexedDbStamper.stamp).toHaveBeenCalledTimes(2)
+    expect(mockClient.apiKeyStamper.stamp).toHaveBeenCalledTimes(2)
 
     // Request should include stamp in body and X-Stamp header
     expect(mockClient.request).toHaveBeenCalledWith({

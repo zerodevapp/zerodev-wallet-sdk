@@ -8,7 +8,7 @@
 
 import { createSign, generateKeyPairSync, type KeyObject } from 'node:crypto'
 import type {
-  IndexedDbStamper,
+  ApiKeyStamper,
   Stamp,
 } from '../../packages/core/src/stampers/types.js'
 
@@ -21,11 +21,12 @@ export type TestStamperKeyPair = {
  * Creates a test stamper that implements the IndexedDbStamper interface
  * using Node.js crypto instead of browser IndexedDB.
  */
-export function createTestStamper(): IndexedDbStamper & {
+export function createTestStamper(): ApiKeyStamper & {
   /** Expose the key pair for tests that need direct access */
   getKeyPair(): TestStamperKeyPair | null
 } {
   let keyPair: TestStamperKeyPair | null = null
+  let pendingKeyPair: TestStamperKeyPair | null = null
 
   function ensureKeyPair(): TestStamperKeyPair {
     if (!keyPair) {
@@ -81,6 +82,19 @@ export function createTestStamper(): IndexedDbStamper & {
 
     getKeyPair(): TestStamperKeyPair | null {
       return keyPair
+    },
+
+    async prepareKeyRotation() {
+      const keyPair = generateP256KeyPair()
+      pendingKeyPair = keyPair
+      return getCompressedPublicKeyHex(pendingKeyPair.publicKey)
+    },
+    async commitKeyRotation() {
+      if (!pendingKeyPair) {
+        throw new Error('No pending key rotation to commit')
+      }
+      keyPair = pendingKeyPair
+      pendingKeyPair = null
     },
   }
 }

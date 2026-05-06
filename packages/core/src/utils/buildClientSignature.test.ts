@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { IndexedDbStamper } from '../stampers/types.js'
+import type { ApiKeyStamper } from '../stampers/types.js'
 import { buildClientSignature } from './buildClientSignature.js'
 
 // Helper to create base64url encoded string
@@ -26,7 +26,7 @@ function createValidDerSignature(): string {
 // Create a mock stamper
 function createMockStamper(
   signatureHex: string = createValidDerSignature(),
-): IndexedDbStamper {
+): ApiKeyStamper {
   return {
     stamp: vi.fn().mockResolvedValue({
       stampHeaderName: 'X-Stamp',
@@ -37,6 +37,8 @@ function createMockStamper(
     getPublicKey: vi.fn().mockResolvedValue('mock-public-key'),
     clear: vi.fn().mockResolvedValue(undefined),
     resetKeyPair: vi.fn().mockResolvedValue(undefined),
+    prepareKeyRotation: vi.fn().mockResolvedValue('mock-public-key'),
+    commitKeyRotation: vi.fn().mockResolvedValue(undefined),
   }
 }
 

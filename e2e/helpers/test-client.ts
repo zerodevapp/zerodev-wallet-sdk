@@ -8,13 +8,24 @@
 import { createClient } from '../../packages/core/src/client/createClient.js'
 import { rest } from '../../packages/core/src/client/transports/rest.js'
 import type { Transport } from '../../packages/core/src/client/types.js'
-import type { IndexedDbStamper } from '../../packages/core/src/stampers/types.js'
+import type {
+  ApiKeyStamper,
+  PasskeyStamper,
+} from '../../packages/core/src/stampers/types.js'
 import { BACKEND_URL } from './constants.js'
 
-const noopStamper = {
+const noopStamper: PasskeyStamper = {
   getPublicKey: async () => null,
   stamp: async () => ({ stampHeaderName: '', stampHeaderValue: '' }),
   clear: async () => {},
+  register: async () => ({
+    attestation: {
+      attestationObject: '',
+      clientDataJson: '',
+      credentialId: '',
+    },
+    encodedChallenge: '',
+  }),
 }
 
 /**
@@ -22,13 +33,13 @@ const noopStamper = {
  * The staging backend requires a valid Origin header matching the project's ACL.
  */
 function testTransport(baseUrl: string): Transport {
-  return ({ indexedDbStamper, webauthnStamper }) => {
+  return ({ apiKeyStamper, passkeyStamper }) => {
     const transport = rest(baseUrl, {
       timeoutMs: 30_000,
       key: 'zeroDevWallet',
       name: 'ZeroDev Wallet Transport',
-      indexedDbStamper,
-      webauthnStamper,
+      apiKeyStamper,
+      passkeyStamper,
       fetchOptions: {
         headers: {
           Origin: 'http://localhost:3000',
@@ -55,12 +66,12 @@ function testTransport(baseUrl: string): Transport {
  * Includes Origin header for ACL checks and uses the provided stamper.
  */
 export function createTestClient(
-  stamper: IndexedDbStamper,
+  stamper: ApiKeyStamper,
   baseUrl = BACKEND_URL,
 ) {
   return createClient({
     transport: testTransport(baseUrl),
-    indexedDbStamper: stamper,
-    webauthnStamper: noopStamper,
+    apiKeyStamper: stamper,
+    passkeyStamper: noopStamper,
   })
 }

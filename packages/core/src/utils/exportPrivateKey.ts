@@ -72,7 +72,7 @@ export async function exportPrivateKey(
   })
 
   const stamperKey =
-    session.stamperType === 'indexedDb' ? 'indexedDbStamper' : 'webauthnStamper'
+    session.stamperType === 'apiKey' ? 'apiKeyStamper' : 'passkeyStamper'
   const stamper = wallet.client[stamperKey]
   if (!stamper) {
     throw new Error(`Stamper '${stamperKey}' not found on wallet.client`)

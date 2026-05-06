@@ -80,9 +80,12 @@ export {
   createWebauthnStamper,
 } from './stampers/index.js'
 export type {
+  ApiKeyStamper,
+  Attestation,
   IframeStamper,
-  IndexedDbStamper,
-  WebauthnStamper,
+  PasskeyRegistrationOptions,
+  PasskeyRegistrationResult,
+  PasskeyStamper,
 } from './stampers/types.js'
 // Storage
 export type { StorageAdapter, StorageManager } from './storage/manager.js'

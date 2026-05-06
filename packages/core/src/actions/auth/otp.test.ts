@@ -22,8 +22,8 @@ function createMockClient(
     request: vi.fn(
       requestImpl || (async () => ({})),
     ) as unknown as Client['request'],
-    indexedDbStamper: {} as Client['indexedDbStamper'],
-    webauthnStamper: {} as Client['webauthnStamper'],
+    apiKeyStamper: {} as Client['apiKeyStamper'],
+    passkeyStamper: {} as Client['passkeyStamper'],
     key: 'test-client',
     name: 'Test Client',
     type: 'zeroDevWalletClient',

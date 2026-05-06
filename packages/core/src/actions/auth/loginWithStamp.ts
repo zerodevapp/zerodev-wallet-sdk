@@ -1,6 +1,7 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import type { Client } from '../../client/types.js'
 import type { Stamp } from '../../stampers/types.js'
+import type { StamperType } from '../../types/session.js'
 
 export type EmailCustomization = {
   /** A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
@@ -15,7 +16,7 @@ export type LoginWithStampParameters = {
   /** The encoded public key for the request */
   targetPublicKey: string
   /** The stamper type for the request */
-  stampWith?: 'indexedDb' | 'webauthn'
+  stampWith?: StamperType
 }
 
 export type LoginWithStampReturnType = {
@@ -58,12 +59,12 @@ export async function loginWithStamp(
     type: 'ACTIVITY_TYPE_STAMP_LOGIN',
   })
   let stamp: Stamp
-  if (stampWith === 'indexedDb') {
-    stamp = await client.indexedDbStamper.stamp(stampPayload)
-  } else if (stampWith === 'webauthn') {
-    stamp = await client.webauthnStamper.stamp(stampPayload)
+  if (stampWith === 'apiKey') {
+    stamp = await client.apiKeyStamper.stamp(stampPayload)
+  } else if (stampWith === 'passkey') {
+    stamp = await client.passkeyStamper.stamp(stampPayload)
   } else {
-    stamp = await client.indexedDbStamper.stamp(stampPayload)
+    stamp = await client.apiKeyStamper.stamp(stampPayload)
   }
 
   return client.request({
