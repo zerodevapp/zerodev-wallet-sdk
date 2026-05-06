@@ -6,7 +6,7 @@ import '../../../dist/styles.css'
  * The actual demo is in Demo.tsx and must be a separate module so Vite
  * resolves its wagmi imports to the same instance as WalletProvider.
  */
-export default function SignatureRequestExample() {
+export default function AuthFlowExample() {
   const [Component, setComponent] = useState<ComponentType | null>(null)
 
   useEffect(() => {

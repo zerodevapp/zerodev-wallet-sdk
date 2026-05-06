@@ -30,7 +30,18 @@ export const config = createConfig({
 ```
 
 
-### 2. Wrap your app with providers
+### 2. Import the kit's stylesheet
+
+Once, anywhere in your app entry (e.g. `main.tsx`):
+
+```tsx
+import '@zerodev/wallet-react-kit/styles.css'
+```
+
+This stylesheet contains the styles for the kit's components. Without
+it, components render unstyled.
+
+### 3. Wrap your app with providers
 
 ```tsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'

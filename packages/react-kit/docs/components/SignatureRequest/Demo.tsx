@@ -1,4 +1,4 @@
-import { SignatureRequest } from '@zerodev/wallet-react-kit'
+import { AuthFlow, SignatureRequest } from '@zerodev/wallet-react-kit'
 import { parseEther } from 'viem'
 import { useAccount, useSendTransaction } from 'wagmi'
 import { ConnectButton } from '../ConnectButton'
@@ -15,6 +15,7 @@ export default function SignatureRequestDemo() {
           Connect a wallet to try the SignatureRequest component.
         </p>
         <ConnectButton />
+        <AuthFlow />
       </div>
     )
   }

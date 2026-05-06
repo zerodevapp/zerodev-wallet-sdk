@@ -17,7 +17,7 @@ Signing confirmation is enabled by default (`prompt` mode). No extra config need
 
 ## Signing
 
-Control whether transactions and signing requests show a confirmation UI. To display the confirmation UI, mount the [`<SignatureRequest />`](/react/features/signature-request) component in your app.
+Control whether transactions and signing requests show a confirmation UI. To display the confirmation UI, mount the [`<SignatureRequest />`](/react-kit/features/transaction-signing) component in your app.
 
 ```tsx
 zeroDevKitWallet({
@@ -36,7 +36,7 @@ zeroDevKitWallet({
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `mode` | `"prompt"` or `"background"` | `"prompt"` | `prompt` shows confirmation UI. `background` skips it. |
-| `methods` | `RequestMethod[]` | `eth_sendTransaction`, `wallet_sendTransaction`, `personal_sign`, `eth_signTypedData_v4` | Which RPC methods trigger the confirmation UI. |
+| `methods` | `RequestMethod[]` | `eth_sendTransaction`, `wallet_sendTransaction`, `wallet_sendCalls`, `personal_sign`, `eth_signTypedData_v4` | Which RPC methods trigger the confirmation UI. |
 
 ### Background mode
 

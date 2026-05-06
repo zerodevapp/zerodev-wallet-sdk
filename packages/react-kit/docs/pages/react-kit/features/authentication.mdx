@@ -1,0 +1,77 @@
+import AuthFlowExample from '../../../components/AuthFlow'
+
+# Authentication
+
+Sign users in with email OTP, Google, or passkey. The `<AuthFlow />`
+component sits in your tree and renders the right auth screen for the
+current step — sign-up, email verification, OTP entry, OAuth callback,
+or passkey prompt.
+
+## Import
+
+```tsx
+import { AuthFlow } from '@zerodev/wallet-react-kit'
+```
+
+## Configure auth
+
+Pass an `auth` block to the connector to enable authentication:
+
+```tsx
+import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+
+zeroDevKitWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    auth: {
+      magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+      enabledMethods: ['email', 'google', 'passkey'],
+      onSuccess: () => {
+        // user is authenticated
+      },
+      onError: (error) => {
+        // auth failed
+      },
+    },
+  },
+})
+```
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `magicLinkBaseUrl` | `string` | The URL the magic link points to. Your app should call the verification handler at this path. |
+| `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`, `'injected-wallet'`. |
+| `onSuccess` | `() => void` | Called when authentication completes successfully. |
+| `onError` | `(error: unknown) => void` | Called when authentication fails. |
+
+## Usage
+
+Mount the component once, anywhere in your tree. It renders the active
+auth screen when the user is signing in and renders nothing otherwise.
+
+```tsx
+import { AuthFlow } from '@zerodev/wallet-react-kit'
+
+function App() {
+  return (
+    <>
+      <YourApp />
+      <AuthFlow />
+    </>
+  )
+}
+```
+
+The flow starts when `eth_requestAccounts` is called (e.g. via wagmi's
+`useConnect`) and completes when the user is authenticated, at which
+point `onSuccess` fires.
+
+To build a custom auth UI instead of using `<AuthFlow />`, read state
+directly with the [`useAuth`](/react-kit/hooks/use-auth) hook.
+
+## Live Example
+
+Click "Connect Wallet" to start the auth flow.
+
+<AuthFlowExample />
