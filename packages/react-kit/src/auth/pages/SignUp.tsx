@@ -26,11 +26,13 @@ export function SignUp() {
   const { goToStep, setEmail, setOtpSession, config } = useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [emailInput, setEmailInput] = useState('')
-  const useOtp = config?.emailAuthMethod === 'otp'
+  const shouldUseOtp = config?.emailAuthMethod === 'otp'
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
   const { mutateAsync: sendMagicLink, isPending: isSendMagicLinkPending } =
     useSendMagicLink()
-  const isEmailLoading = useOtp ? isSendOtpPending : isSendMagicLinkPending
+  const isEmailLoading = shouldUseOtp
+    ? isSendOtpPending
+    : isSendMagicLinkPending
   const { mutateAsync: authenticateOAuth, isPending: isGoogleLoading } =
     useAuthenticateOAuth({
       mutation: {
@@ -68,7 +70,7 @@ export function SignUp() {
 
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = useOtp
+      const { otpId, otpEncryptionTargetBundle } = shouldUseOtp
         ? await sendOtp({ email: emailInput })
         : await sendMagicLink({
             email: emailInput,
@@ -76,7 +78,7 @@ export function SignUp() {
           })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep(useOtp ? 'otp-input' : 'email-verification')
+      goToStep(shouldUseOtp ? 'otp-input' : 'email-verification')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
