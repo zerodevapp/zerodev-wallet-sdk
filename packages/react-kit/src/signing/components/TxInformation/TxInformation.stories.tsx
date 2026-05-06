@@ -10,12 +10,7 @@ const meta = {
   },
   tags: ['autodocs'],
   args: {
-    dapp: {
-      name: 'Uniswap',
-      domain: 'app.uniswap.org',
-      network: 'ethereum',
-      imageSource: 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
-    },
+    network: 'ethereum',
   },
   decorators: [
     (Story) => (

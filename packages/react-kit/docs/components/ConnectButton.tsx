@@ -1,8 +1,9 @@
 'use client'
-import { useAccount, useDisconnect } from 'wagmi'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
 
 export function ConnectButton() {
   const { isConnected, address } = useAccount()
+  const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
 
   if (isConnected) {
@@ -39,9 +40,7 @@ export function ConnectButton() {
   return (
     <button
       type="button"
-      onClick={() =>
-        alert('todo: we will show the authentication flow here instead.')
-      }
+      onClick={() => connect({ connector: connectors[0] })}
       style={{
         padding: '8px 16px',
         borderRadius: 8,

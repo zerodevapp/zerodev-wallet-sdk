@@ -1,5 +1,5 @@
 import { lazy, type ReactNode, Suspense } from 'react'
-import '../styles.css'
+import '../../dist/styles.css'
 
 const WalletProviderLazy = lazy(() =>
   import('./WalletProvider').then((mod) => ({ default: mod.WalletProvider })),

@@ -1,0 +1,38 @@
+# usePendingRequest
+
+Access the pending signing request state. Use this to build a custom
+confirmation UI instead of the default `<SignatureRequest />`, or to
+show a count of queued requests in your own UI.
+
+## Import
+
+```tsx
+import { usePendingRequest } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+```tsx
+function MyCustomConfirmation() {
+  const { pendingRequest, confirm, reject } = usePendingRequest()
+
+  if (!pendingRequest) return null
+
+  return (
+    <div>
+      <p>{pendingRequest.method}</p>
+      <button onClick={confirm}>Approve</button>
+      <button onClick={reject}>Decline</button>
+    </div>
+  )
+}
+```
+
+## Return value
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `pendingRequest` | `PendingRequest \| null` | The head of the pending queue — the request currently awaiting user action. `null` when the queue is empty. |
+| `pendingRequests` | `PendingRequest[]` | The full pending queue. |
+| `confirm` | `() => void` | Resolves the active request and removes it from the queue, letting the underlying RPC call proceed. |
+| `reject` | `() => void` | Rejects the active request with `User rejected the request` and removes it from the queue. |

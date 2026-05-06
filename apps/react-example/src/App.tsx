@@ -1,6 +1,5 @@
 import {
   AuthFlow,
-  Button,
   type PendingRequest,
   type Request,
   SignatureRequest,
@@ -143,23 +142,20 @@ function WalletPanel() {
 
         {mode !== 'controlled' && (
           <div className="flex flex-col gap-2">
-            <Button
-              text={
-                pendingRequests.length > 0 ? 'Queue ETH transfer' : 'Send ETH'
-              }
+            <button
+              type="button"
               onClick={() =>
                 sendTransaction({
                   to: address!,
                   value: parseEther('0.01'),
                 })
               }
-            />
-            <Button
-              text={
-                pendingRequests.length > 0
-                  ? 'Queue ERC-20 transfer'
-                  : 'Send ERC-20'
-              }
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              {pendingRequests.length > 0 ? 'Queue ETH transfer' : 'Send ETH'}
+            </button>
+            <button
+              type="button"
               onClick={() =>
                 sendTransaction({
                   to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
@@ -170,13 +166,14 @@ function WalletPanel() {
                   }),
                 })
               }
-            />
-            <Button
-              text={
-                pendingRequests.length > 0
-                  ? 'Queue ERC-20 approval'
-                  : 'Approve ERC-20'
-              }
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              {pendingRequests.length > 0
+                ? 'Queue ERC-20 transfer'
+                : 'Send ERC-20'}
+            </button>
+            <button
+              type="button"
               onClick={() =>
                 sendTransaction({
                   to: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC on Sepolia
@@ -187,9 +184,14 @@ function WalletPanel() {
                   }),
                 })
               }
-            />
-            <Button
-              text="Collection Approval"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              {pendingRequests.length > 0
+                ? 'Queue ERC-20 approval'
+                : 'Approve ERC-20'}
+            </button>
+            <button
+              type="button"
               onClick={() =>
                 sendTransaction({
                   // Not an NFT — reusing USDC on Sepolia because it has a name() function,
@@ -213,13 +215,19 @@ function WalletPanel() {
                   }),
                 })
               }
-            />
-            <Button
-              text="Sign Message"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              Collection Approval
+            </button>
+            <button
+              type="button"
               onClick={() => signMessage({ message: 'Hello from ZeroDev!' })}
-            />
-            <Button
-              text="Sign Typed Data"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              Sign Message
+            </button>
+            <button
+              type="button"
               onClick={() =>
                 signTypedData({
                   domain: {
@@ -266,9 +274,12 @@ function WalletPanel() {
                   },
                 })
               }
-            />
-            <Button
-              text="Batch Calls"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              Sign Typed Data
+            </button>
+            <button
+              type="button"
               onClick={() =>
                 sendCalls({
                   calls: [
@@ -287,7 +298,10 @@ function WalletPanel() {
                   ],
                 })
               }
-            />
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              Batch Calls
+            </button>
           </div>
         )}
 
@@ -297,10 +311,13 @@ function WalletPanel() {
               In controlled mode the app captures the request locally, renders
               the default UI, and dispatches the tx itself on confirm.
             </p>
-            <Button
-              text="Send ETH (controlled)"
+            <button
+              type="button"
               onClick={handleControlledSendEth}
-            />
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer"
+            >
+              Send ETH (controlled)
+            </button>
           </div>
         )}
 

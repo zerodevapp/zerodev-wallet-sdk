@@ -10,6 +10,12 @@ const config = createConfig({
     zeroDevKitWallet({
       projectId: import.meta.env.VITE_ZERODEV_PROJECT_ID,
       chains: [sepolia],
+      config: {
+        auth: {
+          magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+          enabledMethods: ['email', 'google', 'passkey'],
+        },
+      },
     }),
   ],
   transports: {

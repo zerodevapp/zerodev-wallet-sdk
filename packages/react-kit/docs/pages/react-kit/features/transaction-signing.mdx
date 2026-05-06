@@ -1,0 +1,46 @@
+import SignatureRequestExample from '../../../components/SignatureRequest'
+
+# Transaction Signing
+
+Show users what they're signing before it happens. The
+`<SignatureRequest />` component sits in your tree and intercepts signing
+RPC calls, giving the user a chance to review and approve or reject
+before the underlying call proceeds.
+
+## Import
+
+```tsx
+import { SignatureRequest } from '@zerodev/wallet-react-kit'
+```
+
+## Usage
+
+Mount the component once, anywhere in your tree. When a signing call
+comes in, the confirmation UI appears.
+
+```tsx
+import { SignatureRequest } from '@zerodev/wallet-react-kit'
+import { useSendTransaction } from 'wagmi'
+
+function App() {
+  const { sendTransaction } = useSendTransaction()
+
+  return (
+    <>
+      <button onClick={() => sendTransaction({ to: '0x...', value: 100n })}>
+        Send
+      </button>
+      <SignatureRequest />
+    </>
+  )
+}
+```
+
+No props needed. When there's nothing pending, the component renders
+nothing.
+
+## Live Example
+
+Click "Send Transaction" to see the confirmation UI appear.
+
+<SignatureRequestExample />
