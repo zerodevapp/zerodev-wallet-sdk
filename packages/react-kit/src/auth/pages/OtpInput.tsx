@@ -79,7 +79,7 @@ export function OtpInput() {
   return (
     <ScreenWrapper>
       {() => (
-        <div className="flex flex-1 flex-col gap-8 justify-center items-center h-full">
+        <div className="flex flex-1 flex-col gap-8 py-6 justify-center items-center h-full">
           <div className="flex flex-col gap-4">
             <Text className="text-h2 text-center">Enter verification code</Text>
             <Text className="text-center">
@@ -118,7 +118,7 @@ export function OtpInput() {
             </Text>
           </div>
 
-          <AppLogo className="absolute self-center bottom-6" />
+          <AppLogo className="self-center" />
         </div>
       )}
     </ScreenWrapper>

@@ -65,7 +65,7 @@ export function MultiRadialBackground() {
   ]
 
   return (
-    <div className="absolute inset-0 -z-20 rounded-[36px] pointer-events-none">
+    <div className="absolute inset-0 z-0 rounded-[36px] pointer-events-none">
       <svg
         width="100%"
         height="100%"

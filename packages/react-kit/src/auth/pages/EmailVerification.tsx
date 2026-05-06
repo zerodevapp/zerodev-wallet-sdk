@@ -73,7 +73,7 @@ export function EmailVerification() {
             </Text>
           </div>
 
-          <AppLogo className="absolute self-center bottom-6" />
+          <AppLogo className="self-center pb-6" />
         </div>
       )}
     </ScreenWrapper>

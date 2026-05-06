@@ -27,6 +27,7 @@ export function ConnectButton() {
             borderRadius: 6,
             border: '1px solid #ddd',
             background: 'white',
+            color: '#111',
             fontSize: 12,
             cursor: 'pointer',
           }}
