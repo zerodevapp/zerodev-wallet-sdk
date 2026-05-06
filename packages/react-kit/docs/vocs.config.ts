@@ -1,10 +1,14 @@
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vocs'
 
 export default defineConfig({
   rootDir: '.',
   vite: {
-    plugins: [svgr({ svgrOptions: { exportType: 'default' } })],
+    plugins: [
+      svgr({ svgrOptions: { exportType: 'default' } }),
+      nodePolyfills({ include: ['buffer'], globals: { Buffer: true } }),
+    ],
     resolve: {
       alias: {
         '@zerodev/wallet-react-kit': new URL('../src/index.ts', import.meta.url)
