@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { Icon } from '../../shared/components/Icon'
 import { Input } from '../../shared/components/Input'
 import { ListItem } from '../../shared/components/ListItem'
+import { OrView } from '../../shared/components/OrView'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
@@ -166,14 +167,17 @@ export function SignUp() {
                 </Input>
               )}
               {enabledMethods.includes('injected-wallet') && (
-                <ListItem
-                  iconName="walletOutline"
-                  title="Choose a wallet instead"
-                  disabled={anyPending}
-                  onClick={handleChooseWallet}
-                  chevron
-                  className="rounded-3xl"
-                />
+                <>
+                  <OrView />
+                  <ListItem
+                    iconName="walletOutline"
+                    title="Choose a wallet instead"
+                    disabled={anyPending}
+                    onClick={handleChooseWallet}
+                    chevron
+                    className="rounded-3xl"
+                  />
+                </>
               )}
             </div>
           </div>
