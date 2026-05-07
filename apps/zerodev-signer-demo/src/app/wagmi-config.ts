@@ -1,8 +1,8 @@
 'use client'
 
-import { zeroDevWallet } from '@zerodev/wallet-react'
 import { createConfig, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
+import { zeroDevWallet } from '@zerodev/wallet-react'
 
 // RPC URLs per chain
 const rpcUrls: Record<number, string | undefined> = {
@@ -17,7 +17,7 @@ export const config = createConfig({
       projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID!,
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
       chains: [arbitrumSepolia, sepolia],
-    }),
+    })
   ],
   ssr: true,
   transports: {

@@ -1,28 +1,28 @@
-'use client'
+"use client";
 
-import { useExportWallet } from '@zerodev/wallet-react'
-import { AlertTriangle, Download, Loader2, X } from 'lucide-react'
-import { useState } from 'react'
-import { cn } from '../lib/utils'
+import { useState } from "react";
+import { Download, X, AlertTriangle, Loader2 } from "lucide-react";
+import { cn } from "../lib/utils";
+import { useExportWallet } from "@zerodev/wallet-react";
 
 type ExportWalletModalProps = {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const iframeContainerId = 'export-wallet-iframe-container'
+const iframeContainerId = "export-wallet-iframe-container";
 export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
-  const [showWarning, setShowWarning] = useState(true)
-  const [exporting, setExporting] = useState(false)
+  const [showWarning, setShowWarning] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
-  const exportWallet = useExportWallet()
+  const exportWallet = useExportWallet();
 
   const handleExport = async () => {
-    setShowWarning(false)
-    setExporting(true)
+    setShowWarning(false);
+    setExporting(true);
 
     // Wait for iframe container to be in DOM
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       await exportWallet.mutateAsync({
@@ -36,22 +36,22 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
           borderRadius: '8px',
           width: '100%',
         },
-      })
+      });
       // Iframe will show the seed phrase
     } catch (err) {
-      console.error('Export error:', err)
-      setShowWarning(true)
-      setExporting(false)
+      console.error("Export error:", err);
+      setShowWarning(true);
+      setExporting(false);
     }
-  }
+  };
 
   const handleClose = () => {
-    setShowWarning(true)
-    setExporting(false)
-    onClose()
-  }
+    setShowWarning(true);
+    setExporting(false);
+    onClose();
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -60,9 +60,7 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Download className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              Export Wallet
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Export Wallet</h2>
           </div>
           <button
             onClick={handleClose}
@@ -79,14 +77,10 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-red-900 mb-2">
-                  Security Warning
-                </p>
+                <p className="text-sm font-semibold text-red-900 mb-2">Security Warning</p>
                 <ul className="text-sm text-red-700 space-y-1.5">
                   <li>• Never share your seed phrase with anyone</li>
-                  <li>
-                    • Store it in a secure location (password manager, offline)
-                  </li>
+                  <li>• Store it in a secure location (password manager, offline)</li>
                   <li>• Anyone with your seed phrase can access your funds</li>
                   <li>• Make sure no one is watching your screen</li>
                 </ul>
@@ -98,22 +92,20 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
           {!exporting ? (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                Export your wallet&apos;s seed phrase to import it into other
-                wallets or backup.
+                Export your wallet&apos;s seed phrase to import it into other wallets or backup.
               </p>
 
               <button
                 onClick={handleExport}
                 disabled={exportWallet.isPending}
                 style={{
-                  background:
-                    'linear-gradient(white, white) padding-box, linear-gradient(to right, #22d3ee, #2563eb) border-box',
+                  background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #22d3ee, #2563eb) border-box',
                 }}
                 className={cn(
-                  'w-full py-3 px-4 rounded-lg font-semibold text-sm cursor-pointer',
-                  'border-2 border-transparent text-blue-500',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  'flex items-center justify-center gap-2',
+                  "w-full py-3 px-4 rounded-lg font-semibold text-sm cursor-pointer",
+                  "border-2 border-transparent text-blue-500",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "flex items-center justify-center gap-2"
                 )}
               >
                 {exportWallet.isPending ? (
@@ -132,12 +124,9 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
           ) : (
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800 font-medium mb-2">
-                  Your Seed Phrase
-                </p>
+                <p className="text-sm text-blue-800 font-medium mb-2">Your Seed Phrase</p>
                 <p className="text-xs text-blue-500">
-                  Write this down and store it safely. You&apos;ll need it to
-                  recover your wallet.
+                  Write this down and store it safely. You&apos;ll need it to recover your wallet.
                 </p>
               </div>
 
@@ -163,12 +152,8 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
             <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-lg">
               <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-900">
-                  Export Failed
-                </p>
-                <p className="text-sm text-red-700 mt-0.5">
-                  {exportWallet.error.message}
-                </p>
+                <p className="text-sm font-medium text-red-900">Export Failed</p>
+                <p className="text-sm text-red-700 mt-0.5">{exportWallet.error.message}</p>
               </div>
             </div>
           )}
@@ -185,5 +170,5 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

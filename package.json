@@ -57,15 +57,18 @@
   "pnpm": {
     "overrides": {
       "wagmi": "^2.19.0",
-      "@wagmi/core": "^2.22.0"
+      "@wagmi/core": "^2.22.0",
+      "react": "19.2.0",
+      "react-dom": "19.2.0",
+      "@tanstack/react-query": "^5.90.21"
     }
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "biome check --write --files-ignore-unknown=true"
+      "biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
     ],
     "*.{json,jsonc}": [
-      "biome format --write"
+      "biome format --write --no-errors-on-unmatched"
     ]
   }
 }

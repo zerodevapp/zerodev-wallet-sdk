@@ -1,32 +1,29 @@
-'use client'
+"use client";
 
-import { useExportPrivateKey } from '@zerodev/wallet-react'
-import { AlertTriangle, Key, Loader2, X } from 'lucide-react'
-import { useState } from 'react'
-import { cn } from '../lib/utils'
+import { useState } from "react";
+import { Key, X, AlertTriangle, Loader2 } from "lucide-react";
+import { cn } from "../lib/utils";
+import { useExportPrivateKey } from "@zerodev/wallet-react";
 
 type ExportPrivateKeyModalProps = {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const iframeContainerId = 'export-private-key-iframe-container'
+const iframeContainerId = "export-private-key-iframe-container";
 
-export function ExportPrivateKeyModal({
-  isOpen,
-  onClose,
-}: ExportPrivateKeyModalProps) {
-  const [showWarning, setShowWarning] = useState(true)
-  const [exporting, setExporting] = useState(false)
+export function ExportPrivateKeyModal({ isOpen, onClose }: ExportPrivateKeyModalProps) {
+  const [showWarning, setShowWarning] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
-  const exportPrivateKey = useExportPrivateKey()
+  const exportPrivateKey = useExportPrivateKey();
 
   const handleExport = async () => {
-    setShowWarning(false)
-    setExporting(true)
+    setShowWarning(false);
+    setExporting(true);
 
     // Wait for iframe container to be in DOM
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       await exportPrivateKey.mutateAsync({
@@ -40,22 +37,22 @@ export function ExportPrivateKeyModal({
           borderRadius: '8px',
           width: '100%',
         },
-      })
+      });
       // Iframe will show the private key
     } catch (err) {
-      console.error('Export error:', err)
-      setShowWarning(true)
-      setExporting(false)
+      console.error("Export error:", err);
+      setShowWarning(true);
+      setExporting(false);
     }
-  }
+  };
 
   const handleClose = () => {
-    setShowWarning(true)
-    setExporting(false)
-    onClose()
-  }
+    setShowWarning(true);
+    setExporting(false);
+    onClose();
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -64,9 +61,7 @@ export function ExportPrivateKeyModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Key className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              Export Private Key
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Export Private Key</h2>
           </div>
           <button
             onClick={handleClose}
@@ -83,14 +78,10 @@ export function ExportPrivateKeyModal({
             <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-red-900 mb-2">
-                  Security Warning
-                </p>
+                <p className="text-sm font-semibold text-red-900 mb-2">Security Warning</p>
                 <ul className="text-sm text-red-700 space-y-1.5">
                   <li>• Never share your private key with anyone</li>
-                  <li>
-                    • Store it in a secure location (password manager, offline)
-                  </li>
+                  <li>• Store it in a secure location (password manager, offline)</li>
                   <li>• Anyone with your private key can access your funds</li>
                   <li>• Make sure no one is watching your screen</li>
                 </ul>
@@ -102,18 +93,17 @@ export function ExportPrivateKeyModal({
           {!exporting ? (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                Export your wallet&apos;s private key to import it into other
-                wallets or backup.
+                Export your wallet&apos;s private key to import it into other wallets or backup.
               </p>
 
               <button
                 onClick={handleExport}
                 disabled={exportPrivateKey.isPending}
                 className={cn(
-                  'w-full py-3 px-4 rounded-lg font-semibold text-sm',
-                  'bg-red-600 text-white hover:bg-red-700',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  'flex items-center justify-center gap-2',
+                  "w-full py-3 px-4 rounded-lg font-semibold text-sm",
+                  "bg-red-600 text-white hover:bg-red-700",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "flex items-center justify-center gap-2"
                 )}
               >
                 {exportPrivateKey.isPending ? (
@@ -132,12 +122,9 @@ export function ExportPrivateKeyModal({
           ) : (
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800 font-medium mb-2">
-                  Your Private Key
-                </p>
+                <p className="text-sm text-blue-800 font-medium mb-2">Your Private Key</p>
                 <p className="text-xs text-blue-600">
-                  Copy this and store it safely. You&apos;ll need it to recover
-                  your wallet.
+                  Copy this and store it safely. You&apos;ll need it to recover your wallet.
                 </p>
               </div>
 
@@ -163,12 +150,8 @@ export function ExportPrivateKeyModal({
             <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-lg">
               <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-900">
-                  Export Failed
-                </p>
-                <p className="text-sm text-red-700 mt-0.5">
-                  {exportPrivateKey.error.message}
-                </p>
+                <p className="text-sm font-medium text-red-900">Export Failed</p>
+                <p className="text-sm text-red-700 mt-0.5">{exportPrivateKey.error.message}</p>
               </div>
             </div>
           )}
@@ -185,5 +168,5 @@ export function ExportPrivateKeyModal({
         </div>
       </div>
     </div>
-  )
+  );
 }
