@@ -26,7 +26,7 @@ export function ScreenWrapper({
   return (
     <div
       className={cn(
-        'flex-1 flex flex-col relative overflow-hidden h-full max-w-[500px] rounded-[30px]',
+        'flex-1 flex flex-col relative overflow-hidden h-full w-[500px] rounded-[34px]',
         className,
       )}
       style={style}
