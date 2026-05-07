@@ -86,10 +86,6 @@ export function SignUp() {
     }
   }
 
-  const handleChooseWallet = () => {
-    goToStep('wallet-selection')
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,14 +163,14 @@ export function SignUp() {
                 </Input>
               </div>
               <OrView />
-              <ListItem
+              {/* <ListItem
                 iconName="walletOutline"
                 title="Choose a wallet instead"
                 disabled={anyPending}
                 onClick={handleChooseWallet}
                 chevron
                 className="rounded-3xl"
-              />
+              /> */}
             </div>
           </div>
           <SignUpFooter
