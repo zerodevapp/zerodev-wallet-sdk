@@ -131,19 +131,6 @@ describe('AuthFlow', () => {
     )
   })
 
-  it('renders wallet-selection state', () => {
-    mockStep = 'wallet-selection'
-    render(<AuthFlow />)
-
-    expect(screen.getByTestId('status-view')).toBeDefined()
-    expect(screen.getByTestId('status-title').textContent).toBe(
-      'Select your wallet',
-    )
-    expect(screen.getByTestId('status-content').textContent).toBe(
-      'Please select a wallet to continue.',
-    )
-  })
-
   it('renders authenticated state as null', () => {
     mockStep = 'authenticated'
     const { container } = render(<AuthFlow />)

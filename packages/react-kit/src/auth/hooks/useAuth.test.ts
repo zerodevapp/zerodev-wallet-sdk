@@ -263,16 +263,13 @@ describe('useAuth', () => {
   it('works with different enabled methods', () => {
     const store = createStore()
     const config = createMockAuthConfig({
-      enabledMethods: ['passkey', 'injected-wallet'],
+      enabledMethods: ['passkey', 'google'],
     })
     store.getState().auth.initialize(config)
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.enabledMethods).toEqual([
-      'passkey',
-      'injected-wallet',
-    ])
+    expect(result.current.enabledMethods).toEqual(['passkey', 'google'])
   })
 })

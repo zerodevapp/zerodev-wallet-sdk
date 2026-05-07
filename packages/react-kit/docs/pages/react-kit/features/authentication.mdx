@@ -43,7 +43,7 @@ zeroDevKitWallet({
 | Property | Type | Description |
 | --- | --- | --- |
 | `magicLinkBaseUrl` | `string` | The URL the magic link points to. Your app should call the verification handler at this path. |
-| `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`, `'injected-wallet'`. |
+| `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`. |
 | `termsAndConditionsUrl` | `string` (optional) | URL for your terms and conditions page. When set (alone or with `privacyPolicyUrl`), the auth UI shows a required agreement checkbox before the user can continue. |
 | `privacyPolicyUrl` | `string` (optional) | URL for your privacy policy page. When set (alone or with `termsAndConditionsUrl`), the auth UI shows a required agreement checkbox before the user can continue. |
 | `onSuccess` | `() => void` | Called when authentication completes successfully. |
