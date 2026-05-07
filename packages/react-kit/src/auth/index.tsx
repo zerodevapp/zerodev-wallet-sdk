@@ -20,6 +20,14 @@ function OAuthCallback() {
   )
 }
 
+function WalletSelection() {
+  return (
+    <StatusView imageName="loading" title="Select your wallet">
+      Please select a wallet to continue.
+    </StatusView>
+  )
+}
+
 export function AuthFlow() {
   const { step, goToStep } = useAuth()
 
@@ -48,6 +56,8 @@ export function AuthFlow() {
           Please authenticate with your passkey.
         </StatusView>
       )
+    case 'wallet-selection':
+      return <WalletSelection />
     case 'authenticated':
       return null // consumer handles this via onSuccess callback
     case 'error':

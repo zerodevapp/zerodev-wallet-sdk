@@ -43,14 +43,14 @@ describe('authStoreSlice', () => {
     it('sets custom enabled methods from config', () => {
       const store = createStore()
       const config = createMockAuthConfig({
-        enabledMethods: ['passkey', 'google'],
+        enabledMethods: ['passkey', 'injected-wallet'],
       })
 
       store.getState().auth.initialize(config)
 
       expect(store.getState().auth.enabledMethods).toEqual([
         'passkey',
-        'google',
+        'injected-wallet',
       ])
     })
   })

@@ -66,6 +66,10 @@ export function SignUp() {
     }
   }
 
+  const handleChooseWallet = () => {
+    goToStep('wallet-selection')
+  }
+
   const handleEmailSubmit = async () => {
     if (!emailInput || anyPending || !canContinue) return
 
@@ -160,6 +164,16 @@ export function SignUp() {
                     </div>
                   ) : null}
                 </Input>
+              )}
+              {enabledMethods.includes('injected-wallet') && (
+                <ListItem
+                  iconName="walletOutline"
+                  title="Choose a wallet instead"
+                  disabled={anyPending}
+                  onClick={handleChooseWallet}
+                  chevron
+                  className="rounded-3xl"
+                />
               )}
             </div>
           </div>
