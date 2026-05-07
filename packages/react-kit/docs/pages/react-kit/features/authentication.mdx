@@ -27,6 +27,8 @@ zeroDevKitWallet({
     auth: {
       magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
       enabledMethods: ['email', 'google', 'passkey'],
+      termsAndConditionsUrl: 'https://yourdomain.com/terms',
+      privacyPolicyUrl: 'https://yourdomain.com/privacy',
       onSuccess: () => {
         // user is authenticated
       },
@@ -42,8 +44,14 @@ zeroDevKitWallet({
 | --- | --- | --- |
 | `magicLinkBaseUrl` | `string` | The URL the magic link points to. Your app should call the verification handler at this path. |
 | `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`, `'injected-wallet'`. |
+| `termsAndConditionsUrl` | `string` (optional) | URL for your terms and conditions page. When set (alone or with `privacyPolicyUrl`), the auth UI shows a required agreement checkbox before the user can continue. |
+| `privacyPolicyUrl` | `string` (optional) | URL for your privacy policy page. When set (alone or with `termsAndConditionsUrl`), the auth UI shows a required agreement checkbox before the user can continue. |
 | `onSuccess` | `() => void` | Called when authentication completes successfully. |
 | `onError` | `(error: unknown) => void` | Called when authentication fails. |
+
+If you set neither `termsAndConditionsUrl` nor `privacyPolicyUrl`, the
+agreement checkbox is hidden entirely and the user can proceed without
+any consent step.
 
 ## Usage
 

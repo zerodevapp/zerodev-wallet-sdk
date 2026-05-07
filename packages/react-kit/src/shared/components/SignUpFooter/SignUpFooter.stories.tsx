@@ -3,6 +3,9 @@ import { useState } from 'react'
 
 import { SignUpFooter } from '.'
 
+const TERMS_URL = 'https://example.com/terms'
+const PRIVACY_URL = 'https://example.com/privacy'
+
 const meta = {
   title: 'Shared/SignUpFooter',
   component: SignUpFooter,
@@ -18,80 +21,61 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Unchecked: Story = {
+function Wrap(props: React.ComponentProps<typeof SignUpFooter>) {
+  const [agreed, setAgreed] = useState(props.agreedToTerms)
+  return (
+    <div className="w-96 p-6 bg-white rounded-lg">
+      <SignUpFooter
+        {...props}
+        agreedToTerms={agreed}
+        setAgreedToTerms={setAgreed}
+      />
+    </div>
+  )
+}
+
+export const BothLinks: Story = {
   args: {
     agreedToTerms: false,
     setAgreedToTerms: () => {},
+    termsAndConditionsUrl: TERMS_URL,
+    privacyPolicyUrl: PRIVACY_URL,
   },
-  render: () => {
-    const [agreed, setAgreed] = useState(false)
-    return (
-      <div className="w-96 p-6 bg-white rounded-lg">
-        <SignUpFooter agreedToTerms={agreed} setAgreedToTerms={setAgreed} />
-      </div>
-    )
-  },
+  render: (args) => <Wrap {...args} />,
 }
 
 export const Checked: Story = {
   args: {
     agreedToTerms: true,
     setAgreedToTerms: () => {},
+    termsAndConditionsUrl: TERMS_URL,
+    privacyPolicyUrl: PRIVACY_URL,
   },
-  render: () => {
-    const [agreed, setAgreed] = useState(true)
-    return (
-      <div className="w-96 p-6 bg-white rounded-lg">
-        <SignUpFooter agreedToTerms={agreed} setAgreedToTerms={setAgreed} />
-      </div>
-    )
-  },
+  render: (args) => <Wrap {...args} />,
 }
 
-export const InSignUpForm: Story = {
+export const OnlyTerms: Story = {
+  args: {
+    agreedToTerms: false,
+    setAgreedToTerms: () => {},
+    termsAndConditionsUrl: TERMS_URL,
+  },
+  render: (args) => <Wrap {...args} />,
+}
+
+export const OnlyPrivacy: Story = {
+  args: {
+    agreedToTerms: false,
+    setAgreedToTerms: () => {},
+    privacyPolicyUrl: PRIVACY_URL,
+  },
+  render: (args) => <Wrap {...args} />,
+}
+
+export const NoAgreement: Story = {
   args: {
     agreedToTerms: false,
     setAgreedToTerms: () => {},
   },
-  render: () => {
-    const [agreed, setAgreed] = useState(false)
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-
-    return (
-      <div className="w-96 p-6 bg-white rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-          Create Account
-        </h2>
-        <div className="flex flex-col gap-4 mb-6">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="px-4 py-3 rounded-lg border border-gray-300"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="px-4 py-3 rounded-lg border border-gray-300"
-          />
-          <button
-            type="button"
-            disabled={!agreed}
-            className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-              agreed
-                ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
-        <SignUpFooter agreedToTerms={agreed} setAgreedToTerms={setAgreed} />
-      </div>
-    )
-  },
+  render: (args) => <Wrap {...args} />,
 }

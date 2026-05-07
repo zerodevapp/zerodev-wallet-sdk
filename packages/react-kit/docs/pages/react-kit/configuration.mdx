@@ -15,6 +15,38 @@ zeroDevKitWallet({
 
 Signing confirmation is enabled by default (`prompt` mode). No extra config needed.
 
+## Auth
+
+Configure the [authentication flow](/react-kit/features/authentication). To display the auth UI, mount the [`<AuthFlow />`](/react-kit/features/authentication) component in your app.
+
+```tsx
+zeroDevKitWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    auth: {
+      magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
+      enabledMethods: ['email', 'google', 'passkey'],
+      termsAndConditionsUrl: 'https://yourdomain.com/terms',
+      privacyPolicyUrl: 'https://yourdomain.com/privacy',
+    },
+  },
+})
+```
+
+### `config.auth`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `magicLinkBaseUrl` | `string` | The URL the magic link points to. |
+| `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`, `'injected-wallet'`. |
+| `termsAndConditionsUrl` | `string` (optional) | Your terms and conditions URL. When set (alone or with `privacyPolicyUrl`), the auth UI shows a required agreement checkbox. |
+| `privacyPolicyUrl` | `string` (optional) | Your privacy policy URL. When set (alone or with `termsAndConditionsUrl`), the auth UI shows a required agreement checkbox. |
+| `onSuccess` | `() => void` | Called when authentication completes successfully. |
+| `onError` | `(error: unknown) => void` | Called when authentication fails. |
+
+Full reference: [Authentication](/react-kit/features/authentication).
+
 ## Signing
 
 Control whether transactions and signing requests show a confirmation UI. To display the confirmation UI, mount the [`<SignatureRequest />`](/react-kit/features/transaction-signing) component in your app.
