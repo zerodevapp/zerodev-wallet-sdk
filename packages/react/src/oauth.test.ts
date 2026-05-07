@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  buildBackendOAuthUrl,
   generateOAuthNonce,
   handleOAuthCallback,
   listenForOAuthMessage,
   OAUTH_PROVIDERS,
   openOAuthPopup,
+  verifyGoogleLoginUrl,
 } from './oauth.js'
 
 describe('OAuth utilities', () => {
@@ -45,78 +45,64 @@ describe('OAuth utilities', () => {
 
       expect(nonce1).not.toBe(nonce2)
     })
-  })
 
-  describe('buildBackendOAuthUrl', () => {
-    it('builds correct URL for Google OAuth', () => {
-      const url = buildBackendOAuthUrl({
-        provider: 'google',
-        backendUrl: 'https://api.example.com',
-        projectId: 'proj-123',
-        publicKey: '0xabcdef1234567890',
-        returnTo: 'https://app.example.com/callback',
-      })
-
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.origin).toBe('https://api.example.com')
-      expect(parsedUrl.pathname).toBe('/oauth/google/login')
-      expect(parsedUrl.searchParams.get('project_id')).toBe('proj-123')
-      expect(parsedUrl.searchParams.get('pub_key')).toBe('abcdef1234567890') // 0x stripped
-      expect(parsedUrl.searchParams.get('return_to')).toBe(
-        'https://app.example.com/callback',
+    it('hashes the UTF-8 ASCII bytes of the hex string (matches backend)', () => {
+      // Locks the encoding: must SHA-256 the ASCII bytes of the hex string,
+      // NOT the decoded pubkey bytes. Backend computes the same way:
+      //   sha256.Sum256([]byte(pubKey.Marshal()))   // Go
+      // Reference value via `printf 'abcdef' | sha256sum`:
+      //   bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721
+      expect(generateOAuthNonce('0xabcdef')).toBe(
+        'bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721',
+      )
+      expect(generateOAuthNonce('abcdef')).toBe(
+        'bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721',
       )
     })
 
-    it('strips 0x prefix from public key', () => {
-      const url = buildBackendOAuthUrl({
-        provider: 'google',
-        backendUrl: 'https://api.example.com',
-        projectId: 'proj-123',
-        publicKey: '0x0123456789',
-        returnTo: 'https://app.example.com',
-      })
+    it('lower-cases the hex before hashing', () => {
+      expect(generateOAuthNonce('ABCDEF')).toBe(generateOAuthNonce('abcdef'))
+    })
+  })
 
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.searchParams.get('pub_key')).toBe('0123456789')
+  describe('verifyGoogleLoginUrl', () => {
+    const publicKey = '0xabcdef'
+    const validNonce = generateOAuthNonce(publicKey)
+
+    it('passes when host is accounts.google.com and nonce matches', () => {
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?nonce=${validNonce}&client_id=x`
+      expect(() => verifyGoogleLoginUrl(url, publicKey)).not.toThrow()
     })
 
-    it('handles public key without 0x prefix', () => {
-      const url = buildBackendOAuthUrl({
-        provider: 'google',
-        backendUrl: 'https://api.example.com',
-        projectId: 'proj-123',
-        publicKey: 'abcdef123456',
-        returnTo: 'https://app.example.com',
-      })
-
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.searchParams.get('pub_key')).toBe('abcdef123456')
+    it('accepts uppercase nonce (case-insensitive comparison)', () => {
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?nonce=${validNonce.toUpperCase()}`
+      expect(() => verifyGoogleLoginUrl(url, publicKey)).not.toThrow()
     })
 
-    it('throws on unsupported provider', () => {
-      expect(() =>
-        buildBackendOAuthUrl({
-          provider: 'facebook' as 'google',
-          backendUrl: 'https://api.example.com',
-          projectId: 'proj-123',
-          publicKey: '0xabcdef',
-          returnTo: 'https://app.example.com',
-        }),
-      ).toThrow('Unsupported OAuth provider: facebook')
+    it('throws when nonce mismatches', () => {
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?nonce=${'0'.repeat(64)}`
+      expect(() => verifyGoogleLoginUrl(url, publicKey)).toThrow(
+        /nonce does not match public key hash/,
+      )
     })
 
-    it('encodes special characters in return URL', () => {
-      const url = buildBackendOAuthUrl({
-        provider: 'google',
-        backendUrl: 'https://api.example.com',
-        projectId: 'proj-123',
-        publicKey: '0xabcdef',
-        returnTo: 'https://app.example.com?foo=bar&baz=qux',
-      })
+    it('throws when nonce is missing', () => {
+      const url = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=x'
+      expect(() => verifyGoogleLoginUrl(url, publicKey)).toThrow(
+        /missing nonce/,
+      )
+    })
 
-      const parsedUrl = new URL(url)
-      expect(parsedUrl.searchParams.get('return_to')).toBe(
-        'https://app.example.com?foo=bar&baz=qux',
+    it('throws when host is not accounts.google.com', () => {
+      const url = `https://attacker.example.com/auth?nonce=${validNonce}`
+      expect(() => verifyGoogleLoginUrl(url, publicKey)).toThrow(
+        /host mismatch/,
+      )
+    })
+
+    it('throws on malformed URL', () => {
+      expect(() => verifyGoogleLoginUrl('not a url', publicKey)).toThrow(
+        /not a valid URL/,
       )
     })
   })

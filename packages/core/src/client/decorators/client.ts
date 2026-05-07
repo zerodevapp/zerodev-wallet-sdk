@@ -13,12 +13,15 @@ import {
   type GetAuthenticatorsParameters,
   type GetAuthenticatorsReturnType,
   type GetAuthProxyConfigIdReturnType,
+  type GetOAuthLoginUrlParameters,
+  type GetOAuthLoginUrlReturnType,
   type GetUserWalletParameters,
   type GetUserWalletReturnType,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getAuthenticators,
   getAuthProxyConfigId,
+  getOAuthLoginUrl,
   getUserWallet,
   getWhoami,
   type LoginWithOTPParameters,
@@ -153,6 +156,15 @@ export type ZeroDevWalletActions = {
    * Gets the auth proxy config ID from the backend
    */
   getAuthProxyConfigId: () => Promise<GetAuthProxyConfigIdReturnType>
+
+  /**
+   * Fetches the Google OAuth authorization URL from the backend.
+   * The caller must verify the URL's `nonce` against `sha256(utf8(publicKey))`
+   * before opening it (audit finding TOB-KMS-1).
+   */
+  getOAuthLoginUrl: (
+    params: GetOAuthLoginUrlParameters,
+  ) => Promise<GetOAuthLoginUrlReturnType>
 }
 
 /**
@@ -197,5 +209,6 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     registerWithOTP: (params) => registerWithOTP(client, params),
     loginWithOTP: (params) => loginWithOTP(client, params),
     getAuthProxyConfigId: () => getAuthProxyConfigId(client),
+    getOAuthLoginUrl: (params) => getOAuthLoginUrl(client, params),
   }
 }

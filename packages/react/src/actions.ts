@@ -8,9 +8,9 @@ import {
 } from '@zerodev/wallet-core'
 import type { OAuthProvider } from './oauth.js'
 import {
-  buildBackendOAuthUrl,
   listenForOAuthMessage,
   openOAuthPopup,
+  verifyGoogleLoginUrl,
 } from './oauth.js'
 
 /**
@@ -145,15 +145,19 @@ export async function authenticateOAuth(
   returnUrl.searchParams.set('oauth_success', 'true')
   returnUrl.searchParams.set('oauth_provider', parameters.provider)
 
-  const oauthUrl = buildBackendOAuthUrl({
+  // Fetch the Google OAuth URL from the backend, then verify its `nonce`
+  // matches sha256(pub_key) before opening the popup. Audit finding
+  // TOB-KMS-1: the backend is not a trusted party, so the SDK must bind the
+  // OIDC flow to its own pubkey rather than trust whatever URL it receives.
+  const oauthUrl = await wallet.client.getOAuthLoginUrl({
     provider: parameters.provider,
-    backendUrl: oauthConfig.backendUrl,
     projectId: oauthConfig.projectId,
     publicKey,
     returnTo: returnUrl.toString(),
   })
+  verifyGoogleLoginUrl(oauthUrl, publicKey)
 
-  // Open popup
+  // Open popup (only after verification — never flash an unverified URL)
   const authWindow = openOAuthPopup(oauthUrl)
 
   if (!authWindow) {

@@ -3,6 +3,7 @@ import type { Client } from '../../client/types.js'
 import { authenticateWithEmail } from './authenticateWithEmail.js'
 import { authenticateWithOAuth } from './authenticateWithOAuth.js'
 import { getAuthenticators } from './getAuthenticators.js'
+import { getOAuthLoginUrl } from './getOAuthLoginUrl.js'
 import { getWhoami } from './getWhoami.js'
 import { loginWithStamp } from './loginWithStamp.js'
 import { registerWithPasskey } from './registerWithPasskey.js'
@@ -396,8 +397,8 @@ describe('getAuthenticators', () => {
 
     expect(result.oauths).toHaveLength(1)
     expect(result.passkeys).toHaveLength(1)
-    expect(result.emailContacts[0]?.email).toBe('user@example.com')
-    expect(result.apiKeys[0]?.apiKey).toBe('compressed-pub-key')
+    expect(result.emailContacts?.[0]?.email).toBe('user@example.com')
+    expect(result.apiKeys?.[0]?.apiKey).toBe('compressed-pub-key')
   })
 
   it('requests stamping', async () => {
@@ -521,5 +522,60 @@ describe('getWhoami', () => {
         projectId: 'proj-456',
       }),
     ).rejects.toThrow('Unauthorized')
+  })
+})
+
+describe('getOAuthLoginUrl', () => {
+  it('GETs /oauth/google/login-url with correct query string', async () => {
+    let captured: { path: string; method?: string } | undefined
+    const mockClient = createMockClient(async (params) => {
+      captured = { path: params.path, method: params.method }
+      return 'https://accounts.google.com/o/oauth2/v2/auth?nonce=abc'
+    })
+
+    const result = await getOAuthLoginUrl(mockClient, {
+      provider: 'google',
+      projectId: 'proj-123',
+      publicKey: '0xABCDEF1234567890',
+      returnTo: 'https://app.example.com/cb?foo=bar',
+    })
+
+    expect(result).toBe(
+      'https://accounts.google.com/o/oauth2/v2/auth?nonce=abc',
+    )
+    expect(captured?.method).toBe('GET')
+    // Path includes the query string; pub_key is 0x-stripped + lowercased
+    const [path, qs] = (captured?.path ?? '').split('?')
+    expect(path).toBe('oauth/google/login-url')
+    const params = new URLSearchParams(qs)
+    expect(params.get('project_id')).toBe('proj-123')
+    expect(params.get('pub_key')).toBe('abcdef1234567890')
+    expect(params.get('return_to')).toBe('https://app.example.com/cb?foo=bar')
+  })
+
+  it('throws on unsupported provider', async () => {
+    const mockClient = createMockClient()
+    await expect(
+      getOAuthLoginUrl(mockClient, {
+        provider: 'facebook' as 'google',
+        projectId: 'proj-123',
+        publicKey: '0xabcdef',
+        returnTo: 'https://app.example.com',
+      }),
+    ).rejects.toThrow('Unsupported OAuth provider: facebook')
+  })
+
+  it('propagates transport errors', async () => {
+    const mockClient = createMockClient(async () => {
+      throw new Error('500 Internal Server Error')
+    })
+    await expect(
+      getOAuthLoginUrl(mockClient, {
+        provider: 'google',
+        projectId: 'proj-123',
+        publicKey: '0xabcdef',
+        returnTo: 'https://app.example.com',
+      }),
+    ).rejects.toThrow('500 Internal Server Error')
   })
 })
