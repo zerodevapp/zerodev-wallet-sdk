@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const demoAppDir = path.resolve(__dirname, '../../zerodev-signer-demo')
+const demoAppDir = path.resolve(__dirname, '../apps/zerodev-signer-demo')
 
 export default defineConfig({
   testDir: './browser',

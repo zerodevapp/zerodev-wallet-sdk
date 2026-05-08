@@ -278,7 +278,7 @@ MIT
 
 - **Website:** [zerodev.app](https://zerodev.app)
 - **Documentation:** [docs.zerodev.app](https://docs.zerodev.app)
-- **Demo:** [Live Demo](https://zerodev-signer-demo.vercel.app/) | [Source](https://github.com/zerodevapp/zerodev-signer-demo)
+- **Demo:** [Live Demo](https://zerodev-signer-demo.vercel.app/) | [Source](./apps/zerodev-signer-demo)
 
 ## Packages
 

@@ -313,7 +313,7 @@ import type {
 
 ## React Integration
 
-For React apps, see the demo implementation at [zerodev-wallet-demo](https://github.com/zerodevapp/zerodev-signer-demo).
+For React apps, see the demo implementation at [`apps/zerodev-signer-demo`](../../apps/zerodev-signer-demo).
 
 Key patterns:
 - Use React Context for SDK instance
