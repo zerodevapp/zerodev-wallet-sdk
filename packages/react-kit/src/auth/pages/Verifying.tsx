@@ -4,7 +4,6 @@ import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
-import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
 function getCodeFromUrl(): string | null {
@@ -56,17 +55,15 @@ export function Verifying() {
           <div className="flex-1 flex flex-col gap-8 items-center justify-center">
             {isVerificationLoading && (
               <StatusView imageName="loading" title="Verifying Your Email">
-                <Text>Please wait while we securely connect your wallet.</Text>
+                Please wait while we securely connect your wallet.
               </StatusView>
             )}
 
             {!code && !isVerificationLoading && (
               <StatusView imageName="error" title="Invalid Link">
-                <Text>
-                  This verification link is invalid or incomplete.
-                  <br />
-                  Please check your email and try again with the correct link.
-                </Text>
+                This verification link is invalid or incomplete.
+                <br />
+                Please check your email and try again with the correct link.
               </StatusView>
             )}
 
@@ -76,10 +73,8 @@ export function Verifying() {
                   imageName="error"
                   title="Oops, something went wrong"
                 >
-                  <Text>
-                    We couldn't complete the sign-in process. This could be due
-                    to timeout, an expired link, or a cancelled request.
-                  </Text>
+                  We couldn't complete the sign-in process. This could be due to
+                  timeout, an expired link, or a cancelled request.
                 </StatusView>
                 <Button
                   action="primary"

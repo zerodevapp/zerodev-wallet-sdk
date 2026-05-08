@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@config "../../../../packages/react-kit/tailwind.config.ts";
+@source "../../../../packages/react-kit/src";
 
 :root {
   --background: #ffffff;

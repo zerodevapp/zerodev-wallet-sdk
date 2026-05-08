@@ -2,7 +2,6 @@ import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
-import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
 interface ErrorScreenProps {
@@ -26,7 +25,7 @@ export function ErrorScreen({
         <div className="flex flex-1 flex-col h-full">
           <div className="flex-1 flex flex-col gap-8 items-center justify-center">
             <StatusView imageName="error" title={title}>
-              <Text>{message}</Text>
+              {message}
             </StatusView>
 
             <div className="flex flex-col gap-1">
