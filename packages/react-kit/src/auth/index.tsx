@@ -6,6 +6,7 @@ import { ErrorScreen } from './pages/ErrorScreen'
 import { OtpInput } from './pages/OtpInput'
 import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
+import { WalletSelection } from './pages/WalletSelection'
 
 function hasMagicLinkCodeInUrl(): boolean {
   if (typeof window === 'undefined') return false
@@ -16,14 +17,6 @@ function OAuthCallback() {
   return (
     <StatusView imageName="loading" title="Authenticating...">
       Please wait while we complete the OAuth authentication.
-    </StatusView>
-  )
-}
-
-function WalletSelection() {
-  return (
-    <StatusView imageName="loading" title="Select your wallet">
-      Please select a wallet to continue.
     </StatusView>
   )
 }

@@ -11,7 +11,7 @@ export const wagmiConfig = createConfig({
       config: {
         auth: {
           magicLinkBaseUrl: 'http://localhost:3000/verify',
-          enabledMethods: ['email', 'google', 'passkey'],
+          enabledMethods: ['email', 'google', 'passkey', 'injected-wallet'],
           // emailAuthMethod: 'otp', // set email auth method, 'magicLink' or 'otp', default is 'magicLink'
           termsAndConditionsUrl: 'https://www.example.com',
           privacyPolicyUrl: 'https://www.example.com',
