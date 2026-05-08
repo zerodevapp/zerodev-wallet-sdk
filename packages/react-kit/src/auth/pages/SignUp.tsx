@@ -157,7 +157,7 @@ export function SignUp() {
                       className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
                       onClick={handleEmailSubmit}
                     >
-                      <Icon name="chevronRight" />
+                      <Icon name="chevronRight" className="text-greyScale" />
                     </button>
                   ) : isEmailLoading ? (
                     <div className="w-13 h-13 flex items-center justify-center">
