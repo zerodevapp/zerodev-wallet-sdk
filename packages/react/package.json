@@ -44,7 +44,6 @@
   },
   "devDependencies": {
     "@types/react": "^19",
-    "@zerodev/ecdsa-validator": "^5.4.9",
     "typescript": "5.9.3"
   },
   "type": "module"
