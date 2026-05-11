@@ -18,6 +18,8 @@ export interface AuthConfig {
   magicLinkBaseUrl: string
   enabledMethods: AuthMethod[]
   emailAuthMethod?: EmailAuthMethod
+  termsAndConditionsUrl?: string
+  privacyPolicyUrl?: string
   onSuccess?: () => void
   onError?: (error: unknown) => void
 }

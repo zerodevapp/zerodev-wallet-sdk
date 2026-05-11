@@ -48,8 +48,13 @@ export function SignUp() {
 
   const [error, setError] = useState<string | null>(null)
   const anyPending = isGoogleLoading || isEmailLoading
+  const requiresAgreement = !!(
+    config?.termsAndConditionsUrl || config?.privacyPolicyUrl
+  )
+  const canContinue = !requiresAgreement || agreedToTerms
 
   const handleGoogleAuth = async () => {
+    if (!canContinue) return
     setError(null)
     try {
       await authenticateOAuth({ provider: 'google' })
@@ -62,11 +67,12 @@ export function SignUp() {
   }
 
   const handleTwitterAuth = () => {
+    if (!canContinue) return
     alert('Twitter authentication coming soon')
   }
 
   const handleEmailSubmit = async () => {
-    if (!emailInput || anyPending) return
+    if (!emailInput || anyPending || !canContinue) return
 
     setError(null)
     try {
@@ -120,14 +126,14 @@ export function SignUp() {
                     iconName="google"
                     title="Google"
                     className="flex-1 rounded-3xl"
-                    disabled={anyPending}
+                    disabled={anyPending || !canContinue}
                     onClick={handleGoogleAuth}
                   />
                   <ListItem
                     iconName="xTwitter"
                     title="X.com"
                     className="flex-1 rounded-3xl"
-                    disabled={anyPending}
+                    disabled={anyPending || !canContinue}
                     onClick={handleTwitterAuth}
                   />
                 </div>
@@ -142,12 +148,17 @@ export function SignUp() {
                   disabled={anyPending}
                   variant="listItemStyle"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && emailInput && !anyPending) {
+                    if (
+                      e.key === 'Enter' &&
+                      emailInput &&
+                      !anyPending &&
+                      canContinue
+                    ) {
                       handleEmailSubmit()
                     }
                   }}
                 >
-                  {emailInput && !anyPending ? (
+                  {emailInput && !anyPending && canContinue ? (
                     <button
                       type="button"
                       className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
@@ -166,7 +177,7 @@ export function SignUp() {
               {/* <ListItem
                 iconName="walletOutline"
                 title="Choose a wallet instead"
-                disabled={anyPending}
+                disabled={anyPending || !canContinue}
                 onClick={handleChooseWallet}
                 chevron
                 className="rounded-3xl"
@@ -174,6 +185,8 @@ export function SignUp() {
             </div>
           </div>
           <SignUpFooter
+            termsAndConditionsUrl={config?.termsAndConditionsUrl}
+            privacyPolicyUrl={config?.privacyPolicyUrl}
             agreedToTerms={agreedToTerms}
             setAgreedToTerms={setAgreedToTerms}
           />
