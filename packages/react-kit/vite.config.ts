@@ -23,6 +23,7 @@ export default defineConfig({
         '@zerodev/wallet-core',
         '@zerodev/wallet-react',
         '@wagmi/core',
+        '@tanstack/react-query',
         'viem',
         'wagmi',
         'zustand',
