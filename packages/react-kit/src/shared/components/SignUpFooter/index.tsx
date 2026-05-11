@@ -22,7 +22,7 @@ export function SignUpFooter({
             type="checkbox"
             checked={agreedToTerms}
             onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="cursor-pointer"
+            className="cursor-pointer [color-scheme:light]"
           />
           <Text className="flex-1">
             I agree to the{' '}
