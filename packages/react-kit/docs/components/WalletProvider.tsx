@@ -13,7 +13,7 @@ const config = createConfig({
       config: {
         auth: {
           magicLinkBaseUrl: 'http://localhost:5173/verify',
-          enabledMethods: ['email', 'google', 'passkey'],
+          enabledMethods: ['email', 'google', 'passkey', 'injected-wallet'],
         },
       },
     }),

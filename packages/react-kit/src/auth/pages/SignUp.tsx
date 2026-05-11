@@ -23,7 +23,8 @@ function isOAuthWindowClosedError(message: string): boolean {
 }
 
 export function SignUp() {
-  const { goToStep, setEmail, setOtpSession, config } = useAuth()
+  const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
+    useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const shouldUseOtp = config?.emailAuthMethod === 'otp'
@@ -66,9 +67,8 @@ export function SignUp() {
     }
   }
 
-  const handleTwitterAuth = () => {
-    if (!canContinue) return
-    alert('Twitter authentication coming soon')
+  const handleChooseWallet = () => {
+    goToStep('wallet-selection')
   }
 
   const handleEmailSubmit = async () => {
@@ -119,24 +119,17 @@ export function SignUp() {
                 Choose a sign-in method to proceed
               </Text>
             </div>
-            <div className="mt-12 flex flex-col gap-4 mb-4">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-row items-center gap-1 w-full">
-                  <ListItem
-                    iconName="google"
-                    title="Google"
-                    className="flex-1 rounded-3xl"
-                    disabled={anyPending || !canContinue}
-                    onClick={handleGoogleAuth}
-                  />
-                  <ListItem
-                    iconName="xTwitter"
-                    title="X.com"
-                    className="flex-1 rounded-3xl"
-                    disabled={anyPending || !canContinue}
-                    onClick={handleTwitterAuth}
-                  />
-                </div>
+            <div className="mt-12 flex flex-col gap-2 mb-4">
+              {enabledMethods.includes('google') && (
+                <ListItem
+                  iconName="google"
+                  title="Google"
+                  className="rounded-3xl"
+                  disabled={anyPending}
+                  onClick={handleGoogleAuth}
+                />
+              )}
+              {enabledMethods.includes('email') && (
                 <Input
                   iconName="email"
                   placeholder="Enter your email..."
@@ -172,16 +165,20 @@ export function SignUp() {
                     </div>
                   ) : null}
                 </Input>
-              </div>
-              <OrView />
-              {/* <ListItem
-                iconName="walletOutline"
-                title="Choose a wallet instead"
-                disabled={anyPending || !canContinue}
-                onClick={handleChooseWallet}
-                chevron
-                className="rounded-3xl"
-              /> */}
+              )}
+              {enabledMethods.includes('injected-wallet') && (
+                <>
+                  <OrView />
+                  <ListItem
+                    iconName="walletOutline"
+                    title="Choose a wallet instead"
+                    disabled={anyPending}
+                    onClick={handleChooseWallet}
+                    chevron
+                    className="rounded-3xl"
+                  />
+                </>
+              )}
             </div>
           </div>
           <SignUpFooter
