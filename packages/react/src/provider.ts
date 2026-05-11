@@ -3,10 +3,46 @@ import { normalizeTimestamp } from '@zerodev/wallet-core'
 import { Provider } from 'ox'
 import type { Chain, LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
-import type { ZeroDevWalletConnectorParams } from './connector.js'
+import type { WalletMode, ZeroDevWalletConnectorParams } from './connector.js'
 import type { createZeroDevWalletStore } from './store.js'
 
 const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
+
+type Signer = SmartAccount<KernelSmartAccountImplementation> | LocalAccount
+
+/**
+ * Pick the right signer for `personal_sign` / `eth_signTypedData_v4`.
+ *
+ * - `'EOA'`: always the raw EOA.
+ * - `'7702'`: prefer the kernel, but fall back to the EOA when the kernel
+ *   isn't deployed yet. This is safe in 7702 because the EOA address equals
+ *   the kernel address, so dapps verify the signature against the same
+ *   `0x…` regardless of delegation state.
+ * - `'4337'`: always use the kernel account. The kernel address differs
+ *   from the EOA, so a raw EOA signature would never validate against it.
+ *   When the kernel isn't deployed yet, `@zerodev/sdk` wraps the signature
+ *   in ERC-6492 so dapps can verify against the counterfactual address.
+ */
+async function signerForActiveChain(
+  state: ReturnType<ReturnType<typeof createZeroDevWalletStore>['getState']>,
+  activeChainId: number,
+  mode: WalletMode,
+): Promise<Signer | null> {
+  if (mode === 'EOA') return state.eoaAccount
+
+  const kernelAccount = state.kernelAccounts.get(activeChainId)
+  if (mode === '4337') return kernelAccount ?? null
+
+  // 7702: EOA-vs-kernel pre-deployment doesn't matter for verification.
+  if (
+    kernelAccount &&
+    'isDeployed' in kernelAccount &&
+    !(await kernelAccount.isDeployed())
+  ) {
+    return state.eoaAccount
+  }
+  return kernelAccount ?? state.eoaAccount ?? null
+}
 
 type CreateProviderParams = {
   store: ReturnType<typeof createZeroDevWalletStore>
@@ -23,6 +59,8 @@ export function createProvider({
   store,
   config,
 }: CreateProviderParams): ZeroDevProvider {
+  // Mirrors the default in `connector.ts` — keep these in sync.
+  const mode: WalletMode = config.mode ?? '7702'
   const emitter = Provider.createEmitter()
   let sessionRefreshTimer: NodeJS.Timeout | null = null
 
@@ -120,16 +158,25 @@ export function createProvider({
         throw new Error('No active chain')
       }
 
+      // Address that wagmi sees on this chain — kernel counterfactual
+      // for 4337, EOA otherwise.
+      const accountAddress = (): `0x${string}` | undefined => {
+        if (mode === '4337') {
+          return state.kernelAccounts.get(activeChainId)?.address
+        }
+        return state.eoaAccount?.address
+      }
+
       switch (method) {
         case 'eth_accounts': {
-          const account = state.kernelAccounts.get(activeChainId)
-          return account ? [account.address] : []
+          const addr = accountAddress()
+          return addr ? [addr] : []
         }
 
         case 'eth_requestAccounts': {
-          const account = state.kernelAccounts.get(activeChainId)
-          if (!account) throw new Error('Not authenticated')
-          return [account.address]
+          const addr = accountAddress()
+          if (!addr) throw new Error('Not authenticated')
+          return [addr]
         }
 
         case 'eth_chainId': {
@@ -145,15 +192,27 @@ export function createProvider({
           const [tx] = params
           const chainId = tx.chainId ? parseInt(tx.chainId, 16) : activeChainId
 
-          // Get kernel client for this chain
+          // EOA mode: send via plain RPC (no bundler, no sponsorship).
+          if (mode === 'EOA') {
+            const walletClient = store.getState().walletClients.get(chainId)
+            if (!walletClient) {
+              throw new Error(`No wallet client for chain ${chainId}`)
+            }
+            return await walletClient.sendTransaction({
+              to: tx.to,
+              ...(tx.value && { value: BigInt(tx.value) }),
+              ...(tx.data && { data: tx.data }),
+            })
+          }
+
+          // 4337 / 7702: route through the kernel client. The first 4337
+          // tx deploys the smart account via factory; 7702 wraps in a
+          // userOp signed by the EOA's delegated kernel.
           const kernelClient = store.getState().kernelClients.get(chainId)
           if (!kernelClient) {
             throw new Error(`No kernel client for chain ${chainId}`)
           }
-
-          // Transactions are sent as UserOperations under the hood (EIP-7702).
-          // Gasless if a paymaster is configured on the ZeroDev dashboard.
-          const hash = await kernelClient.sendTransaction({
+          return await kernelClient.sendTransaction({
             calls: [
               {
                 to: tx.to,
@@ -162,8 +221,6 @@ export function createProvider({
               },
             ],
           })
-
-          return hash
         }
 
         case 'personal_sign': {
@@ -172,19 +229,7 @@ export function createProvider({
           }
 
           const [message] = params
-          let account:
-            | SmartAccount<KernelSmartAccountImplementation>
-            | LocalAccount
-            | undefined
-            | null = state.kernelAccounts.get(activeChainId)
-          if (
-            account &&
-            'isDeployed' in account &&
-            !(await account.isDeployed())
-          ) {
-            account = state.eoaAccount
-          }
-
+          const account = await signerForActiveChain(state, activeChainId, mode)
           if (!account) throw new Error('Not authenticated')
 
           return await account.signMessage({
@@ -198,18 +243,7 @@ export function createProvider({
           }
 
           const [, typedDataJson] = params
-          let account:
-            | SmartAccount<KernelSmartAccountImplementation>
-            | LocalAccount
-            | undefined
-            | null = state.kernelAccounts.get(activeChainId)
-          if (
-            account &&
-            'isDeployed' in account &&
-            !(await account.isDeployed())
-          ) {
-            account = state.eoaAccount
-          }
+          const account = await signerForActiveChain(state, activeChainId, mode)
           if (!account) throw new Error('Not authenticated')
 
           const typedData = JSON.parse(typedDataJson)

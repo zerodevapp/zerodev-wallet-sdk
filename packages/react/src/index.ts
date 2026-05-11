@@ -1,4 +1,7 @@
-export type { ZeroDevWalletConnectorParams } from './connector.js'
+export type {
+  WalletMode,
+  ZeroDevWalletConnectorParams,
+} from './connector.js'
 export { zeroDevWallet } from './connector.js'
 export { useAuthenticateOAuth } from './hooks/useAuthenticateOAuth.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'

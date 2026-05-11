@@ -32,17 +32,19 @@
   "license": "MIT",
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
-    "@zerodev/wallet-core": "workspace:*",
-    "@zerodev/sdk": "5.5.4",
     "@wagmi/core": "^2.22.0",
+    "@zerodev/ecdsa-validator": "^5.4.9",
+    "@zerodev/sdk": "5.5.4",
+    "@zerodev/wallet-core": "workspace:*",
+    "ox": "^0.3.0",
     "react": "^18.0.0 || ^19.0.0",
     "viem": "^2.38.0",
     "wagmi": "^2.19.0",
-    "zustand": "^5.0.3",
-    "ox": "^0.3.0"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@types/react": "^19",
+    "@zerodev/ecdsa-validator": "^5.4.9",
     "typescript": "5.9.3"
   },
   "type": "module"

@@ -1,4 +1,5 @@
 import { type CreateConnectorFn, createConnector } from '@wagmi/core'
+import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
 import {
   createKernelAccount,
   createKernelAccountClient,
@@ -7,7 +8,7 @@ import {
 import { getEntryPoint, KERNEL_V3_3 } from '@zerodev/sdk/constants'
 import type { StorageAdapter } from '@zerodev/wallet-core'
 import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
-import { type Chain, createPublicClient, http } from 'viem'
+import { type Chain, createPublicClient, createWalletClient, http } from 'viem'
 import { handleOAuthCallback, type OAuthProvider } from './oauth.js'
 import { createProvider } from './provider.js'
 import { createZeroDevWalletStore } from './store.js'
@@ -74,6 +75,20 @@ async function detectAndHandleOAuthCallback(
   }
 }
 
+/**
+ * Account mode the connector exposes to wagmi.
+ *
+ * - `'7702'` (default): EOA delegated to a Kernel smart account via EIP-7702.
+ *   Address equals the EOA address; transactions are bundled as UserOperations
+ *   and can be sponsored.
+ * - `'4337'`: Counterfactual ERC-4337 Kernel smart account. Address differs
+ *   from the EOA; the account is deployed on first userOp. Transactions are
+ *   bundled as UserOperations.
+ * - `'EOA'`: Plain EOA. Transactions are sent directly via the chain's RPC
+ *   (no bundler, no sponsorship). The EOA address is exposed to wagmi.
+ */
+export type WalletMode = 'EOA' | '4337' | '7702'
+
 export type ZeroDevWalletConnectorParams = {
   projectId: string
   organizationId?: string
@@ -84,6 +99,12 @@ export type ZeroDevWalletConnectorParams = {
   sessionStorage?: StorageAdapter
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
+  /**
+   * Wallet mode. Defaults to `'7702'` for backward compatibility — change
+   * to `'4337'` for a counterfactual smart account, or `'EOA'` for a plain
+   * EOA without account abstraction.
+   */
+  mode?: WalletMode
 }
 
 export function zeroDevWallet(
@@ -107,6 +128,10 @@ export function zeroDevWallet(
     getStore(): Promise<ReturnType<typeof createZeroDevWalletStore>>
   }
 
+  // Defaults to '7702' so existing consumers get the same behavior as before
+  // this option was added.
+  const mode: WalletMode = params.mode ?? '7702'
+
   return createConnector<Provider, Properties>((wagmiConfig) => {
     let store: ReturnType<typeof createZeroDevWalletStore>
     let provider: ReturnType<typeof createProvider>
@@ -114,6 +139,90 @@ export function zeroDevWallet(
 
     // Get transports from Wagmi config (uses user's RPC URLs)
     const transports = wagmiConfig.transports
+
+    /**
+     * Create the per-chain client(s) needed for the configured mode.
+     *
+     * - `'7702'` / `'4337'`: a {@link KernelAccountClient} (bundler + paymaster).
+     *   Cached in `state.kernelClients`.
+     * - `'EOA'`: a viem {@link createWalletClient} bound to the chain's RPC.
+     *   Cached in `state.walletClients`.
+     *
+     * No-ops if the chain is already set up.
+     */
+    const setupChain = async (chainId: number) => {
+      const state = store.getState()
+      const eoaAccount = state.eoaAccount
+      if (!eoaAccount) throw new Error('Not authenticated')
+
+      const chain = params.chains.find((c) => c.id === chainId)
+      if (!chain) throw new Error(`Chain ${chainId} not found in config`)
+
+      const transport = transports?.[chainId] ?? http()
+
+      if (mode === 'EOA') {
+        if (state.walletClients.has(chainId)) return
+        const walletClient = createWalletClient({
+          account: eoaAccount,
+          chain,
+          transport,
+        })
+        store.getState().setWalletClient(chainId, walletClient)
+        return
+      }
+
+      if (state.kernelAccounts.has(chainId)) return
+
+      const publicClient = createPublicClient({ chain, transport })
+
+      console.log(`Creating kernel account for chain ${chainId}...`)
+      // For 4337, the kernel needs an ECDSA validator plugin keyed off the
+      // EOA so it can authorize userOps. 7702 uses `eip7702Account` instead
+      // (the EOA itself is the validator via its delegation).
+      const kernelAccount = await createKernelAccount(publicClient, {
+        entryPoint: getEntryPoint('0.7'),
+        kernelVersion: KERNEL_V3_3,
+        ...(mode === '7702'
+          ? { eip7702Account: eoaAccount }
+          : {
+              plugins: {
+                sudo: await signerToEcdsaValidator(publicClient, {
+                  signer: eoaAccount,
+                  entryPoint: getEntryPoint('0.7'),
+                  kernelVersion: KERNEL_V3_3,
+                }),
+              },
+            }),
+      })
+      store.getState().setKernelAccount(chainId, kernelAccount)
+
+      const kernelClient = createKernelAccountClient({
+        account: kernelAccount,
+        bundlerTransport: http(
+          getAAUrl(params.projectId, chainId, params.aaUrl),
+        ),
+        chain,
+        client: publicClient,
+        paymaster: createZeroDevPaymasterClient({
+          chain,
+          transport: http(getAAUrl(params.projectId, chainId, params.aaUrl)),
+        }),
+      })
+      store.getState().setKernelClient(chainId, kernelClient)
+    }
+
+    /**
+     * Address that this connector exposes to wagmi for the given chain.
+     * For `'4337'` the kernel's counterfactual address differs from the EOA;
+     * everywhere else the EOA address is correct.
+     */
+    const accountAddressForChain = (chainId: number): `0x${string}` | null => {
+      const state = store.getState()
+      if (mode === '4337') {
+        return state.kernelAccounts.get(chainId)?.address ?? null
+      }
+      return state.eoaAccount?.address ?? null
+    }
 
     // Lazy initialization - only runs on client side (idempotent)
     const initialize = async () => {
@@ -202,13 +311,18 @@ export function zeroDevWallet(
         const activeChainId =
           chainId ?? state.activeChainId ?? params.chains[0].id
 
-        // If reconnecting and already have kernel account, return immediately
-        if (isReconnecting && state.kernelAccounts.has(activeChainId)) {
-          const kernelAccount = state.kernelAccounts.get(activeChainId)
-          if (kernelAccount?.address) {
-            console.log('Already connected:', kernelAccount.address)
+        // If reconnecting and the chain is already set up for this mode,
+        // return immediately without recreating clients.
+        const alreadySetUp =
+          mode === 'EOA'
+            ? state.walletClients.has(activeChainId)
+            : state.kernelAccounts.has(activeChainId)
+        if (isReconnecting && alreadySetUp) {
+          const cached = accountAddressForChain(activeChainId)
+          if (cached) {
+            console.log('Already connected:', cached)
             return {
-              accounts: [kernelAccount.address] as never,
+              accounts: [cached] as never,
               chainId: activeChainId,
             }
           }
@@ -220,58 +334,14 @@ export function zeroDevWallet(
           )
         }
 
-        // Create KernelAccount for this chain if doesn't exist
-        if (!state.kernelAccounts.has(activeChainId)) {
-          const chain = params.chains.find((c) => c.id === activeChainId)
-          if (!chain) {
-            throw new Error(`Chain ${activeChainId} not found in config`)
-          }
+        await setupChain(activeChainId)
 
-          // Use transport from Wagmi config (has user's RPC URL)
-          const transport = transports?.[activeChainId] ?? http()
-          const publicClient = createPublicClient({
-            chain,
-            transport,
-          })
-
-          console.log(`Creating kernel account for chain ${activeChainId}...`)
-          const kernelAccount = await createKernelAccount(publicClient, {
-            entryPoint: getEntryPoint('0.7'),
-            kernelVersion: KERNEL_V3_3,
-            eip7702Account: state.eoaAccount,
-          })
-
-          // Store kernel account for this chain
-          store.getState().setKernelAccount(activeChainId, kernelAccount)
-
-          // Create and store kernel client for transactions
-          const kernelClient = createKernelAccountClient({
-            account: kernelAccount,
-            bundlerTransport: http(
-              getAAUrl(params.projectId, activeChainId, params.aaUrl),
-            ),
-            chain,
-            client: publicClient,
-            paymaster: createZeroDevPaymasterClient({
-              chain,
-              transport: http(
-                getAAUrl(params.projectId, activeChainId, params.aaUrl),
-              ),
-            }),
-          })
-          store.getState().setKernelClient(activeChainId, kernelClient)
-        }
-
-        // Set as active chain
         store.getState().setActiveChainId(activeChainId)
 
-        // Get fresh state after updates
-        const freshState = store.getState()
-        const kernelAccount = freshState.kernelAccounts.get(activeChainId)!
+        const address = accountAddressForChain(activeChainId)
+        if (!address) throw new Error('Failed to derive account address')
 
-        console.log('ZeroDevWallet connected:', kernelAccount.address)
-
-        const address = kernelAccount.address
+        console.log('ZeroDevWallet connected:', address)
         return {
           accounts: (withCapabilities
             ? [{ address, capabilities: {} }]
@@ -296,16 +366,22 @@ export function zeroDevWallet(
         if (!store) return []
         const { eoaAccount, kernelAccounts, activeChainId } = store.getState()
 
-        // Return EOA address if we have it (EIP-7702: EOA address = kernel address)
-        if (eoaAccount) {
-          return [eoaAccount.address]
+        // 4337: the counterfactual smart-account address differs from the
+        // EOA, so we must NOT fall back to the EOA — that would briefly
+        // expose the wrong address (e.g. during the reconnect race after a
+        // page refresh, before `connect()` has run `setupChain`). Return []
+        // until the kernel exists.
+        if (mode === '4337') {
+          const kernelAccount = activeChainId
+            ? kernelAccounts.get(activeChainId)
+            : null
+          return kernelAccount ? [kernelAccount.address] : []
         }
 
-        // Fallback: check kernel accounts
-        const activeAccount = activeChainId
-          ? kernelAccounts.get(activeChainId)
-          : null
-        return activeAccount ? [activeAccount.address] : []
+        // 7702 and EOA modes: the wagmi-facing address is always the EOA
+        // address (7702 binds the smart account to it, EOA mode is the EOA
+        // directly).
+        return eoaAccount ? [eoaAccount.address] : []
       },
 
       async getChainId() {
@@ -328,47 +404,8 @@ export function zeroDevWallet(
           throw new Error('Not authenticated')
         }
 
-        // Update active chain
         store.getState().setActiveChainId(chainId)
-
-        // Create kernel account for new chain if doesn't exist
-        if (!state.kernelAccounts.has(chainId)) {
-          const chain = params.chains.find((c) => c.id === chainId)
-          if (!chain) {
-            throw new Error(`Chain ${chainId} not found in config`)
-          }
-
-          // Use transport from Wagmi config (has user's RPC URL)
-          const transport = transports?.[chainId] ?? http()
-          const publicClient = createPublicClient({
-            chain,
-            transport,
-          })
-
-          console.log(`Creating kernel account for chain ${chainId}...`)
-          const kernelAccount = await createKernelAccount(publicClient, {
-            entryPoint: getEntryPoint('0.7'),
-            kernelVersion: KERNEL_V3_3,
-            eip7702Account: state.eoaAccount,
-          })
-
-          store.getState().setKernelAccount(chainId, kernelAccount)
-          const kernelClient = createKernelAccountClient({
-            account: kernelAccount,
-            bundlerTransport: http(
-              getAAUrl(params.projectId, chainId, params.aaUrl),
-            ),
-            chain,
-            client: publicClient,
-            paymaster: createZeroDevPaymasterClient({
-              chain,
-              transport: http(
-                getAAUrl(params.projectId, chainId, params.aaUrl),
-              ),
-            }),
-          })
-          store.getState().setKernelClient(chainId, kernelClient)
-        }
+        await setupChain(chainId)
 
         wagmiConfig.emitter.emit('change', { chainId })
         return params.chains.find((c) => c.id === chainId)!
