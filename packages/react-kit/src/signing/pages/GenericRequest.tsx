@@ -1,11 +1,20 @@
-import { formatEther, type Hex, hexToBigInt, toHex } from 'viem'
+import {
+  type Address,
+  formatEther,
+  type Hex,
+  hexToBigInt,
+  toHex,
+  zeroAddress,
+} from 'viem'
 
 import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import type { Request } from '../../types.js'
-import { DataRow } from '../components/DataRow'
+import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { DetailsContainer } from '../components/DetailsContainer'
 import { SigningLayout } from '../components/SigningLayout'
+import { useGasEstimate } from '../hooks/useGasEstimate'
+import { formatGasFee } from '../utils/formatGasFee'
 
 interface GenericRequestProps {
   request: Request
@@ -40,10 +49,51 @@ export function GenericRequest({
     )
   }
 
-  const [{ data = '0x', to, value = toHex(0) }] = request.params
+  return (
+    <GenericSendTransaction
+      params={request.params}
+      confirm={confirm}
+      reject={reject}
+    />
+  )
+}
+
+function GenericSendTransaction({
+  params,
+  confirm,
+  reject,
+}: {
+  params: Extract<
+    Request,
+    { method: 'eth_sendTransaction' | 'wallet_sendTransaction' }
+  >['params']
+  confirm: () => void
+  reject: () => void
+}) {
+  const [{ data = '0x', to, value = toHex(0) }] = params
+
+  const {
+    data: gasEstimate,
+    isFetching: gasFetching,
+    isError: gasError,
+  } = useGasEstimate({
+    calls: [
+      {
+        to: (to ?? zeroAddress) as Address,
+        value: value as Hex,
+        data: data as Hex,
+      },
+    ],
+  })
+
+  const confirmDisabled = gasFetching || gasEstimate == null
 
   return (
-    <SigningLayout onConfirm={confirm} onReject={reject}>
+    <SigningLayout
+      onConfirm={confirm}
+      onReject={reject}
+      disabled={confirmDisabled}
+    >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
           <Text className="text-h2">Confirm Transaction</Text>
@@ -61,11 +111,17 @@ export function GenericRequest({
           <DataRow label="Data" value={shortenHex(data as Hex)} />
         </DetailsContainer>
         <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
-          <DataRow
-            label="Fee"
-            value="0.00008 ETH ($0.28)"
-            iconName="gasStation"
-          />
+          {gasError ? (
+            <DataRow label="Fee" value="Error" iconName="gasStation" />
+          ) : gasEstimate != null ? (
+            <DataRow
+              label="Fee"
+              value={formatGasFee(gasEstimate)}
+              iconName="gasStation"
+            />
+          ) : (
+            <DataRowSkeleton />
+          )}
           <DataRow
             label="Total execution time"
             value="≈ 1 sec"

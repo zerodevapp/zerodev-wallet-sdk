@@ -18,6 +18,14 @@ vi.mock('wagmi', () => ({
   useConfig: () => mockConfig,
 }))
 
+vi.mock('./hooks/useGasEstimate', () => ({
+  useGasEstimate: () => ({
+    data: 1000n,
+    isFetching: false,
+    isError: false,
+  }),
+}))
+
 import { SignatureRequest } from './index'
 
 function createMockPendingRequest(

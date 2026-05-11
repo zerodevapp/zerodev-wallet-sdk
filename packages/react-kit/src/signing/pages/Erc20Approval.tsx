@@ -4,9 +4,10 @@ import { useReadContract } from 'wagmi'
 import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
-import { DataRow } from '../components/DataRow'
+import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
+import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
 import { useGasEstimate } from '../hooks/useGasEstimate'
 import { formatGasFee } from '../utils/formatGasFee'
 
@@ -49,18 +50,29 @@ export function Erc20Approval({
     isFetching: gasFetching,
     isError: gasError,
   } = useGasEstimate({
-    to: contract,
-    data,
+    calls: [{ to: contract, data }],
   })
 
   const isLoading = symbolLoading || decimalsLoading
 
   if (isLoading) {
-    return <Text>Loading token details...</Text>
+    return (
+      <SigningLayout onConfirm={confirm} onReject={reject} disabled>
+        <SigningPageSkeleton />
+      </SigningLayout>
+    )
   }
 
   if (!decimals || !symbol) {
-    return <Text>Failed to load token details.</Text>
+    return (
+      <SigningLayout
+        onConfirm={confirm}
+        onReject={reject}
+        error={new Error('Failed to load token details')}
+      >
+        <div />
+      </SigningLayout>
+    )
   }
 
   const isUnlimited = amount === maxUint256
@@ -101,17 +113,17 @@ export function Erc20Approval({
               />
             }
           />
-          <DataRow
-            label="Network fee"
-            value={
-              gasError
-                ? 'Error'
-                : gasEstimate != null && !gasFetching
-                  ? formatGasFee(gasEstimate)
-                  : 'Estimating...'
-            }
-            iconName="gasStation"
-          />
+          {gasError ? (
+            <DataRow label="Network fee" value="Error" iconName="gasStation" />
+          ) : gasEstimate != null ? (
+            <DataRow
+              label="Network fee"
+              value={formatGasFee(gasEstimate)}
+              iconName="gasStation"
+            />
+          ) : (
+            <DataRowSkeleton />
+          )}
         </div>
       </div>
     </SigningLayout>
