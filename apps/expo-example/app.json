@@ -59,6 +59,15 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["./plugins/withDebugKeystore", "expo-router"]
+    "plugins": [
+      "./plugins/withDebugKeystore",
+      "expo-router",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Authenticate to reveal your wallet seed phrase or private key."
+        }
+      ]
+    ]
   }
 }

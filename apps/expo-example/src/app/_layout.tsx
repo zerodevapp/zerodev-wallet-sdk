@@ -67,6 +67,7 @@ function App() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={address !== undefined}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="export" />
       </Stack.Protected>
       <Stack.Protected guard={address === undefined}>
         <Stack.Screen name="login" />
