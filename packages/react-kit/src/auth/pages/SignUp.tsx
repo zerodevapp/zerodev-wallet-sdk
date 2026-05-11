@@ -1,10 +1,12 @@
 import {
   useAuthenticateOAuth,
+  useLoginPasskey,
+  useRegisterPasskey,
   useSendMagicLink,
   useSendOTP,
 } from '@zerodev/wallet-react'
 import { useState } from 'react'
-
+import { Button } from '../../shared/components/Button'
 import { Icon } from '../../shared/components/Icon'
 import { Input } from '../../shared/components/Input'
 import { ListItem } from '../../shared/components/ListItem'
@@ -34,6 +36,9 @@ export function SignUp() {
   const isEmailLoading = shouldUseOtp
     ? isSendOtpPending
     : isSendMagicLinkPending
+
+  const [error, setError] = useState<string | null>(null)
+
   const { mutateAsync: authenticateOAuth, isPending: isGoogleLoading } =
     useAuthenticateOAuth({
       mutation: {
@@ -47,12 +52,55 @@ export function SignUp() {
       },
     })
 
-  const [error, setError] = useState<string | null>(null)
-  const anyPending = isGoogleLoading || isEmailLoading
+  const { mutate: registerPasskey, isPending: isRegisterPasskeyPending } =
+    useRegisterPasskey({
+      mutation: {
+        onSuccess: () => {
+          goToStep('authenticated')
+          config?.onSuccess?.()
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : String(err))
+          config?.onError?.(err)
+        },
+      },
+    })
+
+  const { mutate: loginPasskey, isPending: isLoginPasskeyPending } =
+    useLoginPasskey({
+      mutation: {
+        onSuccess: () => {
+          goToStep('authenticated')
+          config?.onSuccess?.()
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : String(err))
+          config?.onError?.(err)
+        },
+      },
+    })
+
+  const anyPending =
+    isGoogleLoading ||
+    isEmailLoading ||
+    isRegisterPasskeyPending ||
+    isLoginPasskeyPending
   const requiresAgreement = !!(
     config?.termsAndConditionsUrl || config?.privacyPolicyUrl
   )
   const canContinue = !requiresAgreement || agreedToTerms
+
+  const handleRegisterPasskey = () => {
+    if (anyPending || !canContinue) return
+    setError(null)
+    registerPasskey()
+  }
+
+  const handleLoginPasskey = () => {
+    if (anyPending || !canContinue) return
+    setError(null)
+    loginPasskey()
+  }
 
   const handleGoogleAuth = async () => {
     if (!canContinue) return
@@ -120,6 +168,29 @@ export function SignUp() {
               </Text>
             </div>
             <div className="mt-12 flex flex-col gap-2 mb-4">
+              {enabledMethods.includes('passkey') && (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    action="secondaryNeutral"
+                    text="Register a new passkey"
+                    iconName="key"
+                    trailIcon
+                    disabled={anyPending}
+                    onClick={handleRegisterPasskey}
+                  />
+                  <Text className="text-center">
+                    Already got a passkey?{' '}
+                    <button
+                      type="button"
+                      disabled={anyPending}
+                      onClick={handleLoginPasskey}
+                      className="text-greyScale mt-2 cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Login with passkey
+                    </button>
+                  </Text>
+                </div>
+              )}
               {enabledMethods.includes('google') && (
                 <ListItem
                   iconName="google"
