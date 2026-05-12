@@ -2,7 +2,7 @@ import { type Address, formatEther, type Hex } from 'viem'
 
 import { Text } from '../../shared/components/Text'
 import { ArrowCardPair } from '../components/ArrowCardPair'
-import { DataRow } from '../components/DataRow'
+import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
 import { useGasEstimate } from '../hooks/useGasEstimate'
@@ -27,7 +27,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
     data: gasEstimate,
     isFetching,
     isError,
-  } = useGasEstimate({ to, value })
+  } = useGasEstimate({ calls: [{ to, value }] })
 
   const confirmDisabled = isFetching || gasEstimate == null
 
@@ -62,17 +62,17 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
               />
             }
           />
-          <DataRow
-            label="Network fee"
-            value={
-              isError
-                ? 'Error'
-                : gasEstimate != null && !isFetching
-                  ? formatGasFee(gasEstimate)
-                  : 'Estimating...'
-            }
-            iconName="gasStation"
-          />
+          {isError ? (
+            <DataRow label="Network fee" value="Error" iconName="gasStation" />
+          ) : gasEstimate != null ? (
+            <DataRow
+              label="Network fee"
+              value={formatGasFee(gasEstimate)}
+              iconName="gasStation"
+            />
+          ) : (
+            <DataRowSkeleton label="Network fee" />
+          )}
         </div>
       </div>
     </SigningLayout>

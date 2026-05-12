@@ -45,14 +45,19 @@ export function DataRow({
 
 interface DataRowSkeletonProps {
   className?: string
+  label?: string
 }
 
-export function DataRowSkeleton({ className }: DataRowSkeletonProps) {
+export function DataRowSkeleton({ className, label }: DataRowSkeletonProps) {
   return (
     <div
       className={cn('flex flex-row items-center justify-between', className)}
     >
-      <div className="w-20 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+      {label ? (
+        <Text>{camelCaseToTitle(label)}</Text>
+      ) : (
+        <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+      )}
       <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
     </div>
   )

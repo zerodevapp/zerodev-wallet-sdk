@@ -5,18 +5,22 @@ import type { ZeroDevWalletState } from '@zerodev/wallet-react'
 import type { Address, Hex } from 'viem'
 import { useChainId, useConfig } from 'wagmi'
 
-type UseGasEstimateParams = {
+export type UseGasEstimateCall = {
   to: Address
-  value?: Hex
-  data?: Hex
+  value?: Hex | undefined
+  data?: Hex | undefined
 }
 
-export function useGasEstimate({ to, value, data }: UseGasEstimateParams) {
+type UseGasEstimateParams = {
+  calls: UseGasEstimateCall[]
+}
+
+export function useGasEstimate({ calls }: UseGasEstimateParams) {
   const config = useConfig()
   const chainId = useChainId()
 
   return useQuery({
-    queryKey: ['userop-gas-estimate', chainId, to, value, data],
+    queryKey: ['userop-gas-estimate', chainId, calls],
     refetchInterval: 12_000,
     retry: false,
     queryFn: async (): Promise<bigint | null> => {
@@ -38,13 +42,11 @@ export function useGasEstimate({ to, value, data }: UseGasEstimateParams) {
       // misleading.
       const userOp = await kernelClient.prepareUserOperation({
         account,
-        calls: [
-          {
-            to,
-            value: value ? BigInt(value) : 0n,
-            data: data ?? '0x',
-          },
-        ],
+        calls: calls.map((c) => ({
+          to: c.to,
+          value: c.value ? BigInt(c.value) : 0n,
+          data: c.data ?? '0x',
+        })),
       })
       const totalGas =
         userOp.preVerificationGas +

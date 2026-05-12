@@ -4,9 +4,10 @@ import { useReadContract } from 'wagmi'
 import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
-import { DataRow } from '../components/DataRow'
+import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
+import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
 import { useGasEstimate } from '../hooks/useGasEstimate'
 import { formatGasFee } from '../utils/formatGasFee'
 
@@ -53,12 +54,15 @@ export function CollectionApproval({
     isFetching: gasFetching,
     isError: gasError,
   } = useGasEstimate({
-    to: contract,
-    data,
+    calls: [{ to: contract, data }],
   })
 
   if (isLoading) {
-    return <Text>Loading collection details...</Text>
+    return (
+      <SigningLayout onConfirm={confirm} onReject={reject} disabled>
+        <SigningPageSkeleton />
+      </SigningLayout>
+    )
   }
 
   const collectionName = name || 'Unknown collection'
@@ -106,17 +110,17 @@ export function CollectionApproval({
               />
             }
           />
-          <DataRow
-            label="Network fee"
-            value={
-              gasError
-                ? 'Error'
-                : gasEstimate != null && !gasFetching
-                  ? formatGasFee(gasEstimate)
-                  : 'Estimating...'
-            }
-            iconName="gasStation"
-          />
+          {gasError ? (
+            <DataRow label="Network fee" value="Error" iconName="gasStation" />
+          ) : gasEstimate != null ? (
+            <DataRow
+              label="Network fee"
+              value={formatGasFee(gasEstimate)}
+              iconName="gasStation"
+            />
+          ) : (
+            <DataRowSkeleton label="Network fee" />
+          )}
         </div>
       </div>
     </SigningLayout>
