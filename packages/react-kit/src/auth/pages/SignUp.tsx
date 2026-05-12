@@ -184,7 +184,7 @@ export function SignUp() {
                       type="button"
                       disabled={anyPending}
                       onClick={handleLoginPasskey}
-                      className="text-greyScale mt-2 cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-greyScale my-2 cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Login with passkey
                     </button>
