@@ -9,13 +9,13 @@ pnpm add @zerodev/wallet-react-kit
 ```
 
 ```tsx
-import { zeroDevKitWallet, SignatureRequest } from '@zerodev/wallet-react-kit'
+import { zeroDevWallet, SignatureRequest } from '@zerodev/wallet-react-kit'
 import { createConfig } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 
 const config = createConfig({
   connectors: [
-    zeroDevKitWallet({
+    zeroDevWallet({
       projectId: 'your-project-id',
       chains: [sepolia],
     }),

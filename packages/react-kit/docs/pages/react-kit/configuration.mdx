@@ -5,9 +5,9 @@ The kit connector accepts all base `zeroDevWallet` params plus an optional `conf
 ## Basic
 
 ```tsx
-import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+import { zeroDevWallet } from '@zerodev/wallet-react-kit'
 
-zeroDevKitWallet({
+zeroDevWallet({
   projectId: 'your-project-id',
   chains: [sepolia],
 })
@@ -17,10 +17,10 @@ Signing confirmation is enabled by default (`prompt` mode). No extra config need
 
 ## Auth
 
-Configure the [authentication flow](/react-kit/features/authentication). To display the auth UI, mount the [`<AuthFlow />`](/react-kit/features/authentication) component in your app.
+Configure how users sign in. To display the auth UI, mount the [`<AuthFlow />`](/react-kit/features/authentication) component in your app.
 
 ```tsx
-zeroDevKitWallet({
+zeroDevWallet({
   projectId: '...',
   chains: [sepolia],
   config: {
@@ -45,14 +45,12 @@ zeroDevKitWallet({
 | `onSuccess` | `() => void` | Called when authentication completes successfully. |
 | `onError` | `(error: unknown) => void` | Called when authentication fails. |
 
-Full reference: [Authentication](/react-kit/features/authentication).
-
 ## Signing
 
 Control whether transactions and signing requests show a confirmation UI. To display the confirmation UI, mount the [`<SignatureRequest />`](/react-kit/features/transaction-signing) component in your app.
 
 ```tsx
-zeroDevKitWallet({
+zeroDevWallet({
   projectId: '...',
   chains: [sepolia],
   config: {
@@ -75,7 +73,7 @@ zeroDevKitWallet({
 Set `mode: 'background'` to disable the signing gate entirely. Transactions execute immediately without confirmation UI.
 
 ```tsx
-zeroDevKitWallet({
+zeroDevWallet({
   projectId: '...',
   chains: [sepolia],
   config: {

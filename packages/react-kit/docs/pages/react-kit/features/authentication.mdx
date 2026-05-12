@@ -2,10 +2,9 @@ import AuthFlowExample from '../../../components/AuthFlow'
 
 # Authentication
 
-Sign users in with email OTP, Google, or passkey. The `<AuthFlow />`
+Sign user in with email, Google, passkey, and more. The `<AuthFlow />`
 component sits in your tree and renders the right auth screen for the
-current step — sign-up, email verification, OTP entry, OAuth callback,
-or passkey prompt.
+current step.
 
 ## Import
 
@@ -18,9 +17,9 @@ import { AuthFlow } from '@zerodev/wallet-react-kit'
 Pass an `auth` block to the connector to enable authentication:
 
 ```tsx
-import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+import { zeroDevWallet } from '@zerodev/wallet-react-kit'
 
-zeroDevKitWallet({
+zeroDevWallet({
   projectId: '...',
   chains: [sepolia],
   config: {
@@ -49,31 +48,36 @@ zeroDevKitWallet({
 | `onSuccess` | `() => void` | Called when authentication completes successfully. |
 | `onError` | `(error: unknown) => void` | Called when authentication fails. |
 
-If you set neither `termsAndConditionsUrl` nor `privacyPolicyUrl`, the
-agreement checkbox is hidden entirely and the user can proceed without
-any consent step.
-
 ## Usage
 
 Mount the component once, anywhere in your tree. It renders the active
 auth screen when the user is signing in and renders nothing otherwise.
+Trigger the flow with wagmi's `useConnect`:
 
 ```tsx
 import { AuthFlow } from '@zerodev/wallet-react-kit'
+import { useConnect } from 'wagmi'
 
 function App() {
+  const { connect, connectors } = useConnect()
+
   return (
     <>
-      <YourApp />
+      <button
+        type="button"
+        onClick={() => connect({ connector: connectors[0] })}
+      >
+        Connect
+      </button>
       <AuthFlow />
     </>
   )
 }
 ```
 
-The flow starts when `eth_requestAccounts` is called (e.g. via wagmi's
-`useConnect`) and completes when the user is authenticated, at which
-point `onSuccess` fires.
+`connect()` triggers `eth_requestAccounts` under the hood, which kicks
+off the auth flow. The flow completes when the user is authenticated,
+at which point `onSuccess` fires.
 
 To build a custom auth UI instead of using `<AuthFlow />`, read state
 directly with the [`useAuth`](/react-kit/hooks/use-auth) hook.

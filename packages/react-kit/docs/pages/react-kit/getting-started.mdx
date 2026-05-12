@@ -1,9 +1,14 @@
 # Getting Started
 
+`@zerodev/wallet-react-kit` is the React UI layer for the ZeroDev
+Wallet SDK. It ships an enhanced wagmi connector and drop-in components
+for the most common wallet flows, built on wagmi so it slots into a
+standard wagmi setup.
+
 ## Installation
 
 ```bash
-pnpm add @zerodev/wallet-react-kit
+pnpm add @zerodev/wallet-react-kit wagmi viem @tanstack/react-query
 ```
 
 ## Setup
@@ -11,14 +16,14 @@ pnpm add @zerodev/wallet-react-kit
 ### 1. Create a wagmi config with the kit connector
 
 ```tsx
-import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+import { zeroDevWallet } from '@zerodev/wallet-react-kit'
 import { createConfig, http } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 
 export const config = createConfig({
   chains: [sepolia],
   connectors: [
-    zeroDevKitWallet({
+    zeroDevWallet({
       projectId: 'your-project-id',
       chains: [sepolia],
     }),

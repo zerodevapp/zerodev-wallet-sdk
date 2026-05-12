@@ -3,7 +3,7 @@ import type {
   ZeroDevProvider,
   ZeroDevWalletConnectorParams,
 } from '@zerodev/wallet-react'
-import { zeroDevWallet } from '@zerodev/wallet-react'
+import { zeroDevWallet as baseZeroDevWallet } from '@zerodev/wallet-react'
 import type { AuthConfig } from './auth/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
@@ -43,10 +43,10 @@ function requireUserConfirmation(
   })
 }
 
-export function zeroDevKitWallet(
+export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
-  const baseFactory = zeroDevWallet(params)
+  const baseFactory = baseZeroDevWallet(params)
   const store = createStore()
 
   // Initialize auth config if provided
