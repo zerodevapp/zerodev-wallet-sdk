@@ -72,5 +72,5 @@ export const WithCustomValue: Story = {
 }
 
 export const Skeleton: StoryObj<typeof DataRowSkeleton> = {
-  render: () => <DataRowSkeleton label="networkFee" />,
+  render: () => <DataRowSkeleton />,
 }
