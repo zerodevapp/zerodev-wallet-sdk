@@ -14,7 +14,7 @@ export type {
   ZeroDevKitConfig,
   ZeroDevKitConnectorParams,
 } from './connector.js'
-export { zeroDevKitWallet } from './connector.js'
+export { zeroDevWallet } from './connector.js'
 
 // Signing
 export type { SignatureRequestProps } from './signing'

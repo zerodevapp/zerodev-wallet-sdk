@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ZeroDevKitConnectorParams } from './connector'
-import { zeroDevKitWallet } from './connector'
+import { zeroDevWallet } from './connector'
 import type { createStore } from './store'
 
 type Provider = {
@@ -51,7 +51,7 @@ function createKitConnector(
     chains: [],
     ...overrides,
   }
-  const factory = zeroDevKitWallet(params)
+  const factory = zeroDevWallet(params)
   return factory({} as never) as unknown as KitConnector
 }
 

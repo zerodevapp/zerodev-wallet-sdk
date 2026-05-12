@@ -1,11 +1,11 @@
-import { zeroDevKitWallet } from '@zerodev/wallet-react-kit'
+import { zeroDevWallet } from '@zerodev/wallet-react-kit'
 import { createConfig, http } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 
 export const wagmiConfig = createConfig({
   chains: [sepolia],
   connectors: [
-    zeroDevKitWallet({
+    zeroDevWallet({
       projectId: import.meta.env.VITE_ZERODEV_PROJECT_ID,
       chains: [sepolia],
       config: {

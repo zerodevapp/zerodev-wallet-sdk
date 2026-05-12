@@ -16,7 +16,7 @@ export function useAuth() {
   const store = getKitStore(config)
 
   if (!store) {
-    throw new Error('useAuth must be used with zeroDevKitWallet connector')
+    throw new Error('useAuth must be used with zeroDevWallet connector')
   }
 
   const step = useStore(store, (state) => state.auth.step)

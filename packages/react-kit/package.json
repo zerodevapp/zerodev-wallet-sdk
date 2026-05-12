@@ -54,6 +54,7 @@
     "web3"
   ],
   "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
     "@wagmi/core": "^2.22.0",
     "@zerodev/wallet-core": "workspace:*",
     "@zerodev/wallet-react": "workspace:*",
