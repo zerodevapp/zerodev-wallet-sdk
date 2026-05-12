@@ -71,7 +71,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
               iconName="gasStation"
             />
           ) : (
-            <DataRowSkeleton />
+            <DataRowSkeleton label="Network fee" />
           )}
         </div>
       </div>

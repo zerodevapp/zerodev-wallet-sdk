@@ -119,7 +119,7 @@ export function CollectionApproval({
               iconName="gasStation"
             />
           ) : (
-            <DataRowSkeleton />
+            <DataRowSkeleton label="Network fee" />
           )}
         </div>
       </div>

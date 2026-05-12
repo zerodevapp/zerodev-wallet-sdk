@@ -122,7 +122,7 @@ export function Erc20Approval({
               iconName="gasStation"
             />
           ) : (
-            <DataRowSkeleton />
+            <DataRowSkeleton label="Network fee" />
           )}
         </div>
       </div>

@@ -117,7 +117,7 @@ export function Erc20Transfer({
               iconName="gasStation"
             />
           ) : (
-            <DataRowSkeleton />
+            <DataRowSkeleton label="Network fee" />
           )}
         </div>
       </div>

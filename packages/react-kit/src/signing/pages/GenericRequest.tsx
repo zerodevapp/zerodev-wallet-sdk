@@ -120,7 +120,7 @@ function GenericSendTransaction({
               iconName="gasStation"
             />
           ) : (
-            <DataRowSkeleton />
+            <DataRowSkeleton label="Fee" />
           )}
           <DataRow
             label="Total execution time"
