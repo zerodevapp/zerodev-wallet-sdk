@@ -189,9 +189,7 @@ test.describe('Post-Auth Operations', () => {
 
     // Verify redirect to login page
     await page.waitForURL('/', { timeout: 15_000 })
-    await expect(
-      page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-    ).toBeVisible()
+    await expect(page.getByText('Continue to your wallet')).toBeVisible()
     console.log('Logout successful')
   })
 })

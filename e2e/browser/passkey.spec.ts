@@ -70,9 +70,7 @@ async function registerAndWaitForDashboard(
   const virtualAuth = await setupVirtualAuthenticator(page)
 
   await page.goto('/')
-  await expect(
-    page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-  ).toBeVisible()
+  await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
   await page.getByRole('button', { name: /Register with passkey/i }).click()
 

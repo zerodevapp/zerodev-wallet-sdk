@@ -40,9 +40,7 @@ test.describe('Magic Link Flow', () => {
     // Step 2: Navigate to login page (debug flag renders separate
     // magic-link + OTP buttons regardless of demo's emailAuthMethod config)
     await page.goto('/?renderBothEmailButtons=true')
-    await expect(
-      page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-    ).toBeVisible()
+    await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
     // Step 3: Enter email
     await page.getByPlaceholder('Enter your email').fill(email)
