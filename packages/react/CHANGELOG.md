@@ -1,5 +1,11 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.22
+
+### Patch Changes
+
+- feat(react): add `mode` option to `zeroDevWallet` connector — choose between `'7702'` (default, current behavior), `'4337'` (counterfactual ERC-4337 Kernel), and `'EOA'` (plain EOA, no AA). Adds `WalletMode` type export.
+
 ## 0.0.1-alpha.21
 
 ### Patch Changes
