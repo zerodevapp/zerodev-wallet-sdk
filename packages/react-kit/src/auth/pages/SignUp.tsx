@@ -271,17 +271,19 @@ export function SignUp() {
                   </Input>
                   {showBothEmailButtons && (
                     <>
-                      <ListItem
+                      <Button
+                        action="secondaryNeutral"
+                        text="Continue with email magic link"
                         iconName="email"
-                        title="Continue with email magic link"
-                        className="rounded-3xl"
+                        trailIcon
                         disabled={!emailInput || anyPending || !canContinue}
                         onClick={handleSendMagicLink}
                       />
-                      <ListItem
+                      <Button
+                        action="secondaryNeutral"
+                        text="Continue with email OTP code"
                         iconName="email"
-                        title="Continue with email OTP code"
-                        className="rounded-3xl"
+                        trailIcon
                         disabled={!emailInput || anyPending || !canContinue}
                         onClick={handleSendOtp}
                       />
