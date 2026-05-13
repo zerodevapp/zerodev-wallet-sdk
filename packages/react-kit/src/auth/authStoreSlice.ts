@@ -81,7 +81,7 @@ export const createAuthStoreSlice: StateCreator<
 > = (set, get, _store) => ({
   auth: {
     // Initial state
-    step: 'initializing',
+    step: 'sign-up',
     stepHistory: [],
     enabledMethods: [],
     email: null,
@@ -133,7 +133,7 @@ export const createAuthStoreSlice: StateCreator<
       set((state) => ({
         auth: {
           ...state.auth,
-          step: 'initializing',
+          step: 'sign-up',
           stepHistory: [],
           email: null,
           otpId: null,

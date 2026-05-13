@@ -6,18 +6,24 @@ export function SignUpFooter({
   privacyPolicyUrl,
   agreedToTerms,
   setAgreedToTerms,
+  highlight = false,
 }: {
   termsAndConditionsUrl?: string | undefined
   privacyPolicyUrl?: string | undefined
   agreedToTerms: boolean
   setAgreedToTerms: (agreed: boolean) => void
+  highlight?: boolean
 }) {
   const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
 
   return (
     <div className="flex flex-col items-center gap-5">
       {showAgreement && (
-        <div className="flex flex-row items-center gap-2">
+        <div
+          className={`flex flex-row items-center gap-2 rounded-md p-2 transition-colors ${
+            highlight ? 'border border-negative' : 'border border-transparent'
+          }`}
+        >
           <input
             type="checkbox"
             checked={agreedToTerms}

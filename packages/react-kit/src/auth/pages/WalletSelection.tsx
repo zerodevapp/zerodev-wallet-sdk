@@ -16,7 +16,7 @@ export function WalletSelection() {
       { connector },
       {
         onSuccess: () => {
-          goToStep('initializing')
+          goToStep('sign-up')
         },
       },
     )

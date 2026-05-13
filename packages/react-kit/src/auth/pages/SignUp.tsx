@@ -24,10 +24,16 @@ function isOAuthWindowClosedError(message: string): boolean {
   )
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+function isValidEmailAddress(email: string): boolean {
+  return EMAIL_REGEX.test(email.trim())
+}
+
 export function SignUp() {
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [highlightAgreement, setHighlightAgreement] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const shouldUseOtp = config?.emailAuthMethod === 'otp'
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
@@ -120,7 +126,12 @@ export function SignUp() {
   }
 
   const handleEmailSubmit = async () => {
-    if (!emailInput || anyPending || !canContinue) return
+    if (!emailInput || anyPending) return
+    if (!isValidEmailAddress(emailInput)) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
 
     setError(null)
     try {
@@ -211,21 +222,21 @@ export function SignUp() {
                   autoComplete="email"
                   disabled={anyPending}
                   variant="listItemStyle"
+                  className="rounded-3xl"
                   onKeyDown={(e) => {
-                    if (
-                      e.key === 'Enter' &&
-                      emailInput &&
-                      !anyPending &&
-                      canContinue
-                    ) {
+                    if (e.key === 'Enter' && emailInput && !anyPending) {
                       handleEmailSubmit()
                     }
                   }}
                 >
-                  {emailInput && !anyPending && canContinue ? (
+                  {emailInput && !anyPending ? (
                     <button
                       type="button"
-                      className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
+                      className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                        isValidEmailAddress(emailInput) && canContinue
+                          ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                          : 'cursor-not-allowed opacity-50'
+                      }`}
                       onClick={handleEmailSubmit}
                     >
                       <Icon name="chevronRight" className="text-greyScale" />
@@ -256,7 +267,11 @@ export function SignUp() {
             termsAndConditionsUrl={config?.termsAndConditionsUrl}
             privacyPolicyUrl={config?.privacyPolicyUrl}
             agreedToTerms={agreedToTerms}
-            setAgreedToTerms={setAgreedToTerms}
+            setAgreedToTerms={(agreed) => {
+              setAgreedToTerms(agreed)
+              if (agreed) setHighlightAgreement(false)
+            }}
+            highlight={highlightAgreement}
           />
         </div>
       )}

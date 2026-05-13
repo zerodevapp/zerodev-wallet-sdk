@@ -25,14 +25,12 @@ export function AuthFlow() {
   const { step, goToStep } = useAuth()
 
   useEffect(() => {
-    if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
+    if (step === 'sign-up' && hasMagicLinkCodeInUrl()) {
       goToStep('verifying-otp')
     }
   }, [step, goToStep])
 
   switch (step) {
-    case 'initializing':
-      return null
     case 'sign-up':
       return <SignUp />
     case 'email-verification':
