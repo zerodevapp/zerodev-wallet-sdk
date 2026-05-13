@@ -286,6 +286,9 @@ export function zeroDevWallet(
         ...(params.persistStorage && { storage: params.persistStorage }),
       })
 
+      // Wait for the store to rehydrate - if an async storage is used we need to ensure the persisted state is loaded
+      await store.persist.rehydrate()
+
       store.getState().setWallet(wallet)
 
       // Store OAuth config - uses proxyBaseUrl and projectId from params
@@ -430,9 +433,7 @@ export function zeroDevWallet(
       },
 
       async getProvider() {
-        if (!provider) {
-          await initialize()
-        }
+        await initialize()
         return provider
       },
 
