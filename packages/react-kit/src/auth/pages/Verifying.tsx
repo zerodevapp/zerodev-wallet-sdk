@@ -32,6 +32,11 @@ export function Verifying() {
       onSuccess: async () => {
         clearOtpSession()
         goToStep('authenticated')
+        // Navigate the address bar off the magic-link landing URL so a
+        // refresh doesn't re-trigger verification.
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', '/')
+        }
         config?.onSuccess?.()
       },
       onError: (err) => {
