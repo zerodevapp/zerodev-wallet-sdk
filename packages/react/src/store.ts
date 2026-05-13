@@ -9,7 +9,12 @@ import type {
 import type { Chain, LocalAccount, Transport, WalletClient } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
 import { create } from 'zustand'
-import { persist, subscribeWithSelector } from 'zustand/middleware'
+import {
+  createJSONStorage,
+  persist,
+  type StateStorage,
+  subscribeWithSelector,
+} from 'zustand/middleware'
 
 // Internal OAuth config stored in the state (derived from connector params)
 type InternalOAuthConfig = {
@@ -59,7 +64,11 @@ export type ZeroDevWalletState = {
   clear: () => void
 }
 
-export const createZeroDevWalletStore = () =>
+export type CreateStoreOptions = {
+  storage?: StateStorage<void>
+}
+
+export const createZeroDevWalletStore = (options?: CreateStoreOptions) =>
   create<ZeroDevWalletState>()(
     subscribeWithSelector(
       persist(
@@ -123,6 +132,9 @@ export const createZeroDevWalletStore = () =>
           partialize: (state) => ({
             session: state.session,
             activeChainId: state.activeChainId,
+          }),
+          ...(options?.storage && {
+            storage: createJSONStorage(() => options.storage!),
           }),
         },
       ),
