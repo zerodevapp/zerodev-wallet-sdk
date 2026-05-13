@@ -46,7 +46,7 @@ export function Erc20Approval({
   const {
     data: gasEstimate,
     isFetching: gasFetching,
-    isError: gasError,
+    error: gasError,
   } = useGasEstimate({
     calls: [{ to: contract, data }],
   })
@@ -84,6 +84,7 @@ export function Erc20Approval({
       onConfirm={confirm}
       onReject={reject}
       disabled={confirmDisabled}
+      error={gasError}
     >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
@@ -105,17 +106,16 @@ export function Erc20Approval({
               />
             }
           />
-          {gasError ? (
-            <DataRow label="Network fee" value="Error" iconName="gasStation" />
-          ) : gasEstimate != null ? (
-            <DataRow
-              label="Network fee"
-              value={formatGasFee(gasEstimate)}
-              iconName="gasStation"
-            />
-          ) : (
-            <DataRowSkeleton label="Network fee" />
-          )}
+          {!gasError &&
+            (gasEstimate != null ? (
+              <DataRow
+                label="Network fee"
+                value={formatGasFee(gasEstimate)}
+                iconName="gasStation"
+              />
+            ) : (
+              <DataRowSkeleton label="Network fee" />
+            ))}
         </div>
       </div>
     </SigningLayout>

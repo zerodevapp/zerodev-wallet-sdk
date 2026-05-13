@@ -277,7 +277,7 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
   const {
     data: gasEstimate,
     isFetching: gasFetching,
-    isError: gasError,
+    error: gasError,
   } = useGasEstimate({
     calls: calls.map((c) => ({
       to: (c.to ?? zeroAddress) as Address,
@@ -301,6 +301,7 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
       onConfirm={confirm}
       onReject={reject}
       disabled={confirmDisabled}
+      error={gasError}
     >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">

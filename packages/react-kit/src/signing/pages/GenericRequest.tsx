@@ -75,7 +75,7 @@ function GenericSendTransaction({
   const {
     data: gasEstimate,
     isFetching: gasFetching,
-    isError: gasError,
+    error: gasError,
   } = useGasEstimate({
     calls: [
       {
@@ -93,6 +93,7 @@ function GenericSendTransaction({
       onConfirm={confirm}
       onReject={reject}
       disabled={confirmDisabled}
+      error={gasError}
     >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
