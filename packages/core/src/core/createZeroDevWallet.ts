@@ -5,6 +5,7 @@ import type {
 } from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
+  type CreateTransportOptions,
   createAuthProxyClient,
   createClient,
   type ZeroDevWalletClient,
@@ -35,6 +36,7 @@ export interface ZeroDevWalletConfig {
   rpId?: string
   apiKeyStamper?: ApiKeyStamper
   passkeyStamper?: PasskeyStamper
+  fetchOptions?: CreateTransportOptions['fetchOptions']
 }
 
 // Re-export EmailCustomization for convenience
@@ -140,6 +142,7 @@ export async function createZeroDevWallet(
     passkeyStamper,
     transport: zeroDevWalletTransport({
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
+      ...(config.fetchOptions && { fetchOptions: config.fetchOptions }),
     }),
   })
 

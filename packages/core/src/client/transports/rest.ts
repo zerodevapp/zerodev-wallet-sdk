@@ -50,9 +50,9 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
     try {
       let requestBody = args.body
       let requestHeaders = {
-        'content-type': 'application/json',
-        ...(args.headers ?? {}),
         ...(cfg.fetchOptions?.headers ?? {}),
+        ...(args.headers ?? {}),
+        'content-type': 'application/json',
       }
 
       // Handle stamping if requested

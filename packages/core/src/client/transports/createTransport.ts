@@ -10,6 +10,8 @@ export type CreateTransportOptions = {
   key?: string
   /** Transport name */
   name?: string
+  /** Extra options merged into every fetch() call */
+  fetchOptions?: Omit<RequestInit, 'body' | 'method' | 'signal'>
 }
 
 /**
@@ -34,6 +36,7 @@ export function zeroDevWalletTransport(
       name,
       apiKeyStamper,
       passkeyStamper,
+      ...(options.fetchOptions && { fetchOptions: options.fetchOptions }),
     })
 
     return {

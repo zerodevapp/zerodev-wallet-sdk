@@ -8,6 +8,7 @@ import {
 import { getEntryPoint, KERNEL_V3_3 } from '@zerodev/sdk/constants'
 import type {
   ApiKeyStamper,
+  CreateTransportOptions,
   PasskeyStamper,
   StorageAdapter,
 } from '@zerodev/wallet-core'
@@ -104,6 +105,7 @@ export type ZeroDevWalletConnectorParams = {
   persistStorage?: CreateStoreOptions['storage']
   apiKeyStamper?: ApiKeyStamper | Promise<ApiKeyStamper>
   passkeyStamper?: PasskeyStamper | Promise<PasskeyStamper>
+  fetchOptions?: CreateTransportOptions['fetchOptions']
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
   /**
@@ -160,7 +162,10 @@ export function zeroDevWallet(
      *
      * No-ops if the chain is already set up.
      */
-    const setupChain = async (chainId: number) => {
+    const setupChain = async (
+      chainId: number,
+      httpOpts?: { fetchOptions?: CreateTransportOptions['fetchOptions'] },
+    ) => {
       const state = store.getState()
       const eoaAccount = state.eoaAccount
       if (!eoaAccount) throw new Error('Not authenticated')
@@ -210,12 +215,16 @@ export function zeroDevWallet(
         account: kernelAccount,
         bundlerTransport: http(
           getAAUrl(params.projectId, chainId, params.aaUrl),
+          httpOpts,
         ),
         chain,
         client: publicClient,
         paymaster: createZeroDevPaymasterClient({
           chain,
-          transport: http(getAAUrl(params.projectId, chainId, params.aaUrl)),
+          transport: http(
+            getAAUrl(params.projectId, chainId, params.aaUrl),
+            httpOpts,
+          ),
         }),
       })
       store.getState().setKernelClient(chainId, kernelClient)
@@ -233,6 +242,9 @@ export function zeroDevWallet(
       }
       return state.eoaAccount?.address ?? null
     }
+    const httpOpts = params.fetchOptions
+      ? { fetchOptions: params.fetchOptions }
+      : undefined
 
     // Lazy initialization - only runs on client side (idempotent)
     const initialize = async () => {
@@ -266,6 +278,7 @@ export function zeroDevWallet(
         ...(params.rpId && { rpId: params.rpId }),
         ...(apiKeyStamper && { apiKeyStamper }),
         ...(passkeyStamper && { passkeyStamper }),
+        ...(params.fetchOptions && { fetchOptions: params.fetchOptions }),
       })
 
       // Create store
@@ -361,7 +374,7 @@ export function zeroDevWallet(
           )
         }
 
-        await setupChain(activeChainId)
+        await setupChain(activeChainId, httpOpts)
 
         store.getState().setActiveChainId(activeChainId)
 
@@ -432,7 +445,7 @@ export function zeroDevWallet(
         }
 
         store.getState().setActiveChainId(chainId)
-        await setupChain(chainId)
+        await setupChain(chainId, httpOpts)
 
         wagmiConfig.emitter.emit('change', { chainId })
         return params.chains.find((c) => c.id === chainId)!
