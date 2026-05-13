@@ -25,9 +25,8 @@ export const config = createConfig({
       ...(mode && { mode }),
       config: {
         auth: {
-          magicLinkBaseUrl: 'http://localhost:3000/verify',
+          magicLinkBaseUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/verify`,
           enabledMethods: ['email', 'google', 'passkey'],
-          // emailAuthMethod: 'otp', // set email auth method, 'magicLink' or 'otp', default is 'magicLink'
         },
       },
     }),
