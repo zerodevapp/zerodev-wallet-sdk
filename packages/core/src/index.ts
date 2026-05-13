@@ -56,7 +56,12 @@ export { toViemAccount } from './adapters/viem.js'
 export type { ZeroDevWalletActions } from './client/decorators/client.js'
 // Client decorators
 export { zeroDevWalletActions } from './client/decorators/client.js'
-export type { Client, ClientConfig, Transport } from './client/index.js'
+export type {
+  Client,
+  ClientConfig,
+  CreateTransportOptions,
+  Transport,
+} from './client/index.js'
 // Client
 export {
   createBaseClient,
