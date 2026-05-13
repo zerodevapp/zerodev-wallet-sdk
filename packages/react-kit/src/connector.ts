@@ -62,12 +62,13 @@ export function zeroDevWallet(
 
       async connect(connectParams) {
         const isAuthorized = await connector.isAuthorized()
+        const authState = store.getState().auth
         if (
           !isAuthorized &&
           params.config?.auth &&
-          store.getState().auth.step === 'initializing'
+          authState.step === 'sign-up' &&
+          authState.stepHistory.length === 0
         ) {
-          store.getState().auth.goToStep('sign-up')
           await new Promise<void>((resolve) => {
             const unsub = store.subscribe(
               (state) => state.auth.step,

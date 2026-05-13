@@ -18,7 +18,7 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const { auth } = store.getState()
 
-      expect(auth.step).toBe('initializing')
+      expect(auth.step).toBe('sign-up')
       expect(auth.stepHistory).toEqual([])
       expect(auth.enabledMethods).toEqual([])
       expect(auth.email).toBeNull()
@@ -37,7 +37,7 @@ describe('authStoreSlice', () => {
       const { auth } = store.getState()
       expect(auth.config).toEqual(config)
       expect(auth.enabledMethods).toEqual(['email', 'google', 'passkey'])
-      expect(auth.step).toBe('initializing')
+      expect(auth.step).toBe('sign-up')
     })
 
     it('sets custom enabled methods from config', () => {
@@ -60,20 +60,18 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const config = createMockAuthConfig()
       store.getState().auth.initialize(config)
-      store.getState().auth.goToStep('sign-up')
 
       store.getState().auth.goToStep('email-verification')
 
       const { auth } = store.getState()
       expect(auth.step).toBe('email-verification')
-      expect(auth.stepHistory).toEqual(['initializing', 'sign-up'])
+      expect(auth.stepHistory).toEqual(['sign-up'])
     })
 
     it('builds up step history on multiple transitions', () => {
       const store = createStore()
       const config = createMockAuthConfig()
       store.getState().auth.initialize(config)
-      store.getState().auth.goToStep('sign-up')
 
       store.getState().auth.goToStep('email-verification')
       store.getState().auth.goToStep('otp-input')
@@ -82,7 +80,6 @@ describe('authStoreSlice', () => {
       const { auth } = store.getState()
       expect(auth.step).toBe('verifying-otp')
       expect(auth.stepHistory).toEqual([
-        'initializing',
         'sign-up',
         'email-verification',
         'otp-input',
@@ -95,7 +92,6 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const config = createMockAuthConfig()
       store.getState().auth.initialize(config)
-      store.getState().auth.goToStep('sign-up')
 
       store.getState().auth.goToStep('email-verification')
       store.getState().auth.goToStep('otp-input')
@@ -104,7 +100,7 @@ describe('authStoreSlice', () => {
 
       const { auth } = store.getState()
       expect(auth.step).toBe('email-verification')
-      expect(auth.stepHistory).toEqual(['initializing', 'sign-up'])
+      expect(auth.stepHistory).toEqual(['sign-up'])
     })
 
     it('returns to sign-up when history is empty', () => {
@@ -123,7 +119,6 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const config = createMockAuthConfig()
       store.getState().auth.initialize(config)
-      store.getState().auth.goToStep('sign-up')
 
       store.getState().auth.goToStep('email-verification')
       store.getState().auth.goToStep('otp-input')
@@ -137,7 +132,7 @@ describe('authStoreSlice', () => {
 
       store.getState().auth.goBack()
       expect(store.getState().auth.step).toBe('sign-up')
-      expect(store.getState().auth.stepHistory).toEqual(['initializing'])
+      expect(store.getState().auth.stepHistory).toEqual([])
     })
   })
 
@@ -158,7 +153,7 @@ describe('authStoreSlice', () => {
       store.getState().auth.reset()
 
       const { auth } = store.getState()
-      expect(auth.step).toBe('initializing')
+      expect(auth.step).toBe('sign-up')
       expect(auth.stepHistory).toEqual([])
       expect(auth.email).toBeNull()
       expect(auth.otpId).toBeNull()
@@ -231,7 +226,6 @@ describe('authStoreSlice', () => {
 
       // Initialize
       store.getState().auth.initialize(config)
-      store.getState().auth.goToStep('sign-up')
       expect(store.getState().auth.step).toBe('sign-up')
 
       // User enters email
@@ -259,7 +253,6 @@ describe('authStoreSlice', () => {
       expect(auth.email).toBe('user@example.com')
       expect(auth.otpId).toBe('otp-123')
       expect(auth.stepHistory).toEqual([
-        'initializing',
         'sign-up',
         'email-verification',
         'otp-input',
@@ -272,7 +265,6 @@ describe('authStoreSlice', () => {
       const config = createMockAuthConfig()
 
       store.getState().auth.initialize(config)
-      store.getState().auth.goToStep('sign-up')
       store.getState().auth.setEmail('user@example.com')
       store.getState().auth.goToStep('email-verification')
       store.getState().auth.setOtpSession({
@@ -314,7 +306,7 @@ describe('authStoreSlice', () => {
       store.getState().auth.reset()
 
       const { auth } = store.getState()
-      expect(auth.step).toBe('initializing')
+      expect(auth.step).toBe('sign-up')
       expect(auth.email).toBeNull()
       expect(auth.otpId).toBeNull()
       expect(auth.stepHistory).toEqual([])
@@ -332,8 +324,8 @@ describe('authStoreSlice', () => {
       store.getState().auth.initialize(config)
       expect(listener).not.toHaveBeenCalled()
 
-      store.getState().auth.goToStep('sign-up')
-      expect(listener).toHaveBeenCalledWith('sign-up', 'initializing')
+      store.getState().auth.goToStep('email-verification')
+      expect(listener).toHaveBeenCalledWith('email-verification', 'sign-up')
       expect(listener).toHaveBeenCalledTimes(1)
     })
 
@@ -372,10 +364,10 @@ describe('authStoreSlice', () => {
       store1.getState().auth.setEmail('user1@example.com')
 
       expect(store1.getState().auth.email).toBe('user1@example.com')
-      expect(store1.getState().auth.step).toBe('initializing')
+      expect(store1.getState().auth.step).toBe('sign-up')
 
       expect(store2.getState().auth.email).toBeNull()
-      expect(store2.getState().auth.step).toBe('initializing')
+      expect(store2.getState().auth.step).toBe('sign-up')
     })
   })
 })

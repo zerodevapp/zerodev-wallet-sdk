@@ -243,7 +243,7 @@ describe('connector', () => {
 
       expect(store.getState().auth.config).toEqual(authConfig)
       expect(store.getState().auth.enabledMethods).toEqual(['email', 'google'])
-      expect(store.getState().auth.step).toBe('initializing')
+      expect(store.getState().auth.step).toBe('sign-up')
     })
 
     it('does not initialize auth when config is not provided', () => {
@@ -252,7 +252,7 @@ describe('connector', () => {
 
       expect(store.getState().auth.config).toBeNull()
       expect(store.getState().auth.enabledMethods).toEqual([])
-      expect(store.getState().auth.step).toBe('initializing')
+      expect(store.getState().auth.step).toBe('sign-up')
     })
 
     it('auth config works with signing config', () => {
@@ -294,7 +294,7 @@ describe('connector', () => {
 
       // Auth should be reset and reinitialized
       expect(store.getState().auth.email).toBeNull()
-      expect(store.getState().auth.step).toBe('initializing')
+      expect(store.getState().auth.step).toBe('sign-up')
       expect(store.getState().auth.config).toEqual(authConfig)
     })
 

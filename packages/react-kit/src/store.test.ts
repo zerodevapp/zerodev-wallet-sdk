@@ -122,7 +122,7 @@ describe('store', () => {
       const state = store.getState()
 
       expect(state.auth).toBeDefined()
-      expect(state.auth.step).toBe('initializing')
+      expect(state.auth.step).toBe('sign-up')
       expect(state.auth.stepHistory).toEqual([])
       expect(state.auth.enabledMethods).toEqual([])
       expect(state.auth.email).toBeNull()
@@ -154,7 +154,7 @@ describe('store', () => {
       expect(requestListener).toHaveBeenCalledTimes(1)
       expect(authListener).not.toHaveBeenCalled()
 
-      store.getState().auth.goToStep('sign-up')
+      store.getState().auth.goToStep('email-verification')
       expect(authListener).toHaveBeenCalledTimes(1)
       expect(requestListener).toHaveBeenCalledTimes(1)
     })

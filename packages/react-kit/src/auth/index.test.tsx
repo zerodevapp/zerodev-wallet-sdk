@@ -55,7 +55,7 @@ vi.mock('../shared/components/StatusView', () => ({
 }))
 
 // Mock useAuth hook
-let mockStep: AuthStep = 'initializing'
+let mockStep: AuthStep = 'sign-up'
 vi.mock('./hooks/useAuth', () => ({
   useAuth: () => ({
     step: mockStep,
@@ -72,13 +72,6 @@ vi.mock('./hooks/useAuth', () => ({
 }))
 
 describe('AuthFlow', () => {
-  it('renders nothing in initializing state', () => {
-    mockStep = 'initializing'
-    const { container } = render(<AuthFlow />)
-
-    expect(container.firstChild).toBeNull()
-  })
-
   it('renders sign-up page', () => {
     mockStep = 'sign-up'
     render(<AuthFlow />)
