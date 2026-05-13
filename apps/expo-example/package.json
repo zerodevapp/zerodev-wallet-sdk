@@ -1,0 +1,36 @@
+{
+  "name": "@zerodev/expo-example",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@tanstack/react-query": "^5.90.21",
+    "@turnkey/api-key-stamper": "^0.6.4",
+    "@turnkey/crypto": "^2.8.13",
+    "@turnkey/react-native-passkey-stamper": "^1.2.12",
+    "@wagmi/core": "^3.4.0",
+    "@zerodev/wallet-core": "workspace:^",
+    "@zerodev/wallet-react": "workspace:^",
+    "expo": "~55.0.9",
+    "expo-clipboard": "^55.0.9",
+    "expo-secure-store": "^55.0.9",
+    "expo-status-bar": "~55.0.4",
+    "react": "19.2.0",
+    "react-native": "0.83.4",
+    "react-native-get-random-values": "^2.0.0",
+    "uuid": "^13.0.0",
+    "viem": "~2.38.6",
+    "wagmi": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
