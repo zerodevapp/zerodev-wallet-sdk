@@ -6,12 +6,16 @@ import {
   createZeroDevPaymasterClient,
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_3 } from '@zerodev/sdk/constants'
-import type { StorageAdapter } from '@zerodev/wallet-core'
+import type {
+  ApiKeyStamper,
+  PasskeyStamper,
+  StorageAdapter,
+} from '@zerodev/wallet-core'
 import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
 import { type Chain, createPublicClient, createWalletClient, http } from 'viem'
 import { handleOAuthCallback, type OAuthProvider } from './oauth.js'
 import { createProvider } from './provider.js'
-import { createZeroDevWalletStore } from './store.js'
+import { type CreateStoreOptions, createZeroDevWalletStore } from './store.js'
 import { getAAUrl } from './utils/aaUtils.js'
 
 // OAuth URL parameter used to detect callback
@@ -28,7 +32,7 @@ async function detectAndHandleOAuthCallback(
   wallet: Awaited<ReturnType<typeof createZeroDevWallet>>,
   store: ReturnType<typeof createZeroDevWalletStore>,
 ): Promise<boolean> {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined' || !window.location?.search) return false
 
   const params = new URLSearchParams(window.location.search)
   const isOAuthCallback = params.get(OAUTH_SUCCESS_PARAM) === 'true'
@@ -97,6 +101,9 @@ export type ZeroDevWalletConnectorParams = {
   chains: readonly Chain[]
   rpId?: string
   sessionStorage?: StorageAdapter
+  persistStorage?: CreateStoreOptions['storage']
+  apiKeyStamper?: ApiKeyStamper | Promise<ApiKeyStamper>
+  passkeyStamper?: PasskeyStamper | Promise<PasskeyStamper>
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
   /**
@@ -105,6 +112,9 @@ export type ZeroDevWalletConnectorParams = {
    * EOA without account abstraction.
    */
   mode?: WalletMode
+  // Controls whether setup() automatically initializes the connector on mount.
+  // When false, the connector still initializes lazily on connect/getProvider/getStore.
+  autoInitialize?: boolean | (() => boolean)
 }
 
 export function zeroDevWallet(
@@ -234,6 +244,15 @@ export function zeroDevWallet(
     const doInitialize = async () => {
       console.log('Initializing ZeroDevWallet connector...')
 
+      let apiKeyStamper: ApiKeyStamper | undefined
+      let passkeyStamper: PasskeyStamper | undefined
+      if (params.apiKeyStamper) {
+        apiKeyStamper = await params.apiKeyStamper
+      }
+      if (params.passkeyStamper) {
+        passkeyStamper = await params.passkeyStamper
+      }
+
       // Initialize wallet SDK
       const wallet = await createZeroDevWallet({
         projectId: params.projectId,
@@ -245,10 +264,15 @@ export function zeroDevWallet(
           sessionStorage: params.sessionStorage,
         }),
         ...(params.rpId && { rpId: params.rpId }),
+        ...(apiKeyStamper && { apiKeyStamper }),
+        ...(passkeyStamper && { passkeyStamper }),
       })
 
       // Create store
-      store = createZeroDevWalletStore()
+      store = createZeroDevWalletStore({
+        ...(params.persistStorage && { storage: params.persistStorage }),
+      })
+
       store.getState().setWallet(wallet)
 
       // Store OAuth config - uses proxyBaseUrl and projectId from params
@@ -285,8 +309,11 @@ export function zeroDevWallet(
       type: 'injected' as const,
 
       async setup() {
-        // Initialize on client-side mount (setup only runs client-side)
-        if (typeof window !== 'undefined') {
+        const shouldInit =
+          typeof params.autoInitialize === 'function'
+            ? params.autoInitialize()
+            : (params.autoInitialize ?? typeof window !== 'undefined')
+        if (shouldInit) {
           await initialize()
         }
       },
