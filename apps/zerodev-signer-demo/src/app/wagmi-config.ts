@@ -1,10 +1,10 @@
 'use client'
 
-import { type WalletMode, zeroDevWallet } from '@zerodev/wallet-react'
+import { type WalletMode } from '@zerodev/wallet-react'
+import { zeroDevWallet } from '@zerodev/wallet-react-kit'
 import { createConfig, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
 
-// RPC URLs per chain
 const rpcUrls: Record<number, string | undefined> = {
   [arbitrumSepolia.id]: process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL,
   [sepolia.id]: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL,
@@ -23,6 +23,13 @@ export const config = createConfig({
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
       chains: [arbitrumSepolia, sepolia],
       ...(mode && { mode }),
+      config: {
+        auth: {
+          magicLinkBaseUrl: 'http://localhost:3000/verify',
+          enabledMethods: ['email', 'google', 'passkey'],
+          // emailAuthMethod: 'otp', // set email auth method, 'magicLink' or 'otp', default is 'magicLink'
+        },
+      },
     }),
   ],
   ssr: true,

@@ -117,6 +117,9 @@ importers:
       '@zerodev/wallet-react':
         specifier: workspace:*
         version: link:../../packages/react
+      '@zerodev/wallet-react-kit':
+        specifier: workspace:*
+        version: link:../../packages/react-kit
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

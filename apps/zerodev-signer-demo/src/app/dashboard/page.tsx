@@ -3,6 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
+import { SignatureRequest } from "@zerodev/wallet-react-kit";
 import {
   Check,
   Copy,
@@ -69,7 +70,7 @@ export default function DashboardPage() {
       retry: false,
     }
   )
-  
+
   useEffect(() => {
     const loadBalance = async () => {
       if (address && isAddress(address)) {
@@ -135,6 +136,7 @@ export default function DashboardPage() {
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
       <ExportPrivateKeyModal isOpen={showExportPrivateKeyModal} onClose={() => setShowExportPrivateKeyModal(false)} />
+      <SignatureRequest className='absolute right-0 top-20 w-[400px] h-[600px]' />
       <div className="min-h-screen bg-white">
         {/* Header */}
         <header className="bg-white border-b border-gray-100">
