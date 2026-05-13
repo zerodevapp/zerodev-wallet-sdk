@@ -95,6 +95,11 @@ export function zeroDevWallet(
       async setup() {
         await connector.setup?.()
 
+        // Request-wrapping is only meaningful in the browser (it gates calls
+        // on UI confirmation). Skip during SSR — getProvider() touches
+        // `window` for EIP-6963 discovery and would crash on the server.
+        if (typeof window === 'undefined') return
+
         const signing = params.config?.signing
         if (signing?.mode === 'background') return
 
