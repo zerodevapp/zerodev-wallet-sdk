@@ -26,7 +26,7 @@ function VerifyPageInner() {
   }, [isConnected, router])
 
   return (
-    <div className="mx-auto h-screen w-[500px]">
+    <div className="mx-auto h-[800px] w-[500px]">
       <AuthFlow />
     </div>
   )
