@@ -36,11 +36,17 @@ function shouldShowBothEmailButtons(): boolean {
   )
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+function isValidEmailAddress(email: string): boolean {
+  return EMAIL_REGEX.test(email.trim())
+}
+
 export function SignUp() {
   const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [highlightAgreement, setHighlightAgreement] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const shouldUseOtp = config?.emailAuthMethod === 'otp'
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
@@ -101,6 +107,19 @@ export function SignUp() {
   )
   const canContinue = !requiresAgreement || agreedToTerms
 
+  // Shared pre-check for the email-based auth handlers. Returns false if the
+  // submission shouldn't proceed; also flips `highlightAgreement` on so the
+  // SignUpFooter renders a red border around the terms checkbox.
+  const checkEmailGuard = (): boolean => {
+    if (!emailInput || anyPending) return false
+    if (!isValidEmailAddress(emailInput)) return false
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return false
+    }
+    return true
+  }
+
   const handleRegisterPasskey = () => {
     if (anyPending || !canContinue) return
     setError(null)
@@ -131,7 +150,7 @@ export function SignUp() {
   }
 
   const handleSendOtp = async () => {
-    if (!emailInput || anyPending || !canContinue) return
+    if (!checkEmailGuard()) return
     setError(null)
     try {
       const { otpId, otpEncryptionTargetBundle } = await sendOtp({
@@ -148,7 +167,7 @@ export function SignUp() {
   }
 
   const handleSendMagicLink = async () => {
-    if (!emailInput || anyPending || !canContinue) return
+    if (!checkEmailGuard()) return
     setError(null)
     try {
       const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
@@ -239,12 +258,12 @@ export function SignUp() {
                     autoComplete="email"
                     disabled={anyPending}
                     variant="listItemStyle"
+                    className="rounded-3xl"
                     onKeyDown={(e) => {
                       if (
                         e.key === 'Enter' &&
                         emailInput &&
                         !anyPending &&
-                        canContinue &&
                         !showBothEmailButtons
                       ) {
                         handleEmailSubmit()
@@ -252,10 +271,14 @@ export function SignUp() {
                     }}
                   >
                     {!showBothEmailButtons &&
-                      (emailInput && !anyPending && canContinue ? (
+                      (emailInput && !anyPending ? (
                         <button
                           type="button"
-                          className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
+                          className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                            isValidEmailAddress(emailInput) && canContinue
+                              ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                              : 'cursor-not-allowed opacity-50'
+                          }`}
                           onClick={handleEmailSubmit}
                         >
                           <Icon
@@ -276,7 +299,11 @@ export function SignUp() {
                         text="Continue with email magic link"
                         iconName="email"
                         trailIcon
-                        disabled={!emailInput || anyPending || !canContinue}
+                        disabled={
+                          !emailInput ||
+                          anyPending ||
+                          !isValidEmailAddress(emailInput)
+                        }
                         onClick={handleSendMagicLink}
                       />
                       <Button
@@ -284,7 +311,11 @@ export function SignUp() {
                         text="Continue with email OTP code"
                         iconName="email"
                         trailIcon
-                        disabled={!emailInput || anyPending || !canContinue}
+                        disabled={
+                          !emailInput ||
+                          anyPending ||
+                          !isValidEmailAddress(emailInput)
+                        }
                         onClick={handleSendOtp}
                       />
                     </>
@@ -310,7 +341,11 @@ export function SignUp() {
             termsAndConditionsUrl={config?.termsAndConditionsUrl}
             privacyPolicyUrl={config?.privacyPolicyUrl}
             agreedToTerms={agreedToTerms}
-            setAgreedToTerms={setAgreedToTerms}
+            setAgreedToTerms={(agreed) => {
+              setAgreedToTerms(agreed)
+              if (agreed) setHighlightAgreement(false)
+            }}
+            highlight={highlightAgreement}
           />
         </div>
       )}
