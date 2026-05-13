@@ -1,9 +1,9 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { useChains, useConnection, useSwitchChain } from 'wagmi'
+import { useAccount, useChains, useSwitchChain } from 'wagmi'
 
 export function ChainSwitcher() {
-  const { chainId } = useConnection()
-  const { mutate: switchChain, isPending } = useSwitchChain()
+  const { chainId } = useAccount()
+  const { switchChain, isPending } = useSwitchChain()
   const chains = useChains()
 
   return (

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { useConnection } from 'wagmi'
+import { useAccount } from 'wagmi'
 
 export function OTPAuth() {
   const [email, setEmail] = useState('')
@@ -17,7 +17,7 @@ export function OTPAuth() {
   const [otpEncryptionTargetBundle, setOtpEncryptionTargetBundle] =
     useState<string>('')
 
-  const { isConnected } = useConnection()
+  const { isConnected } = useAccount()
 
   const {
     mutate: sendOTP,

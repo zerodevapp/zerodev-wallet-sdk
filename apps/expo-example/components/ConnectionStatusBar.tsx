@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { useConnection, useDisconnect, useEnsName } from 'wagmi'
+import { useAccount, useDisconnect, useEnsName } from 'wagmi'
 
 function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -14,8 +14,8 @@ const statusColors: Record<string, string> = {
 }
 
 export function ConnectionStatusBar() {
-  const { address, status } = useConnection()
-  const disconnect = useDisconnect()
+  const { address, status } = useAccount()
+  const { disconnect } = useDisconnect()
   const { data: ensName } = useEnsName({
     address,
     query: { enabled: !!address },
@@ -40,7 +40,7 @@ export function ConnectionStatusBar() {
             </Text>
           </TouchableOpacity>
           {ensName && <Text style={styles.ens}>{ensName}</Text>}
-          <TouchableOpacity onPress={() => disconnect.mutate()}>
+          <TouchableOpacity onPress={() => disconnect()}>
             <Text style={styles.disconnectText}>Disconnect</Text>
           </TouchableOpacity>
         </View>

@@ -10,18 +10,18 @@ import {
 } from 'react-native'
 import { formatEther, parseEther } from 'viem'
 import {
+  useAccount,
   useBalance,
-  useConnection,
   useSendTransaction,
   useTransactionConfirmations,
   useWaitForTransactionReceipt,
 } from 'wagmi'
 
 export function SendTransaction() {
-  const { address } = useConnection()
+  const { address } = useAccount()
   const { data: balance, refetch: refetchBalance } = useBalance({ address })
   const {
-    mutate: sendTx,
+    sendTransaction: sendTx,
     isPending,
     data: hash,
     error,
