@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { EmailAuth } from '@/components/EmailAuth'
 import { GoogleAuth } from '@/components/GoogleAuth'
-import { OTPAuth } from '@/components/OTPAuth'
 import { PasskeyAuth } from '@/components/PasskeyAuth'
 
 export default function LoginScreen() {
@@ -9,7 +9,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <GoogleAuth />
         <PasskeyAuth />
-        <OTPAuth />
+        <EmailAuth />
       </ScrollView>
     </View>
   )

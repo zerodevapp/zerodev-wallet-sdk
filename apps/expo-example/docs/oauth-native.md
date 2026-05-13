@@ -1,30 +1,48 @@
-# OAuth on Android (App Links)
+# OAuth and magic-link email on Android (App Links)
 
-Android can deliver the OAuth redirect via either of two paths:
+Android can deliver an external redirect via either of two paths:
 
-1. A **custom-scheme deep link** (`zerodev-example://oauth-callback?...`) —
+1. A **custom-scheme deep link** (`zerodev-example://<path>?...`) —
    no domain setup needed; works out of the box.
 2. A **verified https App Link**
-   (`https://zerodev-expo-example.vercel.app/oauth-callback?...`) —
+   (`https://zerodev-expo-example.vercel.app/<path>?...`) —
    requires a domain you own and an `assetlinks.json` that binds it to
    your app's signing cert. The OS then routes the redirect straight to
    your signed app without a chooser.
 
-Either is fine. This repo supports both: `EXPO_PUBLIC_REDIRECT_URI`,
-when set, opts into the App Link path; when unset,
-`Linking.createURL('oauth-callback')` builds the custom-scheme fallback.
-Both branches land in the same `Linking.addEventListener('url', ...)`
-handler inside [`src/oauth/createNativeOAuthGetSessionId.ts`](../src/oauth/createNativeOAuthGetSessionId.ts).
+Two such redirects exist in this app:
+
+- `oauth-callback` — the provider's redirect after OAuth sign-in.
+- `verify-email` — the magic link emailed by `useSendMagicLink`.
+
+Both reuse the same App Link infrastructure (one assetlinks file, one
+signing cert, one toggle) and each has its own intent filter in
+`app.json` plus its own exported constant
+(`OAUTH_REDIRECT_URI`, `VERIFY_EMAIL_REDIRECT_URI`) in
+[`src/config/auth.ts`](../src/config/auth.ts).
+
+Either delivery path is fine. This repo supports both: setting
+`EXPO_PUBLIC_USE_APP_LINKS=true` opts into the App Link path (each
+redirect URI is then derived from `RP_ID` in
+[`src/config/auth.ts`](../src/config/auth.ts)); when unset or `false`,
+`Linking.createURL(<path>)` builds the custom-scheme fallback.
+The OAuth branch lands in the `Linking.addEventListener('url', ...)`
+handler inside [`src/oauth/createNativeOAuthGetSessionId.ts`](../src/oauth/createNativeOAuthGetSessionId.ts);
+the magic-link branch lands in
+[`src/app/verify-email.tsx`](../src/app/verify-email.tsx) via
+expo-router's `useLocalSearchParams`.
 
 This doc covers the App Link wiring. If you just want a custom scheme,
-leave `EXPO_PUBLIC_REDIRECT_URI` unset — no further setup needed.
+leave `EXPO_PUBLIC_USE_APP_LINKS` unset — no further setup needed.
 
 ## The binding, in this repo
 
 | Concern | Location | Value |
 |---|---|---|
-| Redirect URL | `.env` → `EXPO_PUBLIC_REDIRECT_URI` | `https://zerodev-expo-example.vercel.app/oauth-callback` |
-| `android.intentFilters` | `app.json` | host `zerodev-expo-example.vercel.app`, `pathPrefix: "/oauth-callback"`, `autoVerify: true` |
+| App Link toggle | `.env` → `EXPO_PUBLIC_USE_APP_LINKS` | `true` |
+| OAuth redirect URL | derived from `RP_ID` in `src/config/auth.ts` | `https://zerodev-expo-example.vercel.app/oauth-callback` |
+| Magic-link redirect URL | derived from `RP_ID` in `src/config/auth.ts` | `https://zerodev-expo-example.vercel.app/verify-email` |
+| `android.intentFilters` | `app.json` | one filter per path (`/oauth-callback`, `/verify-email`), host `zerodev-expo-example.vercel.app`, `autoVerify: true` |
 | Assetlinks source | `assetlinks/public/.well-known/assetlinks.json` | Declares `handle_all_urls` + the signing SHA-256 |
 | Live assetlinks | `https://zerodev-expo-example.vercel.app/.well-known/assetlinks.json` | Served by Vercel |
 | Signing cert | `credentials/debug.keystore` | Pinned via `plugins/withDebugKeystore.js` |
@@ -49,11 +67,15 @@ every piece of the table above has to line up. The recipe:
    fingerprints — are already documented in
    [`passkeys.md`](./passkeys.md#hosting-assetlinksjson-on-vercel) and
    [`passkeys.md`](./passkeys.md#signing-with-a-different-keystore).
-2. Update `app.json` → `android.intentFilters[0].data` so `host` and
-   `pathPrefix` match the URL you'll redirect to.
-3. Set `EXPO_PUBLIC_REDIRECT_URI` in your `.env` to the same URL
-   (host + pathPrefix), and configure the same URL as an allowed
-   redirect in your OAuth provider's dashboard.
+2. Update `app.json` → both entries in `android.intentFilters` so
+   `host` matches your domain. Keep one filter per redirect path
+   (`/oauth-callback`, `/verify-email`) — magic-link verification needs
+   its own filter.
+3. Update `RP_ID` in `src/config/auth.ts` to your domain, set
+   `EXPO_PUBLIC_USE_APP_LINKS=true` in your `.env`, and configure the
+   resulting URLs (`https://<RP_ID>/oauth-callback` for OAuth,
+   `https://<RP_ID>/verify-email` for magic links) as allowed redirects
+   in your OAuth provider's and ZeroDev dashboards.
 4. Run `npx expo prebuild --platform android` to regenerate
    `AndroidManifest.xml` with the new intent filter. **`pnpm android`
    alone does not re-run prebuild when `android/` already exists**, so

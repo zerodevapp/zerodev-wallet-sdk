@@ -71,6 +71,7 @@ function App() {
       <Stack.Protected guard={address === undefined}>
         <Stack.Screen name="login" />
         <Stack.Screen name="oauth-callback" options={{ animation: 'none' }} />
+        <Stack.Screen name="verify-email" />
       </Stack.Protected>
     </Stack>
   )
