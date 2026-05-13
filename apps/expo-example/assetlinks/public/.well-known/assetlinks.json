@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.zerodev.expoexample",
+      "sha256_cert_fingerprints": [
+        "11:F4:8E:00:20:B4:FB:77:BF:6C:86:A2:62:8F:F5:B4:69:6F:4C:68:ED:C0:90:79:56:93:6C:8E:50:4A:6E:B0"
+      ]
+    }
+  }
+]
