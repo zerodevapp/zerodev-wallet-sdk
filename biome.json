@@ -25,7 +25,8 @@
       "**/pnpm-lock.yaml",
       "**/.next/**",
       "**/out/**",
-      "apps/zerodev-signer-demo/**"
+      "apps/zerodev-signer-demo/**",
+      "**/.expo/**"
     ]
   },
   "formatter": {
@@ -168,6 +169,19 @@
         "rules": {
           "suspicious": {
             "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/**/*.ts", "apps/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "performance": {
+            "noBarrelFile": "off"
           }
         }
       }
