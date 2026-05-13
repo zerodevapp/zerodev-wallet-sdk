@@ -51,7 +51,8 @@ test.describe('Magic Link Flow', () => {
       .click()
 
     // Step 5: Wait for confirmation that magic link was sent
-    await expect(page.getByText(/magic link sent/i)).toBeVisible({
+    // (kit's EmailVerification screen renders "Check your email!")
+    await expect(page.getByText(/check your email/i)).toBeVisible({
       timeout: 30_000,
     })
 
