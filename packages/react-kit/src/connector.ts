@@ -85,10 +85,13 @@ export function zeroDevWallet(
 
       async disconnect() {
         await connector.disconnect?.()
-        // Reset auth state on disconnect
+        // Reset auth state on disconnect and surface the sign-up page so the
+        // user can immediately re-authenticate instead of seeing an empty
+        // AuthFlow (the 'initializing' step renders null).
         if (params.config?.auth) {
           store.getState().auth.reset()
           store.getState().auth.initialize(params.config.auth)
+          store.getState().auth.goToStep('sign-up')
         }
       },
 
