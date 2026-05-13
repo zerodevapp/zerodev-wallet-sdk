@@ -79,7 +79,9 @@ async function loginWithOtp(
     .getByRole('button', { name: /Continue with email OTP code/i })
     .click()
   await expect(
-    page.getByText(`Enter the code sent to ${email}`, { exact: false }),
+    page.getByText(`Enter the code from the email we sent to ${email}`, {
+      exact: false,
+    }),
   ).toBeVisible({ timeout: 30_000 })
 
   const emailContent = await searchForNewEmail(
@@ -90,8 +92,8 @@ async function loginWithOtp(
   const otpCode = extractOtpCode(emailContent, DEMO_APP_OTP_LENGTH, true)
   expect(otpCode).toBeTruthy()
 
-  await page.getByPlaceholder('000000').fill(otpCode!)
-  await page.getByRole('button', { name: /Verify and continue/i }).click()
+  await page.getByLabel('Verification code').fill(otpCode!)
+  await page.getByRole('button', { name: /Confirm code/i }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 60_000 })
   await expect(page.getByText('Default Wallet')).toBeVisible({
