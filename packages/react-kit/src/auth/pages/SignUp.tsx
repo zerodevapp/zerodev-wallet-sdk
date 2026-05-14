@@ -11,12 +11,10 @@ import { Icon } from '../../shared/components/Icon'
 import { Input } from '../../shared/components/Input'
 import { ListItem } from '../../shared/components/ListItem'
 import { OrView } from '../../shared/components/OrView'
-import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
 import { isValidEmailAddress } from '../../shared/utils/common'
 import { useAuth } from '../hooks/useAuth'
-import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
 // Helper to check if error is due to user closing OAuth window
 function isOAuthWindowClosedError(message: string): boolean {
@@ -38,11 +36,10 @@ function shouldShowBothEmailButtons(): boolean {
   )
 }
 
-export function SignUp() {
+export function SignUp({ paddingTop }: { paddingTop: number }) {
   const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
-  const topNav = useAuthTopNav()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [highlightAgreement, setHighlightAgreement] = useState(false)
   const [emailInput, setEmailInput] = useState('')
@@ -186,157 +183,148 @@ export function SignUp() {
   }
 
   return (
-    <ScreenWrapper topNav={topNav}>
-      {({ paddingTop }) => (
-        <div
-          style={{ paddingTop: `${paddingTop}px` }}
-          className="h-full flex flex-col justify-between pb-6 overflow-y-auto"
-        >
-          <div className="flex-1 flex flex-col justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <Text className="text-h2 text-center">
-                Continue to your wallet
-              </Text>
+    <div
+      style={{ paddingTop: `${paddingTop}px` }}
+      className="h-full flex flex-col justify-between pb-6 overflow-y-auto"
+    >
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Text className="text-h2 text-center">Continue to your wallet</Text>
+          <Text className="text-center">
+            Choose a sign-in method to proceed
+          </Text>
+        </div>
+        <div className="mt-12 flex flex-col gap-2 mb-4">
+          {enabledMethods.includes('passkey') && (
+            <div className="flex flex-col gap-2">
+              <Button
+                action="secondaryNeutral"
+                text="Register a new passkey"
+                iconName="key"
+                trailIcon
+                disabled={anyPending}
+                onClick={handleRegisterPasskey}
+              />
               <Text className="text-center">
-                Choose a sign-in method to proceed
+                Already got a passkey?{' '}
+                <button
+                  type="button"
+                  disabled={anyPending}
+                  onClick={handleLoginPasskey}
+                  className="text-greyScale my-2 cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Login with passkey
+                </button>
               </Text>
             </div>
-            <div className="mt-12 flex flex-col gap-2 mb-4">
-              {enabledMethods.includes('passkey') && (
-                <div className="flex flex-col gap-2">
-                  <Button
-                    action="secondaryNeutral"
-                    text="Register a new passkey"
-                    iconName="key"
-                    trailIcon
-                    disabled={anyPending}
-                    onClick={handleRegisterPasskey}
-                  />
-                  <Text className="text-center">
-                    Already got a passkey?{' '}
+          )}
+          {enabledMethods.includes('google') && (
+            <ListItem
+              iconName="google"
+              title="Google"
+              className="rounded-3xl"
+              disabled={anyPending}
+              onClick={handleGoogleAuth}
+            />
+          )}
+          {enabledMethods.includes('email') && (
+            <>
+              <Input
+                iconName="email"
+                placeholder="Enter your email..."
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                type="email"
+                autoCapitalize="none"
+                autoComplete="email"
+                disabled={anyPending}
+                variant="listItemStyle"
+                className="rounded-3xl"
+                onKeyDown={(e) => {
+                  if (
+                    e.key === 'Enter' &&
+                    emailInput &&
+                    !anyPending &&
+                    !showBothEmailButtons
+                  ) {
+                    handleEmailSubmit()
+                  }
+                }}
+              >
+                {!showBothEmailButtons &&
+                  (emailInput && !anyPending ? (
                     <button
                       type="button"
-                      disabled={anyPending}
-                      onClick={handleLoginPasskey}
-                      className="text-greyScale my-2 cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                        isValidEmailAddress(emailInput) && canContinue
+                          ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                          : 'cursor-not-allowed opacity-50'
+                      }`}
+                      onClick={() => handleEmailSubmit()}
                     >
-                      Login with passkey
+                      <Icon name="chevronRight" className="text-greyScale" />
                     </button>
-                  </Text>
-                </div>
-              )}
-              {enabledMethods.includes('google') && (
-                <ListItem
-                  iconName="google"
-                  title="Google"
-                  className="rounded-3xl"
-                  disabled={anyPending}
-                  onClick={handleGoogleAuth}
-                />
-              )}
-              {enabledMethods.includes('email') && (
+                  ) : isEmailLoading ? (
+                    <div className="w-13 h-13 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : null)}
+              </Input>
+              {showBothEmailButtons && (
                 <>
-                  <Input
+                  <Button
+                    action="secondaryNeutral"
+                    text="Continue with email magic link"
                     iconName="email"
-                    placeholder="Enter your email..."
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    type="email"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    disabled={anyPending}
-                    variant="listItemStyle"
-                    className="rounded-3xl"
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === 'Enter' &&
-                        emailInput &&
-                        !anyPending &&
-                        !showBothEmailButtons
-                      ) {
-                        handleEmailSubmit()
-                      }
-                    }}
-                  >
-                    {!showBothEmailButtons &&
-                      (emailInput && !anyPending ? (
-                        <button
-                          type="button"
-                          className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
-                            isValidEmailAddress(emailInput) && canContinue
-                              ? 'cursor-pointer hover:bg-greyScale/[5%]'
-                              : 'cursor-not-allowed opacity-50'
-                          }`}
-                          onClick={() => handleEmailSubmit()}
-                        >
-                          <Icon
-                            name="chevronRight"
-                            className="text-greyScale"
-                          />
-                        </button>
-                      ) : isEmailLoading ? (
-                        <div className="w-13 h-13 flex items-center justify-center">
-                          <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      ) : null)}
-                  </Input>
-                  {showBothEmailButtons && (
-                    <>
-                      <Button
-                        action="secondaryNeutral"
-                        text="Continue with email magic link"
-                        iconName="email"
-                        trailIcon
-                        disabled={
-                          !emailInput ||
-                          anyPending ||
-                          !isValidEmailAddress(emailInput)
-                        }
-                        onClick={() => handleEmailSubmit('magicLink')}
-                      />
-                      <Button
-                        action="secondaryNeutral"
-                        text="Continue with email OTP code"
-                        iconName="email"
-                        trailIcon
-                        disabled={
-                          !emailInput ||
-                          anyPending ||
-                          !isValidEmailAddress(emailInput)
-                        }
-                        onClick={() => handleEmailSubmit('otp')}
-                      />
-                    </>
-                  )}
-                </>
-              )}
-              {enabledMethods.includes('injected-wallet') && (
-                <>
-                  <OrView />
-                  <ListItem
-                    iconName="walletOutline"
-                    title="Choose a wallet instead"
-                    disabled={anyPending}
-                    onClick={handleChooseWallet}
-                    chevron
-                    className="rounded-3xl"
+                    trailIcon
+                    disabled={
+                      !emailInput ||
+                      anyPending ||
+                      !isValidEmailAddress(emailInput)
+                    }
+                    onClick={() => handleEmailSubmit('magicLink')}
+                  />
+                  <Button
+                    action="secondaryNeutral"
+                    text="Continue with email OTP code"
+                    iconName="email"
+                    trailIcon
+                    disabled={
+                      !emailInput ||
+                      anyPending ||
+                      !isValidEmailAddress(emailInput)
+                    }
+                    onClick={() => handleEmailSubmit('otp')}
                   />
                 </>
               )}
-            </div>
-          </div>
-          <SignUpFooter
-            termsAndConditionsUrl={config?.termsAndConditionsUrl}
-            privacyPolicyUrl={config?.privacyPolicyUrl}
-            agreedToTerms={agreedToTerms}
-            setAgreedToTerms={(agreed) => {
-              setAgreedToTerms(agreed)
-              if (agreed) setHighlightAgreement(false)
-            }}
-            highlight={highlightAgreement}
-          />
+            </>
+          )}
+          {enabledMethods.includes('injected-wallet') && (
+            <>
+              <OrView />
+              <ListItem
+                iconName="walletOutline"
+                title="Choose a wallet instead"
+                disabled={anyPending}
+                onClick={handleChooseWallet}
+                chevron
+                className="rounded-3xl"
+              />
+            </>
+          )}
         </div>
-      )}
-    </ScreenWrapper>
+      </div>
+      <SignUpFooter
+        termsAndConditionsUrl={config?.termsAndConditionsUrl}
+        privacyPolicyUrl={config?.privacyPolicyUrl}
+        agreedToTerms={agreedToTerms}
+        setAgreedToTerms={(agreed) => {
+          setAgreedToTerms(agreed)
+          if (agreed) setHighlightAgreement(false)
+        }}
+        highlight={highlightAgreement}
+      />
+    </div>
   )
 }
