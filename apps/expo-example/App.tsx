@@ -7,6 +7,7 @@ import { useAccount, WagmiProvider } from 'wagmi'
 import { ChainSwitcher } from './components/ChainSwitcher'
 import { ConnectionStatusBar } from './components/ConnectionStatusBar'
 import { OTPAuth } from './components/OTPAuth'
+import { PasskeyAuth } from './components/PasskeyAuth'
 import { SendTransaction } from './components/SendTransaction'
 import { wagmiConfig } from './wagmi.config'
 
@@ -20,6 +21,7 @@ function Content() {
       <ConnectionStatusBar />
       <ChainSwitcher />
       <ScrollView contentContainerStyle={styles.content}>
+        <PasskeyAuth />
         <OTPAuth />
         {status === 'connected' && <SendTransaction />}
       </ScrollView>
