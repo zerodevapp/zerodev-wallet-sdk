@@ -32,9 +32,6 @@ export function Verifying() {
       onSuccess: async () => {
         clearOtpSession()
         goToStep('authenticated')
-        if (typeof window !== 'undefined') {
-          window.history.replaceState({}, '', '/')
-        }
         config?.onSuccess?.()
       },
       onError: (err) => {
