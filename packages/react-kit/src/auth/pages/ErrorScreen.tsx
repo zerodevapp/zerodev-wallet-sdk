@@ -3,6 +3,7 @@ import { Button } from '../../shared/components/Button'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
 interface ErrorScreenProps {
   title?: string
@@ -18,9 +19,10 @@ export function ErrorScreen({
   showChooseAnother = true,
 }: ErrorScreenProps) {
   const { goToStep, goBack, reset } = useAuth()
+  const topNav = useAuthTopNav()
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper topNav={topNav}>
       {() => (
         <div className="flex flex-1 flex-col h-full">
           <div className="flex-1 flex flex-col gap-8 items-center justify-center">

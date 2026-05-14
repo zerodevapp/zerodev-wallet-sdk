@@ -5,9 +5,11 @@ import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
 export function EmailVerification() {
   const { email, setOtpSession, config } = useAuth()
+  const topNav = useAuthTopNav()
   const { mutateAsync: sendMagicLink, isPending: isSendPending } =
     useSendMagicLink()
 
@@ -42,7 +44,7 @@ export function EmailVerification() {
   }
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper topNav={topNav}>
       {({ paddingTop }) => (
         <div
           style={{ paddingTop: `${paddingTop}px` }}

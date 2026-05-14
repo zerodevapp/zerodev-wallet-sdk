@@ -4,9 +4,11 @@ import { ListItem } from '../../shared/components/ListItem'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
 export function WalletSelection() {
   const { goToStep } = useAuth()
+  const topNav = useAuthTopNav('Choose your wallet')
   const { connect, connectors, isPending } = useConnect()
 
   const externalConnectors = connectors.filter((c) => c.id !== 'zerodev-wallet')
@@ -23,7 +25,7 @@ export function WalletSelection() {
   }
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper topNav={topNav}>
       {({ paddingTop }) => (
         <div
           style={{ paddingTop: `${paddingTop}px` }}

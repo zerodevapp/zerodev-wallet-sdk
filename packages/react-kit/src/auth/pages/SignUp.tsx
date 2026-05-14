@@ -16,6 +16,7 @@ import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
 import { isValidEmailAddress } from '../../shared/utils/common'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
 // Helper to check if error is due to user closing OAuth window
 function isOAuthWindowClosedError(message: string): boolean {
@@ -41,6 +42,7 @@ export function SignUp() {
   const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
+  const topNav = useAuthTopNav()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [highlightAgreement, setHighlightAgreement] = useState(false)
   const [emailInput, setEmailInput] = useState('')
@@ -184,7 +186,7 @@ export function SignUp() {
   }
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper topNav={topNav}>
       {({ paddingTop }) => (
         <div
           style={{ paddingTop: `${paddingTop}px` }}

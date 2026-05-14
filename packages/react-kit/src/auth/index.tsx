@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
+import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { StatusView } from '../shared/components/StatusView'
+import { AuthFlowProvider } from './AuthFlowContext'
 import { useAuth } from './hooks/useAuth'
+import { useAuthTopNav } from './hooks/useAuthTopNav'
 import { EmailVerification } from './pages/EmailVerification'
 import { ErrorScreen } from './pages/ErrorScreen'
 import { OtpInput } from './pages/OtpInput'
@@ -14,14 +17,42 @@ function hasMagicLinkCodeInUrl(): boolean {
 }
 
 function OAuthCallback() {
+  const topNav = useAuthTopNav()
   return (
-    <StatusView imageName="loading" title="Authenticating...">
-      Please wait while we complete the OAuth authentication.
-    </StatusView>
+    <ScreenWrapper topNav={topNav}>
+      {({ paddingTop }) => (
+        <div
+          style={{ paddingTop: `${paddingTop}px` }}
+          className="flex flex-1 flex-col h-full items-center justify-center"
+        >
+          <StatusView imageName="loading" title="Authenticating...">
+            Please wait while we complete the OAuth authentication.
+          </StatusView>
+        </div>
+      )}
+    </ScreenWrapper>
   )
 }
 
-export function AuthFlow() {
+function PasskeyPrompt() {
+  const topNav = useAuthTopNav()
+  return (
+    <ScreenWrapper topNav={topNav}>
+      {({ paddingTop }) => (
+        <div
+          style={{ paddingTop: `${paddingTop}px` }}
+          className="flex flex-1 flex-col h-full items-center justify-center"
+        >
+          <StatusView imageName="loading" title="Passkey authentication">
+            Please authenticate with your passkey.
+          </StatusView>
+        </div>
+      )}
+    </ScreenWrapper>
+  )
+}
+
+function AuthFlowInner() {
   const { step, goToStep } = useAuth()
 
   useEffect(() => {
@@ -44,11 +75,7 @@ export function AuthFlow() {
     case 'oauth-in-progress':
       return <OAuthCallback />
     case 'passkey-prompt':
-      return (
-        <StatusView imageName="loading" title="Passkey authentication">
-          Please authenticate with your passkey.
-        </StatusView>
-      )
+      return <PasskeyPrompt />
     case 'wallet-selection':
       return <WalletSelection />
     case 'authenticated':
@@ -58,4 +85,16 @@ export function AuthFlow() {
     default:
       return null
   }
+}
+
+export function AuthFlow({
+  onClose,
+}: {
+  onClose?: (() => void) | undefined
+} = {}) {
+  return (
+    <AuthFlowProvider userOnClose={onClose}>
+      <AuthFlowInner />
+    </AuthFlowProvider>
+  )
 }
