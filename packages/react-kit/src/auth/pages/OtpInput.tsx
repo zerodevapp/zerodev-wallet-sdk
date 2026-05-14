@@ -6,8 +6,10 @@ import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { Text } from '../../shared/components/Text'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
 export function OtpInput() {
+  const topNav = useAuthTopNav()
   const {
     email,
     otpId,
@@ -77,7 +79,7 @@ export function OtpInput() {
   const canResend = secondsUntilResend <= 0 && !isSendOtpPending
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper topNav={topNav}>
       {() => (
         <div className="flex flex-1 flex-col h-full pt-6">
           <div className="flex-1 flex flex-col gap-8 justify-center items-center">
