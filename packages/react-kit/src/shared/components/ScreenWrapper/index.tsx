@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { cn } from '../../utils/common'
+import { TOP_NAV_HEIGHT } from '../TopNav'
 import { MultiRadialBackground } from './MultiRadialBackground'
 
 interface ChildrenProps {
@@ -7,7 +8,6 @@ interface ChildrenProps {
   paddingBottom: number
 }
 
-const TOP_NAV_HEIGHT = 52
 const BOTTOM_TAB_HEIGHT = 56
 const BOTTOM_TAB_MARGIN = 20
 
