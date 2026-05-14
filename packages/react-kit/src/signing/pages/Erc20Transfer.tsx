@@ -88,7 +88,8 @@ export function Erc20Transfer({
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
           <Text className="text-h2">Send Token</Text>
           <Text className="text-center">
-            You are about to send {formattedAmount} {symbol} to {to}.
+            You are about to send {formattedAmount} {symbol} to {shortenHex(to)}
+            .
           </Text>
         </div>
         <div className="flex flex-col gap-2">
