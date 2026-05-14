@@ -84,6 +84,7 @@ export function zeroDevWallet(
       },
 
       async disconnect() {
+        // console.log('test')
         await connector.disconnect?.()
         // Reset auth state on disconnect
         if (params.config?.auth) {
