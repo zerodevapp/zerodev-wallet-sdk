@@ -101,7 +101,6 @@ function GenericSendTransaction({
         <DetailsContainer
           title="Transaction Summary"
           iconName="arrowSwapHorizontal"
-          collapsible
         >
           <DataRow label="To" value={shortenHex((to ?? '0x') as string)} />
           <DataRow
@@ -122,11 +121,6 @@ function GenericSendTransaction({
           ) : (
             <DataRowSkeleton label="Fee" />
           )}
-          <DataRow
-            label="Total execution time"
-            value="≈ 1 sec"
-            iconName="clock"
-          />
         </DetailsContainer>
       </div>
     </SigningLayout>

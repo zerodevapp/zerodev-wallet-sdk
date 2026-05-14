@@ -1,6 +1,7 @@
 import { type Address, formatEther, type Hex } from 'viem'
 
 import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
@@ -56,7 +57,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
             }
             bottomCard={
               <InfoCard
-                title={to}
+                title={shortenHex(to)}
                 subtitle="Recipient"
                 imageSource={RECIPIENT_IMAGE_SOURCE}
               />

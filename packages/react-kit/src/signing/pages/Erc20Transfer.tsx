@@ -2,6 +2,7 @@ import { type Address, erc20Abi, formatUnits, type Hex } from 'viem'
 import { useReadContract } from 'wagmi'
 
 import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
@@ -102,7 +103,7 @@ export function Erc20Transfer({
             }
             bottomCard={
               <InfoCard
-                title={to}
+                title={shortenHex(to)}
                 subtitle="Recipient"
                 imageSource={RECIPIENT_IMAGE_SOURCE}
               />
