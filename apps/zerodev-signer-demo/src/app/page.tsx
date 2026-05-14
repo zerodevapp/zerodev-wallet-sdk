@@ -20,18 +20,33 @@ function LandingPageInner() {
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
 
-  const { connect, connectors, status } = useConnect()
-  const { isConnected } = useAccount()
+  const { connect, connectors, status: connectStatus } = useConnect()
+  const { isConnected, status: accountStatus } = useAccount()
 
   useEffect(() => {
     if (isConnected) {
       router.push('/dashboard')
       return
     }
-    if (status === 'idle' && connectors[0]) {
+    // Only auto-connect once wagmi has settled to disconnected (no in-flight
+    // reconnect) and no connect attempt is already in-flight or pending reset.
+    // Without these gates, connect() races wagmi's reconnect and flashes the
+    // SignUp screen before isConnected hydrates.
+    if (
+      accountStatus === 'disconnected' &&
+      connectStatus === 'idle' &&
+      connectors[0]
+    ) {
       connect({ connector: connectors[0] })
     }
-  }, [isConnected, router, status, connect, connectors])
+  }, [
+    isConnected,
+    accountStatus,
+    connectStatus,
+    router,
+    connect,
+    connectors,
+  ])
 
   return (
     <div className="mx-auto h-screen w-[500px] flex items-center">
