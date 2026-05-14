@@ -67,10 +67,14 @@ export function createNativeOAuthGetSessionId(params: {
       sub.remove()
       // Close the auth tab if the deep-link branch settled the race — the
       // OS brought the app to foreground but left the Custom Tab in the
-      // back stack. Covers both the success path and the error-redirect
-      // rejection path. No-op when fromBrowser already won (the auth
-      // session auto-dismisses on redirect interception or user cancel).
-      WebBrowser.dismissBrowser()
+      // back stack. When fromBrowser already won, the auth session has
+      // self-dismissed; on iOS that makes dismissBrowser throw "no browser
+      // to dismiss" rather than no-op, so we swallow it.
+      try {
+        await WebBrowser.dismissBrowser()
+      } catch {
+        // Already closed — desired end state.
+      }
     }
   }
 }

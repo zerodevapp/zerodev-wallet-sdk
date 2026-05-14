@@ -190,16 +190,24 @@ to produce a standalone APK with EAS local, or how to add a fingerprint
 when you sign a build with a different keystore, see
 [`docs/passkeys.md`](./docs/passkeys.md).
 
-## Running OAuth
+## Running OAuth and magic-link email
 
-The OAuth redirect can arrive via either a custom-scheme deep link
-(`zerodev-example://oauth-callback`) or a verified Android App Link
-(`https://zerodev-expo-example.vercel.app/oauth-callback`). The
-custom-scheme path works with no setup; the App Link path reuses the
-same assetlinks file and signing cert already in place for passkeys,
-toggled on by setting `EXPO_PUBLIC_REDIRECT_URI` in `.env`.
+Two flows route external redirects back into the app:
 
-For the App Link wiring, how to point the redirect at your own domain,
+- **OAuth** — the provider redirects to `oauth-callback` after sign-in.
+- **Magic-link email** — the link in the email opens `verify-email` with
+  the one-time code, which the app auto-submits.
+
+Both can arrive via either a custom-scheme deep link
+(`zerodev-example://<path>`) or a verified Android App Link
+(`https://zerodev-expo-example.vercel.app/<path>`). The custom-scheme
+path works with no setup; the App Link path reuses the same assetlinks
+file and signing cert already in place for passkeys, toggled on by
+setting `EXPO_PUBLIC_USE_APP_LINKS=true` in `.env`. Both redirect URIs
+are derived from the same toggle in `src/config/auth.ts` and each has
+its own intent filter in `app.json`.
+
+For the App Link wiring, how to point the redirects at your own domain,
 and how to verify the binding, see
 [`docs/oauth-native.md`](./docs/oauth-native.md).
 

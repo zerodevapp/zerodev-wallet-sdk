@@ -1,29 +1,41 @@
 import * as Clipboard from 'expo-clipboard'
 import { useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { REDIRECT_URI } from '@/oauth/redirectUri'
+import { OAUTH_REDIRECT_URI, VERIFY_EMAIL_REDIRECT_URI } from '@/config/auth'
 
 /**
- * Debug helper: displays the computed OAuth redirect URI and a Copy button so
- * it can be pasted into the backend project dashboard's Allowed Origins.
+ * Debug helper: displays the computed redirect URIs and a Copy button so they
+ * can be pasted into the backend project dashboard's Allowed Origins.
  *
- * Remove this component (and its import / usage in GoogleAuth.tsx) once the
- * dashboard is configured and OAuth is working.
+ * Remove this component (and its import / usage) once the dashboard is
+ * configured and OAuth + magic links are working.
  */
 export function RedirectUriDebug() {
+  return (
+    <View style={styles.wrapper}>
+      <RedirectUriRow label="OAUTH_REDIRECT_URI" uri={OAUTH_REDIRECT_URI} />
+      <RedirectUriRow
+        label="VERIFY_EMAIL_REDIRECT_URI"
+        uri={VERIFY_EMAIL_REDIRECT_URI}
+      />
+    </View>
+  )
+}
+
+function RedirectUriRow({ label, uri }: { label: string; uri: string }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(REDIRECT_URI)
+    await Clipboard.setStringAsync(uri)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
 
   return (
     <View style={styles.box}>
-      <Text style={styles.label}>REDIRECT_URI (debug)</Text>
+      <Text style={styles.label}>{label} (debug)</Text>
       <Text selectable style={styles.uri}>
-        {REDIRECT_URI}
+        {uri}
       </Text>
       <TouchableOpacity onPress={handleCopy} style={styles.button}>
         <Text style={styles.buttonText}>{copied ? 'Copied!' : 'Copy'}</Text>
@@ -33,8 +45,11 @@ export function RedirectUriDebug() {
 }
 
 const styles = StyleSheet.create({
-  box: {
+  wrapper: {
+    gap: 8,
     marginTop: 8,
+  },
+  box: {
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#f3f4f6',

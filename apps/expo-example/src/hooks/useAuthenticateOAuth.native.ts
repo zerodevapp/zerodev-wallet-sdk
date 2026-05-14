@@ -1,12 +1,12 @@
 import { useAuthenticateOAuth as useBase } from '@zerodev/wallet-react'
 import { useMemo } from 'react'
+import { OAUTH_REDIRECT_URI } from '@/config/auth'
 import { createNativeOAuthGetSessionId } from '@/oauth/createNativeOAuthGetSessionId'
-import { REDIRECT_URI } from '@/oauth/redirectUri'
 
 export function useAuthenticateOAuth() {
   const getSessionId = useMemo(
-    () => createNativeOAuthGetSessionId({ redirectUri: REDIRECT_URI }),
+    () => createNativeOAuthGetSessionId({ redirectUri: OAUTH_REDIRECT_URI }),
     [],
   )
-  return useBase({ getSessionId, redirectUri: REDIRECT_URI })
+  return useBase({ getSessionId, redirectUri: OAUTH_REDIRECT_URI })
 }
