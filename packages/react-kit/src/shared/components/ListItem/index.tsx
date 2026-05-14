@@ -118,7 +118,7 @@ export function ListItem({
           </div>
         ) : chevron ? (
           <div className="w-13 h-13 flex items-center justify-center">
-            <Icon name="chevronRight" className="h-6 w-6" />
+            <Icon name="chevronRight" className="h-6 w-6 text-greyScale" />
           </div>
         ) : null}
       </button>

@@ -28,8 +28,6 @@ import { decodeErc20Transfer, isErc20Transfer } from '../utils/erc20Transfer.js'
 import { isEthTransfer } from '../utils/ethTransfer.js'
 import { formatGasFee } from '../utils/formatGasFee'
 
-const EXECUTION_TIME = '≈ 1 sec'
-
 type TokenInfo = {
   symbol?: string | undefined
   decimals?: number | undefined
@@ -335,11 +333,6 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
           ) : (
             <DataRowSkeleton label="Fee" />
           )}
-          <DataRow
-            label="Total execution time"
-            value={EXECUTION_TIME}
-            iconName="clock"
-          />
         </DetailsContainer>
       </div>
     </SigningLayout>
