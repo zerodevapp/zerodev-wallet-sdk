@@ -12,6 +12,9 @@
       "backgroundColor": "#ffffff"
     },
     "scheme": "zerodev-example",
+    "experiments": {
+      "typedRoutes": true
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zerodev.expoexample"
@@ -41,8 +44,9 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
-    "plugins": ["./plugins/withDebugKeystore"]
+    "plugins": ["./plugins/withDebugKeystore", "expo-router"]
   }
 }

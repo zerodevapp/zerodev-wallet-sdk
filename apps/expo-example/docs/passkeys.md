@@ -23,7 +23,7 @@ Much of the mechanics here follow Turnkey's
 | `android.package` | `app.json` | `com.zerodev.expoexample` |
 | Committed signing cert | `credentials/debug.keystore` | SHA-256 `11:F4:8E:00:20:B4:FB:77:BF:6C:86:A2:62:8F:F5:B4:69:6F:4C:68:ED:C0:90:79:56:93:6C:8E:50:4A:6E:B0` |
 | Gradle signing wiring | `plugins/withDebugKeystore.js` | Expo config plugin |
-| `rpId` | `wagmi.config.native.ts` | `zerodev-expo-example.vercel.app` |
+| `rpId` | `src/wagmi/config.native.ts` | `zerodev-expo-example.vercel.app` |
 | Assetlinks source | `assetlinks/public/.well-known/assetlinks.json` | Declares package + SHA-256 |
 | Live assetlinks | `https://zerodev-expo-example.vercel.app/.well-known/assetlinks.json` | Served by Vercel |
 
@@ -90,7 +90,7 @@ Credential Manager will too.
 
 The only hard requirements are HTTPS and that the file be served at
 the **root** `/.well-known/assetlinks.json`. If you prefer a different
-host, swap it in here and update `RP_ID` in `wagmi.config.native.ts`
+host, swap it in here and update `RP_ID` in `src/wagmi/config.native.ts`
 to match.
 
 ## Building a standalone APK (EAS local)

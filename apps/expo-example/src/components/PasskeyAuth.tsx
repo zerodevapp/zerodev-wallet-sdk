@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { useConnection } from 'wagmi'
+import { useAccount } from 'wagmi'
 
 export function PasskeyAuth() {
-  const { isConnected } = useConnection()
+  const { isConnected } = useAccount()
 
   const {
     mutate: register,

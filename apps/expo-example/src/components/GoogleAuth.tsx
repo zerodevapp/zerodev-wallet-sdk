@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { useConnection } from 'wagmi'
-import { useAuthenticateOAuth } from '../hooks/useAuthenticateOAuth'
+import { useAccount } from 'wagmi'
+import { useAuthenticateOAuth } from '@/hooks/useAuthenticateOAuth'
 import { RedirectUriDebug } from './RedirectUriDebug'
 
 export function GoogleAuth() {
-  const { isConnected } = useConnection()
+  const { isConnected } = useAccount()
 
   const { mutate: authenticate, isPending, error } = useAuthenticateOAuth()
 
