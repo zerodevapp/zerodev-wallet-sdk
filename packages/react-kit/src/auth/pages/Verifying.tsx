@@ -48,7 +48,7 @@ export function Verifying() {
   }, [otpId, otpEncryptionTargetBundle, code, verifyMagicLink])
 
   return (
-    <div className="flex flex-1 flex-col h-full">
+    <>
       <div className="flex-1 flex flex-col gap-8 items-center justify-center">
         {isVerificationLoading && (
           <StatusView imageName="loading" title="Verifying Your Email">
@@ -80,6 +80,6 @@ export function Verifying() {
       </div>
 
       <AppLogo className="self-center pt-4 pb-6" />
-    </div>
+    </>
   )
 }

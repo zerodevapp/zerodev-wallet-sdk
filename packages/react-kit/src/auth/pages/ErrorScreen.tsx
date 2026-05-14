@@ -19,7 +19,7 @@ export function ErrorScreen({
   const { goToStep, goBack, reset } = useAuth()
 
   return (
-    <div className="flex flex-1 flex-col h-full">
+    <>
       <div className="flex-1 flex flex-col gap-8 items-center justify-center">
         <StatusView imageName="error" title={title}>
           {message}
@@ -43,6 +43,6 @@ export function ErrorScreen({
       </div>
 
       <AppLogo className="self-center pt-4 pb-6" />
-    </div>
+    </>
   )
 }

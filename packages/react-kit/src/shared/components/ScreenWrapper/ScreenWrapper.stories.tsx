@@ -19,14 +19,8 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    children: ({ paddingTop, paddingBottom }) => (
-      <div
-        style={{
-          paddingTop: `${paddingTop}px`,
-          paddingBottom: `${paddingBottom}px`,
-        }}
-        className="h-full overflow-y-auto"
-      >
+    children: (
+      <div className="h-full overflow-y-auto">
         <div className="flex flex-col gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Content</h1>
           {Array.from({ length: 10 }, (_, i) => i).map((i) => (
