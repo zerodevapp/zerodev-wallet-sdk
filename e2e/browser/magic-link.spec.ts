@@ -70,10 +70,9 @@ test.describe('Magic Link Flow', () => {
     // The demo app stores otpId in localStorage, so we navigate in the same context
     await page.goto(`/verify?code=${otpCode}`)
 
-    // Step 8: Wait for auto-verification and redirect to dashboard
-    await expect(page.getByText(/Authentication Successful/i)).toBeVisible({
-      timeout: 30_000,
-    })
+    // Step 8: Wait for auto-verification and redirect to dashboard.
+    // The kit has no dedicated success screen — `goToStep('authenticated')`
+    // transitions silently and the demo's effect routes to /dashboard.
     await page.waitForURL('**/dashboard', { timeout: 60_000 })
 
     // Step 9: Verify dashboard loaded
