@@ -1,59 +1,82 @@
-import { useEffect } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { StatusView } from '../shared/components/StatusView'
-import { AuthFlowProvider } from './AuthFlowContext'
+import { TopNav } from '../shared/components/TopNav'
 import { useAuth } from './hooks/useAuth'
-import { useAuthTopNav } from './hooks/useAuthTopNav'
 import { EmailVerification } from './pages/EmailVerification'
 import { ErrorScreen } from './pages/ErrorScreen'
 import { OtpInput } from './pages/OtpInput'
 import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
 import { WalletSelection } from './pages/WalletSelection'
+import type { AuthStep } from './types'
 
 function hasMagicLinkCodeInUrl(): boolean {
   if (typeof window === 'undefined') return false
   return new URLSearchParams(window.location.search).has('code')
 }
 
-function OAuthCallback() {
-  const topNav = useAuthTopNav()
+const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
+  'wallet-selection': 'Choose your wallet',
+}
+
+function OAuthCallback({ paddingTop }: { paddingTop: number }) {
   return (
-    <ScreenWrapper topNav={topNav}>
-      {({ paddingTop }) => (
-        <div
-          style={{ paddingTop: `${paddingTop}px` }}
-          className="flex flex-1 flex-col h-full items-center justify-center"
-        >
-          <StatusView imageName="loading" title="Authenticating...">
-            Please wait while we complete the OAuth authentication.
-          </StatusView>
-        </div>
-      )}
-    </ScreenWrapper>
+    <div
+      style={{ paddingTop: `${paddingTop}px` }}
+      className="flex flex-1 flex-col h-full items-center justify-center"
+    >
+      <StatusView imageName="loading" title="Authenticating...">
+        Please wait while we complete the OAuth authentication.
+      </StatusView>
+    </div>
   )
 }
 
-function PasskeyPrompt() {
-  const topNav = useAuthTopNav()
+function PasskeyPrompt({ paddingTop }: { paddingTop: number }) {
   return (
-    <ScreenWrapper topNav={topNav}>
-      {({ paddingTop }) => (
-        <div
-          style={{ paddingTop: `${paddingTop}px` }}
-          className="flex flex-1 flex-col h-full items-center justify-center"
-        >
-          <StatusView imageName="loading" title="Passkey authentication">
-            Please authenticate with your passkey.
-          </StatusView>
-        </div>
-      )}
-    </ScreenWrapper>
+    <div
+      style={{ paddingTop: `${paddingTop}px` }}
+      className="flex flex-1 flex-col h-full items-center justify-center"
+    >
+      <StatusView imageName="loading" title="Passkey authentication">
+        Please authenticate with your passkey.
+      </StatusView>
+    </div>
   )
 }
 
-function AuthFlowInner() {
-  const { step, goToStep } = useAuth()
+function getStepRenderer(
+  step: AuthStep,
+): ((paddingTop: number) => ReactNode) | null {
+  switch (step) {
+    case 'sign-up':
+      return (paddingTop) => <SignUp paddingTop={paddingTop} />
+    case 'email-verification':
+      return (paddingTop) => <EmailVerification paddingTop={paddingTop} />
+    case 'otp-input':
+      return () => <OtpInput />
+    case 'verifying-otp':
+      return () => <Verifying />
+    case 'oauth-in-progress':
+      return (paddingTop) => <OAuthCallback paddingTop={paddingTop} />
+    case 'passkey-prompt':
+      return (paddingTop) => <PasskeyPrompt paddingTop={paddingTop} />
+    case 'wallet-selection':
+      return (paddingTop) => <WalletSelection paddingTop={paddingTop} />
+    case 'error':
+      return () => <ErrorScreen />
+    default:
+      return null
+  }
+}
+
+export function AuthFlow({
+  onClose: userOnClose,
+}: {
+  onClose?: (() => void) | undefined
+} = {}) {
+  const { step, goToStep, goBack, reset } = useAuth()
 
   useEffect(() => {
     if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
@@ -61,40 +84,27 @@ function AuthFlowInner() {
     }
   }, [step, goToStep])
 
-  switch (step) {
-    case 'initializing':
-      return null
-    case 'sign-up':
-      return <SignUp />
-    case 'email-verification':
-      return <EmailVerification />
-    case 'otp-input':
-      return <OtpInput />
-    case 'verifying-otp':
-      return <Verifying />
-    case 'oauth-in-progress':
-      return <OAuthCallback />
-    case 'passkey-prompt':
-      return <PasskeyPrompt />
-    case 'wallet-selection':
-      return <WalletSelection />
-    case 'authenticated':
-      return null // consumer handles this via onSuccess callback
-    case 'error':
-      return <ErrorScreen />
-    default:
-      return null
-  }
-}
+  const renderer = getStepRenderer(step)
+  if (!renderer) return null
 
-export function AuthFlow({
-  onClose,
-}: {
-  onClose?: (() => void) | undefined
-} = {}) {
+  const handleClose = () => {
+    reset()
+    userOnClose?.()
+  }
+  const title = TITLE_BY_STEP[step]
+  const showBack = step !== 'sign-up'
+
   return (
-    <AuthFlowProvider userOnClose={onClose}>
-      <AuthFlowInner />
-    </AuthFlowProvider>
+    <ScreenWrapper
+      topNav={
+        <TopNav
+          {...(showBack && { onBack: goBack })}
+          onClose={handleClose}
+          {...(title && { title })}
+        />
+      }
+    >
+      {({ paddingTop }) => renderer(paddingTop)}
+    </ScreenWrapper>
   )
 }
