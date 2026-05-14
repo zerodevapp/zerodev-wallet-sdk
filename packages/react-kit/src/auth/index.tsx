@@ -20,12 +20,9 @@ const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
   'wallet-selection': 'Choose your wallet',
 }
 
-function OAuthCallback({ paddingTop }: { paddingTop: number }) {
+function OAuthCallback() {
   return (
-    <div
-      style={{ paddingTop: `${paddingTop}px` }}
-      className="flex flex-1 flex-col h-full items-center justify-center"
-    >
+    <div className="flex flex-1 items-center justify-center">
       <StatusView imageName="loading" title="Authenticating...">
         Please wait while we complete the OAuth authentication.
       </StatusView>
@@ -33,12 +30,9 @@ function OAuthCallback({ paddingTop }: { paddingTop: number }) {
   )
 }
 
-function PasskeyPrompt({ paddingTop }: { paddingTop: number }) {
+function PasskeyPrompt() {
   return (
-    <div
-      style={{ paddingTop: `${paddingTop}px` }}
-      className="flex flex-1 flex-col h-full items-center justify-center"
-    >
+    <div className="flex flex-1 items-center justify-center">
       <StatusView imageName="loading" title="Passkey authentication">
         Please authenticate with your passkey.
       </StatusView>
@@ -46,26 +40,24 @@ function PasskeyPrompt({ paddingTop }: { paddingTop: number }) {
   )
 }
 
-function getStepRenderer(
-  step: AuthStep,
-): ((paddingTop: number) => ReactNode) | null {
+function renderStep(step: AuthStep): ReactNode {
   switch (step) {
     case 'sign-up':
-      return (paddingTop) => <SignUp paddingTop={paddingTop} />
+      return <SignUp />
     case 'email-verification':
-      return (paddingTop) => <EmailVerification paddingTop={paddingTop} />
+      return <EmailVerification />
     case 'otp-input':
-      return () => <OtpInput />
+      return <OtpInput />
     case 'verifying-otp':
-      return () => <Verifying />
+      return <Verifying />
     case 'oauth-in-progress':
-      return (paddingTop) => <OAuthCallback paddingTop={paddingTop} />
+      return <OAuthCallback />
     case 'passkey-prompt':
-      return (paddingTop) => <PasskeyPrompt paddingTop={paddingTop} />
+      return <PasskeyPrompt />
     case 'wallet-selection':
-      return (paddingTop) => <WalletSelection paddingTop={paddingTop} />
+      return <WalletSelection />
     case 'error':
-      return () => <ErrorScreen />
+      return <ErrorScreen />
     default:
       return null
   }
@@ -84,8 +76,8 @@ export function AuthFlow({
     }
   }, [step, goToStep])
 
-  const renderer = getStepRenderer(step)
-  if (!renderer) return null
+  const content = renderStep(step)
+  if (!content) return null
 
   const handleClose = () => {
     reset()
@@ -104,7 +96,7 @@ export function AuthFlow({
         />
       }
     >
-      {({ paddingTop }) => renderer(paddingTop)}
+      {content}
     </ScreenWrapper>
   )
 }

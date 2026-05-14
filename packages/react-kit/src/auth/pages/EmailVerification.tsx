@@ -5,7 +5,7 @@ import { StatusView } from '../../shared/components/StatusView'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
-export function EmailVerification({ paddingTop }: { paddingTop: number }) {
+export function EmailVerification() {
   const { email, setOtpSession, config } = useAuth()
   const { mutateAsync: sendMagicLink, isPending: isSendPending } =
     useSendMagicLink()
@@ -41,10 +41,7 @@ export function EmailVerification({ paddingTop }: { paddingTop: number }) {
   }
 
   return (
-    <div
-      style={{ paddingTop: `${paddingTop}px` }}
-      className="flex flex-1 flex-col h-full"
-    >
+    <>
       <div className="flex-1 flex flex-col gap-8 justify-center">
         <StatusView
           imageName="send"
@@ -75,6 +72,6 @@ export function EmailVerification({ paddingTop }: { paddingTop: number }) {
       </div>
 
       <AppLogo className="self-center pt-4 pb-6" />
-    </div>
+    </>
   )
 }

@@ -64,11 +64,7 @@ function ControlledSignatureRequest({
 } & StyleProps) {
   return (
     <ScreenWrapper className={className} style={style}>
-      {({ paddingTop }) => (
-        <div style={{ paddingTop }}>
-          {renderRequestContent(request, onConfirm, onReject)}
-        </div>
-      )}
+      {renderRequestContent(request, onConfirm, onReject)}
     </ScreenWrapper>
   )
 }
@@ -90,16 +86,12 @@ function UncontrolledSignatureRequest({
   if (!pendingRequest) return null
   return (
     <ScreenWrapper className={className} style={style}>
-      {() => (
-        <div className="h-full flex flex-col" style={{ paddingTop: 20 }}>
-          {renderRequestContent(pendingRequest, confirm, reject)}
-          {pendingRequests.length > 1 && (
-            <p className="text-xs text-gray-500 mt-3">
-              +{pendingRequests.length - 1} more pending{' '}
-              {pendingRequests.length - 1 === 1 ? 'request' : 'requests'}
-            </p>
-          )}
-        </div>
+      {renderRequestContent(pendingRequest, confirm, reject)}
+      {pendingRequests.length > 1 && (
+        <p className="text-xs text-gray-500 mt-3">
+          +{pendingRequests.length - 1} more pending{' '}
+          {pendingRequests.length - 1 === 1 ? 'request' : 'requests'}
+        </p>
       )}
     </ScreenWrapper>
   )

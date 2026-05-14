@@ -76,7 +76,7 @@ export function OtpInput() {
   const canResend = secondsUntilResend <= 0 && !isSendOtpPending
 
   return (
-    <div className="flex flex-1 flex-col h-full pt-6">
+    <>
       <div className="flex-1 flex flex-col gap-8 justify-center items-center">
         <div className="flex flex-col gap-4">
           <Text className="text-h2 text-center">Enter verification code</Text>
@@ -118,6 +118,6 @@ export function OtpInput() {
       </div>
 
       <AppLogo className="self-center pt-4 pb-6" />
-    </div>
+    </>
   )
 }

@@ -4,7 +4,7 @@ import { ListItem } from '../../shared/components/ListItem'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
-export function WalletSelection({ paddingTop }: { paddingTop: number }) {
+export function WalletSelection() {
   const { goToStep } = useAuth()
   const { connect, connectors, isPending } = useConnect()
 
@@ -22,10 +22,7 @@ export function WalletSelection({ paddingTop }: { paddingTop: number }) {
   }
 
   return (
-    <div
-      style={{ paddingTop: `${paddingTop}px` }}
-      className="flex flex-1 flex-col h-full"
-    >
+    <>
       <div className="flex-1 flex flex-col gap-8 justify-center">
         <Text className="text-h2 text-center">Select your wallet</Text>
 
@@ -52,6 +49,6 @@ export function WalletSelection({ paddingTop }: { paddingTop: number }) {
       </div>
 
       <AppLogo className="self-center pt-4 pb-6" />
-    </div>
+    </>
   )
 }
