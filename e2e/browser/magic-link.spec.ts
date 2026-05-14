@@ -37,11 +37,10 @@ test.describe('Magic Link Flow', () => {
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
 
-    // Step 2: Navigate to login page
-    await page.goto('/')
-    await expect(
-      page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-    ).toBeVisible()
+    // Step 2: Navigate to login page (debug flag renders separate
+    // magic-link + OTP buttons regardless of demo's emailAuthMethod config)
+    await page.goto('/?renderBothEmailButtons=true')
+    await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
     // Step 3: Enter email
     await page.getByPlaceholder('Enter your email').fill(email)
@@ -52,7 +51,8 @@ test.describe('Magic Link Flow', () => {
       .click()
 
     // Step 5: Wait for confirmation that magic link was sent
-    await expect(page.getByText(/magic link sent/i)).toBeVisible({
+    // (kit's EmailVerification screen renders "Check your email!")
+    await expect(page.getByText(/check your email/i)).toBeVisible({
       timeout: 30_000,
     })
 
@@ -70,10 +70,9 @@ test.describe('Magic Link Flow', () => {
     // The demo app stores otpId in localStorage, so we navigate in the same context
     await page.goto(`/verify?code=${otpCode}`)
 
-    // Step 8: Wait for auto-verification and redirect to dashboard
-    await expect(page.getByText(/Authentication Successful/i)).toBeVisible({
-      timeout: 30_000,
-    })
+    // Step 8: Wait for auto-verification and redirect to dashboard.
+    // The kit has no dedicated success screen — `goToStep('authenticated')`
+    // transitions silently and the demo's effect routes to /dashboard.
     await page.waitForURL('**/dashboard', { timeout: 60_000 })
 
     // Step 9: Verify dashboard loaded

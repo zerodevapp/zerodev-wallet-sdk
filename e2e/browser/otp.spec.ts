@@ -42,11 +42,10 @@ test.describe('OTP Flow', () => {
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
 
-    // Step 2: Navigate to login page
-    await page.goto('/')
-    await expect(
-      page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-    ).toBeVisible()
+    // Step 2: Navigate to login page (debug flag renders separate
+    // magic-link + OTP buttons regardless of demo's emailAuthMethod config)
+    await page.goto('/?renderBothEmailButtons=true')
+    await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
     // Step 3: Enter email
     await page.getByPlaceholder('Enter your email').fill(email)
@@ -58,7 +57,9 @@ test.describe('OTP Flow', () => {
 
     // Step 5: Wait for OTP verification step
     await expect(
-      page.getByText(`Enter the code sent to ${email}`, { exact: false }),
+      page.getByText(`Enter the code from the email we sent to ${email}`, {
+        exact: false,
+      }),
     ).toBeVisible({ timeout: 30_000 })
 
     // Step 6: Poll for email and extract OTP code
@@ -71,10 +72,10 @@ test.describe('OTP Flow', () => {
     expect(otpCode).toBeTruthy()
 
     // Step 7: Enter OTP code
-    await page.getByPlaceholder('000000').fill(otpCode!)
+    await page.getByLabel('Verification code').fill(otpCode!)
 
     // Step 8: Click verify
-    await page.getByRole('button', { name: /Verify and continue/i }).click()
+    await page.getByRole('button', { name: /Confirm code/i }).click()
 
     // Step 9: Wait for dashboard redirect
     await page.waitForURL('**/dashboard', { timeout: 60_000 })

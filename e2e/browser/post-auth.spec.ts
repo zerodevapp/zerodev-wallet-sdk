@@ -71,13 +71,17 @@ async function loginWithOtp(
   email: string,
   authToken: string,
 ) {
-  await page.goto('/')
+  // Debug flag renders separate magic-link + OTP buttons regardless of
+  // demo's emailAuthMethod config.
+  await page.goto('/?renderBothEmailButtons=true')
   await page.getByPlaceholder('Enter your email').fill(email)
   await page
     .getByRole('button', { name: /Continue with email OTP code/i })
     .click()
   await expect(
-    page.getByText(`Enter the code sent to ${email}`, { exact: false }),
+    page.getByText(`Enter the code from the email we sent to ${email}`, {
+      exact: false,
+    }),
   ).toBeVisible({ timeout: 30_000 })
 
   const emailContent = await searchForNewEmail(
@@ -88,8 +92,8 @@ async function loginWithOtp(
   const otpCode = extractOtpCode(emailContent, DEMO_APP_OTP_LENGTH, true)
   expect(otpCode).toBeTruthy()
 
-  await page.getByPlaceholder('000000').fill(otpCode!)
-  await page.getByRole('button', { name: /Verify and continue/i }).click()
+  await page.getByLabel('Verification code').fill(otpCode!)
+  await page.getByRole('button', { name: /Confirm code/i }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 60_000 })
   await expect(page.getByText('Default Wallet')).toBeVisible({
@@ -125,8 +129,14 @@ test.describe('Post-Auth Operations', () => {
       .nth(1)
       .click()
 
-    // Wait for signature result
-    await expect(page.getByText('Signature')).toBeVisible({ timeout: 30_000 })
+    // Confirm in kit's SignatureRequest UI
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
+    // Exact match avoids the kit's "Signature Request" heading; match only
+    // the result-panel label.
+    await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+      timeout: 30_000,
+    })
     console.log('Message signed successfully')
   })
 
@@ -150,8 +160,14 @@ test.describe('Post-Auth Operations', () => {
     // Click the "Sign Typed Data" action button
     await page.getByRole('button', { name: /Sign Typed Data/i }).click()
 
-    // Wait for signature result
-    await expect(page.getByText('Signature')).toBeVisible({ timeout: 30_000 })
+    // Confirm in kit's SignatureRequest UI
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
+    // Exact match avoids the kit's "Signature Request" heading; match only
+    // the result-panel label.
+    await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+      timeout: 30_000,
+    })
     console.log('Typed data (EIP-712) signed successfully')
   })
 
@@ -171,6 +187,9 @@ test.describe('Post-Auth Operations', () => {
       .nth(1)
       .click()
 
+    // Confirm in kit's SignatureRequest UI
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
     // Wait for success
     await expect(page.getByText('NFT minted successfully!')).toBeVisible({
       timeout: 60_000,
@@ -187,9 +206,7 @@ test.describe('Post-Auth Operations', () => {
 
     // Verify redirect to login page
     await page.waitForURL('/', { timeout: 15_000 })
-    await expect(
-      page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-    ).toBeVisible()
+    await expect(page.getByText('Continue to your wallet')).toBeVisible()
     console.log('Logout successful')
   })
 })

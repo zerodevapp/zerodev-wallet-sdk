@@ -70,11 +70,9 @@ async function registerAndWaitForDashboard(
   const virtualAuth = await setupVirtualAuthenticator(page)
 
   await page.goto('/')
-  await expect(
-    page.getByRole('heading', { name: 'ZeroDev Wallet Demo' }),
-  ).toBeVisible()
+  await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
-  await page.getByRole('button', { name: /Register with passkey/i }).click()
+  await page.getByRole('button', { name: /Register a new passkey/i }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 60_000 })
   await expect(page.getByText('Default Wallet')).toBeVisible({
@@ -105,7 +103,14 @@ test.describe('Passkey Flow', () => {
         .nth(1)
         .click()
 
-      await expect(page.getByText('Signature')).toBeVisible({ timeout: 30_000 })
+      // Confirm in kit's SignatureRequest UI
+      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
+      // Exact match avoids the kit's "Signature Request" heading; match only
+      // the result-panel label.
+      await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+        timeout: 30_000,
+      })
       console.log('Passkey registration + sign message successful')
     } finally {
       await teardownVirtualAuthenticator(virtualAuth)
@@ -136,8 +141,14 @@ test.describe('Passkey Flow', () => {
       // Click the "Sign Typed Data" action button
       await page.getByRole('button', { name: /Sign Typed Data/i }).click()
 
-      // Wait for signature result
-      await expect(page.getByText('Signature')).toBeVisible({ timeout: 30_000 })
+      // Confirm in kit's SignatureRequest UI
+      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+
+      // Exact match avoids the kit's "Signature Request" heading; match only
+      // the result-panel label.
+      await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+        timeout: 30_000,
+      })
       console.log('Typed data (EIP-712) signing successful')
     } finally {
       await teardownVirtualAuthenticator(virtualAuth)
@@ -162,6 +173,9 @@ test.describe('Passkey Flow', () => {
         .getByRole('button', { name: /Mint NFT/i })
         .nth(1)
         .click()
+
+      // Confirm in kit's SignatureRequest UI
+      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
 
       // Wait for success — writeContract returns tx hash, then UI shows success
       await expect(page.getByText('NFT minted successfully!')).toBeVisible({
