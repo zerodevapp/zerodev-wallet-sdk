@@ -14,6 +14,7 @@ import { OrView } from '../../shared/components/OrView'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
+import { isValidEmailAddress } from '../../shared/utils/common'
 import { useAuth } from '../hooks/useAuth'
 
 // Helper to check if error is due to user closing OAuth window
@@ -24,25 +25,7 @@ function isOAuthWindowClosedError(message: string): boolean {
   )
 }
 
-// Debug-only override: render both magic-link and OTP buttons so QA can
-// exercise either path regardless of `config.emailAuthMethod`. Toggle by
-// appending `?renderBothEmailButtons=true` to the URL.
-function shouldShowBothEmailButtons(): boolean {
-  if (typeof window === 'undefined') return false
-  return (
-    new URLSearchParams(window.location.search).get(
-      'renderBothEmailButtons',
-    ) === 'true'
-  )
-}
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-function isValidEmailAddress(email: string): boolean {
-  return EMAIL_REGEX.test(email.trim())
-}
-
 export function SignUp() {
-  const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -52,7 +35,9 @@ export function SignUp() {
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
   const { mutateAsync: sendMagicLink, isPending: isSendMagicLinkPending } =
     useSendMagicLink()
-  const isEmailLoading = isSendOtpPending || isSendMagicLinkPending
+  const isEmailLoading = shouldUseOtp
+    ? isSendOtpPending
+    : isSendMagicLinkPending
 
   const [error, setError] = useState<string | null>(null)
 
@@ -107,19 +92,6 @@ export function SignUp() {
   )
   const canContinue = !requiresAgreement || agreedToTerms
 
-  // Shared pre-check for the email-based auth handlers. Returns false if the
-  // submission shouldn't proceed; also flips `highlightAgreement` on so the
-  // SignUpFooter renders a red border around the terms checkbox.
-  const checkEmailGuard = (): boolean => {
-    if (!emailInput || anyPending) return false
-    if (!isValidEmailAddress(emailInput)) return false
-    if (!canContinue) {
-      setHighlightAgreement(true)
-      return false
-    }
-    return true
-  }
-
   const handleRegisterPasskey = () => {
     if (anyPending || !canContinue) return
     setError(null)
@@ -149,42 +121,31 @@ export function SignUp() {
     goToStep('wallet-selection')
   }
 
-  const handleSendOtp = async () => {
-    if (!checkEmailGuard()) return
+  const handleEmailSubmit = async () => {
+    if (!emailInput || anyPending) return
+    if (!isValidEmailAddress(emailInput)) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
+
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = await sendOtp({
-        email: emailInput,
-      })
+      const { otpId, otpEncryptionTargetBundle } = shouldUseOtp
+        ? await sendOtp({ email: emailInput })
+        : await sendMagicLink({
+            email: emailInput,
+            redirectURL: config?.magicLinkBaseUrl ?? '',
+          })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep('otp-input')
+      goToStep(shouldUseOtp ? 'otp-input' : 'email-verification')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
       )
     }
   }
-
-  const handleSendMagicLink = async () => {
-    if (!checkEmailGuard()) return
-    setError(null)
-    try {
-      const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
-        email: emailInput,
-        redirectURL: config?.magicLinkBaseUrl ?? '',
-      })
-      setEmail(emailInput)
-      setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep('email-verification')
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to send verification code',
-      )
-    }
-  }
-
-  const handleEmailSubmit = shouldUseOtp ? handleSendOtp : handleSendMagicLink
 
   if (error) {
     return (
@@ -247,80 +208,41 @@ export function SignUp() {
                 />
               )}
               {enabledMethods.includes('email') && (
-                <>
-                  <Input
-                    iconName="email"
-                    placeholder="Enter your email..."
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    type="email"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    disabled={anyPending}
-                    variant="listItemStyle"
-                    className="rounded-3xl"
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === 'Enter' &&
-                        emailInput &&
-                        !anyPending &&
-                        !showBothEmailButtons
-                      ) {
-                        handleEmailSubmit()
-                      }
-                    }}
-                  >
-                    {!showBothEmailButtons &&
-                      (emailInput && !anyPending ? (
-                        <button
-                          type="button"
-                          className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
-                            isValidEmailAddress(emailInput) && canContinue
-                              ? 'cursor-pointer hover:bg-greyScale/[5%]'
-                              : 'cursor-not-allowed opacity-50'
-                          }`}
-                          onClick={handleEmailSubmit}
-                        >
-                          <Icon
-                            name="chevronRight"
-                            className="text-greyScale"
-                          />
-                        </button>
-                      ) : isEmailLoading ? (
-                        <div className="w-13 h-13 flex items-center justify-center">
-                          <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      ) : null)}
-                  </Input>
-                  {showBothEmailButtons && (
-                    <>
-                      <Button
-                        action="secondaryNeutral"
-                        text="Continue with email magic link"
-                        iconName="email"
-                        trailIcon
-                        disabled={
-                          !emailInput ||
-                          anyPending ||
-                          !isValidEmailAddress(emailInput)
-                        }
-                        onClick={handleSendMagicLink}
-                      />
-                      <Button
-                        action="secondaryNeutral"
-                        text="Continue with email OTP code"
-                        iconName="email"
-                        trailIcon
-                        disabled={
-                          !emailInput ||
-                          anyPending ||
-                          !isValidEmailAddress(emailInput)
-                        }
-                        onClick={handleSendOtp}
-                      />
-                    </>
-                  )}
-                </>
+                <Input
+                  iconName="email"
+                  placeholder="Enter your email..."
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  type="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  disabled={anyPending}
+                  variant="listItemStyle"
+                  className="rounded-3xl"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && emailInput && !anyPending) {
+                      handleEmailSubmit()
+                    }
+                  }}
+                >
+                  {emailInput && !anyPending ? (
+                    <button
+                      type="button"
+                      className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                        isValidEmailAddress(emailInput) && canContinue
+                          ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                          : 'cursor-not-allowed opacity-50'
+                      }`}
+                      onClick={handleEmailSubmit}
+                    >
+                      <Icon name="chevronRight" className="text-greyScale" />
+                    </button>
+                  ) : isEmailLoading ? (
+                    <div className="w-13 h-13 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : null}
+                </Input>
               )}
               {enabledMethods.includes('injected-wallet') && (
                 <>
