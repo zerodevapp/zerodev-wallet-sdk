@@ -104,19 +104,30 @@ export function SignUp() {
   const canContinue = !requiresAgreement || agreedToTerms
 
   const handleRegisterPasskey = () => {
-    if (anyPending || !canContinue) return
+    if (anyPending) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
     setError(null)
     registerPasskey()
   }
 
   const handleLoginPasskey = () => {
-    if (anyPending || !canContinue) return
+    if (anyPending) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
     setError(null)
     loginPasskey()
   }
 
   const handleGoogleAuth = async () => {
-    if (!canContinue) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
     setError(null)
     try {
       await authenticateOAuth({ provider: 'google' })
