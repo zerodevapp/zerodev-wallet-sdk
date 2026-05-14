@@ -1,0 +1,95 @@
+# OAuth on Android (App Links)
+
+Android can deliver the OAuth redirect via either of two paths:
+
+1. A **custom-scheme deep link** (`zerodev-example://oauth-callback?...`) —
+   no domain setup needed; works out of the box.
+2. A **verified https App Link**
+   (`https://zerodev-expo-example.vercel.app/oauth-callback?...`) —
+   requires a domain you own and an `assetlinks.json` that binds it to
+   your app's signing cert. The OS then routes the redirect straight to
+   your signed app without a chooser.
+
+Either is fine. This repo supports both: `EXPO_PUBLIC_REDIRECT_URI`,
+when set, opts into the App Link path; when unset,
+`Linking.createURL('oauth-callback')` builds the custom-scheme fallback.
+Both branches land in the same `Linking.addEventListener('url', ...)`
+handler inside [`oauth/createNativeOAuthGetSessionId.ts`](../oauth/createNativeOAuthGetSessionId.ts).
+
+This doc covers the App Link wiring. If you just want a custom scheme,
+leave `EXPO_PUBLIC_REDIRECT_URI` unset — no further setup needed.
+
+## The binding, in this repo
+
+| Concern | Location | Value |
+|---|---|---|
+| Redirect URL | `.env` → `EXPO_PUBLIC_REDIRECT_URI` | `https://zerodev-expo-example.vercel.app/oauth-callback` |
+| `android.intentFilters` | `app.json` | host `zerodev-expo-example.vercel.app`, `pathPrefix: "/oauth-callback"`, `autoVerify: true` |
+| Assetlinks source | `assetlinks/public/.well-known/assetlinks.json` | Declares `handle_all_urls` + the signing SHA-256 |
+| Live assetlinks | `https://zerodev-expo-example.vercel.app/.well-known/assetlinks.json` | Served by Vercel |
+| Signing cert | `credentials/debug.keystore` | Pinned via `plugins/withDebugKeystore.js` |
+
+The assetlinks file, signing cert, and Vercel hosting are the same
+artifacts used for passkeys — see [`passkeys.md`](./passkeys.md) for how
+they're deployed, rotated, and verified. The `handle_all_urls` relation
+that enables App Links is already present in the committed
+`assetlinks.json` alongside the `get_login_creds` relation that
+passkeys use.
+
+## Pointing at your own domain
+
+If you fork this example and host the redirect on a domain you control,
+every piece of the table above has to line up. The recipe:
+
+1. Deploy an `assetlinks.json` at
+   `https://<your-domain>/.well-known/assetlinks.json` declaring your
+   package name, your signing cert's SHA-256, and the
+   `delegate_permission/common.handle_all_urls` relation. The mechanics
+   — Vercel setup, `Content-Type` pinning, `keytool` to extract
+   fingerprints — are already documented in
+   [`passkeys.md`](./passkeys.md#hosting-assetlinksjson-on-vercel) and
+   [`passkeys.md`](./passkeys.md#signing-with-a-different-keystore).
+2. Update `app.json` → `android.intentFilters[0].data` so `host` and
+   `pathPrefix` match the URL you'll redirect to.
+3. Set `EXPO_PUBLIC_REDIRECT_URI` in your `.env` to the same URL
+   (host + pathPrefix), and configure the same URL as an allowed
+   redirect in your OAuth provider's dashboard.
+4. Run `npx expo prebuild --platform android` to regenerate
+   `AndroidManifest.xml` with the new intent filter. **`pnpm android`
+   alone does not re-run prebuild when `android/` already exists**, so
+   `app.json` changes silently won't land in the installed APK.
+5. Build and install: `pnpm android`.
+
+Narrow the `pathPrefix` to a path you actually own (e.g.
+`/oauth-callback`). A broad prefix like `/` would register your app as
+a handler for every URL on the domain, including `/.well-known/`, which
+can interact badly with other integrations.
+
+## Verifying the binding
+
+After install, confirm Android accepted the binding:
+
+```
+adb shell pm get-app-links <your-package-name>
+```
+
+Expect `<your-host>: verified`. Other states mean something is off:
+
+- `legacy_failure` / `1024` — Android couldn't fetch or parse
+  `assetlinks.json`. Most common cause is a wrong `Content-Type`
+  (Vercel pins `application/json` via `assetlinks/vercel.json`; if
+  you're hosting elsewhere, make sure yours does the same).
+- `ask` — `autoVerify` didn't run, usually because `app.json` wasn't
+  prebuilt into the installed APK.
+
+For a focused end-to-end check without walking through the OAuth flow,
+fire a synthetic intent:
+
+```
+adb shell am start -a android.intent.action.VIEW \
+  -d "https://<your-host>/<your-pathPrefix>/test" \
+  <your-package-name>
+```
+
+A verified App Link opens the app directly; unverified, Android shows
+a chooser or sends the URL to the browser.

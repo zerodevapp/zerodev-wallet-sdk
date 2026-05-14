@@ -1,3 +1,4 @@
+export type { GetOAuthSessionIdFn } from './authenticateOAuth.js'
 export type {
   WalletMode,
   ZeroDevWalletConnectorParams,
@@ -14,14 +15,12 @@ export { useSendMagicLink } from './hooks/useSendMagicLink.js'
 export { useSendOTP } from './hooks/useSendOTP.js'
 export { useVerifyMagicLink } from './hooks/useVerifyMagicLink.js'
 export { useVerifyOTP } from './hooks/useVerifyOTP.js'
-export type { OAuthMessageData, OAuthProvider } from './oauth.js'
-export {
-  generateOAuthNonce,
-  handleOAuthCallback,
-  listenForOAuthMessage,
-  OAUTH_PROVIDERS,
-  verifyGoogleLoginUrl,
-} from './oauth.js'
 export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
 export { createZeroDevWalletStore } from './store.js'
+export type { OAuthProvider } from './utils/verifyGoogleLoginUrl.js'
+export {
+  generateOAuthNonce,
+  OAUTH_PROVIDERS,
+  verifyGoogleLoginUrl,
+} from './utils/verifyGoogleLoginUrl.js'
