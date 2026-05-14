@@ -34,13 +34,15 @@ function LandingPageInner() {
   }, [isConnected, router, status, connect, connectors])
 
   return (
-    <div className="mx-auto h-screen w-[500px]">
+    <div className="mx-auto h-screen w-[500px] flex items-center">
       {sessionExpired && (
         <div className="mb-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
           Your session has expired. Please log in again.
         </div>
       )}
-      <AuthFlow />
+      <div className='h-[800px]'>
+        <AuthFlow />
+      </div>
     </div>
   )
 }
