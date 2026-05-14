@@ -16,12 +16,13 @@ import { Text } from '../../shared/components/Text'
 import { isValidEmailAddress } from '../../shared/utils/common'
 import { useAuth } from '../hooks/useAuth'
 
-// Helper to check if error is due to user closing OAuth window
-function isOAuthWindowClosedError(message: string): boolean {
-  return (
-    message.toLowerCase().includes('window') &&
-    message.toLowerCase().includes('closed')
-  )
+function isCancellationError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  // WebAuthn / passkey
+  if (err.name === 'AbortError' || err.name === 'NotAllowedError') return true
+  // OAuth (existing logic, message-based)
+  const msg = err.message.toLowerCase()
+  return msg.includes('OAuth popup was closed')
 }
 
 // Debug-only override: render both magic-link and OTP buttons so QA can
@@ -72,7 +73,9 @@ export function SignUp() {
           config?.onSuccess?.()
         },
         onError: (err) => {
-          setError(err instanceof Error ? err.message : String(err))
+          if (!isCancellationError(err)) {
+            setError(err instanceof Error ? err.message : String(err))
+          }
           config?.onError?.(err)
         },
       },
@@ -86,7 +89,9 @@ export function SignUp() {
           config?.onSuccess?.()
         },
         onError: (err) => {
-          setError(err instanceof Error ? err.message : String(err))
+          if (!isCancellationError(err)) {
+            setError(err instanceof Error ? err.message : String(err))
+          }
           config?.onError?.(err)
         },
       },
@@ -132,7 +137,7 @@ export function SignUp() {
       await authenticateOAuth({ provider: 'google' })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (!isOAuthWindowClosedError(message)) {
+      if (!isCancellationError(err)) {
         setError(message)
       }
     }
