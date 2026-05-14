@@ -25,7 +25,20 @@ function isOAuthWindowClosedError(message: string): boolean {
   )
 }
 
+// Debug-only override: render both magic-link and OTP buttons so QA can
+// exercise either path regardless of `config.emailAuthMethod`. Toggle by
+// appending `?renderBothEmailButtons=true` to the URL.
+function shouldShowBothEmailButtons(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    new URLSearchParams(window.location.search).get(
+      'renderBothEmailButtons',
+    ) === 'true'
+  )
+}
+
 export function SignUp() {
+  const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -35,9 +48,7 @@ export function SignUp() {
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
   const { mutateAsync: sendMagicLink, isPending: isSendMagicLinkPending } =
     useSendMagicLink()
-  const isEmailLoading = shouldUseOtp
-    ? isSendOtpPending
-    : isSendMagicLinkPending
+  const isEmailLoading = isSendOtpPending || isSendMagicLinkPending
 
   const [error, setError] = useState<string | null>(null)
 
@@ -121,7 +132,7 @@ export function SignUp() {
     goToStep('wallet-selection')
   }
 
-  const handleEmailSubmit = async () => {
+  const handleEmailSubmit = async (forceMethod?: 'otp' | 'magicLink') => {
     if (!emailInput || anyPending) return
     if (!isValidEmailAddress(emailInput)) return
     if (!canContinue) {
@@ -129,9 +140,12 @@ export function SignUp() {
       return
     }
 
+    const useOtp =
+      forceMethod !== undefined ? forceMethod === 'otp' : shouldUseOtp
+
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = shouldUseOtp
+      const { otpId, otpEncryptionTargetBundle } = useOtp
         ? await sendOtp({ email: emailInput })
         : await sendMagicLink({
             email: emailInput,
@@ -139,7 +153,7 @@ export function SignUp() {
           })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep(shouldUseOtp ? 'otp-input' : 'email-verification')
+      goToStep(useOtp ? 'otp-input' : 'email-verification')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
@@ -208,41 +222,80 @@ export function SignUp() {
                 />
               )}
               {enabledMethods.includes('email') && (
-                <Input
-                  iconName="email"
-                  placeholder="Enter your email..."
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  disabled={anyPending}
-                  variant="listItemStyle"
-                  className="rounded-3xl"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && emailInput && !anyPending) {
-                      handleEmailSubmit()
-                    }
-                  }}
-                >
-                  {emailInput && !anyPending ? (
-                    <button
-                      type="button"
-                      className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
-                        isValidEmailAddress(emailInput) && canContinue
-                          ? 'cursor-pointer hover:bg-greyScale/[5%]'
-                          : 'cursor-not-allowed opacity-50'
-                      }`}
-                      onClick={handleEmailSubmit}
-                    >
-                      <Icon name="chevronRight" className="text-greyScale" />
-                    </button>
-                  ) : isEmailLoading ? (
-                    <div className="w-13 h-13 flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  ) : null}
-                </Input>
+                <>
+                  <Input
+                    iconName="email"
+                    placeholder="Enter your email..."
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    type="email"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    disabled={anyPending}
+                    variant="listItemStyle"
+                    className="rounded-3xl"
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === 'Enter' &&
+                        emailInput &&
+                        !anyPending &&
+                        !showBothEmailButtons
+                      ) {
+                        handleEmailSubmit()
+                      }
+                    }}
+                  >
+                    {!showBothEmailButtons &&
+                      (emailInput && !anyPending ? (
+                        <button
+                          type="button"
+                          className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                            isValidEmailAddress(emailInput) && canContinue
+                              ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                              : 'cursor-not-allowed opacity-50'
+                          }`}
+                          onClick={() => handleEmailSubmit()}
+                        >
+                          <Icon
+                            name="chevronRight"
+                            className="text-greyScale"
+                          />
+                        </button>
+                      ) : isEmailLoading ? (
+                        <div className="w-13 h-13 flex items-center justify-center">
+                          <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      ) : null)}
+                  </Input>
+                  {showBothEmailButtons && (
+                    <>
+                      <Button
+                        action="secondaryNeutral"
+                        text="Continue with email magic link"
+                        iconName="email"
+                        trailIcon
+                        disabled={
+                          !emailInput ||
+                          anyPending ||
+                          !isValidEmailAddress(emailInput)
+                        }
+                        onClick={() => handleEmailSubmit('magicLink')}
+                      />
+                      <Button
+                        action="secondaryNeutral"
+                        text="Continue with email OTP code"
+                        iconName="email"
+                        trailIcon
+                        disabled={
+                          !emailInput ||
+                          anyPending ||
+                          !isValidEmailAddress(emailInput)
+                        }
+                        onClick={() => handleEmailSubmit('otp')}
+                      />
+                    </>
+                  )}
+                </>
               )}
               {enabledMethods.includes('injected-wallet') && (
                 <>
