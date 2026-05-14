@@ -1,15 +1,12 @@
 import { useSendMagicLink } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
-import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
 import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
-import { useAuthTopNav } from '../hooks/useAuthTopNav'
 
-export function EmailVerification() {
+export function EmailVerification({ paddingTop }: { paddingTop: number }) {
   const { email, setOtpSession, config } = useAuth()
-  const topNav = useAuthTopNav()
   const { mutateAsync: sendMagicLink, isPending: isSendPending } =
     useSendMagicLink()
 
@@ -44,44 +41,40 @@ export function EmailVerification() {
   }
 
   return (
-    <ScreenWrapper topNav={topNav}>
-      {({ paddingTop }) => (
-        <div
-          style={{ paddingTop: `${paddingTop}px` }}
-          className="flex flex-1 flex-col h-full"
+    <div
+      style={{ paddingTop: `${paddingTop}px` }}
+      className="flex flex-1 flex-col h-full"
+    >
+      <div className="flex-1 flex flex-col gap-8 justify-center">
+        <StatusView
+          imageName="send"
+          title={'Check your email!\n An Email is On Its Way'}
         >
-          <div className="flex-1 flex flex-col gap-8 justify-center">
-            <StatusView
-              imageName="send"
-              title={'Check your email!\n An Email is On Its Way'}
+          We've sent a magic link to{' '}
+          <Text as="span" className="text-solarOrange">
+            {email}
+          </Text>
+          {'\n'}Please open the email and click the link to log in.
+        </StatusView>
+
+        <div className="flex flex-col gap-1">
+          <Text className="text-center">
+            Did not get an email?{' '}
+            <button
+              type="button"
+              disabled={!canResend}
+              onClick={handleResend}
+              className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              We've sent a magic link to{' '}
-              <Text as="span" className="text-solarOrange">
-                {email}
-              </Text>
-              {'\n'}Please open the email and click the link to log in.
-            </StatusView>
-
-            <div className="flex flex-col gap-1">
-              <Text className="text-center">
-                Did not get an email?{' '}
-                <button
-                  type="button"
-                  disabled={!canResend}
-                  onClick={handleResend}
-                  className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {canResend
-                    ? 'Resend'
-                    : `Resend in ${secondsLeftUntilResend} ${secondsLeftUntilResend === 1 ? 'second' : 'seconds'}`}
-                </button>
-              </Text>
-            </div>
-          </div>
-
-          <AppLogo className="self-center pt-4 pb-6" />
+              {canResend
+                ? 'Resend'
+                : `Resend in ${secondsLeftUntilResend} ${secondsLeftUntilResend === 1 ? 'second' : 'seconds'}`}
+            </button>
+          </Text>
         </div>
-      )}
-    </ScreenWrapper>
+      </div>
+
+      <AppLogo className="self-center pt-4 pb-6" />
+    </div>
   )
 }
