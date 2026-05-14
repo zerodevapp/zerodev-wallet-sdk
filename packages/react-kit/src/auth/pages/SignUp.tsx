@@ -14,6 +14,7 @@ import { OrView } from '../../shared/components/OrView'
 import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
+import { isValidEmailAddress } from '../../shared/utils/common'
 import { useAuth } from '../hooks/useAuth'
 
 // Helper to check if error is due to user closing OAuth window
@@ -41,6 +42,7 @@ export function SignUp() {
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [highlightAgreement, setHighlightAgreement] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const shouldUseOtp = config?.emailAuthMethod === 'otp'
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
@@ -102,19 +104,30 @@ export function SignUp() {
   const canContinue = !requiresAgreement || agreedToTerms
 
   const handleRegisterPasskey = () => {
-    if (anyPending || !canContinue) return
+    if (anyPending) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
     setError(null)
     registerPasskey()
   }
 
   const handleLoginPasskey = () => {
-    if (anyPending || !canContinue) return
+    if (anyPending) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
     setError(null)
     loginPasskey()
   }
 
   const handleGoogleAuth = async () => {
-    if (!canContinue) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
     setError(null)
     try {
       await authenticateOAuth({ provider: 'google' })
@@ -130,42 +143,34 @@ export function SignUp() {
     goToStep('wallet-selection')
   }
 
-  const handleSendOtp = async () => {
-    if (!emailInput || anyPending || !canContinue) return
+  const handleEmailSubmit = async (forceMethod?: 'otp' | 'magicLink') => {
+    if (!emailInput || anyPending) return
+    if (!isValidEmailAddress(emailInput)) return
+    if (!canContinue) {
+      setHighlightAgreement(true)
+      return
+    }
+
+    const useOtp =
+      forceMethod !== undefined ? forceMethod === 'otp' : shouldUseOtp
+
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = await sendOtp({
-        email: emailInput,
-      })
+      const { otpId, otpEncryptionTargetBundle } = useOtp
+        ? await sendOtp({ email: emailInput })
+        : await sendMagicLink({
+            email: emailInput,
+            redirectURL: config?.magicLinkBaseUrl ?? '',
+          })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep('otp-input')
+      goToStep(useOtp ? 'otp-input' : 'email-verification')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
       )
     }
   }
-
-  const handleSendMagicLink = async () => {
-    if (!emailInput || anyPending || !canContinue) return
-    setError(null)
-    try {
-      const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
-        email: emailInput,
-        redirectURL: config?.magicLinkBaseUrl ?? '',
-      })
-      setEmail(emailInput)
-      setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep('email-verification')
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to send verification code',
-      )
-    }
-  }
-
-  const handleEmailSubmit = shouldUseOtp ? handleSendOtp : handleSendMagicLink
 
   if (error) {
     return (
@@ -239,12 +244,12 @@ export function SignUp() {
                     autoComplete="email"
                     disabled={anyPending}
                     variant="listItemStyle"
+                    className="rounded-3xl"
                     onKeyDown={(e) => {
                       if (
                         e.key === 'Enter' &&
                         emailInput &&
                         !anyPending &&
-                        canContinue &&
                         !showBothEmailButtons
                       ) {
                         handleEmailSubmit()
@@ -252,11 +257,15 @@ export function SignUp() {
                     }}
                   >
                     {!showBothEmailButtons &&
-                      (emailInput && !anyPending && canContinue ? (
+                      (emailInput && !anyPending ? (
                         <button
                           type="button"
-                          className="w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center hover:bg-greyScale/[5%] transition-colors cursor-pointer"
-                          onClick={handleEmailSubmit}
+                          className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                            isValidEmailAddress(emailInput) && canContinue
+                              ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                              : 'cursor-not-allowed opacity-50'
+                          }`}
+                          onClick={() => handleEmailSubmit()}
                         >
                           <Icon
                             name="chevronRight"
@@ -276,16 +285,24 @@ export function SignUp() {
                         text="Continue with email magic link"
                         iconName="email"
                         trailIcon
-                        disabled={!emailInput || anyPending || !canContinue}
-                        onClick={handleSendMagicLink}
+                        disabled={
+                          !emailInput ||
+                          anyPending ||
+                          !isValidEmailAddress(emailInput)
+                        }
+                        onClick={() => handleEmailSubmit('magicLink')}
                       />
                       <Button
                         action="secondaryNeutral"
                         text="Continue with email OTP code"
                         iconName="email"
                         trailIcon
-                        disabled={!emailInput || anyPending || !canContinue}
-                        onClick={handleSendOtp}
+                        disabled={
+                          !emailInput ||
+                          anyPending ||
+                          !isValidEmailAddress(emailInput)
+                        }
+                        onClick={() => handleEmailSubmit('otp')}
                       />
                     </>
                   )}
@@ -310,7 +327,11 @@ export function SignUp() {
             termsAndConditionsUrl={config?.termsAndConditionsUrl}
             privacyPolicyUrl={config?.privacyPolicyUrl}
             agreedToTerms={agreedToTerms}
-            setAgreedToTerms={setAgreedToTerms}
+            setAgreedToTerms={(agreed) => {
+              setAgreedToTerms(agreed)
+              if (agreed) setHighlightAgreement(false)
+            }}
+            highlight={highlightAgreement}
           />
         </div>
       )}

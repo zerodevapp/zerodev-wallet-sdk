@@ -36,3 +36,8 @@ export function camelCaseToTitle(str: string): string {
     .map((word) => capitalizeFirst(word))
     .join(' ')
 }
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export function isValidEmailAddress(email: string): boolean {
+  return EMAIL_REGEX.test(email.trim())
+}
