@@ -16,6 +16,10 @@ vi.mock('../../../shared/components/Icon', async () => {
   }
 })
 
+vi.mock('../../../auth/hooks/useAuth', () => ({
+  useAuth: () => ({ config: null }),
+}))
+
 import { SigningLayout } from './index'
 
 afterEach(() => {

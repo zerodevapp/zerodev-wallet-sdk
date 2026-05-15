@@ -1,3 +1,4 @@
+import { useAuth } from '../../../auth/hooks/useAuth'
 import { Button } from '../../../shared/components/Button'
 import { Text } from '../../../shared/components/Text'
 import { Wrapper } from '../../../shared/components/Wrapper'
@@ -13,6 +14,11 @@ export function SigningActions({
   onReject,
   disabled,
 }: SigningActionsProps) {
+  const { config } = useAuth()
+  const termsAndConditionsUrl = config?.termsAndConditionsUrl
+  const privacyPolicyUrl = config?.privacyPolicyUrl
+  const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
+
   return (
     <Wrapper className="p-1 gap-2 mb-1.5 -mx-1.5 rounded-3xl">
       <div className="flex flex-row items-center gap-1">
@@ -29,28 +35,34 @@ export function SigningActions({
           onClick={onConfirm}
         />
       </div>
-      <Text className="text-center text-body3">
-        By continuing, you accept the{' '}
-        <Text
-          as="a"
-          href="https://zerodev.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          Terms
-        </Text>{' '}
-        and{' '}
-        <Text
-          as="a"
-          href="https://zerodev.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          Privacy Policy
+      {showAgreement && (
+        <Text className="text-center text-body3 mt-2">
+          By continuing, you accept the{' '}
+          {termsAndConditionsUrl && (
+            <Text
+              as="a"
+              href={termsAndConditionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-body3"
+            >
+              Terms
+            </Text>
+          )}
+          {termsAndConditionsUrl && privacyPolicyUrl && ' and '}
+          {privacyPolicyUrl && (
+            <Text
+              as="a"
+              href={privacyPolicyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-body3"
+            >
+              Privacy Policy
+            </Text>
+          )}
         </Text>
-      </Text>
+      )}
     </Wrapper>
   )
 }
