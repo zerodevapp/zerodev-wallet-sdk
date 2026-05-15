@@ -25,20 +25,7 @@ function isCancellationError(err: unknown): boolean {
   return msg.includes('oauth popup was closed')
 }
 
-// Debug-only override: render both magic-link and OTP buttons so QA can
-// exercise either path regardless of `config.emailAuthMethod`. Toggle by
-// appending `?renderBothEmailButtons=true` to the URL.
-function shouldShowBothEmailButtons(): boolean {
-  if (typeof window === 'undefined') return false
-  return (
-    new URLSearchParams(window.location.search).get(
-      'renderBothEmailButtons',
-    ) === 'true'
-  )
-}
-
 export function SignUp() {
-  const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -255,78 +242,41 @@ export function SignUp() {
             />
           )}
           {enabledMethods.includes('email') && (
-            <>
-              <Input
-                iconName="email"
-                placeholder="Enter your email..."
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                type="email"
-                autoCapitalize="none"
-                autoComplete="email"
-                disabled={anyPending}
-                variant="listItemStyle"
-                className="rounded-3xl"
-                onKeyDown={(e) => {
-                  if (
-                    e.key === 'Enter' &&
-                    emailInput &&
-                    !anyPending &&
-                    !showBothEmailButtons
-                  ) {
-                    handleEmailSubmit()
-                  }
-                }}
-              >
-                {!showBothEmailButtons &&
-                  (emailInput && !anyPending ? (
-                    <button
-                      type="button"
-                      className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
-                        isValidEmailAddress(emailInput) &&
-                        !needsToAcceptAgreement
-                          ? 'cursor-pointer hover:bg-greyScale/[5%]'
-                          : 'cursor-not-allowed opacity-50'
-                      }`}
-                      onClick={() => handleEmailSubmit()}
-                    >
-                      <Icon name="chevronRight" className="text-greyScale" />
-                    </button>
-                  ) : isEmailLoading ? (
-                    <div className="w-13 h-13 flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  ) : null)}
-              </Input>
-              {showBothEmailButtons && (
-                <>
-                  <Button
-                    action="secondaryNeutral"
-                    text="Continue with email magic link"
-                    iconName="email"
-                    trailIcon
-                    disabled={
-                      !emailInput ||
-                      anyPending ||
-                      !isValidEmailAddress(emailInput)
-                    }
-                    onClick={() => handleEmailMagicLink()}
-                  />
-                  <Button
-                    action="secondaryNeutral"
-                    text="Continue with email OTP code"
-                    iconName="email"
-                    trailIcon
-                    disabled={
-                      !emailInput ||
-                      anyPending ||
-                      !isValidEmailAddress(emailInput)
-                    }
-                    onClick={() => handleEmailOtp()}
-                  />
-                </>
-              )}
-            </>
+            <Input
+              iconName="email"
+              placeholder="Enter your email..."
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              type="email"
+              autoCapitalize="none"
+              autoComplete="email"
+              disabled={anyPending}
+              variant="listItemStyle"
+              className="rounded-3xl"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && emailInput && !anyPending) {
+                  handleEmailSubmit()
+                }
+              }}
+            >
+              {emailInput && !anyPending ? (
+                <button
+                  type="button"
+                  className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                    isValidEmailAddress(emailInput) && !needsToAcceptAgreement
+                      ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                      : 'cursor-not-allowed opacity-50'
+                  }`}
+                  onClick={() => handleEmailSubmit()}
+                >
+                  <Icon name="chevronRight" className="text-greyScale" />
+                </button>
+              ) : isEmailLoading ? (
+                <div className="w-13 h-13 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : null}
+            </Input>
           )}
           {enabledMethods.includes('injected-wallet') && (
             <>
