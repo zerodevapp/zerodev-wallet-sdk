@@ -10,6 +10,7 @@
   "scripts": {
     "build": "pnpm --recursive run build",
     "dev": "pnpm --recursive run dev",
+    "run-demo": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-kit exec vite build --watch & pnpm --filter @zerodev/signer-demo dev",
     "typecheck": "pnpm --recursive run typecheck",
     "clean": "pnpm --recursive run clean",
     "lint": "biome check .",
