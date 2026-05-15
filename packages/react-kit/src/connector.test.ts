@@ -292,9 +292,10 @@ describe('connector', () => {
       // Disconnect
       await connector.disconnect?.()
 
-      // Auth should be reset and reinitialized
+      // Auth should be reset and reinitialized, then surface the sign-up
+      // page so the user can re-authenticate.
       expect(store.getState().auth.email).toBeNull()
-      expect(store.getState().auth.step).toBe('initializing')
+      expect(store.getState().auth.step).toBe('sign-up')
       expect(store.getState().auth.config).toEqual(authConfig)
     })
 
