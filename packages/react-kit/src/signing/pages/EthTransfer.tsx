@@ -8,7 +8,6 @@ import { SigningLayout } from '../components/SigningLayout'
 import { useGasEstimate } from '../hooks/useGasEstimate'
 import { formatGasFee } from '../utils/formatGasFee'
 
-const TOKEN_SUBTITLE = '$175.00 USD'
 const TOKEN_IMAGE_SOURCE = 'https://img.icons8.com/color/1200/ethereum.jpg'
 const RECIPIENT_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/identicon/svg?seed=recipient'
@@ -50,7 +49,6 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
             topCard={
               <InfoCard
                 title={`${formattedAmount} ETH`}
-                subtitle={TOKEN_SUBTITLE}
                 imageSource={TOKEN_IMAGE_SOURCE}
               />
             }

@@ -10,8 +10,6 @@ import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
 import { useGasEstimate } from '../hooks/useGasEstimate'
 import { formatGasFee } from '../utils/formatGasFee'
 
-const TOKEN_SUBTITLE = '$175.00 USD'
-const TOKEN_IMAGE_SOURCE = 'https://img.icons8.com/color/1200/ethereum.jpg'
 const RECIPIENT_IMAGE_SOURCE =
   'https://api.dicebear.com/7.x/identicon/svg?seed=recipient'
 
@@ -93,13 +91,7 @@ export function Erc20Transfer({
         <div className="flex flex-col gap-2">
           <Text className="text-body1">You&#39;re sending</Text>
           <ArrowCardPair
-            topCard={
-              <InfoCard
-                title={`${formattedAmount} ${symbol}`}
-                subtitle={TOKEN_SUBTITLE}
-                imageSource={TOKEN_IMAGE_SOURCE}
-              />
-            }
+            topCard={<InfoCard title={`${formattedAmount} ${symbol}`} />}
             bottomCard={
               <InfoCard
                 title={to}
