@@ -1,6 +1,5 @@
 import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
-import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { StatusView } from '../../shared/components/StatusView'
 import { useAuth } from '../hooks/useAuth'
 
@@ -20,34 +19,30 @@ export function ErrorScreen({
   const { goToStep, goBack, reset } = useAuth()
 
   return (
-    <ScreenWrapper>
-      {() => (
-        <div className="flex flex-1 flex-col h-full">
-          <div className="flex-1 flex flex-col gap-8 items-center justify-center">
-            <StatusView imageName="error" title={title}>
-              {message}
-            </StatusView>
+    <>
+      <div className="flex-1 flex flex-col gap-8 items-center justify-center">
+        <StatusView imageName="error" title={title}>
+          {message}
+        </StatusView>
 
-            <div className="flex flex-col gap-1">
-              {showRetry && (
-                <Button action="primary" text="Try again" onClick={goBack} />
-              )}
-              {showChooseAnother && (
-                <Button
-                  action={showRetry ? 'secondary' : 'primary'}
-                  onClick={() => goToStep('sign-up')}
-                  text="Choose another sign-in method"
-                />
-              )}
-              {!showRetry && !showChooseAnother && (
-                <Button action="primary" text="Start over" onClick={reset} />
-              )}
-            </div>
-          </div>
-
-          <AppLogo className="self-center pt-4 pb-6" />
+        <div className="flex flex-col gap-1">
+          {showRetry && (
+            <Button action="primary" text="Try again" onClick={goBack} />
+          )}
+          {showChooseAnother && (
+            <Button
+              action={showRetry ? 'secondary' : 'primary'}
+              onClick={() => goToStep('sign-up')}
+              text="Choose another sign-in method"
+            />
+          )}
+          {!showRetry && !showChooseAnother && (
+            <Button action="primary" text="Start over" onClick={reset} />
+          )}
         </div>
-      )}
-    </ScreenWrapper>
+      </div>
+
+      <AppLogo className="self-center pt-4 pb-6" />
+    </>
   )
 }

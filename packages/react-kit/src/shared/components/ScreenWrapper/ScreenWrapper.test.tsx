@@ -9,27 +9,34 @@ afterEach(() => {
 
 describe('ScreenWrapper', () => {
   describe('rendering', () => {
-    it('renders children function with padding props', () => {
+    it('renders children', () => {
       const { container } = render(
         <ScreenWrapper>
-          {({ paddingTop, paddingBottom }) => (
-            <div data-testid="child">
-              Top: {paddingTop}, Bottom: {paddingBottom}
-            </div>
-          )}
+          <div data-testid="child">hello</div>
         </ScreenWrapper>,
       )
       const child = container.querySelector('[data-testid="child"]')
       expect(child).toBeDefined()
-      expect(child?.textContent).toContain('Top:')
-      expect(child?.textContent).toContain('Bottom:')
+      expect(child?.textContent).toBe('hello')
+    })
+
+    it('renders topNav above children', () => {
+      const { container } = render(
+        <ScreenWrapper topNav={<div data-testid="top-nav">nav</div>}>
+          <div data-testid="child">content</div>
+        </ScreenWrapper>,
+      )
+      expect(container.querySelector('[data-testid="top-nav"]')).toBeDefined()
+      expect(container.querySelector('[data-testid="child"]')).toBeDefined()
     })
   })
 
   describe('structure', () => {
     it('renders with correct container classes', () => {
       const { container } = render(
-        <ScreenWrapper>{() => <div>Content</div>}</ScreenWrapper>,
+        <ScreenWrapper>
+          <div>Content</div>
+        </ScreenWrapper>,
       )
       const wrapper = container.firstChild as HTMLElement
       expect(wrapper.className).toContain('flex-1')
@@ -37,7 +44,9 @@ describe('ScreenWrapper', () => {
 
     it('renders MultiRadialBackground', () => {
       const { container } = render(
-        <ScreenWrapper>{() => <div>Content</div>}</ScreenWrapper>,
+        <ScreenWrapper>
+          <div>Content</div>
+        </ScreenWrapper>,
       )
       const svg = container.querySelector('svg')
       expect(svg).toBeDefined()
@@ -45,7 +54,9 @@ describe('ScreenWrapper', () => {
 
     it('renders content wrapper with correct styling', () => {
       const { container } = render(
-        <ScreenWrapper>{() => <div>Content</div>}</ScreenWrapper>,
+        <ScreenWrapper>
+          <div>Content</div>
+        </ScreenWrapper>,
       )
       const contentWrapper = container.querySelector('.bg-offWhite\\/85')
       expect(contentWrapper).toBeDefined()
@@ -59,7 +70,9 @@ describe('ScreenWrapper', () => {
   describe('background gradients', () => {
     it('renders base background color', () => {
       const { container } = render(
-        <ScreenWrapper>{() => <div>Content</div>}</ScreenWrapper>,
+        <ScreenWrapper>
+          <div>Content</div>
+        </ScreenWrapper>,
       )
       const baseRect = container.querySelector('rect[fill="#130E0B"]')
       expect(baseRect).toBeDefined()
@@ -67,7 +80,9 @@ describe('ScreenWrapper', () => {
 
     it('renders multiple gradient layers', () => {
       const { container } = render(
-        <ScreenWrapper>{() => <div>Content</div>}</ScreenWrapper>,
+        <ScreenWrapper>
+          <div>Content</div>
+        </ScreenWrapper>,
       )
       const gradients = container.querySelectorAll('radialGradient')
       expect(gradients.length).toBe(5)

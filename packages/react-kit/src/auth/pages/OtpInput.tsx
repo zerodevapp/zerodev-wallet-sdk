@@ -2,7 +2,6 @@ import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
 import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
-import { ScreenWrapper } from '../../shared/components/ScreenWrapper'
 import { Text } from '../../shared/components/Text'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
@@ -77,54 +76,48 @@ export function OtpInput() {
   const canResend = secondsUntilResend <= 0 && !isSendOtpPending
 
   return (
-    <ScreenWrapper>
-      {() => (
-        <div className="flex flex-1 flex-col h-full pt-6">
-          <div className="flex-1 flex flex-col gap-8 justify-center items-center">
-            <div className="flex flex-col gap-4">
-              <Text className="text-h2 text-center">
-                Enter verification code
-              </Text>
-              <Text className="text-center">
-                Enter the code from the email we sent to{' '}
-                <Text className="text-solarOrange">{email}</Text>
-              </Text>
-            </div>
-
-            <CodeInput
-              onComplete={handleComplete}
-              onChange={() => setError(false)}
-              disabled={isPending}
-              error={error}
-              autoFocus
-            />
-
-            <Button
-              text="Confirm code"
-              onClick={handleVerify}
-              disabled={!otp.trim() || isPending}
-            />
-
-            <div className="flex flex-col gap-1">
-              <Text className="text-center">
-                Did not get an email?{' '}
-                <button
-                  type="button"
-                  disabled={!canResend}
-                  onClick={handleResend}
-                  className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {canResend
-                    ? 'Resend'
-                    : `Resend in ${secondsUntilResend} ${secondsUntilResend === 1 ? 'second' : 'seconds'}`}
-                </button>
-              </Text>
-            </div>
-          </div>
-
-          <AppLogo className="self-center pt-4 pb-6" />
+    <>
+      <div className="flex-1 flex flex-col gap-8 justify-center items-center">
+        <div className="flex flex-col gap-4">
+          <Text className="text-h2 text-center">Enter verification code</Text>
+          <Text className="text-center">
+            Enter the code from the email we sent to{' '}
+            <Text className="text-solarOrange">{email}</Text>
+          </Text>
         </div>
-      )}
-    </ScreenWrapper>
+
+        <CodeInput
+          onComplete={handleComplete}
+          onChange={() => setError(false)}
+          disabled={isPending}
+          error={error}
+          autoFocus
+        />
+
+        <Button
+          text="Confirm code"
+          onClick={handleVerify}
+          disabled={!otp.trim() || isPending}
+        />
+
+        <div className="flex flex-col gap-1">
+          <Text className="text-center">
+            Did not get an email?{' '}
+            <button
+              type="button"
+              disabled={!canResend}
+              onClick={handleResend}
+              className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {canResend
+                ? 'Resend'
+                : `Resend in ${secondsUntilResend} ${secondsUntilResend === 1 ? 'second' : 'seconds'}`}
+            </button>
+          </Text>
+        </div>
+      </div>
+
+      <AppLogo className="self-center pt-4 pb-6" />
+    </>
   )
 }

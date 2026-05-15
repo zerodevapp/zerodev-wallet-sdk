@@ -1,5 +1,7 @@
-import { useEffect } from 'react'
+import { type ReactNode, useEffect } from 'react'
+import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { StatusView } from '../shared/components/StatusView'
+import { TopNav } from '../shared/components/TopNav'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
 import { ErrorScreen } from './pages/ErrorScreen'
@@ -7,32 +9,39 @@ import { OtpInput } from './pages/OtpInput'
 import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
 import { WalletSelection } from './pages/WalletSelection'
+import type { AuthStep } from './types'
 
 function hasMagicLinkCodeInUrl(): boolean {
   if (typeof window === 'undefined') return false
   return new URLSearchParams(window.location.search).has('code')
 }
 
+const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
+  'wallet-selection': 'Choose your wallet',
+}
+
 function OAuthCallback() {
   return (
-    <StatusView imageName="loading" title="Authenticating...">
-      Please wait while we complete the OAuth authentication.
-    </StatusView>
+    <div className="flex flex-1 items-center justify-center">
+      <StatusView imageName="loading" title="Authenticating...">
+        Please wait while we complete the OAuth authentication.
+      </StatusView>
+    </div>
   )
 }
 
-export function AuthFlow() {
-  const { step, goToStep } = useAuth()
+function PasskeyPrompt() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <StatusView imageName="loading" title="Passkey authentication">
+        Please authenticate with your passkey.
+      </StatusView>
+    </div>
+  )
+}
 
-  useEffect(() => {
-    if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
-      goToStep('verifying-otp')
-    }
-  }, [step, goToStep])
-
+function renderStep(step: AuthStep): ReactNode {
   switch (step) {
-    case 'initializing':
-      return null
     case 'sign-up':
       return <SignUp />
     case 'email-verification':
@@ -44,18 +53,50 @@ export function AuthFlow() {
     case 'oauth-in-progress':
       return <OAuthCallback />
     case 'passkey-prompt':
-      return (
-        <StatusView imageName="loading" title="Passkey authentication">
-          Please authenticate with your passkey.
-        </StatusView>
-      )
+      return <PasskeyPrompt />
     case 'wallet-selection':
       return <WalletSelection />
-    case 'authenticated':
-      return null // consumer handles this via onSuccess callback
     case 'error':
       return <ErrorScreen />
     default:
       return null
   }
+}
+
+export function AuthFlow({
+  onClose: userOnClose,
+}: {
+  onClose?: (() => void) | undefined
+} = {}) {
+  const { step, goToStep, goBack, reset } = useAuth()
+
+  useEffect(() => {
+    if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
+      goToStep('verifying-otp')
+    }
+  }, [step, goToStep])
+
+  const content = renderStep(step)
+  if (!content) return null
+
+  const handleClose = () => {
+    reset()
+    userOnClose?.()
+  }
+  const title = TITLE_BY_STEP[step]
+  const showBack = step !== 'sign-up'
+
+  return (
+    <ScreenWrapper
+      topNav={
+        <TopNav
+          {...(showBack && { onBack: goBack })}
+          onClose={handleClose}
+          {...(title && { title })}
+        />
+      }
+    >
+      {content}
+    </ScreenWrapper>
+  )
 }
