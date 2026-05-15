@@ -17,7 +17,7 @@ export function AlertView({ title, description }: AlertViewProps) {
         <Icon name="info" className="h-3.5 w-3.5 text-solarOrange" />
         <Text className="text-body1">{title}</Text>
       </div>
-      <Text className="text-body3">{description}</Text>
+      <Text className="text-body3 break-all">{description}</Text>
     </Wrapper>
   )
 }

@@ -75,7 +75,7 @@ function GenericSendTransaction({
   const {
     data: gasEstimate,
     isFetching: gasFetching,
-    isError: gasError,
+    error: gasError,
   } = useGasEstimate({
     calls: [
       {
@@ -93,6 +93,7 @@ function GenericSendTransaction({
       onConfirm={confirm}
       onReject={reject}
       disabled={confirmDisabled}
+      error={gasError}
     >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
@@ -109,19 +110,19 @@ function GenericSendTransaction({
           />
           <DataRow label="Data" value={shortenHex(data as Hex)} />
         </DetailsContainer>
-        <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
-          {gasError ? (
-            <DataRow label="Fee" value="Error" iconName="gasStation" />
-          ) : gasEstimate != null ? (
-            <DataRow
-              label="Fee"
-              value={formatGasFee(gasEstimate)}
-              iconName="gasStation"
-            />
-          ) : (
-            <DataRowSkeleton label="Fee" />
-          )}
-        </DetailsContainer>
+        {!gasError && (
+          <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+            {gasEstimate != null ? (
+              <DataRow
+                label="Fee"
+                value={formatGasFee(gasEstimate)}
+                iconName="gasStation"
+              />
+            ) : (
+              <DataRowSkeleton label="Fee" />
+            )}
+          </DetailsContainer>
+        )}
       </div>
     </SigningLayout>
   )

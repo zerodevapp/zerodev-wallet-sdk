@@ -5,6 +5,7 @@ import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
+import { DetailsContainer } from '../components/DetailsContainer'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
 import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
@@ -52,7 +53,7 @@ export function CollectionApproval({
   const {
     data: gasEstimate,
     isFetching: gasFetching,
-    isError: gasError,
+    error: gasError,
   } = useGasEstimate({
     calls: [{ to: contract, data }],
   })
@@ -76,6 +77,7 @@ export function CollectionApproval({
       onConfirm={confirm}
       onReject={reject}
       disabled={confirmDisabled}
+      error={gasError}
     >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
@@ -110,16 +112,18 @@ export function CollectionApproval({
               />
             }
           />
-          {gasError ? (
-            <DataRow label="Network fee" value="Error" iconName="gasStation" />
-          ) : gasEstimate != null ? (
-            <DataRow
-              label="Network fee"
-              value={formatGasFee(gasEstimate)}
-              iconName="gasStation"
-            />
-          ) : (
-            <DataRowSkeleton label="Network fee" />
+          {!gasError && (
+            <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+              {gasEstimate != null ? (
+                <DataRow
+                  label="Fee"
+                  value={formatGasFee(gasEstimate)}
+                  iconName="gasStation"
+                />
+              ) : (
+                <DataRowSkeleton label="Fee" />
+              )}
+            </DetailsContainer>
           )}
         </div>
       </div>

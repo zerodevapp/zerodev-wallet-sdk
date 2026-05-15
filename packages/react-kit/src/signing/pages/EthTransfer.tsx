@@ -4,6 +4,7 @@ import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
+import { DetailsContainer } from '../components/DetailsContainer'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
 import { useGasEstimate } from '../hooks/useGasEstimate'
@@ -26,7 +27,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
   const {
     data: gasEstimate,
     isFetching,
-    isError,
+    error: gasError,
   } = useGasEstimate({ calls: [{ to, value }] })
 
   const confirmDisabled = isFetching || gasEstimate == null
@@ -36,6 +37,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
       onConfirm={confirm}
       onReject={reject}
       disabled={confirmDisabled}
+      error={gasError}
     >
       <div className="flex flex-col gap-2 pt-4">
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
@@ -61,16 +63,18 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
               />
             }
           />
-          {isError ? (
-            <DataRow label="Network fee" value="Error" iconName="gasStation" />
-          ) : gasEstimate != null ? (
-            <DataRow
-              label="Network fee"
-              value={formatGasFee(gasEstimate)}
-              iconName="gasStation"
-            />
-          ) : (
-            <DataRowSkeleton label="Network fee" />
+          {!gasError && (
+            <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+              {gasEstimate != null ? (
+                <DataRow
+                  label="Fee"
+                  value={formatGasFee(gasEstimate)}
+                  iconName="gasStation"
+                />
+              ) : (
+                <DataRowSkeleton label="Fee" />
+              )}
+            </DetailsContainer>
           )}
         </div>
       </div>
