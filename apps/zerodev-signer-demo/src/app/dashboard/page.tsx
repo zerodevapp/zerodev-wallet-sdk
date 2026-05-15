@@ -281,7 +281,7 @@ export default function DashboardPage() {
         {/* GitHub Footer */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 text-center">
           <a
-            href="https://github.com/zerodevapp/zerodev-signer-demo"
+            href="https://github.com/zerodevapp/zerodev-wallet-sdk/tree/main/apps/zerodev-signer-demo"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
