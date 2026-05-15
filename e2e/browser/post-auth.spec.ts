@@ -71,12 +71,13 @@ async function loginWithOtp(
   email: string,
   authToken: string,
 ) {
-  await page.addInitScript(() => {
-    localStorage.setItem('zd:emailAuthMethod', 'otp')
-  })
-  await page.goto('/')
+  // Debug flag renders separate magic-link + OTP buttons regardless of
+  // demo's emailAuthMethod config.
+  await page.goto('/?renderBothEmailButtons=true')
   await page.getByPlaceholder('Enter your email').fill(email)
-  await page.getByPlaceholder('Enter your email').press('Enter')
+  await page
+    .getByRole('button', { name: /Continue with email OTP code/i })
+    .click()
   await expect(
     page.getByText(`Enter the code from the email we sent to ${email}`, {
       exact: false,

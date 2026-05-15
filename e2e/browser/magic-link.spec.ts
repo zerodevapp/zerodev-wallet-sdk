@@ -37,17 +37,18 @@ test.describe('Magic Link Flow', () => {
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
 
-    // Step 2: Seed the demo's email-method choice so wagmi-config picks
-    // magic-link on first paint. Then navigate.
-    await page.addInitScript(() => {
-      localStorage.setItem('zd:emailAuthMethod', 'magicLink')
-    })
-    await page.goto('/')
+    // Step 2: Navigate to login page (debug flag renders separate
+    // magic-link + OTP buttons regardless of demo's emailAuthMethod config)
+    await page.goto('/?renderBothEmailButtons=true')
     await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
-    // Step 3: Enter email and submit (press Enter)
+    // Step 3: Enter email
     await page.getByPlaceholder('Enter your email').fill(email)
-    await page.getByPlaceholder('Enter your email').press('Enter')
+
+    // Step 4: Click magic link button
+    await page
+      .getByRole('button', { name: /Continue with email magic link/i })
+      .click()
 
     // Step 5: Wait for confirmation that magic link was sent
     // (kit's EmailVerification screen renders "Check your email!")
