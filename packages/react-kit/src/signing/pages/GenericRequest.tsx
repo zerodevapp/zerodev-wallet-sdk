@@ -110,9 +110,9 @@ function GenericSendTransaction({
           />
           <DataRow label="Data" value={shortenHex(data as Hex)} />
         </DetailsContainer>
-        <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
-          {!gasError &&
-            (gasEstimate != null ? (
+        {!gasError && (
+          <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+            {gasEstimate != null ? (
               <DataRow
                 label="Fee"
                 value={formatGasFee(gasEstimate)}
@@ -120,8 +120,9 @@ function GenericSendTransaction({
               />
             ) : (
               <DataRowSkeleton label="Fee" />
-            ))}
-        </DetailsContainer>
+            )}
+          </DetailsContainer>
+        )}
       </div>
     </SigningLayout>
   )

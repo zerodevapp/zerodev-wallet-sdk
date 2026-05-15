@@ -5,6 +5,7 @@ import { Text } from '../../shared/components/Text'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
+import { DetailsContainer } from '../components/DetailsContainer'
 import { InfoCard } from '../components/InfoCard'
 import { SigningLayout } from '../components/SigningLayout'
 import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
@@ -111,16 +112,19 @@ export function CollectionApproval({
               />
             }
           />
-          {!gasError &&
-            (gasEstimate != null ? (
-              <DataRow
-                label="Network fee"
-                value={formatGasFee(gasEstimate)}
-                iconName="gasStation"
-              />
-            ) : (
-              <DataRowSkeleton label="Network fee" />
-            ))}
+          {!gasError && (
+            <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
+              {gasEstimate != null ? (
+                <DataRow
+                  label="Fee"
+                  value={formatGasFee(gasEstimate)}
+                  iconName="gasStation"
+                />
+              ) : (
+                <DataRowSkeleton label="Fee" />
+              )}
+            </DetailsContainer>
+          )}
         </div>
       </div>
     </SigningLayout>
