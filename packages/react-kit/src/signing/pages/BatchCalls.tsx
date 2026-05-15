@@ -323,17 +323,16 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
           </div>
         </DetailsContainer>
         <DetailsContainer title="Estimated Gas Fee" iconName="lightingFill">
-          {gasError ? (
-            <DataRow label="Fee" value="Error" iconName="gasStation" />
-          ) : gasEstimate != null ? (
-            <DataRow
-              label="Fee"
-              value={formatGasFee(gasEstimate)}
-              iconName="gasStation"
-            />
-          ) : (
-            <DataRowSkeleton label="Fee" />
-          )}
+          {!gasError &&
+            (gasEstimate != null ? (
+              <DataRow
+                label="Fee"
+                value={formatGasFee(gasEstimate)}
+                iconName="gasStation"
+              />
+            ) : (
+              <DataRowSkeleton label="Fee" />
+            ))}
         </DetailsContainer>
       </div>
     </SigningLayout>
