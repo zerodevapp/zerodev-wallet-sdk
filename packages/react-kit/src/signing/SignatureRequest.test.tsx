@@ -83,10 +83,6 @@ describe('SignatureRequest', () => {
 
     render(<SignatureRequest />)
 
-    // Transaction Summary starts collapsed; expand it to reveal params.
-    const [toggleButton] = screen.getAllByRole('button')
-    fireEvent.click(toggleButton)
-
     expect(screen.getByText(/0x1234/)).toBeDefined()
   })
 

@@ -1,6 +1,7 @@
 import { type Address, formatEther, type Hex } from 'viem'
 
 import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
@@ -41,7 +42,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
           <Text className="text-h2">Send Token</Text>
           <Text className="text-center">
-            You are about to send {formattedAmount} ETH to {to}.
+            You are about to send {formattedAmount} ETH to {shortenHex(to)}.
           </Text>
         </div>
         <div className="flex flex-col gap-2">
@@ -56,7 +57,7 @@ export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
             }
             bottomCard={
               <InfoCard
-                title={to}
+                title={shortenHex(to)}
                 subtitle="Recipient"
                 imageSource={RECIPIENT_IMAGE_SOURCE}
               />

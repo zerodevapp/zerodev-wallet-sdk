@@ -2,6 +2,7 @@ import { type Address, erc20Abi, formatUnits, type Hex } from 'viem'
 import { useReadContract } from 'wagmi'
 
 import { Text } from '../../shared/components/Text'
+import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
@@ -87,7 +88,8 @@ export function Erc20Transfer({
         <div className="flex flex-col items-center justify-center gap-2 pb-2">
           <Text className="text-h2">Send Token</Text>
           <Text className="text-center">
-            You are about to send {formattedAmount} {symbol} to {to}.
+            You are about to send {formattedAmount} {symbol} to {shortenHex(to)}
+            .
           </Text>
         </div>
         <div className="flex flex-col gap-2">
@@ -102,7 +104,7 @@ export function Erc20Transfer({
             }
             bottomCard={
               <InfoCard
-                title={to}
+                title={shortenHex(to)}
                 subtitle="Recipient"
                 imageSource={RECIPIENT_IMAGE_SOURCE}
               />
