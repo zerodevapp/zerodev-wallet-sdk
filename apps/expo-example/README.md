@@ -211,6 +211,19 @@ For the App Link wiring, how to point the redirects at your own domain,
 and how to verify the binding, see
 [`docs/oauth-native.md`](./docs/oauth-native.md).
 
+## Wallet export
+
+The home screen has an **Export wallet** link that reveals the seed
+phrase or private key. Plaintext is reconstructed by Turnkey's export
+iframe inside a hardened `react-native-webview` — the RN bundle never
+holds it. The flow is gated by consent + biometric and protected with
+`FLAG_SECURE` on Android.
+
+For why a WebView, what this app already hardens, and what you need to
+add on top in your own app (iOS ATS, Android Network Security Config,
+OTA bundle signing, supply-chain monitoring), see
+[`docs/wallet-export.md`](./docs/wallet-export.md).
+
 ## Troubleshooting
 
 - **Stale Metro cache** (duplicate React / wagmi, "hooks called outside
