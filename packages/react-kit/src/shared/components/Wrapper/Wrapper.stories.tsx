@@ -18,18 +18,6 @@ const meta = {
   args: {
     variant: 'soft',
   },
-  decorators: [
-    (Story) => (
-      <div
-        className="p-10"
-        style={{
-          backgroundImage: 'linear-gradient(135deg, #B78C71 0%, #45ABFB 100%)',
-        }}
-      >
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof Wrapper>
 
 export default meta

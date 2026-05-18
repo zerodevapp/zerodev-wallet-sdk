@@ -13,15 +13,8 @@ const meta = {
     disabled: { control: 'boolean' },
   },
   args: {
-    children: <Text className="text-white">Press me</Text>,
+    children: <Text>Press me</Text>,
   },
-  decorators: [
-    (Story) => (
-      <div className="p-10 bg-greyScale">
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof WrappedPressable>
 
 export default meta

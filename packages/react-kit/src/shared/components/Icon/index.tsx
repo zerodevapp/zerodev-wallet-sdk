@@ -1,4 +1,5 @@
 import type { FC, SVGProps } from 'react'
+import { cn } from '../../utils/common'
 
 type SvgModule = { default: FC<SVGProps<SVGSVGElement>> }
 
@@ -35,8 +36,8 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
   name: string
 }
 
-export function Icon({ name, ...props }: IconProps) {
+export function Icon({ name, className, ...props }: IconProps) {
   const Component = icons[name]
   if (!Component) return null
-  return <Component {...props} />
+  return <Component className={cn('text-greyScale', className)} {...props} />
 }
