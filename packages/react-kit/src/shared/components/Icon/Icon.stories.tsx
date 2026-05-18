@@ -18,13 +18,6 @@ const meta = {
     },
     className: { control: 'text' },
   },
-  decorators: [
-    (Story) => (
-      <div style={{ padding: 24, background: '#1a1a1a', borderRadius: 12 }}>
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof Icon>
 
 export default meta
@@ -59,7 +52,7 @@ export const AllIcons: Story = {
             padding: 12,
           }}
         >
-          <Icon name={name} className="w-6 h-6 text-white" />
+          <Icon name={name} className="w-6 h-6 text-greyScale" />
           <span style={{ color: '#999', fontSize: 10, textAlign: 'center' }}>
             {name.replace(/Icon$/, '')}
           </span>

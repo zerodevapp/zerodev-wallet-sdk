@@ -24,13 +24,11 @@ type Story = StoryObj<typeof meta>
 function Wrap(props: React.ComponentProps<typeof SignUpFooter>) {
   const [agreed, setAgreed] = useState(props.agreedToTerms)
   return (
-    <div className="w-96 p-6 bg-white rounded-lg">
-      <SignUpFooter
-        {...props}
-        agreedToTerms={agreed}
-        setAgreedToTerms={setAgreed}
-      />
-    </div>
+    <SignUpFooter
+      {...props}
+      agreedToTerms={agreed}
+      setAgreedToTerms={setAgreed}
+    />
   )
 }
 

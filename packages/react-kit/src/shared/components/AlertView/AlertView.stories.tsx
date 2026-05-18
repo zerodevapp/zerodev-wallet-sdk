@@ -14,19 +14,6 @@ const meta = {
     description:
       'This is a short description explaining the alert context to the user.',
   },
-  decorators: [
-    (Story) => (
-      <div
-        className="p-10"
-        style={{
-          backgroundImage: 'linear-gradient(135deg, #B78C71 0%, #45ABFB 100%)',
-          width: 400,
-        }}
-      >
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof AlertView>
 
 export default meta
