@@ -97,9 +97,49 @@ function ClippedCard({
   )
 }
 
+// Outline that traces the outer 52×52 rounded square but skips the GAP-wide
+// vertical strips on the left and right (which would otherwise float in the
+// empty space between the two cards). Mirrors RN's ArrowBorderSvg.
+const ARROW_BORDER_PATH = (() => {
+  const gapTop = HALF - GAP / 2
+  const gapBottom = HALF + GAP / 2
+  return [
+    `M ${R} 0`,
+    `L ${ARROW_OUTER - R} 0`,
+    `A ${R} ${R} 0 0 1 ${ARROW_OUTER} ${R}`,
+    `L ${ARROW_OUTER} ${gapTop}`,
+    `M ${ARROW_OUTER} ${gapBottom}`,
+    `L ${ARROW_OUTER} ${ARROW_OUTER - R}`,
+    `A ${R} ${R} 0 0 1 ${ARROW_OUTER - R} ${ARROW_OUTER}`,
+    `L ${R} ${ARROW_OUTER}`,
+    `A ${R} ${R} 0 0 1 0 ${ARROW_OUTER - R}`,
+    `L 0 ${gapBottom}`,
+    `M 0 ${gapTop}`,
+    `L 0 ${R}`,
+    `A ${R} ${R} 0 0 1 ${R} 0`,
+  ].join(' ')
+})()
+
 function Arrow({ className }: { className?: string }) {
   return (
-    <div className={cn('p-1 rounded-2xl', className)}>
+    <div
+      className={cn('relative p-1 rounded-2xl', className)}
+      style={{ width: ARROW_OUTER, height: ARROW_OUTER }}
+    >
+      <svg
+        width={ARROW_OUTER}
+        height={ARROW_OUTER}
+        viewBox={`0 0 ${ARROW_OUTER} ${ARROW_OUTER}`}
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
+      >
+        <path
+          d={ARROW_BORDER_PATH}
+          fill="none"
+          stroke="white"
+          strokeWidth={0.3}
+        />
+      </svg>
       <Wrapper className="w-11 h-11 flex items-center justify-center rounded-xl">
         <Icon name="chevronDown" className="w-4 h-4" />
       </Wrapper>
