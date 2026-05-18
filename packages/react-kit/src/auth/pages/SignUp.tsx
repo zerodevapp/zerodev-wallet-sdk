@@ -22,23 +22,10 @@ function isCancellationError(err: unknown): boolean {
   if (err.name === 'AbortError' || err.name === 'NotAllowedError') return true
   // OAuth (existing logic, message-based)
   const msg = err.message.toLowerCase()
-  return msg.includes('OAuth popup was closed')
-}
-
-// Debug-only override: render both magic-link and OTP buttons so QA can
-// exercise either path regardless of `config.emailAuthMethod`. Toggle by
-// appending `?renderBothEmailButtons=true` to the URL.
-function shouldShowBothEmailButtons(): boolean {
-  if (typeof window === 'undefined') return false
-  return (
-    new URLSearchParams(window.location.search).get(
-      'renderBothEmailButtons',
-    ) === 'true'
-  )
+  return msg.includes('oauth popup was closed')
 }
 
 export function SignUp() {
-  const showBothEmailButtons = shouldShowBothEmailButtons()
   const { goToStep, setEmail, setOtpSession, config, enabledMethods } =
     useAuth()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -105,11 +92,11 @@ export function SignUp() {
   const requiresAgreement = !!(
     config?.termsAndConditionsUrl || config?.privacyPolicyUrl
   )
-  const canContinue = !requiresAgreement || agreedToTerms
+  const needsToAcceptAgreement = requiresAgreement && !agreedToTerms
 
   const handleRegisterPasskey = () => {
     if (anyPending) return
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
@@ -119,7 +106,7 @@ export function SignUp() {
 
   const handleLoginPasskey = () => {
     if (anyPending) return
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
@@ -128,7 +115,7 @@ export function SignUp() {
   }
 
   const handleGoogleAuth = async () => {
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
@@ -147,28 +134,22 @@ export function SignUp() {
     goToStep('wallet-selection')
   }
 
-  const handleEmailSubmit = async (forceMethod?: 'otp' | 'magicLink') => {
+  const handleEmailOtp = async () => {
     if (!emailInput || anyPending) return
     if (!isValidEmailAddress(emailInput)) return
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
 
-    const useOtp =
-      forceMethod !== undefined ? forceMethod === 'otp' : shouldUseOtp
-
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = useOtp
-        ? await sendOtp({ email: emailInput })
-        : await sendMagicLink({
-            email: emailInput,
-            redirectURL: config?.magicLinkBaseUrl ?? '',
-          })
+      const { otpId, otpEncryptionTargetBundle } = await sendOtp({
+        email: emailInput,
+      })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep(useOtp ? 'otp-input' : 'email-verification')
+      goToStep('otp-input')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
@@ -176,12 +157,43 @@ export function SignUp() {
     }
   }
 
+  const handleEmailMagicLink = async () => {
+    if (!emailInput || anyPending) return
+    if (!isValidEmailAddress(emailInput)) return
+    if (needsToAcceptAgreement) {
+      setHighlightAgreement(true)
+      return
+    }
+
+    setError(null)
+    try {
+      const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
+        email: emailInput,
+        redirectURL: config?.magicLinkBaseUrl ?? '',
+      })
+      setEmail(emailInput)
+      setOtpSession({ otpId, otpEncryptionTargetBundle })
+      goToStep('email-verification')
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to send verification code',
+      )
+    }
+  }
+
+  const handleEmailSubmit = shouldUseOtp ? handleEmailOtp : handleEmailMagicLink
+
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-full">
         <div className="flex flex-col gap-4 max-w-md">
           <Text className="text-h2 text-center">Error occurred</Text>
           <Text className="text-center text-red-500">{error}</Text>
+          <Button
+            action="primary"
+            text="Try again"
+            onClick={() => setError(null)}
+          />
         </div>
       </div>
     )
@@ -230,77 +242,41 @@ export function SignUp() {
             />
           )}
           {enabledMethods.includes('email') && (
-            <>
-              <Input
-                iconName="email"
-                placeholder="Enter your email..."
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                type="email"
-                autoCapitalize="none"
-                autoComplete="email"
-                disabled={anyPending}
-                variant="listItemStyle"
-                className="rounded-3xl"
-                onKeyDown={(e) => {
-                  if (
-                    e.key === 'Enter' &&
-                    emailInput &&
-                    !anyPending &&
-                    !showBothEmailButtons
-                  ) {
-                    handleEmailSubmit()
-                  }
-                }}
-              >
-                {!showBothEmailButtons &&
-                  (emailInput && !anyPending ? (
-                    <button
-                      type="button"
-                      className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
-                        isValidEmailAddress(emailInput) && canContinue
-                          ? 'cursor-pointer hover:bg-greyScale/[5%]'
-                          : 'cursor-not-allowed opacity-50'
-                      }`}
-                      onClick={() => handleEmailSubmit()}
-                    >
-                      <Icon name="chevronRight" className="text-greyScale" />
-                    </button>
-                  ) : isEmailLoading ? (
-                    <div className="w-13 h-13 flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  ) : null)}
-              </Input>
-              {showBothEmailButtons && (
-                <>
-                  <Button
-                    action="secondaryNeutral"
-                    text="Continue with email magic link"
-                    iconName="email"
-                    trailIcon
-                    disabled={
-                      !emailInput ||
-                      anyPending ||
-                      !isValidEmailAddress(emailInput)
-                    }
-                    onClick={() => handleEmailSubmit('magicLink')}
-                  />
-                  <Button
-                    action="secondaryNeutral"
-                    text="Continue with email OTP code"
-                    iconName="email"
-                    trailIcon
-                    disabled={
-                      !emailInput ||
-                      anyPending ||
-                      !isValidEmailAddress(emailInput)
-                    }
-                    onClick={() => handleEmailSubmit('otp')}
-                  />
-                </>
-              )}
-            </>
+            <Input
+              iconName="email"
+              placeholder="Enter your email..."
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              type="email"
+              autoCapitalize="none"
+              autoComplete="email"
+              disabled={anyPending}
+              variant="listItemStyle"
+              className="rounded-3xl"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && emailInput && !anyPending) {
+                  handleEmailSubmit()
+                }
+              }}
+            >
+              {emailInput && !anyPending ? (
+                <button
+                  type="button"
+                  className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
+                    isValidEmailAddress(emailInput) && !needsToAcceptAgreement
+                      ? 'cursor-pointer hover:bg-greyScale/[5%]'
+                      : 'cursor-not-allowed opacity-50'
+                  }`}
+                  onClick={() => handleEmailSubmit()}
+                >
+                  <Icon name="chevronRight" className="text-greyScale" />
+                </button>
+              ) : isEmailLoading ? (
+                <div className="w-13 h-13 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : null}
+            </Input>
           )}
           {enabledMethods.includes('injected-wallet') && (
             <>

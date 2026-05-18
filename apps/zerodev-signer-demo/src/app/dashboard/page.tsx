@@ -43,6 +43,20 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showExportPrivateKeyModal, setShowExportPrivateKeyModal] = useState(false);
+  // Toggle for whether SignatureRequest is mounted. When mounted, the kit
+  // gates signing calls on user confirmation; when not, calls go through
+  // silently (background mode). Default off; persisted in localStorage.
+  const [confirmationEnabled, setConfirmationEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("zd:signingConfirmation") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "zd:signingConfirmation",
+      String(confirmationEnabled),
+    );
+  }, [confirmationEnabled]);
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
@@ -136,7 +150,9 @@ export default function DashboardPage() {
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
       <ExportPrivateKeyModal isOpen={showExportPrivateKeyModal} onClose={() => setShowExportPrivateKeyModal(false)} />
-      <SignatureRequest className='absolute right-0 top-20 w-[400px] h-[600px]' />
+      {confirmationEnabled && (
+        <SignatureRequest className='absolute right-10 top-10 w-[400px] h-[600px]' />
+      )}
       <div className="min-h-screen bg-white">
         {/* Header */}
         <header className="bg-white border-b border-gray-100">
@@ -243,6 +259,15 @@ export default function DashboardPage() {
               <span className="text-lg text-gray-500 font-medium">ETH</span>
             </div>
             <p className="text-sm text-gray-500 mt-1">{chain?.name} Testnet</p>
+            <label className="mt-3 flex items-center gap-2 cursor-pointer text-sm leading-none">
+              <input
+                type="checkbox"
+                checked={confirmationEnabled}
+                onChange={(e) => setConfirmationEnabled(e.target.checked)}
+                className="h-3 w-3 m-0"
+              />
+              <span className="text-gray-700">Show transaction review</span>
+            </label>
           </div>
 
           {/* Tabs */}
@@ -281,7 +306,7 @@ export default function DashboardPage() {
         {/* GitHub Footer */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 text-center">
           <a
-            href="https://github.com/zerodevapp/zerodev-signer-demo"
+            href="https://github.com/zerodevapp/zerodev-wallet-sdk/tree/main/apps/zerodev-signer-demo"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
