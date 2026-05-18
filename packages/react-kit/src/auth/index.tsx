@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { StatusView } from '../shared/components/StatusView'
 import { TopNav } from '../shared/components/TopNav'
@@ -63,11 +63,22 @@ function renderStep(step: AuthStep): ReactNode {
   }
 }
 
-export function AuthFlow({
-  onClose: userOnClose,
-}: {
+type AuthFlowProps = {
   onClose?: (() => void) | undefined
-} = {}) {
+}
+
+export function AuthFlow(props: AuthFlowProps = {}) {
+  // SSR gate: useAuth (-> useConfig) throws if rendered without WagmiProvider
+  // in context, which Next App Router prerender can hit. Defer until mount.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  if (!mounted) return null
+  return <AuthFlowInner {...props} />
+}
+
+function AuthFlowInner({ onClose: userOnClose }: AuthFlowProps) {
   const { step, goToStep, goBack, reset } = useAuth()
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import type { PendingRequest, Request } from '../types.js'
 import { renderRequestContent } from './components/renderRequestContent.js'
@@ -69,13 +69,28 @@ function ControlledSignatureRequest({
   )
 }
 
-function UncontrolledSignatureRequest({
+type UncontrolledSignatureRequestProps = {
+  children: ((args: RenderPropArgs) => ReactNode) | undefined
+} & StyleProps
+
+function UncontrolledSignatureRequest(
+  props: UncontrolledSignatureRequestProps,
+) {
+  // SSR gate: usePendingRequest (-> useConfig) throws if rendered without
+  // WagmiProvider in context, which Next App Router prerender can hit.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  if (!mounted) return null
+  return <UncontrolledSignatureRequestInner {...props} />
+}
+
+function UncontrolledSignatureRequestInner({
   children,
   className,
   style,
-}: {
-  children: ((args: RenderPropArgs) => ReactNode) | undefined
-} & StyleProps) {
+}: UncontrolledSignatureRequestProps) {
   const { pendingRequest, pendingRequests, confirm, reject } =
     usePendingRequest()
 
