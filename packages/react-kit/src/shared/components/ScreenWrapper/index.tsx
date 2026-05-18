@@ -19,16 +19,16 @@ export function ScreenWrapper({
   return (
     <div
       className={cn(
-        'flex-1 flex flex-col relative overflow-hidden min-h-screen w-full rounded-[34px]',
+        'flex-1 flex flex-col relative overflow-hidden min-h-screen w-full rounded-[34px] sm:min-h-0 sm:h-full',
         className,
       )}
       style={style}
     >
       <MultiRadialBackground />
-      <div className="flex-1 bg-offWhite/85 m-1.5 px-4 overflow-hidden rounded-[30px] relative">
+      <div className="flex flex-1 flex-col bg-offWhite/85 m-1.5 px-4 overflow-hidden rounded-[30px] relative">
         {topNav}
         <div
-          className="flex flex-1 flex-col h-full"
+          className="flex flex-1 flex-col"
           style={{ paddingTop: `${CONTENT_PADDING_TOP}px` }}
         >
           {children}

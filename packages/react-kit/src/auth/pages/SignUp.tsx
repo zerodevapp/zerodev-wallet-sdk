@@ -200,7 +200,7 @@ export function SignUp() {
   }
 
   return (
-    <div className="h-full flex flex-col justify-between pb-6 overflow-y-auto">
+    <div className="flex-1 flex flex-col justify-between pb-6 overflow-y-auto">
       <div className="flex-1 flex flex-col justify-center">
         <div className="flex flex-col items-center gap-4">
           <Text className="text-h2 text-center">Continue to your wallet</Text>
