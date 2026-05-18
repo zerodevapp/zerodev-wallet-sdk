@@ -105,11 +105,11 @@ export function SignUp() {
   const requiresAgreement = !!(
     config?.termsAndConditionsUrl || config?.privacyPolicyUrl
   )
-  const canContinue = !requiresAgreement || agreedToTerms
+  const needsToAcceptAgreement = requiresAgreement && !agreedToTerms
 
   const handleRegisterPasskey = () => {
     if (anyPending) return
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
@@ -119,7 +119,7 @@ export function SignUp() {
 
   const handleLoginPasskey = () => {
     if (anyPending) return
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
@@ -128,7 +128,7 @@ export function SignUp() {
   }
 
   const handleGoogleAuth = async () => {
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
@@ -147,34 +147,54 @@ export function SignUp() {
     goToStep('wallet-selection')
   }
 
-  const handleEmailSubmit = async (forceMethod?: 'otp' | 'magicLink') => {
+  const handleEmailOtp = async () => {
     if (!emailInput || anyPending) return
     if (!isValidEmailAddress(emailInput)) return
-    if (!canContinue) {
+    if (needsToAcceptAgreement) {
       setHighlightAgreement(true)
       return
     }
 
-    const useOtp =
-      forceMethod !== undefined ? forceMethod === 'otp' : shouldUseOtp
-
     setError(null)
     try {
-      const { otpId, otpEncryptionTargetBundle } = useOtp
-        ? await sendOtp({ email: emailInput })
-        : await sendMagicLink({
-            email: emailInput,
-            redirectURL: config?.magicLinkBaseUrl ?? '',
-          })
+      const { otpId, otpEncryptionTargetBundle } = await sendOtp({
+        email: emailInput,
+      })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
-      goToStep(useOtp ? 'otp-input' : 'email-verification')
+      goToStep('otp-input')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to send verification code',
       )
     }
   }
+
+  const handleEmailMagicLink = async () => {
+    if (!emailInput || anyPending) return
+    if (!isValidEmailAddress(emailInput)) return
+    if (needsToAcceptAgreement) {
+      setHighlightAgreement(true)
+      return
+    }
+
+    setError(null)
+    try {
+      const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
+        email: emailInput,
+        redirectURL: config?.magicLinkBaseUrl ?? '',
+      })
+      setEmail(emailInput)
+      setOtpSession({ otpId, otpEncryptionTargetBundle })
+      goToStep('email-verification')
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to send verification code',
+      )
+    }
+  }
+
+  const handleEmailSubmit = shouldUseOtp ? handleEmailOtp : handleEmailMagicLink
 
   if (error) {
     return (
@@ -263,7 +283,8 @@ export function SignUp() {
                     <button
                       type="button"
                       className={`w-13 h-13 rounded-2xl bg-greyScale/[3%] flex items-center justify-center transition-colors ${
-                        isValidEmailAddress(emailInput) && canContinue
+                        isValidEmailAddress(emailInput) &&
+                        !needsToAcceptAgreement
                           ? 'cursor-pointer hover:bg-greyScale/[5%]'
                           : 'cursor-not-allowed opacity-50'
                       }`}
@@ -289,7 +310,7 @@ export function SignUp() {
                       anyPending ||
                       !isValidEmailAddress(emailInput)
                     }
-                    onClick={() => handleEmailSubmit('magicLink')}
+                    onClick={() => handleEmailMagicLink()}
                   />
                   <Button
                     action="secondaryNeutral"
@@ -301,7 +322,7 @@ export function SignUp() {
                       anyPending ||
                       !isValidEmailAddress(emailInput)
                     }
-                    onClick={() => handleEmailSubmit('otp')}
+                    onClick={() => handleEmailOtp()}
                   />
                 </>
               )}
