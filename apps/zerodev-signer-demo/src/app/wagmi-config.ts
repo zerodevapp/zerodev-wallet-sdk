@@ -15,6 +15,16 @@ const rpcUrls: Record<number, string | undefined> = {
 // unset for the SDK default ('7702').
 const mode = process.env.NEXT_PUBLIC_WALLET_MODE as WalletMode | undefined
 
+// Read the email auth method choice from localStorage on init. Toggled by
+// the cogwheel on the landing page; changes trigger a page reload so this
+// re-runs with the new value.
+function getEmailAuthMethod(): 'otp' | 'magicLink' {
+  if (typeof window === 'undefined') return 'otp'
+  return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
+    ? 'magicLink'
+    : 'otp'
+}
+
 export const config = createConfig({
   chains: [arbitrumSepolia, sepolia],
   connectors: [
@@ -27,7 +37,7 @@ export const config = createConfig({
         auth: {
           magicLinkBaseUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/verify`,
           enabledMethods: ['email', 'google', 'passkey', 'injected-wallet'],
-          emailAuthMethod: 'otp',
+          emailAuthMethod: getEmailAuthMethod(),
         },
       },
     }),
