@@ -103,9 +103,6 @@ test.describe('Passkey Flow', () => {
         .nth(1)
         .click()
 
-      // Confirm in kit's SignatureRequest UI
-      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
-
       // Exact match avoids the kit's "Signature Request" heading; match only
       // the result-panel label.
       await expect(page.getByText('Signature', { exact: true })).toBeVisible({
@@ -141,11 +138,6 @@ test.describe('Passkey Flow', () => {
       // Click the "Sign Typed Data" action button
       await page.getByRole('button', { name: /Sign Typed Data/i }).click()
 
-      // Confirm in kit's SignatureRequest UI
-      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
-
-      // Exact match avoids the kit's "Signature Request" heading; match only
-      // the result-panel label.
       await expect(page.getByText('Signature', { exact: true })).toBeVisible({
         timeout: 30_000,
       })
@@ -174,10 +166,6 @@ test.describe('Passkey Flow', () => {
         .nth(1)
         .click()
 
-      // Confirm in kit's SignatureRequest UI
-      await page.getByRole('button', { name: 'Confirm', exact: true }).click()
-
-      // Wait for success — writeContract returns tx hash, then UI shows success
       await expect(page.getByText('NFT minted successfully!')).toBeVisible({
         timeout: 60_000,
       })

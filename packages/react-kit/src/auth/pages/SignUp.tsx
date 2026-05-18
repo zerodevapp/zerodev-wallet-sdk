@@ -22,7 +22,7 @@ function isCancellationError(err: unknown): boolean {
   if (err.name === 'AbortError' || err.name === 'NotAllowedError') return true
   // OAuth (existing logic, message-based)
   const msg = err.message.toLowerCase()
-  return msg.includes('OAuth popup was closed')
+  return msg.includes('oauth popup was closed')
 }
 
 // Debug-only override: render both magic-link and OTP buttons so QA can
@@ -198,10 +198,15 @@ export function SignUp() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-full">
         <div className="flex flex-col gap-4 max-w-md">
           <Text className="text-h2 text-center">Error occurred</Text>
           <Text className="text-center text-red-500">{error}</Text>
+          <Button
+            action="primary"
+            text="Try again"
+            onClick={() => setError(null)}
+          />
         </div>
       </div>
     )
