@@ -64,7 +64,7 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.step).toBe('initializing')
+    expect(result.current.step).toBeNull()
     expect(result.current.email).toBeNull()
     expect(result.current.otpId).toBeNull()
     expect(result.current.enabledMethods).toEqual([])
@@ -79,7 +79,7 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.step).toBe('initializing')
+    expect(result.current.step).toBeNull()
     expect(result.current.enabledMethods).toEqual([
       'email',
       'google',
@@ -158,7 +158,7 @@ describe('useAuth', () => {
     result.current.reset()
 
     const { auth } = store.getState()
-    expect(auth.step).toBe('initializing')
+    expect(auth.step).toBeNull()
     expect(auth.email).toBeNull()
   })
 
@@ -195,7 +195,7 @@ describe('useAuth', () => {
 
     const { result, rerender } = renderHook(() => useAuth())
 
-    expect(result.current.step).toBe('initializing')
+    expect(result.current.step).toBeNull()
 
     // Change store state
     store.getState().auth.initialize(config)

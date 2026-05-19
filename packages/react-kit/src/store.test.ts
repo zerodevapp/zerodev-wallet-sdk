@@ -122,7 +122,7 @@ describe('store', () => {
       const state = store.getState()
 
       expect(state.auth).toBeDefined()
-      expect(state.auth.step).toBe('initializing')
+      expect(state.auth.step).toBeNull()
       expect(state.auth.stepHistory).toEqual([])
       expect(state.auth.enabledMethods).toEqual([])
       expect(state.auth.email).toBeNull()
