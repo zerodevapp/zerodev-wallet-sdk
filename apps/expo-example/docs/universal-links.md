@@ -7,11 +7,6 @@ the user taps a link like
 the app launches, and `expo-router` lands on `src/app/verify-email.tsx`
 which finishes the verification.
 
-OAuth does **not** need Universal Links — the OAuth flow uses
-`ASWebAuthenticationSession` (via `expo-auth-session`) which captures the
-redirect inside an in-app session, so a custom scheme works fine. UL is
-specifically for URLs that live outside the app (emails, SMS, browsers).
-
 Universal Links only succeed when:
 
 1. The RP domain serves `/.well-known/apple-app-site-association` (AASA)
