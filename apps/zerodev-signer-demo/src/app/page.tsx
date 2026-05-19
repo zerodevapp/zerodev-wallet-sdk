@@ -1,10 +1,10 @@
 'use client'
 
-import { AuthFlow } from '@zerodev/wallet-react-kit'
-import { Settings } from 'lucide-react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
-import { useAccount, useConnect } from 'wagmi'
+import {AuthFlow} from '@zerodev/wallet-react-kit'
+import {Settings} from 'lucide-react'
+import {useRouter, useSearchParams} from 'next/navigation'
+import {Suspense, useEffect, useState} from 'react'
+import {useAccount, useConnect} from 'wagmi'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +13,7 @@ type EmailAuthMethod = 'otp' | 'magicLink'
 export default function LandingPage() {
   return (
     <Suspense>
-      <LandingPageInner />
+      <LandingPageInner/>
     </Suspense>
   )
 }
@@ -23,8 +23,8 @@ function LandingPageInner() {
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
 
-  const { connect, connectors, status: connectStatus } = useConnect()
-  const { isConnected, status: accountStatus } = useAccount()
+  const {connect, connectors, status: connectStatus} = useConnect()
+  const {isConnected, status: accountStatus} = useAccount()
 
   useEffect(() => {
     if (isConnected) {
@@ -36,22 +36,22 @@ function LandingPageInner() {
       connectStatus === 'idle' &&
       connectors[0]
     ) {
-      connect({ connector: connectors[0] })
+      connect({connector: connectors[0]})
     }
   }, [isConnected, accountStatus, connectStatus, router, connect, connectors])
 
   return (
-    <div className="mx-auto min-h-screen w-[500px] flex flex-col justify-center py-4">
+    <div
+      className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
       {sessionExpired && (
-        <div className="mb-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
+        <div
+          className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
           Your session has expired. Please log in again.
         </div>
       )}
-      <div className="flex justify-end pb-2">
-        <EmailMethodSettings />
-      </div>
-      <div className="h-[800px] w-full">
-        <AuthFlow />
+      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
+        <EmailMethodSettings/>
+        <AuthFlow/>
       </div>
     </div>
   )
@@ -83,14 +83,14 @@ function EmailMethodSettings() {
   }
 
   return (
-    <>
+    <div className="flex justify-end pb-2">
       <button
         type="button"
         onClick={handleOpen}
         aria-label="Email method settings"
         className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
       >
-        <Settings className="h-6 w-6" />
+        <Settings className="h-6 w-6"/>
       </button>
       {open && (
         <div
@@ -143,6 +143,6 @@ function EmailMethodSettings() {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
