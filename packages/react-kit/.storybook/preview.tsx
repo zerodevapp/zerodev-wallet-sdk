@@ -30,7 +30,7 @@ const preview: Preview = {
     screenWrapper: {
       name: 'ScreenWrapper',
       description: 'Render the story inside the AuthFlow card chrome',
-      defaultValue: 'off',
+      defaultValue: 'on',
       toolbar: {
         icon: 'contrast',
         items: [

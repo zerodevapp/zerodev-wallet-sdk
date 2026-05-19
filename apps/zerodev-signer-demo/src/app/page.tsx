@@ -41,16 +41,16 @@ function LandingPageInner() {
   }, [isConnected, accountStatus, connectStatus, router, connect, connectors])
 
   return (
-    <div className="mx-auto min-h-screen w-[500px] flex flex-col justify-center py-4">
+    <div className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
       {sessionExpired && (
-        <div className="mb-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
+        <div className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
           Your session has expired. Please log in again.
         </div>
       )}
       <div className="flex justify-end pb-2">
         <EmailMethodSettings />
       </div>
-      <div className="h-[800px] w-full">
+      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
         <AuthFlow />
       </div>
     </div>
