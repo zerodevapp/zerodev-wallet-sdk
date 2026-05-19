@@ -18,7 +18,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.zerodev.expoexample",
-      "appleTeamId": "88J4C462WP",
       "associatedDomains": [
         "applinks:zerodev-expo-example.vercel.app?mode=developer",
         "webcredentials:zerodev-expo-example.vercel.app"
