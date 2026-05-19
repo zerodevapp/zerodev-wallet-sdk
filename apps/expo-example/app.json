@@ -58,10 +58,6 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
-      ],
-      "permissions": [
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
