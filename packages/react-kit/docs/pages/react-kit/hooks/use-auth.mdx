@@ -47,7 +47,7 @@ function MyCustomAuth() {
 | `enabledMethods` | `AuthMethod[]` | Methods enabled by `config.auth.enabledMethods`. |
 | `config` | `AuthConfig \| null` | The full auth config passed to the connector. |
 | `goToStep` | `(step: AuthStep) => void` | Move the flow to a specific step. |
-| `goBack` | `() => void` | Go back to the previous step. |
+| `goBack` | `(() => void) \| null` | Go back to the previous step. `null` when there's no previous step. |
 | `reset` | `() => void` | Reset the flow to its initial state. |
 | `setEmail` | `(email: string) => void` | Set the email value. |
 | `setOtpId` | `(otpId: string) => void` | Set the OTP challenge id. |

@@ -2,6 +2,7 @@ import { AppLogo } from '../../shared/components/AppLogo'
 import { Button } from '../../shared/components/Button'
 import { StatusView } from '../../shared/components/StatusView'
 import { useAuth } from '../hooks/useAuth'
+import { stripMagicLinkCodeFromUrl } from '../utils/url'
 
 interface ErrorScreenProps {
   title?: string
@@ -17,6 +18,7 @@ export function ErrorScreen({
   showChooseAnother = true,
 }: ErrorScreenProps) {
   const { goToStep, goBack, reset } = useAuth()
+  const handleRetry = goBack ?? (() => goToStep('sign-up'))
 
   return (
     <>
@@ -27,12 +29,15 @@ export function ErrorScreen({
 
         <div className="flex flex-col gap-1">
           {showRetry && (
-            <Button action="primary" text="Try again" onClick={goBack} />
+            <Button action="primary" text="Try again" onClick={handleRetry} />
           )}
           {showChooseAnother && (
             <Button
               action={showRetry ? 'secondary' : 'primary'}
-              onClick={() => goToStep('sign-up')}
+              onClick={() => {
+                stripMagicLinkCodeFromUrl()
+                goToStep('sign-up')
+              }}
               text="Choose another sign-in method"
             />
           )}

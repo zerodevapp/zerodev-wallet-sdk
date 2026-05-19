@@ -66,7 +66,19 @@ describe('authStoreSlice', () => {
 
       const { auth } = store.getState()
       expect(auth.step).toBe('email-verification')
-      expect(auth.stepHistory).toEqual(['initializing', 'sign-up'])
+      expect(auth.stepHistory).toEqual(['sign-up'])
+    })
+
+    it('does not push initializing onto history', () => {
+      const store = createStore()
+      const config = createMockAuthConfig()
+      store.getState().auth.initialize(config)
+
+      store.getState().auth.goToStep('sign-up')
+
+      const { auth } = store.getState()
+      expect(auth.step).toBe('sign-up')
+      expect(auth.stepHistory).toEqual([])
     })
 
     it('builds up step history on multiple transitions', () => {
@@ -82,7 +94,6 @@ describe('authStoreSlice', () => {
       const { auth } = store.getState()
       expect(auth.step).toBe('verifying-otp')
       expect(auth.stepHistory).toEqual([
-        'initializing',
         'sign-up',
         'email-verification',
         'otp-input',
@@ -104,13 +115,14 @@ describe('authStoreSlice', () => {
 
       const { auth } = store.getState()
       expect(auth.step).toBe('email-verification')
-      expect(auth.stepHistory).toEqual(['initializing', 'sign-up'])
+      expect(auth.stepHistory).toEqual(['sign-up'])
     })
 
-    it('returns to sign-up when history is empty', () => {
+    it('is a no-op when history is empty', () => {
       const store = createStore()
       const config = createMockAuthConfig()
       store.getState().auth.initialize(config)
+      store.getState().auth.goToStep('sign-up')
 
       store.getState().auth.goBack()
 
@@ -137,7 +149,7 @@ describe('authStoreSlice', () => {
 
       store.getState().auth.goBack()
       expect(store.getState().auth.step).toBe('sign-up')
-      expect(store.getState().auth.stepHistory).toEqual(['initializing'])
+      expect(store.getState().auth.stepHistory).toEqual([])
     })
   })
 
@@ -259,7 +271,6 @@ describe('authStoreSlice', () => {
       expect(auth.email).toBe('user@example.com')
       expect(auth.otpId).toBe('otp-123')
       expect(auth.stepHistory).toEqual([
-        'initializing',
         'sign-up',
         'email-verification',
         'otp-input',

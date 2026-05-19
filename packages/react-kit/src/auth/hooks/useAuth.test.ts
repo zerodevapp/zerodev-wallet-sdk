@@ -117,7 +117,7 @@ describe('useAuth', () => {
     expect(store.getState().auth.step).toBe('email-verification')
   })
 
-  it('exposes goBack function', () => {
+  it('exposes goBack function when history is non-empty', () => {
     const store = createStore()
     const config = createMockAuthConfig()
     store.getState().auth.initialize(config)
@@ -127,9 +127,22 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
 
-    result.current.goBack()
+    expect(result.current.goBack).not.toBeNull()
+    result.current.goBack?.()
 
     expect(store.getState().auth.step).toBe('email-verification')
+  })
+
+  it('returns goBack as null when history is empty', () => {
+    const store = createStore()
+    const config = createMockAuthConfig()
+    store.getState().auth.initialize(config)
+    store.getState().auth.goToStep('sign-up')
+    mockConnector.getKitStore.mockReturnValue(store)
+
+    const { result } = renderHook(() => useAuth())
+
+    expect(result.current.goBack).toBeNull()
   })
 
   it('exposes reset function', () => {
