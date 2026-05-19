@@ -1,14 +1,18 @@
 import { isReactNative } from './utils/platform.js'
 
-if (isReactNative()) {
+if (!isReactNative()) {
   // biome-ignore lint/suspicious/noConsole: Warning users if they try to use the web entry on React Native.
   console.warn(
-    '@zerodev/wallet-core: the web entry was loaded in a React Native runtime. Check that your metro.config.js has `unstable_enablePackageExports: true` and `"react-native"` in `unstable_conditionNames`.',
+    '@zerodev/wallet-core/react-native: the React Native entry was loaded outside a React Native runtime. If this is a non-RN context, import `@zerodev/wallet-core` (the bare specifier) instead.',
   )
 }
 
+// Re-export shared API surface. Note: we intentionally do NOT re-export the
+// web stamper factories (createIndexedDbStamper, createWebauthnStamper,
+// createIframeStamper) here — they're web-only. The native adapter factories
+// live behind their own granular subpaths so consumers using alternative
+// adapters (Keychain, MMKV, custom) skip the unused peer-dep installs.
 export type {
-  // Auth types
   ApiKeyAuthenticator,
   AuthenticateWithEmailParameters,
   AuthenticateWithEmailReturnType,
@@ -18,7 +22,6 @@ export type {
   EmailCustomization,
   GetAuthenticatorsParameters,
   GetAuthenticatorsReturnType,
-  // Wallet types
   GetUserWalletParameters,
   GetUserWalletReturnType,
   GetWhoamiParameters,
@@ -41,14 +44,10 @@ export type {
   SignUserOperationParameters,
   SignUserOperationReturnType,
 } from './actions/index.js'
-
-// Actions
 export {
-  // Auth actions
   authenticateWithEmail,
   authenticateWithOAuth,
   getAuthenticators,
-  // Wallet actions
   getUserWallet,
   getWhoami,
   loginWithOTP,
@@ -60,10 +59,8 @@ export {
   signUserOperation,
 } from './actions/index.js'
 export type { ToViemAccountParams } from './adapters/viem.js'
-// Adapters
 export { toViemAccount } from './adapters/viem.js'
 export type { ZeroDevWalletActions } from './client/decorators/client.js'
-// Client decorators
 export { zeroDevWalletActions } from './client/decorators/client.js'
 export type {
   Client,
@@ -71,21 +68,24 @@ export type {
   CreateTransportOptions,
   Transport,
 } from './client/index.js'
-// Client
 export {
   createBaseClient,
   createClient,
   type ZeroDevWalletClient,
   zeroDevWalletTransport,
 } from './client/index.js'
-// Constants
 export { KMS_SERVER_URL } from './constants.js'
 export type {
   AuthParams,
   ZeroDevWalletSDK,
 } from './core/createZeroDevWalletCore.js'
-// Stampers
-export { createIframeStamper } from './stampers/iframeStamper.js'
+// RN entry re-exports core directly. `ZeroDevWalletConfigCore` already has
+// all four adapter fields required, so RN consumers get compile-time enforcement
+// without a separate type wrapper.
+export {
+  createZeroDevWalletCore as createZeroDevWallet,
+  type ZeroDevWalletConfigCore as ZeroDevWalletConfig,
+} from './core/createZeroDevWalletCore.js'
 export type {
   ApiKeyStamper,
   Attestation,
@@ -94,20 +94,9 @@ export type {
   PasskeyRegistrationResult,
   PasskeyStamper,
 } from './stampers/types.js'
-// Storage
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
-// Session types
 export type { StamperType, ZeroDevWalletSession } from './types/session.js'
 export type { KeyFormat } from './utils/exportPrivateKey.js'
 export { exportPrivateKey } from './utils/exportPrivateKey.js'
 export { exportWallet } from './utils/exportWallet.js'
-// Utils
 export { normalizeTimestamp } from './utils/utils.js'
-// Core — bare specifier resolves web defaults (IndexedDB, WebAuthn, session
-// storage, hostname-derived rpId) before forwarding to the shared factory.
-// RN consumers go through `@zerodev/wallet-core/react-native`, which exposes
-// the strict `ZeroDevWalletConfig` (= core's required-fields shape) directly.
-export {
-  createZeroDevWallet,
-  type ZeroDevWalletConfig,
-} from './web/createZeroDevWallet.js'

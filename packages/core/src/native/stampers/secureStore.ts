@@ -1,7 +1,7 @@
 import { ApiKeyStamper } from '@turnkey/api-key-stamper'
 import { generateP256KeyPair } from '@turnkey/crypto'
-import type { ApiKeyStamper as ZDApiKeyStamper } from '@zerodev/wallet-core'
 import * as SecureStore from 'expo-secure-store'
+import type { ApiKeyStamper as ZDApiKeyStamper } from '../../stampers/types.js'
 
 const PUBLIC_KEY = 'zerodev.publicKey'
 const PRIVATE_KEY = 'zerodev.privateKey'
@@ -71,8 +71,10 @@ class SecureStoreStamperInner {
 async function warmApiKeyStamperForMetroDev(
   inner: SecureStoreStamperInner,
 ): Promise<void> {
-  // biome-ignore lint/correctness/noUndeclaredVariables: This variable is set to true when react-native is running in Dev mode
-  if (!__DEV__) return
+  // `__DEV__` is a global set by React Native's Metro; read it via globalThis
+  // so this file needs no ambient `.d.ts` (which would conflict with RN's own
+  // typings when both happen to be in scope, e.g. in the editor).
+  if (!(globalThis as { __DEV__?: boolean }).__DEV__) return
 
   // In Expo dev, Turnkey's API key stamper loads its React Native signer with a
   // dynamic import the first time `stamp()` runs. OTP verification is usually
@@ -84,6 +86,7 @@ async function warmApiKeyStamperForMetroDev(
   try {
     await inner.stamp('{"purpose":"metro-dev-warmup"}')
   } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: This only runs in dev mode
     console.warn('Failed to warm API key stamper in dev:', error)
   }
 }

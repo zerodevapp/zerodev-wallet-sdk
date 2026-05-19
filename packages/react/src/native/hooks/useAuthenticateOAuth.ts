@@ -6,29 +6,37 @@ import {
   useMutation,
 } from '@tanstack/react-query'
 import { type Config, type ResolvedRegister, useConfig } from 'wagmi'
-import { authenticateOAuth } from '../authenticateOAuth.js'
-import { getSessionIdWeb } from '../getSessionIdWeb.js'
-import type { OAuthProvider } from '../utils/verifyGoogleLoginUrl.js'
+import {
+  authenticateOAuth,
+  type GetOAuthSessionIdFn,
+} from '../../authenticateOAuth.js'
+import type { OAuthProvider } from '../../utils/verifyGoogleLoginUrl.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined
 }
 
 /**
- * Web variant — hard-wires the popup-based `getSessionIdWeb` flow and
- * `window.location.href` as the redirect URI. Consumers needing a custom
- * OAuth flow call `authenticateOAuth` directly.
+ * Generic native variant — REQUIRES `getSessionId` and `redirectUri` at the
+ * hook level. No platform fallback, no auto-wired adapter. Use this when
+ * you're providing your own OAuth implementation (e.g. `react-native-app-auth`
+ * or a custom flow).
  *
- * `timeoutMs` (optional) configures how long the popup-polling flow may run
- * before it fails. Defaults to 5 minutes (defined in `getSessionIdWeb`).
+ * For the blessed Expo-based flow (expo-web-browser + expo-linking deep-link
+ * race), import `useAuthenticateOAuthWithExpoWebBrowser` from
+ * `@zerodev/wallet-react/react-native/oauth/with-expo-web-browser` instead —
+ * it auto-wires the adapter with a `useMemo`, so you only pass `redirectUri`.
+ *
+ * Importing this generic hook does NOT pull `expo-web-browser` / `expo-linking`
+ * into your bundle.
  */
 export function useAuthenticateOAuth<
   config extends Config = ResolvedRegister['config'],
   context = unknown,
 >(
-  parameters: useAuthenticateOAuth.Parameters<config, context> = {},
+  parameters: useAuthenticateOAuth.Parameters<config, context>,
 ): useAuthenticateOAuth.ReturnType<context> {
-  const { mutation, timeoutMs } = parameters
+  const { mutation, getSessionId, redirectUri } = parameters
   const config = useConfig(parameters)
 
   return useMutation({
@@ -36,9 +44,8 @@ export function useAuthenticateOAuth<
     async mutationFn(variables: { provider: OAuthProvider }) {
       return authenticateOAuth(config, {
         ...variables,
-        getSessionId: ({ oauthUrl }) =>
-          getSessionIdWeb(oauthUrl, window.location.origin, timeoutMs),
-        redirectUri: window.location.href,
+        getSessionId,
+        redirectUri,
       })
     },
     mutationKey: ['authenticateOAuth'],
@@ -50,8 +57,8 @@ export declare namespace useAuthenticateOAuth {
     config extends Config = Config,
     context = unknown,
   > = ConfigParameter<config> & {
-    /** Popup-polling timeout in ms. Defaults to 5 minutes. */
-    timeoutMs?: number
+    getSessionId: GetOAuthSessionIdFn
+    redirectUri: string
     mutation?:
       | UseMutationOptions<
           authenticateOAuth.ReturnType,

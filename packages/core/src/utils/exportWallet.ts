@@ -1,4 +1,4 @@
-import type { ZeroDevWalletSDK } from '../core/createZeroDevWallet.js'
+import type { ZeroDevWalletSDK } from '../core/createZeroDevWalletCore.js'
 
 export type ExportWalletParameters = {
   /** Wallet to use for the export */

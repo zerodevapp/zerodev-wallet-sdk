@@ -1,11 +1,12 @@
 import type { Config, Connector } from '@wagmi/core'
 import { connect as wagmiConnect } from '@wagmi/core/actions'
-import {
-  createIframeStamper,
-  exportPrivateKey as exportPrivateKeySdk,
-  exportWallet as exportWalletSdk,
-  type GetAuthenticatorsReturnType,
+import type {
+  GetAuthenticatorsReturnType,
+  ZeroDevWalletSDK,
 } from '@zerodev/wallet-core'
+import type { createZeroDevWalletStore } from './store.js'
+
+type ZeroDevStore = ReturnType<typeof createZeroDevWalletStore>
 
 /**
  * Get ZeroDev connector from config
@@ -19,6 +20,27 @@ export function getZeroDevConnector(config: Config): Connector {
 }
 
 /**
+ * Get the typed ZeroDev store from a connector. Centralises the
+ * `@ts-expect-error` cast for the connector's custom `getStore` method.
+ */
+export async function getZeroDevStore(
+  connector: Connector,
+): Promise<ZeroDevStore> {
+  // @ts-expect-error - getStore is a custom method on the ZeroDev connector
+  return (await connector.getStore()) as ZeroDevStore
+}
+
+/**
+ * Read the initialised wallet from a ZeroDev store. Throws
+ * `'Wallet not initialized'` when the connector's setup hasn't run yet.
+ */
+export function getZeroDevWallet(store: ZeroDevStore): ZeroDevWalletSDK {
+  const wallet = store.getState().wallet
+  if (!wallet) throw new Error('Wallet not initialized')
+  return wallet
+}
+
+/**
  * Register with passkey
  */
 export async function registerPasskey(
@@ -28,12 +50,8 @@ export async function registerPasskey(
   },
 ): Promise<void> {
   const connector = parameters?.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   await wallet.auth({
     type: 'passkey',
@@ -70,12 +88,8 @@ export async function loginPasskey(
   },
 ): Promise<void> {
   const connector = parameters?.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   await wallet.auth({
     type: 'passkey',
@@ -115,12 +129,8 @@ export async function sendOTP(
   },
 ): Promise<{ otpId: string; otpEncryptionTargetBundle: string }> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   const result = await wallet.auth({
     type: 'otp',
@@ -166,12 +176,8 @@ export async function verifyOTP(
   },
 ): Promise<void> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   await wallet.auth({
     type: 'otp',
@@ -214,13 +220,11 @@ export async function refreshSession(
   } = {},
 ): Promise<unknown> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
   const currentSession = store.getState().session
 
-  if (!wallet || !currentSession) {
+  if (!currentSession) {
     throw new Error('No active session to refresh')
   }
 
@@ -245,12 +249,8 @@ export async function getAuthenticators(
   config: Config,
 ): Promise<GetAuthenticatorsReturnType> {
   const connector = getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   const oauthConfig = store.getState().oauthConfig
   if (!oauthConfig) {
@@ -279,132 +279,6 @@ export declare namespace getAuthenticators {
 }
 
 /**
- * Export wallet
- */
-export async function exportWallet(
-  config: Config,
-  parameters: {
-    iframeContainerId: string
-    iframeStyles?: Record<string, string>
-    connector?: Connector
-  },
-): Promise<void> {
-  const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
-
-  const iframeContainer = document.getElementById(parameters.iframeContainerId)
-  if (!iframeContainer) {
-    throw new Error('Iframe container not found')
-  }
-
-  const iframeStamper = await createIframeStamper({
-    iframeUrl: 'https://export.turnkey.com',
-    iframeContainer,
-    iframeElementId: 'export-wallet-iframe',
-  })
-
-  const publicKey = await iframeStamper.init()
-
-  if (parameters.iframeStyles) {
-    await iframeStamper.applySettings({ styles: parameters.iframeStyles })
-  }
-
-  const { exportBundle, organizationId } = await exportWalletSdk({
-    wallet,
-    targetPublicKey: publicKey,
-  })
-
-  const success = await iframeStamper.injectWalletExportBundle(
-    exportBundle,
-    organizationId,
-  )
-  if (success !== true) {
-    throw new Error('Failed to inject export bundle')
-  }
-}
-
-export declare namespace exportWallet {
-  type Parameters = {
-    iframeContainerId: string
-    iframeStyles?: Record<string, string>
-    connector?: Connector
-  }
-  type ReturnType = void
-  type ErrorType = Error
-}
-
-/**
- * Export private key
- */
-export async function exportPrivateKey(
-  config: Config,
-  parameters: {
-    iframeContainerId: string
-    iframeStyles?: Record<string, string>
-    address?: string
-    keyFormat?: 'Hexadecimal' | 'Solana'
-    connector?: Connector
-  },
-): Promise<void> {
-  const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
-
-  const iframeContainer = document.getElementById(parameters.iframeContainerId)
-  if (!iframeContainer) {
-    throw new Error('Iframe container not found')
-  }
-
-  const iframeStamper = await createIframeStamper({
-    iframeUrl: 'https://export.turnkey.com',
-    iframeContainer,
-    iframeElementId: 'export-private-key-iframe',
-  })
-
-  const publicKey = await iframeStamper.init()
-
-  if (parameters.iframeStyles) {
-    await iframeStamper.applySettings({ styles: parameters.iframeStyles })
-  }
-
-  const { exportBundle, organizationId } = await exportPrivateKeySdk({
-    wallet,
-    targetPublicKey: publicKey,
-    ...(parameters.address && { address: parameters.address }),
-  })
-
-  const success = await iframeStamper.injectKeyExportBundle(
-    exportBundle,
-    organizationId,
-    parameters.keyFormat ?? 'Hexadecimal',
-  )
-  if (success !== true) {
-    throw new Error('Failed to inject export bundle')
-  }
-}
-
-export declare namespace exportPrivateKey {
-  type Parameters = {
-    iframeContainerId: string
-    iframeStyles?: Record<string, string>
-    address?: string
-    keyFormat?: 'Hexadecimal' | 'Solana'
-    connector?: Connector
-  }
-  type ReturnType = void
-  type ErrorType = Error
-}
-
-/**
  * Send magic link via email
  */
 export async function sendMagicLink(
@@ -417,12 +291,8 @@ export async function sendMagicLink(
   },
 ): Promise<{ otpId: string; otpEncryptionTargetBundle: string }> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   const result = await wallet.auth({
     type: 'magicLink',
@@ -465,12 +335,8 @@ export async function verifyMagicLink(
   },
 ): Promise<void> {
   const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-
-  if (!wallet) throw new Error('Wallet not initialized')
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
 
   await wallet.auth({
     type: 'magicLink',

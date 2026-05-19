@@ -3,11 +3,15 @@ import { useRef } from 'react'
 import type { StyleProp, ViewStyle } from 'react-native'
 import { WebView, type WebViewMessageEvent } from 'react-native-webview'
 import { v4 as uuidv4 } from 'uuid'
-import { type Config, useConfig } from 'wagmi'
-import { RP_ID } from '@/config/auth'
+import { useConfig } from 'wagmi'
+import {
+  getZeroDevConnector,
+  getZeroDevStore,
+  getZeroDevWallet,
+} from '../../actions.js'
 
 /**
- * WebView-isolated Turnkey export. Loads our wrapper HTML which embeds
+ * WebView-isolated Turnkey export. Loads a wrapper HTML which embeds
  * `https://export.turnkey.com` as an iframe; the iframe owns the keypair,
  * decrypts the HPKE bundle, and renders the secret in its own JS context.
  * RN never holds the plaintext.
@@ -26,6 +30,8 @@ import { RP_ID } from '@/config/auth'
  */
 type Props = {
   kind: 'wallet' | 'privateKey'
+  /** Required: the wrapper's baseUrl origin (e.g. the consumer's RP_ID). */
+  rpId: string
   /** Fires after the iframe acks BUNDLE_INJECTED — the secret is on screen. */
   onReady?: () => void
   /** Fires on bundle-fetch failure or iframe-side ERROR. */
@@ -35,29 +41,6 @@ type Props = {
 }
 
 const TURNKEY_EXPORT_ORIGIN = 'https://export.turnkey.com'
-
-if (!RP_ID) {
-  throw new Error('RP_ID is required to build the wrapper baseUrl')
-}
-const wrapperOrigin = `https://${RP_ID}`
-
-async function resolveZeroDevWallet(config: Config) {
-  // The connector id is a string literal in @zerodev/wallet-core's connector
-  // factory; the SDK looks itself up the same way (see packages/react/src/
-  // actions.ts). Mirror that pattern here until the SDK exports a typed
-  // accessor.
-  const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
-  if (!connector) {
-    throw new Error('ZeroDev connector not found in Wagmi config')
-  }
-  // @ts-expect-error - getStore is a custom method on the ZeroDev connector
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
-  if (!wallet) {
-    throw new Error('Wallet not initialized')
-  }
-  return wallet
-}
 
 type InjectPayload =
   | {
@@ -74,7 +57,8 @@ type InjectPayload =
       keyFormat: 'HEXADECIMAL'
     }
 
-const wrapperHtml = `<!doctype html>
+function buildWrapperHtml() {
+  return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -120,8 +104,20 @@ const wrapperHtml = `<!doctype html>
     </script>
   </body>
 </html>`
+}
 
-export function ExportWebView({ kind, onReady, onError, style }: Props) {
+export function ZeroDevExportWebView({
+  kind,
+  rpId,
+  onReady,
+  onError,
+  style,
+}: Props) {
+  if (!rpId) {
+    throw new Error('ZeroDevExportWebView: rpId is required')
+  }
+  const wrapperOrigin = `https://${rpId}`
+
   const config = useConfig()
   const webViewRef = useRef<WebView>(null)
   // PUBLIC_KEY_READY can only be acted on once per mount. Resets when the
@@ -146,7 +142,9 @@ export function ExportWebView({ kind, onReady, onError, style }: Props) {
         if (typeof data.value !== 'string') return
         handledPubkey.current = true
         try {
-          const wallet = await resolveZeroDevWallet(config)
+          const connector = getZeroDevConnector(config)
+          const store = await getZeroDevStore(connector)
+          const wallet = getZeroDevWallet(store)
           const bundle =
             kind === 'wallet'
               ? await exportWallet({ wallet, targetPublicKey: data.value })
@@ -203,7 +201,7 @@ export function ExportWebView({ kind, onReady, onError, style }: Props) {
   return (
     <WebView
       ref={webViewRef}
-      source={{ html: wrapperHtml, baseUrl: wrapperOrigin }}
+      source={{ html: buildWrapperHtml(), baseUrl: wrapperOrigin }}
       originWhitelist={[wrapperOrigin, TURNKEY_EXPORT_ORIGIN, 'about:*']}
       onShouldStartLoadWithRequest={(request) => {
         const url = request.url

@@ -1,6 +1,7 @@
+import { ZeroDevExportWebView } from '@zerodev/wallet-react/react-native/export/webview'
 import { useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
-import { ExportWebView } from './ExportWebView'
+import { RP_ID } from '@/config/auth'
 
 type Props = {
   kind: 'wallet' | 'privateKey'
@@ -35,8 +36,9 @@ export function ExportBox({ kind }: Props) {
         ]}
         pointerEvents={stage === 'ready' ? 'auto' : 'none'}
       >
-        <ExportWebView
+        <ZeroDevExportWebView
           kind={kind}
+          rpId={RP_ID}
           onReady={() => setStage('ready')}
           onError={(msg) => {
             setStage('error')

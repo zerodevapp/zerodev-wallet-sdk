@@ -16,10 +16,7 @@ import {
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
 } from '../constants.js'
-import { createIndexedDbStamper } from '../stampers/indexedDbStamper.js'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
-import { createWebauthnStamper } from '../stampers/webauthnStamper.js'
-import { createWebStorageAdapter } from '../storage/adapters.js'
 import {
   createStorageManager,
   type StorageAdapter,
@@ -28,14 +25,14 @@ import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
 import { humanReadableDateTime, parseSession } from '../utils/utils.js'
-export interface ZeroDevWalletConfig {
+export interface ZeroDevWalletConfigCore {
   organizationId?: string
   proxyBaseUrl?: string
   projectId: string
-  sessionStorage?: StorageAdapter
-  rpId?: string
-  apiKeyStamper?: ApiKeyStamper
-  passkeyStamper?: PasskeyStamper
+  sessionStorage: StorageAdapter
+  rpId: string
+  apiKeyStamper: ApiKeyStamper
+  passkeyStamper: PasskeyStamper
   fetchOptions?: CreateTransportOptions['fetchOptions']
 }
 
@@ -118,24 +115,19 @@ export interface ZeroDevWalletSDK {
   toAccount: () => Promise<LocalAccount>
 }
 
-export async function createZeroDevWallet(
-  config: ZeroDevWalletConfig,
+export async function createZeroDevWalletCore(
+  config: ZeroDevWalletConfigCore,
 ): Promise<ZeroDevWalletSDK> {
   const {
     projectId,
     sessionStorage,
-    rpId = window.location.hostname,
+    rpId,
+    apiKeyStamper,
+    passkeyStamper,
     organizationId = DEFAULT_ORGANIZATION_ID,
   } = config
 
-  const sessionStorageManager = createStorageManager(
-    sessionStorage || createWebStorageAdapter(),
-  )
-
-  const apiKeyStamper = config.apiKeyStamper ?? (await createIndexedDbStamper())
-
-  const passkeyStamper =
-    config.passkeyStamper ?? (await createWebauthnStamper({ rpId }))
+  const sessionStorageManager = createStorageManager(sessionStorage)
 
   const client = createClient({
     apiKeyStamper,

@@ -2,20 +2,62 @@
   "name": "@zerodev/wallet-react",
   "version": "0.0.1-alpha.23",
   "description": "React hooks for ZeroDev Wallet SDK",
+  "type": "module",
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
   "types": "./dist/_types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/_types/index.d.ts",
-      "import": "./dist/_esm/index.js",
-      "require": "./dist/_cjs/index.js"
+      "react-native": {
+        "types": "./dist/_types/index.native.d.ts",
+        "default": "./dist/_esm/index.native.js"
+      },
+      "browser": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      },
+      "import": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      },
+      "require": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_cjs/index.js"
+      },
+      "default": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      }
+    },
+    "./react-native": {
+      "browser": "./dist/_esm/stubs/native-on-web.js",
+      "import": {
+        "types": "./dist/_types/index.native.d.ts",
+        "default": "./dist/_esm/index.native.js"
+      },
+      "default": "./dist/_esm/index.native.js"
+    },
+    "./react-native/oauth/with-expo-web-browser": {
+      "browser": "./dist/_esm/stubs/native-on-web.js",
+      "import": {
+        "types": "./dist/_types/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.d.ts",
+        "default": "./dist/_esm/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.js"
+      },
+      "default": "./dist/_esm/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.js"
+    },
+    "./react-native/export/webview": {
+      "browser": "./dist/_esm/stubs/native-on-web.js",
+      "import": {
+        "types": "./dist/_types/native/export/ExportWebView.d.ts",
+        "default": "./dist/_esm/native/export/ExportWebView.js"
+      },
+      "default": "./dist/_esm/native/export/ExportWebView.js"
     }
   },
   "scripts": {
     "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
-    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module node16 --moduleResolution node16 --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
     "build:esm": "tsc --project ./tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
     "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
     "dev": "tsc --watch",
@@ -40,11 +82,37 @@
     "react": "^18.0.0 || ^19.0.0",
     "viem": "^2.38.0",
     "wagmi": "^2.19.0",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "expo-linking": ">=7.0.0",
+    "expo-web-browser": ">=14.0.0",
+    "react-native": ">=0.73.0",
+    "react-native-webview": ">=13.0.0",
+    "uuid": ">=11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "expo-linking": {
+      "optional": true
+    },
+    "expo-web-browser": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    },
+    "react-native-webview": {
+      "optional": true
+    },
+    "uuid": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19",
-    "typescript": "5.9.3"
-  },
-  "type": "module"
+    "expo-linking": "^8.0.8",
+    "expo-web-browser": "^15.0.7",
+    "react-native": "0.83.4",
+    "react-native-webview": "13.16.0",
+    "typescript": "5.9.3",
+    "uuid": "^13.0.0"
+  }
 }

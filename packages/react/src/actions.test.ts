@@ -7,8 +7,6 @@ import {
 } from '@zerodev/wallet-core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  exportPrivateKey,
-  exportWallet,
   getAuthenticators,
   loginPasskey,
   refreshSession,
@@ -16,6 +14,8 @@ import {
   sendOTP,
   verifyOTP,
 } from './actions.js'
+import { exportPrivateKey } from './web/exportPrivateKey.js'
+import { exportWallet } from './web/exportWallet.js'
 
 // Mock wagmi connect
 vi.mock('@wagmi/core/actions', () => ({
@@ -447,7 +447,7 @@ describe('React Actions', () => {
       const config = createMockConfig(connector)
 
       await expect(refreshSession(config)).rejects.toThrow(
-        'No active session to refresh',
+        'Wallet not initialized',
       )
     })
   })

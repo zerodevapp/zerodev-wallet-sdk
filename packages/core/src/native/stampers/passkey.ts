@@ -2,11 +2,11 @@ import {
   createPasskey,
   PasskeyStamper as TurnkeyPasskeyStamper,
 } from '@turnkey/react-native-passkey-stamper'
+import { v4 as uuidv4 } from 'uuid'
 import type {
   PasskeyRegistrationOptions,
   PasskeyStamper,
-} from '@zerodev/wallet-core'
-import { v4 as uuidv4 } from 'uuid'
+} from '../../stampers/types.js'
 
 export async function createReactNativePasskeyStamper({
   rpId,

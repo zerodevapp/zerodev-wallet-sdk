@@ -263,7 +263,7 @@ export function zeroDevWallet(
         const shouldInit =
           typeof params.autoInitialize === 'function'
             ? params.autoInitialize()
-            : (params.autoInitialize ?? typeof window !== 'undefined')
+            : (params.autoInitialize ?? true)
         if (shouldInit) {
           await initialize()
         }

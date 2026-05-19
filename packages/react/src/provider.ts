@@ -62,7 +62,7 @@ export function createProvider({
   // Mirrors the default in `connector.ts` — keep these in sync.
   const mode: WalletMode = config.mode ?? '7702'
   const emitter = Provider.createEmitter()
-  let sessionRefreshTimer: NodeJS.Timeout | null = null
+  let sessionRefreshTimer: ReturnType<typeof setTimeout> | null = null
 
   // Session auto-refresh logic
   const scheduleSessionRefresh = () => {
