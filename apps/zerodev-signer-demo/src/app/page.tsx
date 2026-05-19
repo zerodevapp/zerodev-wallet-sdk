@@ -25,6 +25,15 @@ function LandingPageInner() {
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
+  const {step: authStep} = useAuth()
+  // After the user dismisses AuthFlow via its X button the kit resets the
+  // step to `initializing`, which makes <AuthFlow /> render null. Surface
+  // a Reconnect button so they can re-trigger the flow without refreshing.
+  const showReconnect = !isConnected && authStep === 'initializing'
+
+  const handleReconnect = () => {
+    if (connectors[0]) connect({connector: connectors[0]})
+  }
 
   useEffect(() => {
     if (isConnected) {
@@ -52,6 +61,17 @@ function LandingPageInner() {
       <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
         <EmailMethodSettings/>
         <AuthFlow/>
+        {showReconnect && (
+          <div className="flex items-center justify-center p-6">
+            <button
+              type="button"
+              onClick={handleReconnect}
+              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 cursor-pointer"
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
