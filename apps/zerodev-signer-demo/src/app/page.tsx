@@ -1,6 +1,6 @@
 'use client'
 
-import {AuthFlow} from '@zerodev/wallet-react-kit'
+import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
 import {Settings} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
@@ -58,6 +58,7 @@ function LandingPageInner() {
 }
 
 function EmailMethodSettings() {
+  const {step} = useAuth()
   const [open, setOpen] = useState(false)
   const [method, setMethod] = useState<EmailAuthMethod>(() => {
     if (typeof window === 'undefined') return 'otp'
@@ -81,6 +82,8 @@ function EmailMethodSettings() {
     )
     setOpen(true)
   }
+
+  if (step !== 'sign-up') return null
 
   return (
     <div className="flex justify-end pb-2">
