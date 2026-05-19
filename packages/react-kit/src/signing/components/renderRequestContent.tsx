@@ -7,6 +7,7 @@ import { Erc20Approval } from '../pages/Erc20Approval.js'
 import { Erc20Transfer } from '../pages/Erc20Transfer.js'
 import { EthTransfer } from '../pages/EthTransfer.js'
 import { GenericRequest } from '../pages/GenericRequest.js'
+import { MintNft } from '../pages/MintNft.js'
 import { PersonalSign } from '../pages/PersonalSign.js'
 import { SignTypedData } from '../pages/SignTypedData.js'
 import {
@@ -16,6 +17,7 @@ import {
 import { decodeErc20Approval, isErc20Approval } from '../utils/erc20Approval.js'
 import { decodeErc20Transfer, isErc20Transfer } from '../utils/erc20Transfer.js'
 import { isEthTransfer } from '../utils/ethTransfer.js'
+import { isMintNft } from '../utils/mintNft.js'
 
 export function renderRequestContent(
   request: Request,
@@ -84,6 +86,17 @@ export function renderRequestContent(
             />
           )
         }
+      }
+
+      if (isMintNft(tx)) {
+        return (
+          <MintNft
+            contract={tx.to as Address}
+            data={tx.data as Hex}
+            confirm={confirm}
+            reject={reject}
+          />
+        )
       }
       break
     }
