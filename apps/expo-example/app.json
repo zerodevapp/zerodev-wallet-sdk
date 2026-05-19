@@ -17,7 +17,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zerodev.expoexample"
+      "bundleIdentifier": "com.zerodev.expoexample",
+      "appleTeamId": "88J4C462WP",
+      "associatedDomains": [
+        "applinks:zerodev-expo-example.vercel.app?mode=developer",
+        "webcredentials:zerodev-expo-example.vercel.app"
+      ]
     },
     "android": {
       "package": "com.zerodev.expoexample",
@@ -53,6 +58,10 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
+      ],
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
