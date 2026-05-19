@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["88J4C462WP.com.zerodev.expoexample"],
+        "components": [
+          { "/": "/verify-email*" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["88J4C462WP.com.zerodev.expoexample"]
+  }
+}
