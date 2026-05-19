@@ -20,6 +20,7 @@ export function useAuth() {
   }
 
   const step = useStore(store, (state) => state.auth.step)
+  const stepHistory = useStore(store, (state) => state.auth.stepHistory)
   const email = useStore(store, (state) => state.auth.email)
   const otpId = useStore(store, (state) => state.auth.otpId)
   const otpEncryptionTargetBundle = useStore(
@@ -37,7 +38,7 @@ export function useAuth() {
     enabledMethods,
     config: authConfig,
     goToStep: store.getState().auth.goToStep,
-    goBack: store.getState().auth.goBack,
+    goBack: stepHistory.length > 0 ? store.getState().auth.goBack : null,
     reset: store.getState().auth.reset,
     setEmail: store.getState().auth.setEmail,
     setOtpSession: store.getState().auth.setOtpSession,

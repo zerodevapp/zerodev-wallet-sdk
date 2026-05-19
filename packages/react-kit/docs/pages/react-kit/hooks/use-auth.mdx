@@ -41,13 +41,13 @@ function MyCustomAuth() {
 
 | Property | Type | Description |
 | --- | --- | --- |
-| `step` | `AuthStep` | The current step in the auth flow. |
+| `step` | `AuthStep \| null` | The current step in the auth flow. `null` means nothing should render yet. |
 | `email` | `string \| null` | The email entered by the user, if any. |
 | `otpId` | `string \| null` | The id of the active OTP challenge, if any. |
 | `enabledMethods` | `AuthMethod[]` | Methods enabled by `config.auth.enabledMethods`. |
 | `config` | `AuthConfig \| null` | The full auth config passed to the connector. |
-| `goToStep` | `(step: AuthStep) => void` | Move the flow to a specific step. |
-| `goBack` | `() => void` | Go back to the previous step. |
+| `goToStep` | `(step: AuthStep \| null) => void` | Move the flow to a specific step (or `null` to render nothing). |
+| `goBack` | `(() => void) \| null` | Go back to the previous step. `null` when there's no previous step. |
 | `reset` | `() => void` | Reset the flow to its initial state. |
 | `setEmail` | `(email: string) => void` | Set the email value. |
 | `setOtpId` | `(otpId: string) => void` | Set the OTP challenge id. |
@@ -56,7 +56,6 @@ function MyCustomAuth() {
 
 ```ts
 type AuthStep =
-  | 'initializing'
   | 'sign-up'
   | 'email-verification'
   | 'otp-input'

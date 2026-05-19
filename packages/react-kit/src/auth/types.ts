@@ -1,7 +1,6 @@
 export type AuthMethod = 'email' | 'google' | 'passkey' | 'injected-wallet'
 
 export type AuthStep =
-  | 'initializing'
   | 'sign-up'
   | 'email-verification'
   | 'otp-input'

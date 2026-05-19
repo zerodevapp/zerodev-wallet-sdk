@@ -10,11 +10,7 @@ import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
 import { WalletSelection } from './pages/WalletSelection'
 import type { AuthStep } from './types'
-
-function hasMagicLinkCodeInUrl(): boolean {
-  if (typeof window === 'undefined') return false
-  return new URLSearchParams(window.location.search).has('code')
-}
+import { hasMagicLinkCodeInUrl, stripMagicLinkCodeFromUrl } from './utils/url'
 
 const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
   'wallet-selection': 'Choose your wallet',
@@ -40,7 +36,7 @@ function PasskeyPrompt() {
   )
 }
 
-function renderStep(step: AuthStep): ReactNode {
+function renderStep(step: AuthStep | null): ReactNode {
   switch (step) {
     case 'sign-up':
       return <SignUp />
@@ -71,7 +67,7 @@ export function AuthFlow({
   const { step, goToStep, goBack, reset } = useAuth()
 
   useEffect(() => {
-    if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
+    if (step === null && hasMagicLinkCodeInUrl()) {
       goToStep('verifying-otp')
     }
   }, [step, goToStep])
@@ -80,17 +76,17 @@ export function AuthFlow({
   if (!content) return null
 
   const handleClose = () => {
+    stripMagicLinkCodeFromUrl()
     reset()
     userOnClose?.()
   }
-  const title = TITLE_BY_STEP[step]
-  const showBack = step !== 'sign-up'
+  const title = step ? TITLE_BY_STEP[step] : undefined
 
   return (
     <ScreenWrapper
       topNav={
         <TopNav
-          {...(showBack && { onBack: goBack })}
+          {...(goBack !== null && { onBack: goBack })}
           onClose={handleClose}
           {...(title && { title })}
         />
