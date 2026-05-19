@@ -105,7 +105,10 @@ describe('SignatureRequest', () => {
     fireEvent.click(screen.getByText('Reject'))
 
     expect(request.reject).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'User rejected the request' }),
+      expect.objectContaining({
+        name: 'UserRejectedRequestError',
+        code: 4001,
+      }),
     )
     expect(mockStore.getState().pendingRequests).toEqual([])
   })
