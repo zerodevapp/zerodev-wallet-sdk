@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-kit exec vite build --watch & pnpm --filter @zerodev/signer-demo dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
