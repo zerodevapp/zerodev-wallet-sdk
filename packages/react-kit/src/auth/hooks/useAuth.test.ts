@@ -117,7 +117,7 @@ describe('useAuth', () => {
     expect(store.getState().auth.step).toBe('email-verification')
   })
 
-  it('exposes onBack function when history is non-empty', () => {
+  it('exposes goBack function when history is non-empty', () => {
     const store = createStore()
     const config = createMockAuthConfig()
     store.getState().auth.initialize(config)
@@ -127,13 +127,13 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.onBack).not.toBeNull()
-    result.current.onBack?.()
+    expect(result.current.goBack).not.toBeNull()
+    result.current.goBack?.()
 
     expect(store.getState().auth.step).toBe('email-verification')
   })
 
-  it('returns onBack as null when history is empty', () => {
+  it('returns goBack as null when history is empty', () => {
     const store = createStore()
     const config = createMockAuthConfig()
     store.getState().auth.initialize(config)
@@ -142,7 +142,7 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.onBack).toBeNull()
+    expect(result.current.goBack).toBeNull()
   })
 
   it('exposes reset function', () => {

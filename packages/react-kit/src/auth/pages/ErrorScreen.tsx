@@ -17,8 +17,8 @@ export function ErrorScreen({
   showRetry = false,
   showChooseAnother = true,
 }: ErrorScreenProps) {
-  const { goToStep, onBack, reset } = useAuth()
-  const handleRetry = onBack ?? (() => goToStep('sign-up'))
+  const { goToStep, goBack, reset } = useAuth()
+  const handleRetry = goBack ?? (() => goToStep('sign-up'))
 
   return (
     <>

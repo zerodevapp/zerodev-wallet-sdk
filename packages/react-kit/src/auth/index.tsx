@@ -64,7 +64,7 @@ export function AuthFlow({
 }: {
   onClose?: (() => void) | undefined
 } = {}) {
-  const { step, goToStep, onBack, reset } = useAuth()
+  const { step, goToStep, goBack, reset } = useAuth()
 
   useEffect(() => {
     if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
@@ -86,7 +86,7 @@ export function AuthFlow({
     <ScreenWrapper
       topNav={
         <TopNav
-          {...(onBack !== null && { onBack })}
+          {...(goBack !== null && { onBack: goBack })}
           onClose={handleClose}
           {...(title && { title })}
         />

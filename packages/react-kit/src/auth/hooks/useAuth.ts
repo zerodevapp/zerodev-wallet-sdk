@@ -30,8 +30,6 @@ export function useAuth() {
   const enabledMethods = useStore(store, (state) => state.auth.enabledMethods)
   const authConfig = useStore(store, (state) => state.auth.config)
 
-  const goBack = store.getState().auth.goBack
-
   return {
     step,
     email,
@@ -40,7 +38,7 @@ export function useAuth() {
     enabledMethods,
     config: authConfig,
     goToStep: store.getState().auth.goToStep,
-    onBack: stepHistory.length > 0 ? goBack : null,
+    goBack: stepHistory.length > 0 ? store.getState().auth.goBack : null,
     reset: store.getState().auth.reset,
     setEmail: store.getState().auth.setEmail,
     setOtpSession: store.getState().auth.setOtpSession,
