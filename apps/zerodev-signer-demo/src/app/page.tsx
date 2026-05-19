@@ -83,7 +83,7 @@ function EmailMethodSettings() {
     setOpen(true)
   }
 
-  if (step !== 'sign-up') return null
+  if (step === null || step === 'authenticated') return null
 
   return (
     <div className="flex justify-end pb-2">
