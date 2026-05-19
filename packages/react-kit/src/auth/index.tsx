@@ -10,11 +10,7 @@ import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
 import { WalletSelection } from './pages/WalletSelection'
 import type { AuthStep } from './types'
-
-function hasMagicLinkCodeInUrl(): boolean {
-  if (typeof window === 'undefined') return false
-  return new URLSearchParams(window.location.search).has('code')
-}
+import { hasMagicLinkCodeInUrl, stripMagicLinkCodeFromUrl } from './utils/url'
 
 const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
   'wallet-selection': 'Choose your wallet',
@@ -68,7 +64,7 @@ export function AuthFlow({
 }: {
   onClose?: (() => void) | undefined
 } = {}) {
-  const { step, goToStep, goBack, reset } = useAuth()
+  const { step, goToStep, onBack, reset } = useAuth()
 
   useEffect(() => {
     if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
@@ -80,17 +76,17 @@ export function AuthFlow({
   if (!content) return null
 
   const handleClose = () => {
+    stripMagicLinkCodeFromUrl()
     reset()
     userOnClose?.()
   }
   const title = TITLE_BY_STEP[step]
-  const showBack = step !== 'sign-up'
 
   return (
     <ScreenWrapper
       topNav={
         <TopNav
-          {...(showBack && { onBack: goBack })}
+          {...(onBack !== null && { onBack })}
           onClose={handleClose}
           {...(title && { title })}
         />

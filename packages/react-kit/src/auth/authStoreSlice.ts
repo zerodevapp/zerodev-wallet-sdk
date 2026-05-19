@@ -110,15 +110,19 @@ export const createAuthStoreSlice: StateCreator<
         auth: {
           ...state.auth,
           step,
-          stepHistory: [...state.auth.stepHistory, state.auth.step],
+          stepHistory:
+            state.auth.step === 'initializing'
+              ? state.auth.stepHistory
+              : [...state.auth.stepHistory, state.auth.step],
         },
       }))
     },
 
     goBack: () => {
       const { auth } = get()
+      if (auth.stepHistory.length === 0) return
       const newHistory = [...auth.stepHistory]
-      const previousStep = newHistory.pop() ?? 'sign-up'
+      const previousStep = newHistory.pop()!
       set((state) => ({
         auth: {
           ...state.auth,
