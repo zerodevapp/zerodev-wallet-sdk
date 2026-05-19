@@ -55,7 +55,7 @@ vi.mock('../shared/components/StatusView', () => ({
 }))
 
 // Mock useAuth hook
-let mockStep: AuthStep = 'initializing'
+let mockStep: AuthStep | null = null
 vi.mock('./hooks/useAuth', () => ({
   useAuth: () => ({
     step: mockStep,
@@ -64,7 +64,7 @@ vi.mock('./hooks/useAuth', () => ({
     enabledMethods: ['email', 'google', 'passkey'],
     config: null,
     goToStep: vi.fn(),
-    goBack: vi.fn(),
+    onBack: null,
     reset: vi.fn(),
     setEmail: vi.fn(),
     setOtpId: vi.fn(),
@@ -72,8 +72,8 @@ vi.mock('./hooks/useAuth', () => ({
 }))
 
 describe('AuthFlow', () => {
-  it('renders nothing in initializing state', () => {
-    mockStep = 'initializing'
+  it('renders nothing when step is null', () => {
+    mockStep = null
     const { container } = render(<AuthFlow />)
 
     expect(container.firstChild).toBeNull()

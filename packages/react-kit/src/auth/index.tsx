@@ -36,7 +36,7 @@ function PasskeyPrompt() {
   )
 }
 
-function renderStep(step: AuthStep): ReactNode {
+function renderStep(step: AuthStep | null): ReactNode {
   switch (step) {
     case 'sign-up':
       return <SignUp />
@@ -67,7 +67,7 @@ export function AuthFlow({
   const { step, goToStep, goBack, reset } = useAuth()
 
   useEffect(() => {
-    if (step === 'initializing' && hasMagicLinkCodeInUrl()) {
+    if (step === null && hasMagicLinkCodeInUrl()) {
       goToStep('verifying-otp')
     }
   }, [step, goToStep])
@@ -80,7 +80,7 @@ export function AuthFlow({
     reset()
     userOnClose?.()
   }
-  const title = TITLE_BY_STEP[step]
+  const title = step ? TITLE_BY_STEP[step] : undefined
 
   return (
     <ScreenWrapper
