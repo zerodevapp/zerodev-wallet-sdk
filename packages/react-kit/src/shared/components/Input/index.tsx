@@ -34,16 +34,19 @@ function InputIcon({
 }) {
   if (variant === 'listItemStyle') {
     return (
-      <div className="w-13 h-13 bg-offWhite rounded-2xl flex items-center justify-center">
+      <div className="w-13 h-13 shrink-0 bg-offWhite rounded-2xl flex items-center justify-center">
         <Icon name={iconName} className="w-6 h-6 text-greyScale" />
       </div>
     )
   }
-  return <Icon name={iconName} className="w-5 h-5 text-greyScale/50" />
+  return <Icon name={iconName} className="w-5 h-5 shrink-0 text-greyScale/50" />
 }
 
+// `min-w-0` is required so the input doesn't claim its intrinsic content
+// width on mobile browsers (Chrome on Android most visibly), which would
+// squash the leading icon and the trailing chevron-button child.
 const baseInputClass =
-  'flex-1 px-0 text-gray-900 font-medium outline-none bg-transparent min-h-11 placeholder:text-gray-900/50 caret-gray-900'
+  'flex-1 min-w-0 px-0 text-gray-900 font-medium outline-none bg-transparent min-h-11 placeholder:text-gray-900/50 caret-gray-900'
 
 export function Input({
   variant = 'default',
