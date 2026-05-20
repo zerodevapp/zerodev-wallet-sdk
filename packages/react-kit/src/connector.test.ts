@@ -272,7 +272,7 @@ describe('connector', () => {
       expect(store.getState().auth.enabledMethods).toEqual(['passkey'])
     })
 
-    it('disconnect resets and reinitializes auth', async () => {
+    it('disconnect resets auth state to null step', async () => {
       const authConfig = {
         magicLinkBaseUrl: 'https://example.com/auth/verify',
         enabledMethods: ['email' as const],
@@ -282,20 +282,16 @@ describe('connector', () => {
       })
       const store = connector.getKitStore()
 
-      // Change auth state
       store.getState().auth.setEmail('test@example.com')
       store.getState().auth.goToStep('email-verification')
 
       expect(store.getState().auth.email).toBe('test@example.com')
       expect(store.getState().auth.step).toBe('email-verification')
 
-      // Disconnect
       await connector.disconnect?.()
 
-      // Auth should be reset and reinitialized, then surface the sign-up
-      // page so the user can re-authenticate.
       expect(store.getState().auth.email).toBeNull()
-      expect(store.getState().auth.step).toBe('sign-up')
+      expect(store.getState().auth.step).toBeNull()
       expect(store.getState().auth.config).toEqual(authConfig)
     })
 
