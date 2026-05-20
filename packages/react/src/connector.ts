@@ -17,6 +17,7 @@ import { type Chain, createPublicClient, createWalletClient, http } from 'viem'
 import { createProvider } from './provider.js'
 import { type CreateStoreOptions, createZeroDevWalletStore } from './store.js'
 import { getAAUrl } from './utils/aaUtils.js'
+import { isReactNative } from './utils/platform.js'
 
 /**
  * Account mode the connector exposes to wagmi.
@@ -263,7 +264,8 @@ export function zeroDevWallet(
         const shouldInit =
           typeof params.autoInitialize === 'function'
             ? params.autoInitialize()
-            : (params.autoInitialize ?? true)
+            : (params.autoInitialize ??
+              (typeof window !== 'undefined' || isReactNative()))
         if (shouldInit) {
           await initialize()
         }
