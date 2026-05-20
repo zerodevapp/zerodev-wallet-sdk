@@ -18,7 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Address, formatEther, isAddress } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useAccount, useConfig, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
 import { ExportWalletModal } from "../components/ExportWalletModal";
@@ -28,6 +28,26 @@ import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
 export const dynamic = 'force-dynamic';
+
+function useHasPendingSignatureRequest(): boolean {
+  const config = useConfig();
+  const [hasPending, setHasPending] = useState(false);
+
+  useEffect(() => {
+    const connector = config.connectors.find((c) => c.id === 'zerodev-wallet');
+    if (!connector || !('getKitStore' in connector)) return;
+    // @ts-expect-error - getKitStore is custom to the kit connector
+    const store = connector.getKitStore();
+    if (!store) return;
+    setHasPending(store.getState().pendingRequests.length > 0);
+    return store.subscribe(
+      (state: { pendingRequests: unknown[] }) => state.pendingRequests,
+      (reqs: unknown[]) => setHasPending(reqs.length > 0),
+    );
+  }, [config]);
+
+  return hasPending;
+}
 
 type ActiveTab = "signing" | "transaction";
 
@@ -63,6 +83,9 @@ export default function DashboardPage() {
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
+
+  const hasPendingSig = useHasPendingSignatureRequest();
+  const showSignatureRequest = confirmationEnabled && hasPendingSig;
 
   useQuery(
     {
@@ -151,9 +174,12 @@ export default function DashboardPage() {
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
       <ExportPrivateKeyModal isOpen={showExportPrivateKeyModal} onClose={() => setShowExportPrivateKeyModal(false)} />
       {confirmationEnabled && (
-        <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
+        <SignatureRequest className="w-full min-h-screen sm:fixed sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px] sm:min-h-0 sm:z-50" />
       )}
-      <div className="min-h-screen bg-white">
+      <div className={cn(
+        "min-h-screen bg-white",
+        showSignatureRequest && "hidden sm:block",
+      )}>
         {/* Header */}
         <header className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
