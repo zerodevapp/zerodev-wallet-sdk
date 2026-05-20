@@ -41,14 +41,21 @@ export function Verifying() {
 
   useEffect(() => {
     if (hasVerifiedRef.current || !code) return
-
     hasVerifiedRef.current = true
-    verifyMagicLink({
-      otpId: otpId ?? '',
-      code,
-      otpEncryptionTargetBundle: otpEncryptionTargetBundle ?? '',
-    })
-  }, [otpId, otpEncryptionTargetBundle, code, verifyMagicLink])
+
+    // No active OTP session — most commonly the user tapped the same
+    // magic link again after a successful verify, which cleared the
+    // session. Skip the (doomed) mutation, clean the URL, and drop
+    // back to step=null so the host app's own routing handles the
+    // already-authenticated user without flashing an error.
+    if (!otpId || !otpEncryptionTargetBundle) {
+      stripMagicLinkCodeFromUrl()
+      goToStep(null)
+      return
+    }
+
+    verifyMagicLink({ otpId, code, otpEncryptionTargetBundle })
+  }, [otpId, otpEncryptionTargetBundle, code, verifyMagicLink, goToStep])
 
   return (
     <>
