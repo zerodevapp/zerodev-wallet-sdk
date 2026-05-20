@@ -17,7 +17,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zerodev.expoexample"
+      "bundleIdentifier": "com.zerodev.expoexample",
+      "associatedDomains": [
+        "applinks:zerodev-expo-example.vercel.app?mode=developer",
+        "webcredentials:zerodev-expo-example.vercel.app"
+      ]
     },
     "android": {
       "package": "com.zerodev.expoexample",

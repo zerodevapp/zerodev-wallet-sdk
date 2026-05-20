@@ -16,6 +16,7 @@ export interface InputProps
   multiline?: boolean
   iconName?: IconName
   children?: React.ReactNode
+  containerClassName?: string
 }
 
 function getHeightClass(multiline: boolean | undefined, variant: Variant) {
@@ -53,6 +54,7 @@ export function Input({
   iconName,
   children,
   className,
+  containerClassName,
   onFocus,
   onBlur,
   ...inputProps
@@ -122,6 +124,7 @@ export function Input({
         'flex w-full rounded-2xl items-center gap-3 pr-2',
         heightClass,
         paddingLeft,
+        containerClassName,
       )}
       variant={isFocused ? 'solid' : 'soft'}
     >

@@ -45,7 +45,7 @@ function clearStoredOtpSession(): void {
 export interface AuthStoreSlice {
   auth: {
     // State
-    step: AuthStep
+    step: AuthStep | null
     stepHistory: AuthStep[]
     enabledMethods: AuthMethod[]
     email: string | null
@@ -67,7 +67,7 @@ export interface AuthStoreSlice {
 
     // Actions
     initialize: (config: AuthConfig) => void
-    goToStep: (step: AuthStep) => void
+    goToStep: (step: AuthStep | null) => void
     goBack: () => void
     reset: () => void
   }
@@ -81,7 +81,7 @@ export const createAuthStoreSlice: StateCreator<
 > = (set, get, _store) => ({
   auth: {
     // Initial state
-    step: 'initializing',
+    step: null,
     stepHistory: [],
     enabledMethods: [],
     email: null,
@@ -105,20 +105,24 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
-    goToStep: (step: AuthStep) => {
+    goToStep: (step: AuthStep | null) => {
       set((state) => ({
         auth: {
           ...state.auth,
           step,
-          stepHistory: [...state.auth.stepHistory, state.auth.step],
+          stepHistory:
+            state.auth.step === null
+              ? state.auth.stepHistory
+              : [...state.auth.stepHistory, state.auth.step],
         },
       }))
     },
 
     goBack: () => {
       const { auth } = get()
+      if (auth.stepHistory.length === 0) return
       const newHistory = [...auth.stepHistory]
-      const previousStep = newHistory.pop() ?? 'sign-up'
+      const previousStep = newHistory.pop()!
       set((state) => ({
         auth: {
           ...state.auth,
@@ -133,7 +137,7 @@ export const createAuthStoreSlice: StateCreator<
       set((state) => ({
         auth: {
           ...state.auth,
-          step: 'initializing',
+          step: null,
           stepHistory: [],
           email: null,
           otpId: null,

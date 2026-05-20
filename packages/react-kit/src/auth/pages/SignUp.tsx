@@ -252,7 +252,7 @@ export function SignUp() {
               autoComplete="email"
               disabled={anyPending}
               variant="listItemStyle"
-              className="rounded-3xl"
+              containerClassName="rounded-3xl"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && emailInput && !anyPending) {
                   handleEmailSubmit()

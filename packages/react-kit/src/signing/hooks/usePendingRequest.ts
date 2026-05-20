@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { UserRejectedRequestError } from 'viem'
 import { useConfig } from 'wagmi'
 import type { createStore, State } from '../../store.js'
 import type { PendingRequest } from '../../types.js'
@@ -63,7 +64,9 @@ export function usePendingRequest() {
     const state = store.getState()
     const head = state.pendingRequests[0]
     if (head) {
-      head.reject(new Error('User rejected the request'))
+      head.reject(
+        new UserRejectedRequestError(new Error('User rejected the request')),
+      )
       state.removePendingRequest(head.id)
     }
   }, [])

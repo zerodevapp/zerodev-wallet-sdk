@@ -15,7 +15,7 @@ export function WalletSelection() {
       { connector },
       {
         onSuccess: () => {
-          goToStep('initializing')
+          goToStep(null)
         },
       },
     )
