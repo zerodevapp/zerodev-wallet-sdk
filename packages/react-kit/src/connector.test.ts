@@ -306,7 +306,6 @@ describe('connector', () => {
           'email' as const,
           'google' as const,
           'passkey' as const,
-          'injected-wallet' as const,
         ],
       }
       const connector = createKitConnector({
@@ -318,7 +317,6 @@ describe('connector', () => {
         'email',
         'google',
         'passkey',
-        'injected-wallet',
       ])
     })
 

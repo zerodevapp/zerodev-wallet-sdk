@@ -10,7 +10,6 @@ import { Button } from '../../shared/components/Button'
 import { Icon } from '../../shared/components/Icon'
 import { Input } from '../../shared/components/Input'
 import { ListItem } from '../../shared/components/ListItem'
-import { OrView } from '../../shared/components/OrView'
 import { SignUpFooter } from '../../shared/components/SignUpFooter'
 import { Text } from '../../shared/components/Text'
 import { isValidEmailAddress } from '../../shared/utils/common'
@@ -128,10 +127,6 @@ export function SignUp() {
         setError(message)
       }
     }
-  }
-
-  const handleChooseWallet = () => {
-    goToStep('wallet-selection')
   }
 
   const handleEmailOtp = async () => {
@@ -277,19 +272,6 @@ export function SignUp() {
                 </div>
               ) : null}
             </Input>
-          )}
-          {enabledMethods.includes('injected-wallet') && (
-            <>
-              <OrView />
-              <ListItem
-                iconName="walletOutline"
-                title="Choose a wallet instead"
-                disabled={anyPending}
-                onClick={handleChooseWallet}
-                chevron
-                className="rounded-3xl"
-              />
-            </>
           )}
         </div>
       </div>
