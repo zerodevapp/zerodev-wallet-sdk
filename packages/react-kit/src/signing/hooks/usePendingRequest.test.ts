@@ -121,7 +121,10 @@ describe('usePendingRequest', () => {
       act(() => result.current.reject())
 
       expect(request.reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'User rejected the request' }),
+        expect.objectContaining({
+          name: 'UserRejectedRequestError',
+          code: 4001,
+        }),
       )
       expect(mockStore.getState().pendingRequests).toEqual([])
       expect(result.current.pendingRequest).toBeNull()
@@ -137,7 +140,10 @@ describe('usePendingRequest', () => {
       act(() => result.current.reject())
 
       expect(request1.reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'User rejected the request' }),
+        expect.objectContaining({
+          name: 'UserRejectedRequestError',
+          code: 4001,
+        }),
       )
       expect(request2.reject).not.toHaveBeenCalled()
       expect(result.current.pendingRequest).toBe(request2)
