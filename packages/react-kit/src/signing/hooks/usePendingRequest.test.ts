@@ -100,7 +100,7 @@ describe('usePendingRequest', () => {
       expect(request1.resolve).toHaveBeenCalled()
       expect(request2.resolve).not.toHaveBeenCalled()
       expect(result.current.pendingRequest).toBe(request2)
-      expect(result.current.pendingRequests).toEqual([request2])
+      expect(mockStore.getState().pendingRequests).toEqual([request2])
     })
 
     it('is a no-op when no pending requests', () => {
@@ -147,7 +147,7 @@ describe('usePendingRequest', () => {
       )
       expect(request2.reject).not.toHaveBeenCalled()
       expect(result.current.pendingRequest).toBe(request2)
-      expect(result.current.pendingRequests).toEqual([request2])
+      expect(mockStore.getState().pendingRequests).toEqual([request2])
     })
 
     it('is a no-op when no pending requests', () => {
@@ -159,18 +159,17 @@ describe('usePendingRequest', () => {
     })
   })
 
-  describe('pendingRequests state', () => {
-    it('syncs initial pending requests from store', () => {
+  describe('pendingRequest state', () => {
+    it('syncs initial head request from store', () => {
       const request = createMockPendingRequest()
       mockStore.getState().addPendingRequest(request)
 
       const { result } = renderHook(() => usePendingRequest())
 
       expect(result.current.pendingRequest).toBe(request)
-      expect(result.current.pendingRequests).toEqual([request])
     })
 
-    it('updates when a new request is added to an empty queue', () => {
+    it('updates head when a new request is added to an empty queue', () => {
       const { result } = renderHook(() => usePendingRequest())
       expect(result.current.pendingRequest).toBeNull()
 
@@ -178,10 +177,9 @@ describe('usePendingRequest', () => {
       act(() => mockStore.getState().addPendingRequest(request))
 
       expect(result.current.pendingRequest).toBe(request)
-      expect(result.current.pendingRequests).toEqual([request])
     })
 
-    it('updates when a new request is added while one is pending', () => {
+    it('keeps the existing head when another request is queued behind it', () => {
       const request1 = createMockPendingRequest()
       mockStore.getState().addPendingRequest(request1)
       const { result } = renderHook(() => usePendingRequest())
@@ -190,10 +188,9 @@ describe('usePendingRequest', () => {
       act(() => mockStore.getState().addPendingRequest(request2))
 
       expect(result.current.pendingRequest).toBe(request1)
-      expect(result.current.pendingRequests).toEqual([request1, request2])
     })
 
-    it('updates when a request is removed while others are pending', () => {
+    it('advances head when the current one is removed', () => {
       const request1 = createMockPendingRequest()
       const request2 = createMockPendingRequest()
       mockStore.getState().addPendingRequest(request1)
@@ -203,10 +200,9 @@ describe('usePendingRequest', () => {
       act(() => mockStore.getState().removePendingRequest(request1.id))
 
       expect(result.current.pendingRequest).toBe(request2)
-      expect(result.current.pendingRequests).toEqual([request2])
     })
 
-    it('clears when last request is removed', () => {
+    it('clears head when last request is removed', () => {
       const request = createMockPendingRequest()
       mockStore.getState().addPendingRequest(request)
       const { result } = renderHook(() => usePendingRequest())
@@ -214,7 +210,6 @@ describe('usePendingRequest', () => {
       act(() => mockStore.getState().removePendingRequest(request.id))
 
       expect(result.current.pendingRequest).toBeNull()
-      expect(result.current.pendingRequests).toEqual([])
     })
   })
 })

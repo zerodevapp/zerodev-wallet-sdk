@@ -65,5 +65,5 @@ export function usePendingRequest() {
 
   const pendingRequest = pendingRequests[0] ?? null
 
-  return { pendingRequest, pendingRequests, confirm, reject }
+  return { pendingRequest, confirm, reject }
 }

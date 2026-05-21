@@ -3,6 +3,7 @@ import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import type { PendingRequest, Request } from '../types.js'
 import { renderRequestContent } from './components/renderRequestContent.js'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
+import { usePendingRequests } from './hooks/usePendingRequests.js'
 
 type RenderPropArgs = {
   pendingRequest: PendingRequest | null
@@ -76,8 +77,8 @@ function UncontrolledSignatureRequest({
 }: {
   children: ((args: RenderPropArgs) => ReactNode) | undefined
 } & StyleProps) {
-  const { pendingRequest, pendingRequests, confirm, reject } =
-    usePendingRequest()
+  const { pendingRequest, confirm, reject } = usePendingRequest()
+  const pendingRequests = usePendingRequests()
 
   if (typeof children === 'function') {
     return children({ pendingRequest, confirm, reject })

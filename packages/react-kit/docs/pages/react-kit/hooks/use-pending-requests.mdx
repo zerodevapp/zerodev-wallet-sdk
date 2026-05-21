@@ -44,8 +44,8 @@ function Dashboard() {
 
 | | `usePendingRequest` | `usePendingRequests` |
 | --- | --- | --- |
+| Returns | Head request + `confirm` / `reject` | Full queue (array) |
 | Registers as confirmation listener | Yes | No |
-| Returns `confirm` / `reject` actions | Yes | No |
 | Rejects in-flight requests on unmount | Yes | No |
 | Safe to call alongside `<SignatureRequest />` | No — both would manage the listener flag | Yes |
 

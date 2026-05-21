@@ -120,7 +120,7 @@ describe('usePendingRequests', () => {
       expect(mockStore.getState().userConfirmationListenerActive).toBe(true)
     })
 
-    it('reads the same queue as usePendingRequest', () => {
+    it('sees the same head as usePendingRequest', () => {
       const request = createMockPendingRequest()
       mockStore.getState().addPendingRequest(request)
 
@@ -129,7 +129,7 @@ describe('usePendingRequests', () => {
         b: usePendingRequests(),
       }))
 
-      expect(result.current.a.pendingRequests).toEqual([request])
+      expect(result.current.a.pendingRequest).toBe(request)
       expect(result.current.b).toEqual([request])
     })
   })
