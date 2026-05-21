@@ -23,13 +23,21 @@ function LandingPageInner() {
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
 
+  const [loggedOut] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const value = localStorage.getItem('zd:loggedOut') === 'true'
+    if (value) localStorage.removeItem('zd:loggedOut')
+    return value
+  })
+
+  const skipAutoConnect = sessionExpired || loggedOut
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
-  // After the user dismisses AuthFlow via its X button the kit resets the
-  // step to `initializing`, which makes <AuthFlow /> render null. Surface
-  // a Reconnect button so they can re-trigger the flow without refreshing.
-  const showReconnect = !isConnected && authStep === null
+  const showReconnect =
+    !isConnected &&
+    authStep === null &&
+    (skipAutoConnect || connectStatus !== 'idle')
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
@@ -40,6 +48,7 @@ function LandingPageInner() {
       router.push('/dashboard')
       return
     }
+    if (skipAutoConnect) return
     if (
       accountStatus === 'disconnected' &&
       connectStatus === 'idle' &&
@@ -47,7 +56,15 @@ function LandingPageInner() {
     ) {
       connect({connector: connectors[0]})
     }
-  }, [isConnected, accountStatus, connectStatus, router, connect, connectors])
+  }, [
+    isConnected,
+    accountStatus,
+    connectStatus,
+    router,
+    connect,
+    connectors,
+    skipAutoConnect,
+  ])
 
   return (
     <div
@@ -62,11 +79,11 @@ function LandingPageInner() {
         <EmailMethodSettings/>
         <AuthFlow/>
         {showReconnect && (
-          <div className="flex items-center justify-center p-6">
+          <div className="flex-1 flex items-center justify-center p-6">
             <button
               type="button"
               onClick={handleReconnect}
-              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 cursor-pointer"
+              className="px-8 py-4 rounded-3xl bg-gray-900 text-white text-body1 font-semibold hover:bg-gray-800 cursor-pointer"
             >
               Reconnect
             </button>

@@ -109,6 +109,7 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
+    localStorage.setItem("zd:loggedOut", "true");
     await logout();
     router.push("/");
   };
