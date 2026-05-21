@@ -76,11 +76,11 @@ function LandingPageInner() {
         <EmailMethodSettings/>
         <AuthFlow/>
         {showReconnect && (
-          <div className="flex items-center justify-center p-6">
+          <div className="flex-1 flex items-center justify-center p-6">
             <button
               type="button"
               onClick={handleReconnect}
-              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 cursor-pointer"
+              className="px-8 py-4 rounded-3xl bg-gray-900 text-white text-body1 font-semibold hover:bg-gray-800 cursor-pointer"
             >
               Reconnect
             </button>
