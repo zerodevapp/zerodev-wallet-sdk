@@ -39,6 +39,11 @@ export type ApiKeyStamper = Stamper & {
   prepareKeyRotation: () => Promise<string>
   /** Promote the pending key to active. Call after the server accepts the new key. */
   commitKeyRotation: () => Promise<void>
+  /**
+   * Sign `payload` with the currently active key. Returns a hex-encoded
+   * ECDSA-P256 / SHA-256 signature in ASN.1 DER form.
+   */
+  sign: (payload: string) => Promise<string>
 }
 export type Attestation = {
   attestationObject: string

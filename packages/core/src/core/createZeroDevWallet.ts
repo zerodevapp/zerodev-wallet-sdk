@@ -223,10 +223,12 @@ export async function createZeroDevWallet(
     async auth(params: AuthParams) {
       switch (params.type) {
         case 'oauth': {
+          const popSignature = await client.apiKeyStamper.sign(params.sessionId)
           const data = await client.authenticateWithOAuth({
             provider: params.provider,
             projectId,
             sessionId: params.sessionId,
+            popSignature,
           })
 
           if (data.session) {

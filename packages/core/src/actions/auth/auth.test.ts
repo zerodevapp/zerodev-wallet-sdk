@@ -55,7 +55,7 @@ function createMockClient(
 }
 
 describe('authenticateWithOAuth', () => {
-  it('sends OAuth auth request with sessionId in body', async () => {
+  it('sends OAuth auth request with sessionId and popSignature in body', async () => {
     const mockClient = createMockClient(async () => ({
       userId: 'user-123',
       session: 'session-jwt',
@@ -65,12 +65,16 @@ describe('authenticateWithOAuth', () => {
       provider: 'google',
       projectId: 'proj-456',
       sessionId: 'test-session-id',
+      popSignature: '3045-der-hex',
     })
 
     expect(mockClient.request).toHaveBeenCalledWith({
       path: 'proj-456/auth/oauth',
       method: 'POST',
-      body: { sessionId: 'test-session-id' },
+      body: {
+        sessionId: 'test-session-id',
+        popSignature: '3045-der-hex',
+      },
     })
     expect(result).toEqual({
       userId: 'user-123',
@@ -91,6 +95,7 @@ describe('authenticateWithOAuth', () => {
       provider: 'google',
       projectId: 'proj-456',
       sessionId: 'test-session-id',
+      popSignature: '3045-der-hex',
     })
 
     expect(result).toEqual(fullResponse)
@@ -106,6 +111,7 @@ describe('authenticateWithOAuth', () => {
         provider: 'google',
         projectId: 'proj-456',
         sessionId: 'expired-session',
+        popSignature: '3045-der-hex',
       }),
     ).rejects.toThrow('OAuth session expired')
   })
