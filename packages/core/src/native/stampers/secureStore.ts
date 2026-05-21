@@ -1,4 +1,4 @@
-import { ApiKeyStamper } from '@turnkey/api-key-stamper'
+import { ApiKeyStamper, SignatureFormat } from '@turnkey/api-key-stamper'
 import { generateP256KeyPair } from '@turnkey/crypto'
 import * as SecureStore from 'expo-secure-store'
 import type { ApiKeyStamper as ZDApiKeyStamper } from '../../stampers/types.js'
@@ -38,9 +38,7 @@ class SecureStoreStamperInner {
     this.publicKeyHex = pair.publicKey
   }
 
-  async stamp(
-    payload: string,
-  ): Promise<{ stampHeaderName: string; stampHeaderValue: string }> {
+  private async getTurnkeyApiKeyStamper(): Promise<ApiKeyStamper> {
     if (!this.publicKeyHex) {
       throw new Error(
         'Key not initialized. Call init() or resetKeyPair() first.',
@@ -52,13 +50,23 @@ class SecureStoreStamperInner {
       throw new Error('No private key found in secure store.')
     }
 
-    const stamper = new ApiKeyStamper({
+    return new ApiKeyStamper({
       apiPublicKey: this.publicKeyHex,
       apiPrivateKey: privateKey,
     })
+  }
 
+  async stamp(
+    payload: string,
+  ): Promise<{ stampHeaderName: string; stampHeaderValue: string }> {
+    const stamper = await this.getTurnkeyApiKeyStamper()
     const { stampHeaderName, stampHeaderValue } = await stamper.stamp(payload)
     return { stampHeaderName, stampHeaderValue }
+  }
+
+  async sign(payload: string): Promise<string> {
+    const stamper = await this.getTurnkeyApiKeyStamper()
+    return stamper.sign(payload, SignatureFormat.Der)
   }
 
   async clear(): Promise<void> {
@@ -104,6 +112,9 @@ export async function createSecureStoreStamper(): Promise<ZDApiKeyStamper> {
     },
     async stamp(payload: string) {
       return inner.stamp(payload)
+    },
+    async sign(payload: string) {
+      return inner.sign(payload)
     },
     async clear() {
       await inner.clear()
