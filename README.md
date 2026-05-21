@@ -69,6 +69,11 @@ See [React package README](./packages/react/README.md) for full documentation.
 
 For framework-agnostic usage, see [@zerodev/wallet-core](./packages/core/README.md).
 
+If you'd rather not build your own auth and signing UI, use
+[@zerodev/wallet-react-kit](./packages/react-kit/README.md) — drop-in
+React components (`<AuthFlow />`, `<SignatureRequest />`) built on top of
+this SDK.
+
 ## Authentication Methods
 
 ### Passkey (WebAuthn)
@@ -260,12 +265,19 @@ zerodev-wallet-sdk/
 │   │   │   ├── core/      # Main SDK (createZeroDevWallet)
 │   │   │   └── types/     # TypeScript types
 │   │   └── dist/          # Compiled output
-│   └── react/             # React hooks & Wagmi connector
+│   ├── react/             # React hooks & Wagmi connector
+│   │   ├── src/
+│   │   │   ├── hooks/     # React hooks (useRegisterPasskey, etc.)
+│   │   │   ├── actions.ts # Action functions
+│   │   │   ├── connector.ts # Wagmi connector
+│   │   │   └── provider.ts  # EIP-1193 provider
+│   │   └── dist/          # Compiled output
+│   └── react-kit/         # Drop-in React UI components
 │       ├── src/
-│       │   ├── hooks/     # React hooks (useRegisterPasskey, etc.)
-│       │   ├── actions.ts # Action functions
-│       │   ├── connector.ts # Wagmi connector
-│       │   └── provider.ts  # EIP-1193 provider
+│       │   ├── auth/      # <AuthFlow /> + auth pages and hooks
+│       │   ├── signing/   # <SignatureRequest /> + signing hooks
+│       │   ├── shared/    # Shared components and utilities
+│       │   └── connector.ts # Enhanced wagmi connector (zeroDevWallet)
 │       └── dist/          # Compiled output
 └── README.md
 ```
@@ -282,5 +294,6 @@ MIT
 
 ## Packages
 
+- **[@zerodev/wallet-react-kit](./packages/react-kit)** — Drop-in React UI components (`<AuthFlow />`, `<SignatureRequest />`) and enhanced wagmi connector
 - **[@zerodev/wallet-react](./packages/react)** — React hooks and Wagmi connector (recommended for React apps)
 - **[@zerodev/wallet-core](./packages/core)** — Core SDK (framework-agnostic)

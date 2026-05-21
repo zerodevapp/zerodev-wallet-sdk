@@ -20,7 +20,7 @@ export function SigningActions({
   const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
 
   return (
-    <Wrapper className="p-1 gap-2 mb-1.5 -mx-1.5 rounded-3xl">
+    <Wrapper className="p-1 gap-2 mb-1.5 rounded-3xl">
       <div className="flex flex-row items-center gap-1">
         <Button
           text="Reject"
