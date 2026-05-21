@@ -6,9 +6,9 @@ import { useConfig } from 'wagmi'
 import type { createStore, State } from '../../store.js'
 import type { PendingRequest } from '../../types.js'
 
-type Store = ReturnType<typeof createStore>
+export type Store = ReturnType<typeof createStore>
 
-function getStore(config: ReturnType<typeof useConfig>): Store | null {
+export function getStore(config: ReturnType<typeof useConfig>): Store | null {
   const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
   if (!connector || !('getKitStore' in connector)) return null
   // @ts-expect-error - getKitStore is a custom method on the kit connector

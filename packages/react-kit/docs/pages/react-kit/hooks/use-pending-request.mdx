@@ -1,8 +1,11 @@
 # usePendingRequest
 
-Access the pending signing request state. Use this to build a custom
-confirmation UI instead of the default `<SignatureRequest />`, or to
-show a count of queued requests in your own UI.
+Access the pending signing request state and register as the confirmation
+listener. Use this to build a custom confirmation UI instead of the default
+`<SignatureRequest />`.
+
+If you only need to read the queue (without registering as the listener),
+use [`usePendingRequests`](/react-kit/hooks/use-pending-requests) instead.
 
 ## Import
 

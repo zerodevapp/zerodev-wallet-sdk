@@ -64,6 +64,10 @@ export default defineConfig({
               text: 'usePendingRequest',
               link: '/react-kit/hooks/use-pending-request',
             },
+            {
+              text: 'usePendingRequests',
+              link: '/react-kit/hooks/use-pending-requests',
+            },
           ],
         },
       ],

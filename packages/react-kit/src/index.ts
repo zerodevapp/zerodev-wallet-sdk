@@ -20,5 +20,6 @@ export { zeroDevWallet } from './connector.js'
 export type { SignatureRequestProps } from './signing'
 export { SignatureRequest } from './signing'
 export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
+export { usePendingRequests } from './signing/hooks/usePendingRequests.js'
 
 export type { PendingRequest, Request, RequestMethod } from './types.js'
