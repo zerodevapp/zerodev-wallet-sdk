@@ -1,4 +1,7 @@
 import type { Address, Hex, RpcTransactionRequest } from 'viem'
+import type { createStore } from './store.js'
+
+export type Store = ReturnType<typeof createStore>
 
 export type BatchCall = {
   to?: Address

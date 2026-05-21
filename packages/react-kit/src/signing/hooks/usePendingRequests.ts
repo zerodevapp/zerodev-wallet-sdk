@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useConfig } from 'wagmi'
+import { getStore } from '../../shared/utils/store.js'
 import type { State } from '../../store.js'
 import type { PendingRequest } from '../../types.js'
-import { getStore } from './usePendingRequest.js'
 
 // Pure subscription to the pending request queue. Does NOT register as a
 // confirmation listener — use this when you only need to read state (e.g. to
