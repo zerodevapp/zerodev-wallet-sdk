@@ -3,7 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { SignatureRequest } from "@zerodev/wallet-react-kit";
+import { SignatureRequest, usePendingRequest } from "@zerodev/wallet-react-kit";
 import {
   Check,
   Copy,
@@ -18,7 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Address, formatEther, isAddress } from "viem";
-import { useAccount, useConfig, useDisconnect, usePublicClient } from "wagmi";
+import { useAccount, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
 import { ExportWalletModal } from "../components/ExportWalletModal";
@@ -28,26 +28,6 @@ import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
 export const dynamic = 'force-dynamic';
-
-function useHasPendingSignatureRequest(): boolean {
-  const config = useConfig();
-  const [hasPending, setHasPending] = useState(false);
-
-  useEffect(() => {
-    const connector = config.connectors.find((c) => c.id === 'zerodev-wallet');
-    if (!connector || !('getKitStore' in connector)) return;
-    // @ts-expect-error - getKitStore is custom to the kit connector
-    const store = connector.getKitStore();
-    if (!store) return;
-    setHasPending(store.getState().pendingRequests.length > 0);
-    return store.subscribe(
-      (state: { pendingRequests: unknown[] }) => state.pendingRequests,
-      (reqs: unknown[]) => setHasPending(reqs.length > 0),
-    );
-  }, [config]);
-
-  return hasPending;
-}
 
 type ActiveTab = "signing" | "transaction";
 
@@ -84,8 +64,8 @@ export default function DashboardPage() {
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
 
-  const hasPendingSig = useHasPendingSignatureRequest();
-  const showSignatureRequest = confirmationEnabled && hasPendingSig;
+  const { pendingRequests } = usePendingRequest();
+  const showSignatureRequest = confirmationEnabled && pendingRequests.length > 0;
 
   useQuery(
     {

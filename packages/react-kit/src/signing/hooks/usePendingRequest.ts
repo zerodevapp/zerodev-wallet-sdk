@@ -15,6 +15,28 @@ function getStore(config: ReturnType<typeof useConfig>): Store | null {
   return connector.getKitStore()
 }
 
+// Tells the kit that a confirmation UI is mounted, so signing requests gate on
+// user confirmation. Rejects any in-flight requests on unmount so they don't
+// hang. Use only from components that actually render confirmation UI (e.g.
+// `<SignatureRequest>`) — `usePendingRequest` itself is a pure read so it can
+// be called freely from any component without flipping the gate.
+export function useConfirmationListenerLifecycle() {
+  const config = useConfig()
+  useEffect(() => {
+    const store = getStore(config)
+    if (!store) return
+    store.getState().setUserConfirmationListenerActive(true)
+    return () => {
+      const state = store.getState()
+      for (const req of state.pendingRequests) {
+        req.reject(new Error('Confirmation listener unmounted'))
+      }
+      state.clearPendingRequests()
+      state.setUserConfirmationListenerActive(false)
+    }
+  }, [config])
+}
+
 export function usePendingRequest() {
   const config = useConfig()
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
@@ -25,26 +47,12 @@ export function usePendingRequest() {
     if (!store) return
 
     storeRef.current = store
-    store.getState().setUserConfirmationListenerActive(true)
-
-    // Sync initial state
     setPendingRequests(store.getState().pendingRequests)
 
-    // Subscribe to changes
-    const unsubscribe = store.subscribe(
+    return store.subscribe(
       (state: State) => state.pendingRequests,
       (reqs: PendingRequest[]) => setPendingRequests(reqs),
     )
-
-    return () => {
-      unsubscribe()
-      const state = store.getState()
-      for (const req of state.pendingRequests) {
-        req.reject(new Error('Confirmation listener unmounted'))
-      }
-      state.clearPendingRequests()
-      state.setUserConfirmationListenerActive(false)
-    }
   }, [config])
 
   const confirm = useCallback(() => {

@@ -41,40 +41,6 @@ afterEach(() => {
 })
 
 describe('usePendingRequest', () => {
-  describe('lifecycle', () => {
-    it('sets userConfirmationListenerActive to true on mount', () => {
-      renderHook(() => usePendingRequest())
-
-      expect(mockStore.getState().userConfirmationListenerActive).toBe(true)
-    })
-
-    it('sets userConfirmationListenerActive to false on unmount', () => {
-      const { unmount } = renderHook(() => usePendingRequest())
-
-      unmount()
-
-      expect(mockStore.getState().userConfirmationListenerActive).toBe(false)
-    })
-
-    it('rejects all pending requests on unmount', () => {
-      const request1 = createMockPendingRequest()
-      const request2 = createMockPendingRequest()
-      mockStore.getState().addPendingRequest(request1)
-      mockStore.getState().addPendingRequest(request2)
-      const { unmount } = renderHook(() => usePendingRequest())
-
-      unmount()
-
-      expect(request1.reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Confirmation listener unmounted' }),
-      )
-      expect(request2.reject).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Confirmation listener unmounted' }),
-      )
-      expect(mockStore.getState().pendingRequests).toEqual([])
-    })
-  })
-
   describe('confirm', () => {
     it('resolves head request and removes it', () => {
       const request = createMockPendingRequest()
