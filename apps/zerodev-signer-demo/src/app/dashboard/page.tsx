@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/");
+    router.push("/?logged_out=true");
   };
 
   const formatAddress = (address: string) => {

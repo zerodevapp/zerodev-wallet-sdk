@@ -22,6 +22,11 @@ function LandingPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
+  const loggedOut = searchParams.get('logged_out') === 'true'
+  // Skip auto-connect when the user just logged out or their session expired.
+  // Without this guard, landing on `/` immediately fires `connect()` which
+  // re-triggers AuthFlow — the user just wants the Reconnect button instead.
+  const skipAutoConnect = sessionExpired || loggedOut
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
@@ -40,6 +45,7 @@ function LandingPageInner() {
       router.push('/dashboard')
       return
     }
+    if (skipAutoConnect) return
     if (
       accountStatus === 'disconnected' &&
       connectStatus === 'idle' &&
@@ -47,7 +53,15 @@ function LandingPageInner() {
     ) {
       connect({connector: connectors[0]})
     }
-  }, [isConnected, accountStatus, connectStatus, router, connect, connectors])
+  }, [
+    isConnected,
+    accountStatus,
+    connectStatus,
+    router,
+    connect,
+    connectors,
+    skipAutoConnect,
+  ])
 
   return (
     <div
