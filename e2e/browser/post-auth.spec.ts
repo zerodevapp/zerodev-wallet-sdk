@@ -194,8 +194,13 @@ test.describe('Post-Auth Operations', () => {
     // Click logout
     await page.getByRole('button', { name: /Logout/i }).click()
 
-    // Verify redirect to login page
+    // Verify redirect to login page. Post-logout the landing page shows a
+    // Reconnect button instead of auto-triggering AuthFlow, so the user has
+    // to opt back into the sign-in flow.
     await page.waitForURL('/', { timeout: 15_000 })
+    const reconnectButton = page.getByRole('button', { name: /Reconnect/i })
+    await expect(reconnectButton).toBeVisible()
+    await reconnectButton.click()
     await expect(page.getByText('Continue to your wallet')).toBeVisible()
     console.log('Logout successful')
   })
