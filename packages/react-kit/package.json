@@ -1,6 +1,5 @@
 {
   "name": "@zerodev/wallet-react-kit",
-  "private": true,
   "version": "0.0.1-alpha.0",
   "description": "React UI components for ZeroDev Wallet SDK",
   "sideEffects": [
