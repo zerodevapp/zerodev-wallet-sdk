@@ -109,8 +109,12 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
+    // Signal to the landing page that this is a logout (not a fresh visit)
+    // so it skips auto-connect. Using localStorage instead of a query param
+    // keeps the URL at "/", which is what the e2e tests assert.
+    localStorage.setItem("zd:loggedOut", "true");
     await logout();
-    router.push("/?logged_out=true");
+    router.push("/");
   };
 
   const formatAddress = (address: string) => {

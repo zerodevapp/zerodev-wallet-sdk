@@ -22,19 +22,22 @@ function LandingPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
-  const loggedOut = searchParams.get('logged_out') === 'true'
-  // Skip auto-connect when the user just logged out or their session expired.
-  // Without this guard, landing on `/` immediately fires `connect()` which
-  // re-triggers AuthFlow — the user just wants the Reconnect button instead.
-  const skipAutoConnect = sessionExpired || loggedOut
 
+  const [loggedOut] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const value = localStorage.getItem('zd:loggedOut') === 'true'
+    if (value) localStorage.removeItem('zd:loggedOut')
+    return value
+  })
+
+  const skipAutoConnect = sessionExpired || loggedOut
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
-  // After the user dismisses AuthFlow via its X button the kit resets the
-  // step to `initializing`, which makes <AuthFlow /> render null. Surface
-  // a Reconnect button so they can re-trigger the flow without refreshing.
-  const showReconnect = !isConnected && authStep === null
+  const showReconnect =
+    !isConnected &&
+    authStep === null &&
+    (skipAutoConnect || connectStatus !== 'idle')
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
