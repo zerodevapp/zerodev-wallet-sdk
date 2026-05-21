@@ -29,7 +29,7 @@ function LandingPageInner() {
   // After the user dismisses AuthFlow via its X button the kit resets the
   // step to `initializing`, which makes <AuthFlow /> render null. Surface
   // a Reconnect button so they can re-trigger the flow without refreshing.
-  const showReconnect = !isConnected && authStep === 'initializing'
+  const showReconnect = !isConnected && authStep === null
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
