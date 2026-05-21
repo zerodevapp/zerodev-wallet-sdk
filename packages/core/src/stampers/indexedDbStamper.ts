@@ -15,6 +15,9 @@ export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
     async stamp(payload: string) {
       return await inner.stamp(payload)
     },
+    async sign(payload: string) {
+      return await inner.sign(payload)
+    },
     async clear() {
       await inner.clear()
     },

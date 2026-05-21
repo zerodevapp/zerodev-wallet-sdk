@@ -7,6 +7,8 @@ export type AuthenticateWithOAuthParameters = {
   projectId: string
   /** The session ID from the OAuth callback URL */
   sessionId: string
+  /** Proof-of-possession signature for `sessionId`. */
+  popSignature: string
 }
 
 export type AuthenticateWithOAuthReturnType = {
@@ -37,6 +39,7 @@ export type AuthenticateWithOAuthReturnType = {
  *   provider: 'google',
  *   projectId: 'proj_456',
  *   sessionId: 'abc123',
+ *   popSignature: '3045022100...',
  * });
  * ```
  */
@@ -44,11 +47,11 @@ export async function authenticateWithOAuth(
   client: Client,
   params: AuthenticateWithOAuthParameters,
 ): Promise<AuthenticateWithOAuthReturnType> {
-  const { projectId, sessionId } = params
+  const { projectId, sessionId, popSignature } = params
 
   return await client.request({
     path: `${projectId}/auth/oauth`,
     method: 'POST',
-    body: { sessionId },
+    body: { sessionId, popSignature },
   })
 }
