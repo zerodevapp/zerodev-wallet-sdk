@@ -28,7 +28,7 @@ export function ScreenWrapper({
       <div className="flex flex-1 flex-col bg-offWhite/85 m-1.5 px-4 overflow-hidden rounded-[30px] relative">
         {topNav}
         <div
-          className="flex flex-1 flex-col"
+          className="flex flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden"
           style={{ paddingTop: `${CONTENT_PADDING_TOP}px` }}
         >
           {children}
