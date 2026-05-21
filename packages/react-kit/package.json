@@ -21,7 +21,7 @@
     "dist",
     "./src/**/*.ts",
     "./src/**/*.tsx",
-    "!dist/_types/**/*.tsbuildinfo",
+    "!dist/**/*.tsbuildinfo",
     "!.env",
     "!./**/*.test.ts",
     "!./**/*.test.tsx",
