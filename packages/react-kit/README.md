@@ -1,7 +1,7 @@
 # @zerodev/wallet-react-kit
 
 React UI components and an enhanced wagmi connector for the
-[ZeroDev Wallet SDK](https://zerodev.app). Drop-in flows for
+ZeroDev Wallet SDK. Drop-in flows for
 authentication and transaction signing on top of a standard wagmi setup.
 
 ## Installation
@@ -80,9 +80,6 @@ function App() {
 | `useAuth` | Read / drive the auth flow state. |
 | `usePendingRequest` | Register a custom confirmation UI (head request + `confirm` / `reject`). |
 | `usePendingRequests` | Read-only subscription to the pending queue. Safe to call alongside `<SignatureRequest />`. |
-
-See the [full documentation](https://docs.zerodev.app/wallets/react-kit/getting-started)
-for configuration options, hooks, and feature guides.
 
 ## Development
 
