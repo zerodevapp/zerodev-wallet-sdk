@@ -7,7 +7,7 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@zerodev/wallet-react-kit", "@zerodev/wallet-react-native-kit"],
+  "ignore": ["@zerodev/wallet-react-native-kit"],
   "privatePackages": {
     "version": false,
     "tag": false

@@ -3,7 +3,8 @@
   "tag": "alpha",
   "initialVersions": {
     "@zerodev/wallet-core": "0.0.0",
-    "@zerodev/wallet-react": "0.0.1-alpha.0"
+    "@zerodev/wallet-react": "0.0.1-alpha.0",
+    "@zerodev/wallet-react-kit": "0.0.1-alpha.0"
   },
   "changesets": [
     "add-otp-code-customization",
