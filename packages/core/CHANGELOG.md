@@ -1,5 +1,12 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.20
+
+### Patch Changes
+
+- feat: send PoP signature on OAuth completion
+
+
 ## 0.0.1-alpha.19
 
 ### Patch Changes
