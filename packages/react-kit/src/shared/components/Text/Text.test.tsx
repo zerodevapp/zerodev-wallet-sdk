@@ -55,7 +55,6 @@ describe('Text', () => {
     it('applies custom font family via font-sans class', () => {
       render(<Text>Styled</Text>)
       const el = screen.getByText('Styled')
-      // font-sans maps to 'VC Cardinal Wide Trial' in tailwind.config.ts
       expect(el.className).toContain('font-sans')
       expect(el.className).not.toContain('font-roboto')
     })

@@ -44,9 +44,9 @@ const config: Config = {
         // Design typography END
       },
       fontFamily: {
-        sans: ['VC Cardinal Wide Trial', 'sans-serif'],
-        heading: ['VC Cardinal Wide Trial', 'sans-serif'],
-        body: ['VC Cardinal Wide Trial', 'sans-serif'],
+        sans: ['sans-serif'],
+        heading: ['sans-serif'],
+        body: ['sans-serif'],
         mono: undefined,
         roboto: ['Roboto', 'sans-serif'],
       },
