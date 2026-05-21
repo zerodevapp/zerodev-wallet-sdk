@@ -3,17 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UserRejectedRequestError } from 'viem'
 import { useConfig } from 'wagmi'
-import type { createStore, State } from '../../store.js'
-import type { PendingRequest } from '../../types.js'
-
-type Store = ReturnType<typeof createStore>
-
-function getStore(config: ReturnType<typeof useConfig>): Store | null {
-  const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
-  if (!connector || !('getKitStore' in connector)) return null
-  // @ts-expect-error - getKitStore is a custom method on the kit connector
-  return connector.getKitStore()
-}
+import { getStore } from '../../shared/utils/store.js'
+import type { State } from '../../store.js'
+import type { PendingRequest, Store } from '../../types.js'
 
 export function usePendingRequest() {
   const config = useConfig()
@@ -73,5 +65,5 @@ export function usePendingRequest() {
 
   const pendingRequest = pendingRequests[0] ?? null
 
-  return { pendingRequest, pendingRequests, confirm, reject }
+  return { pendingRequest, confirm, reject }
 }
