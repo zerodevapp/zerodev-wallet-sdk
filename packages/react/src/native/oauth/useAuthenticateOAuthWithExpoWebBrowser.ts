@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { Config, ResolvedRegister } from 'wagmi'
-import { useAuthenticateOAuth } from '../hooks/useAuthenticateOAuth.js'
+import { useAuthenticateOAuth } from '../../hooks/useAuthenticateOAuth.js'
 import { createOAuthGetSessionIdWithExpoWebBrowser } from './expoWebBrowser.js'
 
 /**

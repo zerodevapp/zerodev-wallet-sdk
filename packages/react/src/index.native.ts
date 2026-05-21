@@ -7,8 +7,9 @@ if (!isReactNative()) {
 }
 
 // Shared API surface — identical to the bare specifier, EXCEPT:
-//  - useAuthenticateOAuth comes from ./native/hooks/useAuthenticateOAuth.js
-//    (type-narrowed to require getSessionId + redirectUri)
+//  - useAuthenticateOAuth is the generic variant from ./hooks (requires
+//    getSessionId + redirectUri); the bare specifier exports the
+//    popup-wired web variant from ./web instead.
 //  - useExportWallet / useExportPrivateKey are intentionally NOT re-exported;
 //    the native export flow is component-driven via ZeroDevExportWebView at
 //    @zerodev/wallet-react/react-native/export/webview.
@@ -23,6 +24,8 @@ export type {
   ZeroDevWalletConnectorParams,
 } from './connector.js'
 export { zeroDevWallet } from './connector.js'
+// Generic OAuth hook — caller supplies getSessionId + redirectUri
+export { useAuthenticateOAuth } from './hooks/useAuthenticateOAuth.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
 export { useLoginPasskey } from './hooks/useLoginPasskey.js'
 export { useRefreshSession } from './hooks/useRefreshSession.js'
@@ -31,8 +34,6 @@ export { useSendMagicLink } from './hooks/useSendMagicLink.js'
 export { useSendOTP } from './hooks/useSendOTP.js'
 export { useVerifyMagicLink } from './hooks/useVerifyMagicLink.js'
 export { useVerifyOTP } from './hooks/useVerifyOTP.js'
-// Native-specific auth hook
-export { useAuthenticateOAuth } from './native/hooks/useAuthenticateOAuth.js'
 export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
 export { createZeroDevWalletStore } from './store.js'
