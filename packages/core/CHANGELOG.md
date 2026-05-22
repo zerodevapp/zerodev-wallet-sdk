@@ -1,11 +1,16 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.21
+
+### Patch Changes
+
+- feat: Add React Native modules and platform-specific exports
+
 ## 0.0.1-alpha.20
 
 ### Patch Changes
 
 - feat: send PoP signature on OAuth completion
-
 
 ## 0.0.1-alpha.19
 

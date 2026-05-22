@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.1-alpha.24
+
+### Patch Changes
+
+- feat: Add React Native modules and platform-specific exports
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.21
+
 ## 0.0.1-alpha.23
 
 ### Patch Changes
