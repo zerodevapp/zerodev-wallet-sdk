@@ -1,11 +1,18 @@
 import { isReactNative } from './utils/platform.js'
 
-if (isReactNative()) {
+if (!isReactNative()) {
   console.warn(
-    '@zerodev/wallet-react: the web entry was loaded in a React Native runtime. Check that your metro.config.js has `unstable_enablePackageExports: true` and `"react-native"` in `unstable_conditionNames`.',
+    '@zerodev/wallet-react/react-native: the React Native entry was loaded outside a React Native runtime. If this is a non-RN context, import `@zerodev/wallet-react` (the bare specifier) instead.',
   )
 }
 
+// Shared API surface — identical to the bare specifier, EXCEPT:
+//  - useAuthenticateOAuth is the generic variant from ./hooks (requires
+//    getSessionId + redirectUri); the bare specifier exports the
+//    popup-wired web variant from ./web instead.
+//  - useExportWallet / useExportPrivateKey are intentionally NOT re-exported;
+//    the native export flow is component-driven via ZeroDevExportWebView at
+//    @zerodev/wallet-react/react-native/export/webview.
 export {
   getZeroDevConnector,
   getZeroDevStore,
@@ -17,9 +24,9 @@ export type {
   ZeroDevWalletConnectorParams,
 } from './connector.js'
 export { zeroDevWallet } from './connector.js'
+// Generic OAuth hook — caller supplies getSessionId + redirectUri
+export { useAuthenticateOAuth } from './hooks/useAuthenticateOAuth.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
-export { useExportPrivateKey } from './hooks/useExportPrivateKey.js'
-export { useExportWallet } from './hooks/useExportWallet.js'
 export { useLoginPasskey } from './hooks/useLoginPasskey.js'
 export { useRefreshSession } from './hooks/useRefreshSession.js'
 export { useRegisterPasskey } from './hooks/useRegisterPasskey.js'
@@ -36,4 +43,3 @@ export {
   OAUTH_PROVIDERS,
   verifyGoogleLoginUrl,
 } from './utils/verifyGoogleLoginUrl.js'
-export { useAuthenticateOAuth } from './web/useAuthenticateOAuth.js'

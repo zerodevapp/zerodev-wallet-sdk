@@ -27,7 +27,11 @@ redirect URI is then derived from `RP_ID` in
 [`src/config/auth.ts`](../src/config/auth.ts)); when unset or `false`,
 `Linking.createURL(<path>)` builds the custom-scheme fallback.
 The OAuth branch lands in the `Linking.addEventListener('url', ...)`
-handler inside [`src/oauth/createNativeOAuthGetSessionId.ts`](../src/oauth/createNativeOAuthGetSessionId.ts);
+handler inside `@zerodev/wallet-react`'s
+`createOAuthGetSessionIdWithExpoWebBrowser` helper, which this app wires
+up via [`src/hooks/useAuthenticateOAuth.native.ts`](../src/hooks/useAuthenticateOAuth.native.ts)
+(consuming the `useAuthenticateOAuthWithExpoWebBrowser` convenience hook
+from `@zerodev/wallet-react/react-native/oauth/with-expo-web-browser`);
 the magic-link branch lands in
 [`src/app/verify-email.tsx`](../src/app/verify-email.tsx) via
 expo-router's `useLocalSearchParams`.

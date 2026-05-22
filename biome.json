@@ -139,11 +139,11 @@
     {
       "includes": [
         "**/src/index.ts",
+        "**/src/index.native.ts",
         "**/actions/index.ts",
         "**/auth/index.ts",
         "**/wallet/index.ts",
-        "**/client/index.ts",
-        "**/stampers/index.ts"
+        "**/client/index.ts"
       ],
       "linter": {
         "rules": {

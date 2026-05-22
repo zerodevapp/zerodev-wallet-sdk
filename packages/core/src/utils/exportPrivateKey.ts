@@ -1,4 +1,4 @@
-import type { ZeroDevWalletSDK } from '../core/createZeroDevWallet.js'
+import type { ZeroDevWalletSDK } from '../core/createZeroDevWalletCore.js'
 import type { KeyFormat } from '../stampers/types.js'
 
 export type ExportPrivateKeyParameters = {

@@ -6,7 +6,7 @@ import {
   useMutation,
 } from '@tanstack/react-query'
 import { type Config, type ResolvedRegister, useConfig } from 'wagmi'
-import { exportPrivateKey } from '../actions.js'
+import { exportPrivateKey } from '../web/exportPrivateKey.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined

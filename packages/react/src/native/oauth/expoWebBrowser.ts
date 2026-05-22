@@ -1,6 +1,6 @@
-import type { GetOAuthSessionIdFn } from '@zerodev/wallet-react'
 import * as Linking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
+import type { GetOAuthSessionIdFn } from '../../authenticateOAuth.js'
 
 /**
  * Races two observation primitives because iOS and Android deliver the
@@ -12,7 +12,7 @@ import * as WebBrowser from 'expo-web-browser'
  *     internally and resolves `openAuthSessionAsync` with the URL.
  * Whichever fires first wins.
  */
-export function createNativeOAuthGetSessionId(params: {
+export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
   redirectUri: string
 }): GetOAuthSessionIdFn {
   return async ({ oauthUrl }) => {

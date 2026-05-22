@@ -1,8 +1,11 @@
 import type { Config, Connector } from '@wagmi/core'
 import { connect as wagmiConnect } from '@wagmi/core/actions'
 import type { createZeroDevWallet } from '@zerodev/wallet-core'
-import { getZeroDevConnector } from './actions.js'
-import { getSessionIdWeb } from './getSessionIdWeb.js'
+import {
+  getZeroDevConnector,
+  getZeroDevStore,
+  getZeroDevWallet,
+} from './actions.js'
 import type { createZeroDevWalletStore } from './store.js'
 import {
   type OAuthProvider,
@@ -10,10 +13,9 @@ import {
 } from './utils/verifyGoogleLoginUrl.js'
 
 /**
- * Pluggable callback for obtaining an OAuth session ID.
- * On web the default popup + parent-polling flow is used.
- * On React Native, pass a function that opens a system browser and
- * resolves with the sessionId extracted from the deep-link redirect.
+ * Pluggable callback for obtaining an OAuth session ID. The web hook supplies
+ * a popup + parent-polling flow (`getSessionIdWeb`); the RN hook requires
+ * consumer-supplied adapters (e.g. expo-web-browser + expo-linking).
  */
 export type GetOAuthSessionIdFn = (params: {
   oauthUrl: string
@@ -45,32 +47,21 @@ async function completeOAuth(
 }
 
 /**
- * Authenticate with OAuth.
- *
- * By default (no `getSessionId`/`redirectUri` provided), uses a built-in web
- * popup + parent-polling flow. Pass `timeoutMs` to configure how long that web
- * popup flow may run before it fails. On native, pass a consumer-supplied
- * `getSessionId` adapter (e.g. using expo-web-browser + expo-linking) plus the
- * `redirectUri` the backend should redirect to. Must be provided together.
+ * Platform-agnostic OAuth orchestration core. REQUIRES both `getSessionId`
+ * and `redirectUri` — no web-fallback defaults at this layer. The web hook
+ * supplies `getSessionIdWeb` + `window.location.href`; the native hook
+ * supplies its own adapter pair.
  */
 export async function authenticateOAuth(
   config: Config,
-  parameters: authenticateOAuth.Parameters & authenticateOAuth.AdapterOptions,
+  parameters: authenticateOAuth.Parameters,
 ): Promise<void> {
-  const { provider, getSessionId, redirectUri, timeoutMs } = parameters
-
-  if (Boolean(redirectUri) !== Boolean(getSessionId)) {
-    throw new Error('redirectUri and getSessionId must be provided together')
-  }
-
+  const { provider, getSessionId, redirectUri } = parameters
   const connector = parameters.connector ?? getZeroDevConnector(config)
-
-  // @ts-expect-error - getStore is a custom method
-  const store = await connector.getStore()
-  const wallet = store.getState().wallet
+  const store = await getZeroDevStore(connector)
+  const wallet = getZeroDevWallet(store)
   const oauthConfig = store.getState().oauthConfig
 
-  if (!wallet) throw new Error('Wallet not initialized')
   if (!oauthConfig) {
     throw new Error('Wallet not initialized. Please wait for connector setup.')
   }
@@ -80,10 +71,7 @@ export async function authenticateOAuth(
     throw new Error('Failed to get wallet public key')
   }
 
-  // Build OAuth URL that redirects to backend
-  // Preserve the caller's full path so the popup lands on the same route
-  // (e.g. /dashboard) where the SDK is mounted, not just the origin.
-  const returnUrl = new URL(redirectUri ?? window.location.href)
+  const returnUrl = new URL(redirectUri)
   returnUrl.hash = ''
   returnUrl.searchParams.set('oauth_success', 'true')
   returnUrl.searchParams.set('oauth_provider', provider)
@@ -102,9 +90,7 @@ export async function authenticateOAuth(
   })
   verifyGoogleLoginUrl(oauthUrl, publicKey)
 
-  const sessionId = getSessionId
-    ? await getSessionId({ oauthUrl, provider })
-    : await getSessionIdWeb(oauthUrl, window.location.origin, timeoutMs)
+  const sessionId = await getSessionId({ oauthUrl, provider })
 
   await completeOAuth(wallet, store, config, connector, provider, sessionId)
 }
@@ -113,11 +99,8 @@ export declare namespace authenticateOAuth {
   type Parameters = {
     provider: OAuthProvider
     connector?: Connector
-  }
-  type AdapterOptions = {
-    getSessionId?: GetOAuthSessionIdFn
-    redirectUri?: string
-    timeoutMs?: number
+    getSessionId: GetOAuthSessionIdFn
+    redirectUri: string
   }
   type ReturnType = void
   type ErrorType = Error

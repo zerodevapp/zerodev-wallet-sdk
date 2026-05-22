@@ -7,13 +7,6 @@ vi.mock('@wagmi/core/actions', () => ({
   connect: vi.fn().mockResolvedValue({}),
 }))
 
-// Mocked so tests in the "web default fallback" describe block below can
-// assert on how authenticateOAuth dispatches to it. Tests outside that block
-// use an explicit adapter and never reach the web fallback path.
-vi.mock('./getSessionIdWeb.js', () => ({
-  getSessionIdWeb: vi.fn(),
-}))
-
 // Mocked so tests don't run real URL verification — they only need to assert
 // that the URL returned by `wallet.client.getOAuthLoginUrl` is verified before
 // it reaches the adapter. The verification itself is covered in
@@ -79,9 +72,7 @@ function createMockConfig(connector = createMockConnector()) {
 // specifically care about adapter behavior call authenticateOAuth directly.
 function callAuth(
   config: Config,
-  overrides: Partial<
-    authenticateOAuth.Parameters & authenticateOAuth.AdapterOptions
-  > = {},
+  overrides: Partial<authenticateOAuth.Parameters> = {},
 ) {
   return authenticateOAuth(config, {
     provider: 'google',
@@ -127,34 +118,6 @@ describe('authenticateOAuth', () => {
     await expect(callAuth(config)).rejects.toThrow(
       'Failed to get wallet public key',
     )
-  })
-
-  it('throws when only redirectUri is provided', async () => {
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await expect(
-      authenticateOAuth(config, {
-        provider: 'google',
-        redirectUri: 'zerodev://oauth',
-      }),
-    ).rejects.toThrow('redirectUri and getSessionId must be provided together')
-  })
-
-  it('throws when only getSessionId is provided', async () => {
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await expect(
-      authenticateOAuth(config, {
-        provider: 'google',
-        getSessionId: async () => 'session-id',
-      }),
-    ).rejects.toThrow('redirectUri and getSessionId must be provided together')
   })
 
   it('uses consumer adapter when getSessionId + redirectUri are provided', async () => {
@@ -217,6 +180,33 @@ describe('authenticateOAuth', () => {
     )
   })
 
+  it('preserves caller pathname/query and drops hash from returnTo', async () => {
+    const wallet = createMockWallet()
+    const store = createMockStore(wallet)
+    const connector = createMockConnector(store)
+    const config = createMockConfig(connector)
+
+    const getSessionId = vi.fn().mockResolvedValue('sid')
+    await authenticateOAuth(config, {
+      provider: 'google',
+      redirectUri: 'https://app.example.com/dashboard?utm=src#section',
+      getSessionId,
+    })
+
+    const returnTo: string =
+      wallet.client.getOAuthLoginUrl.mock.calls[0][0].returnTo
+    const parsed = new URL(returnTo)
+    expect(parsed.origin).toBe('https://app.example.com')
+    expect(parsed.pathname).toBe('/dashboard')
+    expect(parsed.searchParams.get('utm')).toBe('src')
+    expect(parsed.searchParams.get('oauth_success')).toBe('true')
+    expect(parsed.searchParams.get('oauth_provider')).toBe('google')
+    expect(parsed.hash).toBe('')
+  })
+
+  // This also transitively guarantees the web hook's popup is NOT opened on
+  // verification failure: the web hook's `getSessionId` IS `getSessionIdWeb`,
+  // and this test asserts the adapter is never invoked when verification throws.
   it('verifies the URL before invoking the adapter', async () => {
     const { verifyGoogleLoginUrl } = await import(
       './utils/verifyGoogleLoginUrl.js'
@@ -273,133 +263,5 @@ describe('authenticateOAuth', () => {
     const config = createMockConfig(connector)
 
     await expect(callAuth(config)).rejects.toThrow('Auth backend error')
-  })
-})
-
-/**
- * Tests below cover authenticateOAuth's web default fallback (calling
- * getSessionIdWeb when no adapter is provided). Delete this block when
- * getSessionIdWeb is extracted to @zerodev/wallet-react-kit and the fallback
- * is removed from authenticateOAuth.
- */
-describe('authenticateOAuth — web default fallback', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    // @ts-expect-error - Mocking location
-    window.location = {
-      origin: 'https://app.example.com',
-      href: 'https://app.example.com/',
-    } as Location
-  })
-
-  it('uses getSessionIdWeb when no adapter is provided', async () => {
-    const { getSessionIdWeb } = await import('./getSessionIdWeb.js')
-    vi.mocked(getSessionIdWeb).mockResolvedValue('web-session-id')
-
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await authenticateOAuth(config, { provider: 'google' })
-
-    expect(getSessionIdWeb).toHaveBeenCalledWith(
-      MOCK_OAUTH_URL,
-      'https://app.example.com',
-      undefined,
-    )
-    expect(wallet.auth).toHaveBeenCalledWith({
-      type: 'oauth',
-      provider: 'google',
-      sessionId: 'web-session-id',
-    })
-  })
-
-  it('constructs returnTo from window.location.href on default path', async () => {
-    const { getSessionIdWeb } = await import('./getSessionIdWeb.js')
-    vi.mocked(getSessionIdWeb).mockResolvedValue('sid')
-
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await authenticateOAuth(config, { provider: 'google' })
-
-    const returnTo: string =
-      wallet.client.getOAuthLoginUrl.mock.calls[0][0].returnTo
-    expect(returnTo).toBe(
-      'https://app.example.com/?oauth_success=true&oauth_provider=google',
-    )
-  })
-
-  it('preserves caller pathname/query and drops hash from returnTo on default path', async () => {
-    const { getSessionIdWeb } = await import('./getSessionIdWeb.js')
-    vi.mocked(getSessionIdWeb).mockResolvedValue('sid')
-
-    // @ts-expect-error - Mocking location
-    window.location = {
-      origin: 'https://app.example.com',
-      href: 'https://app.example.com/dashboard?utm=src#section',
-    } as Location
-
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await authenticateOAuth(config, { provider: 'google' })
-
-    const returnTo: string =
-      wallet.client.getOAuthLoginUrl.mock.calls[0][0].returnTo
-    const parsed = new URL(returnTo)
-    expect(parsed.pathname).toBe('/dashboard')
-    expect(parsed.searchParams.get('oauth_success')).toBe('true')
-    expect(parsed.searchParams.get('oauth_provider')).toBe('google')
-    expect(parsed.searchParams.get('utm')).toBe('src')
-    expect(parsed.hash).toBe('')
-  })
-
-  it('passes timeoutMs to getSessionIdWeb on default path', async () => {
-    const { getSessionIdWeb } = await import('./getSessionIdWeb.js')
-    vi.mocked(getSessionIdWeb).mockResolvedValue('sid')
-
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await authenticateOAuth(config, {
-      provider: 'google',
-      timeoutMs: 30_000,
-    })
-
-    expect(getSessionIdWeb).toHaveBeenCalledWith(
-      MOCK_OAUTH_URL,
-      'https://app.example.com',
-      30_000,
-    )
-  })
-
-  it('does NOT open popup when nonce verification fails', async () => {
-    const { getSessionIdWeb } = await import('./getSessionIdWeb.js')
-    const { verifyGoogleLoginUrl } = await import(
-      './utils/verifyGoogleLoginUrl.js'
-    )
-    vi.mocked(verifyGoogleLoginUrl).mockImplementationOnce(() => {
-      throw new Error('login URL nonce does not match public key hash')
-    })
-
-    const wallet = createMockWallet()
-    const store = createMockStore(wallet)
-    const connector = createMockConnector(store)
-    const config = createMockConfig(connector)
-
-    await expect(
-      authenticateOAuth(config, { provider: 'google' }),
-    ).rejects.toThrow(/nonce does not match public key hash/)
-
-    expect(getSessionIdWeb).not.toHaveBeenCalled()
-    expect(wallet.auth).not.toHaveBeenCalled()
   })
 })
