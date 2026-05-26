@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "customConditions": ["browser"]
+  },
+  "include": ["**/*.web.ts", "**/*.web.tsx", "expo-env.d.ts"],
+  "exclude": []
+}

@@ -14,10 +14,10 @@ import type {
 } from '@zerodev/wallet-core'
 import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
 import { type Chain, createPublicClient, createWalletClient, http } from 'viem'
-import { createProvider } from './provider.js'
-import { type CreateStoreOptions, createZeroDevWalletStore } from './store.js'
-import { getAAUrl } from './utils/aaUtils.js'
-import { isReactNative } from './utils/platform.js'
+import { createProvider } from '../provider.js'
+import { type CreateStoreOptions, createZeroDevWalletStore } from '../store.js'
+import { getAAUrl } from '../utils/aaUtils.js'
+import { isReactNative } from '../utils/platform.js'
 
 /**
  * Account mode the connector exposes to wagmi.
@@ -33,7 +33,7 @@ import { isReactNative } from './utils/platform.js'
  */
 export type WalletMode = 'EOA' | '4337' | '7702'
 
-export type ZeroDevWalletConnectorParams = {
+export type ConnectorCoreParams = {
   projectId: string
   organizationId?: string
   proxyBaseUrl?: string
@@ -44,6 +44,12 @@ export type ZeroDevWalletConnectorParams = {
   persistStorage?: CreateStoreOptions['storage']
   apiKeyStamper?: ApiKeyStamper | Promise<ApiKeyStamper>
   passkeyStamper?: PasskeyStamper | Promise<PasskeyStamper>
+  /**
+   * Forwarded to BOTH the Turnkey transport (via createZeroDevWallet) and
+   * the AA bundler/paymaster HTTP transports. On RN, the native wrapper
+   * derives this from `rpId` so both backends receive the matching `Origin`
+   * header. Web consumers don't need it (browsers ignore Origin overrides).
+   */
   fetchOptions?: CreateTransportOptions['fetchOptions']
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
@@ -58,11 +64,12 @@ export type ZeroDevWalletConnectorParams = {
   autoInitialize?: boolean | (() => boolean)
 }
 
-export function zeroDevWallet(
-  params: ZeroDevWalletConnectorParams,
+export function zeroDevWalletCore(
+  params: ConnectorCoreParams,
 ): CreateConnectorFn {
   type Provider = ReturnType<typeof createProvider>
   type Properties = {
+    rpId: string | undefined
     connect<withCapabilities extends boolean = false>(parameters?: {
       chainId?: number | undefined
       isReconnecting?: boolean | undefined
@@ -259,6 +266,7 @@ export function zeroDevWallet(
       id: 'zerodev-wallet',
       name: 'ZeroDevWallet',
       type: 'injected' as const,
+      rpId: params.rpId,
 
       async setup() {
         const shouldInit =
