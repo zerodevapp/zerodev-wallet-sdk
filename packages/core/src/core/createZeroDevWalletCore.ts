@@ -16,6 +16,7 @@ import {
   DEFAULT_SESSION_EXPIRATION_IN_SECONDS,
   KMS_SERVER_URL,
 } from '../constants.js'
+import { createNoopPasskeyStamper } from '../stampers/noopPasskeyStamper.js'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
 import {
   createStorageManager,
@@ -32,7 +33,7 @@ export interface ZeroDevWalletConfigCore {
   sessionStorage: StorageAdapter
   rpId: string
   apiKeyStamper: ApiKeyStamper
-  passkeyStamper: PasskeyStamper
+  passkeyStamper?: PasskeyStamper
   fetchOptions?: CreateTransportOptions['fetchOptions']
 }
 
@@ -123,9 +124,9 @@ export async function createZeroDevWalletCore(
     sessionStorage,
     rpId,
     apiKeyStamper,
-    passkeyStamper,
     organizationId = DEFAULT_ORGANIZATION_ID,
   } = config
+  const passkeyStamper = config.passkeyStamper ?? createNoopPasskeyStamper()
 
   const sessionStorageManager = createStorageManager(sessionStorage)
 
