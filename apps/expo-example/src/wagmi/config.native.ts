@@ -17,6 +17,7 @@ export const wagmiConfig = createConfig({
       chains,
       rpId: RP_ID,
       apiKeyStamper: createSecureStoreStamper(),
+      // Optional: omit passkeyStamper if your app doesn't use passkey auth.
       passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
       sessionStorage: asyncStorageAdapter,
       persistStorage: asyncStorageAdapter,
