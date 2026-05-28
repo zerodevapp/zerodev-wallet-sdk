@@ -81,24 +81,27 @@ this SDK.
 ## React Native
 
 The SDK runs in React Native (Expo) too. The connector setup is the same, but
-the key-storage, passkey, and session-storage adapters that the web build
-defaults must be supplied explicitly via the native subpaths:
+the key-storage and session-storage adapters that the web build defaults must
+be supplied explicitly via the native subpaths. `passkeyStamper` is optional —
+omit it (and `@turnkey/react-native-passkey-stamper` from your dependencies) if
+your app doesn't use passkey auth.
 
 ```bash
 npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
-  expo-secure-store @turnkey/react-native-passkey-stamper \
+  expo-secure-store \
   @turnkey/api-key-stamper @turnkey/crypto \
   @react-native-async-storage/async-storage \
   react-native-get-random-values uuid
+# Add @turnkey/react-native-passkey-stamper only if you want passkey auth.
 # or
 yarn add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
-  expo-secure-store @turnkey/react-native-passkey-stamper \
+  expo-secure-store \
   @turnkey/api-key-stamper @turnkey/crypto \
   @react-native-async-storage/async-storage \
   react-native-get-random-values uuid
 # or
 pnpm add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
-  expo-secure-store @turnkey/react-native-passkey-stamper \
+  expo-secure-store \
   @turnkey/api-key-stamper @turnkey/crypto \
   @react-native-async-storage/async-storage \
   react-native-get-random-values uuid
@@ -117,7 +120,7 @@ zeroDevWallet({
   chains: [sepolia],
   rpId: RP_ID,
   apiKeyStamper: createSecureStoreStamper(),
-  passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
+  passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }), // optional
   sessionStorage: asyncStorageAdapter,
 })
 ```

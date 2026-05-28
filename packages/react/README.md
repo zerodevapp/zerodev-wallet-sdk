@@ -227,25 +227,30 @@ type ZeroDevWalletConnectorParams = {
 ## React Native
 
 The connector works in React Native (Expo) with the same Wagmi setup, but the
-key-storage, passkey, and session-storage adapters that the web build defaults
-have no browser equivalent — so on native they're **required** (TypeScript
-enforces it):
+key-storage and session-storage adapters that the web build defaults have no
+browser equivalent — so on native `apiKeyStamper`, `sessionStorage`, and
+`rpId` are **required** (TypeScript enforces it). `passkeyStamper` is optional:
+omit it (and drop `@turnkey/react-native-passkey-stamper` from your install) if
+your app doesn't use passkey auth. Calling `useRegisterPasskey` /
+`useLoginPasskey` against a wallet configured without one throws an actionable
+error.
 
 ```bash
 npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
-  expo-secure-store @turnkey/react-native-passkey-stamper \
+  expo-secure-store \
   @turnkey/api-key-stamper @turnkey/crypto \
   @react-native-async-storage/async-storage \
   react-native-get-random-values uuid
+# Add @turnkey/react-native-passkey-stamper only if you want passkey auth.
 # or
 yarn add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
-  expo-secure-store @turnkey/react-native-passkey-stamper \
+  expo-secure-store \
   @turnkey/api-key-stamper @turnkey/crypto \
   @react-native-async-storage/async-storage \
   react-native-get-random-values uuid
 # or
 pnpm add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
-  expo-secure-store @turnkey/react-native-passkey-stamper \
+  expo-secure-store \
   @turnkey/api-key-stamper @turnkey/crypto \
   @react-native-async-storage/async-storage \
   react-native-get-random-values uuid
@@ -275,7 +280,7 @@ const config = createConfig({
       chains: [sepolia],
       rpId: RP_ID,
       apiKeyStamper: createSecureStoreStamper(),
-      passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
+      passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }), // optional
       sessionStorage: asyncStorageAdapter,
       persistStorage: asyncStorageAdapter, // persists the wagmi connection across restarts
     }),
