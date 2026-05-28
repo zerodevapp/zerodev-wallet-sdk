@@ -54,6 +54,16 @@
       "default": "./dist/_esm/native/export/ExportWebView.js"
     }
   },
+  "files": [
+    "dist",
+    "./src/**/*.ts",
+    "!dist/_esm/**/*.tsbuildinfo",
+    "!dist/_cjs/**/*.tsbuildinfo",
+    "!dist/_types/**/*.tsbuildinfo",
+    "!.env",
+    "!./**/*.test.ts",
+    "!.changeset"
+  ],
   "scripts": {
     "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
     "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
