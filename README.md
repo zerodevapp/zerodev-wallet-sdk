@@ -8,6 +8,10 @@ TypeScript SDK for non-custodial wallet signing with EIP-7702 gasless transactio
 
 ```bash
 npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem
+# or
+yarn add @zerodev/wallet-react @zerodev/wallet-core wagmi viem
+# or
+pnpm add @zerodev/wallet-react @zerodev/wallet-core wagmi viem
 ```
 
 ```typescript
@@ -73,6 +77,54 @@ If you'd rather not build your own auth and signing UI, use
 [@zerodev/wallet-react-kit](./packages/react-kit/README.md) — drop-in
 React components (`<AuthFlow />`, `<SignatureRequest />`) built on top of
 this SDK.
+
+## React Native
+
+The SDK runs in React Native (Expo) too. The connector setup is the same, but
+the key-storage, passkey, and session-storage adapters that the web build
+defaults must be supplied explicitly via the native subpaths:
+
+```bash
+npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
+  expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+# or
+yarn add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
+  expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+# or
+pnpm add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
+  expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+```
+
+```typescript
+import { zeroDevWallet } from '@zerodev/wallet-react'
+import { createSecureStoreStamper } from '@zerodev/wallet-core/react-native/stampers/secure-store'
+import { createReactNativePasskeyStamper } from '@zerodev/wallet-core/react-native/stampers/passkey'
+import { asyncStorageAdapter } from '@zerodev/wallet-core/react-native/storage/async-storage'
+
+const RP_ID = 'your-app.example.com'
+
+zeroDevWallet({
+  projectId: 'your-project-id',
+  chains: [sepolia],
+  rpId: RP_ID,
+  apiKeyStamper: createSecureStoreStamper(),
+  passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
+  sessionStorage: asyncStorageAdapter,
+})
+```
+See the
+[React package README](./packages/react/README.md#react-native) for the full
+setup, and [`apps/expo-example`](./apps/expo-example) for a complete reference
+app.
 
 ## Authentication Methods
 
@@ -262,14 +314,18 @@ zerodev-wallet-sdk/
 │   │   │   ├── client/    # HTTP client & transport
 │   │   │   ├── stampers/  # Key management (iframe, indexedDB, webauthn)
 │   │   │   ├── storage/   # Session storage
-│   │   │   ├── core/      # Main SDK (createZeroDevWallet)
+│   │   │   ├── core/      # Core SDK (createZeroDevWalletCore)
+│   │   │   ├── web/       # Web entry (createZeroDevWallet defaults)
+│   │   │   ├── native/    # React Native stampers, storage & wallet wrapper
 │   │   │   └── types/     # TypeScript types
 │   │   └── dist/          # Compiled output
 │   ├── react/             # React hooks & Wagmi connector
 │   │   ├── src/
 │   │   │   ├── hooks/     # React hooks (useRegisterPasskey, etc.)
 │   │   │   ├── actions.ts # Action functions
-│   │   │   ├── connector.ts # Wagmi connector
+│   │   │   ├── core/      # Platform-agnostic connector body
+│   │   │   ├── web/       # Web connector entry
+│   │   │   ├── native/    # React Native connector, OAuth & export WebView
 │   │   │   └── provider.ts  # EIP-1193 provider
 │   │   └── dist/          # Compiled output
 │   └── react-kit/         # Drop-in React UI components

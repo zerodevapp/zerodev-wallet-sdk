@@ -3,7 +3,7 @@ import { normalizeTimestamp } from '@zerodev/wallet-core'
 import { Provider } from 'ox'
 import type { Chain, LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
-import type { WalletMode, ZeroDevWalletConnectorParams } from './connector.js'
+import type { ConnectorCoreParams, WalletMode } from './core/connector.js'
 import type { createZeroDevWalletStore } from './store.js'
 
 const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
@@ -46,7 +46,7 @@ async function signerForActiveChain(
 
 type CreateProviderParams = {
   store: ReturnType<typeof createZeroDevWalletStore>
-  config: ZeroDevWalletConnectorParams
+  config: ConnectorCoreParams
   chains: Chain[]
 }
 
