@@ -224,6 +224,121 @@ type ZeroDevWalletConnectorParams = {
 }
 ```
 
+## React Native
+
+The connector works in React Native (Expo) with the same Wagmi setup, but the
+key-storage, passkey, and session-storage adapters that the web build defaults
+have no browser equivalent — so on native they're **required** (TypeScript
+enforces it):
+
+```bash
+npm install @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
+  expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+# or
+yarn add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
+  expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+# or
+pnpm add @zerodev/wallet-react @zerodev/wallet-core wagmi viem \
+  expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+```
+
+Import the crypto polyfill once at your app's entry point, before any SDK call:
+
+```typescript
+import 'react-native-get-random-values'
+```
+
+```typescript
+import { zeroDevWallet } from '@zerodev/wallet-react'
+import { createSecureStoreStamper } from '@zerodev/wallet-core/react-native/stampers/secure-store'
+import { createReactNativePasskeyStamper } from '@zerodev/wallet-core/react-native/stampers/passkey'
+import { asyncStorageAdapter } from '@zerodev/wallet-core/react-native/storage/async-storage'
+import { createConfig, createStorage, http } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+
+const RP_ID = 'your-app.example.com' // must match your assetlinks/AASA domain
+
+const config = createConfig({
+  chains: [sepolia],
+  connectors: [
+    zeroDevWallet({
+      projectId: 'YOUR_PROJECT_ID',
+      chains: [sepolia],
+      rpId: RP_ID,
+      apiKeyStamper: createSecureStoreStamper(),
+      passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
+      sessionStorage: asyncStorageAdapter,
+      persistStorage: asyncStorageAdapter, // persists the wagmi connection across restarts
+    }),
+  ],
+  transports: { [sepolia.id]: http() },
+  storage: createStorage({ storage: asyncStorageAdapter }),
+})
+```
+
+### OAuth (deep link)
+
+The web popup flow isn't available on native. Use the Expo deep-link hook,
+which wires `expo-web-browser` + `expo-linking` for you — the consumer supplies
+only `redirectUri` (your app's deep link):
+
+```bash
+npm install expo-web-browser expo-linking
+# or
+yarn add expo-web-browser expo-linking
+# or
+pnpm add expo-web-browser expo-linking
+```
+
+```typescript
+import { useAuthenticateOAuthWithExpoWebBrowser } from '@zerodev/wallet-react/react-native/oauth/with-expo-web-browser'
+import { OAUTH_PROVIDERS } from '@zerodev/wallet-react'
+
+const authenticateOAuth = useAuthenticateOAuthWithExpoWebBrowser({
+  redirectUri: 'https://your-app.example.com/oauth-callback',
+})
+
+authenticateOAuth.mutate({ provider: OAUTH_PROVIDERS.GOOGLE })
+```
+
+Using a different OAuth library? Import the generic `useAuthenticateOAuth` from
+`@zerodev/wallet-react/react-native` and supply your own `getSessionId` — that
+path doesn't pull in `expo-web-browser` / `expo-linking`.
+
+### Export wallet / private key
+
+The iframe-based `useExportWallet` / `useExportPrivateKey` hooks are web-only.
+On native, render the `ZeroDevExportWebView` component — it loads Turnkey's
+export iframe inside a hardened `react-native-webview`, so the plaintext never
+touches the RN bundle. Mount it to start the export; unmount to dismiss:
+
+```bash
+npm install react-native-webview uuid
+# or
+yarn add react-native-webview uuid
+# or
+pnpm add react-native-webview uuid
+```
+
+```typescript
+import { ZeroDevExportWebView } from '@zerodev/wallet-react/react-native/export/webview'
+
+<ZeroDevExportWebView
+  kind="wallet"            // or "privateKey"
+  onReady={() => { /* secret is on screen */ }}
+  onError={(message) => { /* fetch / iframe failure */ }}
+/>
+```
+
 ## Advanced Usage
 
 ### Custom Callbacks

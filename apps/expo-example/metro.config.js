@@ -7,13 +7,22 @@ const appPackageJson = path.resolve(__dirname, 'package.json')
 
 // Required so Metro honors `package.json` "exports" maps and our conditional
 // `react-native` entries in @zerodev/wallet-react and @zerodev/wallet-core
-// resolve correctly.
+// resolve correctly. Scope `react-native` to native platforms — keeping it
+// in the global condition set would also activate it on web bundles, which
+// makes packages whose exports map lists `react-native` before `browser`
+// (e.g. @zerodev/wallet-core) resolve to their RN entry on web.
 config.resolver.unstable_enablePackageExports = true
-config.resolver.unstable_conditionNames = [
-  ...(config.resolver.unstable_conditionNames ?? []),
-  'react-native',
-  'import',
-]
+config.resolver.unstable_conditionsByPlatform = {
+  ...(config.resolver.unstable_conditionsByPlatform ?? {}),
+  ios: [
+    ...(config.resolver.unstable_conditionsByPlatform?.ios ?? []),
+    'react-native',
+  ],
+  android: [
+    ...(config.resolver.unstable_conditionsByPlatform?.android ?? []),
+    'react-native',
+  ],
+}
 
 // Packages that must resolve to a single copy to avoid duplicate
 // React contexts. pnpm creates separate .pnpm entries with different

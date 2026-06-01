@@ -196,6 +196,62 @@ interface ZeroDevWalletConfig {
 }
 ```
 
+## React Native
+
+On React Native there are no browser defaults for key storage, passkeys, or
+session storage, so those fields are **required**. The package ships ready-made
+native adapters behind granular subpaths (so apps using alternative adapters
+skip the unused peer-dep installs):
+
+```typescript
+import { createZeroDevWallet } from '@zerodev/wallet-core';
+import { createSecureStoreStamper } from '@zerodev/wallet-core/react-native/stampers/secure-store';
+import { createReactNativePasskeyStamper } from '@zerodev/wallet-core/react-native/stampers/passkey';
+import { asyncStorageAdapter } from '@zerodev/wallet-core/react-native/storage/async-storage';
+
+const RP_ID = 'your-app.example.com'; // must match your assetlinks/AASA domain
+
+const wallet = await createZeroDevWallet({
+  projectId: 'your-project-id',
+  rpId: RP_ID,
+  apiKeyStamper: createSecureStoreStamper(),
+  passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
+  sessionStorage: asyncStorageAdapter,
+});
+```
+
+- `createSecureStoreStamper()` — API-key stamper backed by `expo-secure-store`.
+- `createReactNativePasskeyStamper({ rpId })` — passkey stamper backed by `@turnkey/react-native-passkey-stamper`.
+- `asyncStorageAdapter` — session storage backed by `@react-native-async-storage/async-storage`.
+
+### Peer dependencies (React Native)
+
+These are optional peer deps, pulled in only when you import the native
+subpaths above:
+
+```bash
+npm install expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+# or
+yarn add expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+# or
+pnpm add expo-secure-store @turnkey/react-native-passkey-stamper \
+  @turnkey/api-key-stamper @turnkey/crypto \
+  @react-native-async-storage/async-storage \
+  react-native-get-random-values uuid
+```
+
+Import the crypto polyfill once at your app's entry point, before any SDK call:
+
+```typescript
+import 'react-native-get-random-values';
+```
+
 ## Custom Storage
 
 ```typescript

@@ -59,12 +59,12 @@ vi.mock('@zerodev/wallet-core', () => ({
   }),
 }))
 
-import { zeroDevWallet } from './connector.js'
+import { zeroDevWalletCore } from './core/connector.js'
 
-type ConnectorInstance = ReturnType<ReturnType<typeof zeroDevWallet>>
+type ConnectorInstance = ReturnType<ReturnType<typeof zeroDevWalletCore>>
 
 function createConnector(mode?: 'EOA' | '4337' | '7702'): ConnectorInstance {
-  const factory = zeroDevWallet({
+  const factory = zeroDevWalletCore({
     projectId: 'proj-test',
     chains: [sepolia],
     ...(mode && { mode }),

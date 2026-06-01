@@ -16,10 +16,6 @@ export const wagmiConfig = createConfig({
       projectId: ZERODEV_PROJECT_ID,
       chains,
       rpId: RP_ID,
-      fetchOptions: {
-        // RP_ID needs to be the same as Origin
-        headers: { Origin: `https://${RP_ID}` },
-      },
       apiKeyStamper: createSecureStoreStamper(),
       passkeyStamper: createReactNativePasskeyStamper({ rpId: RP_ID }),
       sessionStorage: asyncStorageAdapter,

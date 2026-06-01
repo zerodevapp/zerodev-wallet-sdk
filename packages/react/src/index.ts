@@ -12,11 +12,6 @@ export {
   getZeroDevWallet,
 } from './actions.js'
 export type { GetOAuthSessionIdFn } from './authenticateOAuth.js'
-export type {
-  WalletMode,
-  ZeroDevWalletConnectorParams,
-} from './connector.js'
-export { zeroDevWallet } from './connector.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
 export { useExportPrivateKey } from './hooks/useExportPrivateKey.js'
 export { useExportWallet } from './hooks/useExportWallet.js'
@@ -36,4 +31,9 @@ export {
   OAUTH_PROVIDERS,
   verifyGoogleLoginUrl,
 } from './utils/verifyGoogleLoginUrl.js'
+export type {
+  WalletMode,
+  ZeroDevWalletConnectorParams,
+} from './web/connector.js'
+export { zeroDevWallet } from './web/connector.js'
 export { useAuthenticateOAuth } from './web/useAuthenticateOAuth.js'
