@@ -43,84 +43,79 @@ export async function exportWallet(
 ): Promise<{ exportBundle: string; walletId: string; organizationId: string }> {
   const { targetPublicKey, wallet } = params
 
-  try {
-    const session = await wallet.getSession()
-    if (!session) {
-      throw new Error('Session not found')
-    }
-    const { organizationId } = session
-
-    const listWalletsBody = JSON.stringify({
-      organizationId,
-    })
-
-    const listWalletsStamp =
-      await wallet.client[
-        session.stamperType === 'apiKey' ? 'apiKeyStamper' : 'passkeyStamper'
-      ].stamp(listWalletsBody)
-    if (!listWalletsStamp) {
-      throw new Error('Failed to stamp list wallets body')
-    }
-
-    const listWalletsResponse = await fetch(
-      'https://api.turnkey.com/public/v1/query/list_wallets',
-      {
-        method: 'POST',
-        body: listWalletsBody,
-        headers: {
-          [listWalletsStamp.stampHeaderName]: listWalletsStamp.stampHeaderValue,
-        },
-      },
-    )
-    if (!listWalletsResponse.ok) {
-      throw new Error('Failed to list wallets')
-    }
-    const listWalletsData = await listWalletsResponse.json()
-
-    const walletId = listWalletsData.wallets[0].walletId
-
-    const exportWalletBody = JSON.stringify({
-      type: 'ACTIVITY_TYPE_EXPORT_WALLET',
-      timestampMs: Date.now().toString(),
-      organizationId: organizationId,
-      parameters: {
-        walletId: walletId,
-        targetPublicKey,
-        language: 'MNEMONIC_LANGUAGE_ENGLISH',
-      },
-    })
-    const exportWalletStamp =
-      await wallet.client[
-        session.stamperType === 'apiKey' ? 'apiKeyStamper' : 'passkeyStamper'
-      ].stamp(exportWalletBody)
-    if (!exportWalletStamp) {
-      throw new Error('Failed to stamp export wallet body')
-    }
-    const exportWalletResponse = await fetch(
-      'https://api.turnkey.com/public/v1/submit/export_wallet',
-      {
-        method: 'POST',
-        body: exportWalletBody,
-        headers: {
-          [exportWalletStamp.stampHeaderName]:
-            exportWalletStamp.stampHeaderValue,
-        },
-      },
-    )
-    if (!exportWalletResponse.ok) {
-      throw new Error('Failed to export wallet')
-    }
-    const exportWalletData = await exportWalletResponse.json()
-
-    const exportBundle =
-      exportWalletData?.activity?.result?.exportWalletResult?.exportBundle
-
-    if (!exportBundle) {
-      throw new Error('Export bundle not found in response')
-    }
-
-    return { exportBundle, walletId, organizationId }
-  } catch (_) {
-    throw new Error('Error exporting wallet')
+  const session = await wallet.getSession()
+  if (!session) {
+    throw new Error('Session not found')
   }
+  const { organizationId } = session
+
+  const listWalletsBody = JSON.stringify({
+    organizationId,
+  })
+
+  const listWalletsStamp =
+    await wallet.client[
+      session.stamperType === 'apiKey' ? 'apiKeyStamper' : 'passkeyStamper'
+    ].stamp(listWalletsBody)
+  if (!listWalletsStamp) {
+    throw new Error('Failed to stamp list wallets body')
+  }
+
+  const listWalletsResponse = await fetch(
+    'https://api.turnkey.com/public/v1/query/list_wallets',
+    {
+      method: 'POST',
+      body: listWalletsBody,
+      headers: {
+        [listWalletsStamp.stampHeaderName]: listWalletsStamp.stampHeaderValue,
+      },
+    },
+  )
+  if (!listWalletsResponse.ok) {
+    throw new Error('Failed to list wallets')
+  }
+  const listWalletsData = await listWalletsResponse.json()
+
+  const walletId = listWalletsData.wallets[0].walletId
+
+  const exportWalletBody = JSON.stringify({
+    type: 'ACTIVITY_TYPE_EXPORT_WALLET',
+    timestampMs: Date.now().toString(),
+    organizationId: organizationId,
+    parameters: {
+      walletId: walletId,
+      targetPublicKey,
+      language: 'MNEMONIC_LANGUAGE_ENGLISH',
+    },
+  })
+  const exportWalletStamp =
+    await wallet.client[
+      session.stamperType === 'apiKey' ? 'apiKeyStamper' : 'passkeyStamper'
+    ].stamp(exportWalletBody)
+  if (!exportWalletStamp) {
+    throw new Error('Failed to stamp export wallet body')
+  }
+  const exportWalletResponse = await fetch(
+    'https://api.turnkey.com/public/v1/submit/export_wallet',
+    {
+      method: 'POST',
+      body: exportWalletBody,
+      headers: {
+        [exportWalletStamp.stampHeaderName]: exportWalletStamp.stampHeaderValue,
+      },
+    },
+  )
+  if (!exportWalletResponse.ok) {
+    throw new Error('Failed to export wallet')
+  }
+  const exportWalletData = await exportWalletResponse.json()
+
+  const exportBundle =
+    exportWalletData?.activity?.result?.exportWalletResult?.exportBundle
+
+  if (!exportBundle) {
+    throw new Error('Export bundle not found in response')
+  }
+
+  return { exportBundle, walletId, organizationId }
 }
