@@ -1,6 +1,6 @@
 ---
-"@zerodev/wallet-core": minor
-"@zerodev/wallet-react": minor
+"@zerodev/wallet-core": patch
+"@zerodev/wallet-react": patch
 ---
 
 feat: support passkey-less wallet setup and adjust connector types per platform
