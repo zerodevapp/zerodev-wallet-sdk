@@ -8,7 +8,6 @@ import {
   type ConnectorCoreParams,
   zeroDevWalletCore,
 } from '../core/connector.js'
-import { originFromRpId } from '../utils/originFromRpId.js'
 
 export type { WalletMode } from '../core/connector.js'
 
@@ -40,7 +39,7 @@ export function zeroDevWallet(
   return zeroDevWalletCore({
     ...params,
     fetchOptions: {
-      headers: { Origin: originFromRpId(params.rpId) },
+      headers: { Origin: `https://${params.rpId}` },
     },
   })
 }

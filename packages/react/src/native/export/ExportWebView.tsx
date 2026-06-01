@@ -9,7 +9,6 @@ import {
   getZeroDevStore,
   getZeroDevWallet,
 } from '../../actions.js'
-import { originFromRpId } from '../../utils/originFromRpId.js'
 
 /**
  * WebView-isolated Turnkey export. Loads a wrapper HTML which embeds
@@ -114,7 +113,7 @@ export function ZeroDevExportWebView({ kind, onReady, onError, style }: Props) {
       'ZeroDevExportWebView: connector has no rpId. Pass rpId to zeroDevWallet({ rpId }).',
     )
   }
-  const wrapperOrigin = originFromRpId(rpId)
+  const wrapperOrigin = `https://${rpId}`
 
   const webViewRef = useRef<WebView>(null)
   // PUBLIC_KEY_READY can only be acted on once per mount. Resets when the
