@@ -31,6 +31,7 @@
     },
     "./react-native": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/index.native.d.ts",
         "default": "./dist/_esm/index.native.js"
@@ -39,6 +40,7 @@
     },
     "./react-native/stampers/secure-store": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/stampers/secureStore.d.ts",
         "default": "./dist/_esm/native/stampers/secureStore.js"
@@ -47,6 +49,7 @@
     },
     "./react-native/stampers/passkey": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/stampers/passkey.d.ts",
         "default": "./dist/_esm/native/stampers/passkey.js"
@@ -55,6 +58,7 @@
     },
     "./react-native/storage/async-storage": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/storage/asyncStorage.d.ts",
         "default": "./dist/_esm/native/storage/asyncStorage.js"

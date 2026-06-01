@@ -31,6 +31,7 @@
     },
     "./react-native": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/index.native.d.ts",
         "default": "./dist/_esm/index.native.js"
@@ -39,6 +40,7 @@
     },
     "./react-native/oauth/with-expo-web-browser": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.d.ts",
         "default": "./dist/_esm/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.js"
@@ -47,6 +49,7 @@
     },
     "./react-native/export/webview": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/export/ExportWebView.d.ts",
         "default": "./dist/_esm/native/export/ExportWebView.js"

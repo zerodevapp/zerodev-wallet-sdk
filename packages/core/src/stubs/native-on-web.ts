@@ -1,7 +1,11 @@
 // Catch-all stub used by every `./react-native/*` subpath in this package
-// under the `browser` exports condition. Imports must be safe on web (some
-// route files are bundled even when they aren't rendered) so we expose the
-// RN-only symbols as throw-on-use functions instead of throwing at
+// under the `browser` and `node` exports conditions. Both are needed for
+// Expo web: the client bundle resolves with `browser` active, while Expo
+// Router's SSR/RSC route render drops platform conditions (no `browser`)
+// and turns on `node` instead — so the web stub has to be gated on both or
+// the SSR pass falls through to the native impl. Imports must be safe on web
+// (some route files are bundled even when they aren't rendered) so we expose
+// the RN-only symbols as throw-on-use functions instead of throwing at
 // module-init time.
 //
 // Anyone who *uses* these on web gets a clear actionable error; anyone who
