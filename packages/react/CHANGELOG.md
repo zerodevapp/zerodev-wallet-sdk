@@ -1,5 +1,16 @@
 # @zerodev/wallet-react
 
+## 1.0.0-alpha.25
+
+### Minor Changes
+
+- feat: support passkey-less wallet setup and adjust connector types per platform
+
+### Patch Changes
+
+- Updated dependencies
+  - @zerodev/wallet-core@0.1.0-alpha.22
+
 ## 0.0.1-alpha.24
 
 ### Patch Changes

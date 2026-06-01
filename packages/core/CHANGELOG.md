@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.1.0-alpha.22
+
+### Minor Changes
+
+- feat: support passkey-less wallet setup and adjust connector types per platform
+
 ## 0.0.1-alpha.21
 
 ### Patch Changes

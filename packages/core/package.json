@@ -1,6 +1,6 @@
 {
   "name": "@zerodev/wallet-core",
-  "version": "0.0.1-alpha.21",
+  "version": "0.1.0-alpha.22",
   "description": "ZeroDev Wallet SDK built on Turnkey",
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
