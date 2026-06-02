@@ -63,8 +63,7 @@ export function zeroDevWallet(
       async connect(connectParams) {
         // wagmi sets `isReconnecting` on reconnectOnMount. Don't surface the
         // auth flow in that case — the base connector will lazily initialize
-        // and resolve the session itself. Surfacing SignUp here causes a
-        // visible flash on slow first paints before the session hydrates.
+        // and resolve the session itself.
         const isReconnecting =
           !!connectParams &&
           'isReconnecting' in connectParams &&
