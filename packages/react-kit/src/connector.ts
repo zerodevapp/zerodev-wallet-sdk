@@ -61,10 +61,17 @@ export function zeroDevWallet(
       ...connector,
 
       async connect(connectParams) {
-        // wagmi sets `isReconnecting` on reconnectOnMount. Don't surface the
-        // auth flow in that case — the base connector will lazily initialize
-        // and resolve the session itself.
+        // wagmi sets `isReconnecting` on reconnectOnMount.
         const isReconnecting = !!connectParams && connectParams.isReconnecting
+
+        // Force the base connector to finish initializing so its store can
+        // tell us if a session is already persisted. Base `isAuthorized()`
+        // only reads `store.eoaAccount` synchronously and reports `false`
+        // before init completes — surfacing SignUp here causes a visible
+        // flash on the next paint when a session exists but isn't loaded
+        // yet (common on first paint of a production build).
+        if ('getStore' in connector && typeof connector.getStore === 'function')
+          await connector.getStore()
 
         const isAuthorized = await connector.isAuthorized()
         if (
@@ -74,13 +81,19 @@ export function zeroDevWallet(
           store.getState().auth.step === null
         ) {
           store.getState().auth.goToStep('sign-up')
-          await new Promise<void>((resolve) => {
+          await new Promise<void>((resolve, reject) => {
             const unsub = store.subscribe(
               (state) => state.auth.step,
               (step) => {
                 if (step === 'authenticated') {
                   unsub()
                   resolve()
+                } else if (step === null) {
+                  // User dismissed the auth flow (e.g. clicked the TopNav
+                  // close button) — abort the pending wagmi connect so the
+                  // consumer's UI can drop out of the "connecting" state.
+                  unsub()
+                  reject(new Error('Auth flow dismissed'))
                 }
               },
             )

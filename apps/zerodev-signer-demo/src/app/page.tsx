@@ -1,7 +1,7 @@
 'use client'
 
 import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
-import {Settings} from 'lucide-react'
+import {Loader2, Settings} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
@@ -34,10 +34,20 @@ function LandingPageInner() {
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
+  // wagmi is still resolving the session (reconnect on mount, or an explicit
+  // connect in flight). Show a spinner instead of the Reconnect button so we
+  // don't flash a misleading CTA before the redirect to /dashboard.
+  const isResolvingSession =
+    accountStatus === 'reconnecting' ||
+    accountStatus === 'connecting' ||
+    connectStatus === 'pending'
+  const showLoading =
+    !isConnected && authStep === null && isResolvingSession
   const showReconnect =
     !isConnected &&
     authStep === null &&
-    (skipAutoConnect || connectStatus !== 'idle')
+    !isResolvingSession &&
+    (skipAutoConnect || connectStatus === 'error')
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
@@ -78,6 +88,11 @@ function LandingPageInner() {
       <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
         <EmailMethodSettings/>
         <AuthFlow/>
+        {showLoading && (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+          </div>
+        )}
         {showReconnect && (
           <div className="flex-1 flex items-center justify-center p-6">
             <button
