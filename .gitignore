@@ -22,6 +22,7 @@ esbuild-why-permissionless*
 .envrc
 .vscode
 .claude
+CLAUDE.local.md
 
 # Playwright
 playwright-report/
