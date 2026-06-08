@@ -159,23 +159,39 @@ export function createProvider({
         throw new Error('No active chain')
       }
 
-      // Address that wagmi sees on this chain — kernel counterfactual
-      // for 4337, EOA otherwise.
-      const accountAddress = (): `0x${string}` | undefined => {
+      const accountAddressForChain = (
+        chainId: number,
+      ): `0x${string}` | undefined => {
         if (mode === '4337') {
-          return state.kernelAccounts.get(activeChainId)?.address
+          return state.kernelAccounts.get(chainId)?.address
         }
         return state.eoaAccount?.address
       }
 
+      const validateFromAddress = (
+        chainId: number,
+        from?: `0x${string}`,
+      ): void => {
+        if (!from) return
+
+        const expectedFrom = accountAddressForChain(chainId)
+        if (!expectedFrom) return
+
+        if (from.toLowerCase() !== expectedFrom.toLowerCase()) {
+          throw new Error(
+            `Invalid from address: expected ${expectedFrom}, got ${from}`,
+          )
+        }
+      }
+
       switch (method) {
         case 'eth_accounts': {
-          const addr = accountAddress()
+          const addr = accountAddressForChain(activeChainId)
           return addr ? [addr] : []
         }
 
         case 'eth_requestAccounts': {
-          const addr = accountAddress()
+          const addr = accountAddressForChain(activeChainId)
           if (!addr) throw new NotAuthenticatedError()
           return [addr]
         }
@@ -192,6 +208,7 @@ export function createProvider({
 
           const [tx] = params
           const chainId = tx.chainId ? parseInt(tx.chainId, 16) : activeChainId
+          validateFromAddress(chainId, tx.from)
 
           // EOA mode: send via plain RPC (no bundler, no sponsorship).
           if (mode === 'EOA') {
@@ -221,6 +238,37 @@ export function createProvider({
                 data: tx.data || '0x',
               },
             ],
+          })
+        }
+
+        case 'wallet_sendCalls': {
+          if (!params || params.length === 0) {
+            throw new Error('Missing call parameters')
+          }
+
+          const [request] = params
+          const chainId = request.chainId
+            ? parseInt(request.chainId, 16)
+            : activeChainId
+          validateFromAddress(chainId, request.from)
+
+          if (mode === 'EOA') {
+            throw new Error('wallet_sendCalls is not supported in EOA mode')
+          }
+
+          const kernelClient = store.getState().kernelClients.get(chainId)
+          if (!kernelClient) {
+            throw new Error(`No kernel client for chain ${chainId}`)
+          }
+
+          // TODO: Type the provider RPC params as a shared request union so
+          // `request.calls` can be narrowed without `any`.
+          return await kernelClient.sendTransaction({
+            calls: request.calls.map((call: any) => ({
+              ...(call.to && { to: call.to }),
+              value: call.value ? BigInt(call.value) : 0n,
+              data: call.data || '0x',
+            })),
           })
         }
 
