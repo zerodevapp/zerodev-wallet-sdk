@@ -230,7 +230,6 @@ export default function DashboardPage() {
                     "border border-blue-500 bg-blue-500 text-white hover:bg-blue-600",
                     "flex items-center gap-2"
                   )}
-                  title="Fund via Smart Routing Address"
                 >
                   <ArrowDownToLine className="h-4 w-4" />
                   <span className="hidden sm:inline">Fund</span>

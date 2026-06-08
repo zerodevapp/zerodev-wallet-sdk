@@ -38,7 +38,7 @@ export function SmartRoutingAddressCard({
   style?: CSSProperties | undefined
   onClose?: () => void
 } = {}) {
-  const { step, goToStep, goBack, reset } = useSmartRouting()
+  const { step, goToStep, reset } = useSmartRouting()
 
   // When the card mounts and no step is active, kick off the flow at its
   // landing page. The dashboard mounts the card conditionally, so this
@@ -61,13 +61,7 @@ export function SmartRoutingAddressCard({
     <ScreenWrapper
       {...(className && { className })}
       {...(style && { style })}
-      topNav={
-        <TopNav
-          {...(goBack !== null && { onBack: goBack })}
-          onClose={handleClose}
-          {...(title && { title })}
-        />
-      }
+      topNav={<TopNav onClose={handleClose} {...(title && { title })} />}
     >
       {content}
     </ScreenWrapper>
