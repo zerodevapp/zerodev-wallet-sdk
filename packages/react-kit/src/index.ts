@@ -21,7 +21,7 @@ export type { SignatureRequestProps } from './signing'
 export { SignatureRequest } from './signing'
 export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 export { usePendingRequests } from './signing/hooks/usePendingRequests.js'
-export { SmartRoutingAddressCard } from './smart-routing'
+export { SmartRoutingAddress } from './smart-routing'
 export { useSmartRoutingAddress } from './smart-routing/hooks/useSmartRoutingAddress.js'
 // Smart Routing Address
 export type {

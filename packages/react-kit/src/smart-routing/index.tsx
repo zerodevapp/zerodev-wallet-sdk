@@ -29,7 +29,7 @@ function renderStep(
  * (from the kit's smart-routing store) to its page, mirroring `<AuthFlow>`.
  * Pages are pure content; navigation goes through `useSmartRouting`.
  */
-export function SmartRoutingAddressCard({
+export function SmartRoutingAddress({
   className,
   style,
   onClose: userOnClose,

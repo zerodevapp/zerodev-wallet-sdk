@@ -3,7 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { SignatureRequest, SmartRoutingAddressCard } from "@zerodev/wallet-react-kit";
+import { SignatureRequest, SmartRoutingAddress } from "@zerodev/wallet-react-kit";
 import {
   ArrowDownToLine,
   Check,
@@ -157,7 +157,7 @@ export default function DashboardPage() {
         <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
       )}
       {showFund && (
-        <SmartRoutingAddressCard
+        <SmartRoutingAddress
           className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]'
           onClose={() => setShowFund(false)}
         />
