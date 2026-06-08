@@ -58,20 +58,37 @@ export function TransferFromWallet({ onGotIt }: TransferFromWalletProps) {
               trailIcon
               disabled={!canCopy}
               onClick={handleCopy}
+              className="h-13"
             />
           </div>
 
           <SectionCard label="Send">
-            <Select label="ETH" iconName="ethereum" />
-            <Select label="Arbitrum" iconName="arbitrum" className="flex-1" />
+            <Select
+              label="ETH"
+              iconName="ethereum"
+              className="flex-1 basis-0"
+            />
+            <Select
+              label="Arbitrum"
+              iconName="arbitrum"
+              className="flex-1 basis-0"
+            />
           </SectionCard>
 
           <SectionCard label="Receive">
-            <Select label="USDC" trailingIcon={false} />
             <Select
-              label="DeFi Dungeons"
+              label="USDC"
+              leadingImage="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
               trailingIcon={false}
-              className="flex-1"
+              variant="ghost"
+              className="flex-1 basis-0"
+            />
+            <Select
+              label="Arbitrum"
+              iconName="arbitrum"
+              trailingIcon={false}
+              variant="ghost"
+              className="flex-1 basis-0"
             />
           </SectionCard>
 

@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '../../utils/common'
 import { Icon, type IconName } from '../Icon'
 import { Text } from '../Text'
-import { Wrapper } from '../Wrapper'
+import { Wrapper, type WrapperVariant } from '../Wrapper'
 
 export interface SelectProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
@@ -21,6 +21,8 @@ export interface SelectProps
   trailingIcon?: boolean
   /** Render a skeleton placeholder instead of the content. */
   loading?: boolean
+  /** Background opacity tier. Forwarded to the inner `Wrapper`. */
+  variant?: WrapperVariant
 }
 
 export function SelectSkeleton({
@@ -43,6 +45,7 @@ export function Select({
   chainImage,
   trailingIcon = true,
   loading = false,
+  variant,
   className,
   ...rest
 }: SelectProps) {
@@ -52,7 +55,10 @@ export function Select({
   const hasLeadingBlock = hasLeading || !!subtitle
 
   return (
-    <Wrapper className={cn('h-13 rounded-2xl', className)}>
+    <Wrapper
+      className={cn('h-13 rounded-2xl', className)}
+      {...(variant && { variant })}
+    >
       <button
         type="button"
         className={cn(
@@ -74,7 +80,7 @@ export function Select({
                 <img
                   src={leadingImage}
                   alt=""
-                  className="size-full object-cover"
+                  className="size-6 object-contain"
                 />
               ) : null}
             </div>
