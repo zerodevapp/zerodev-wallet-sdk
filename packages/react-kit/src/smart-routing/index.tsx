@@ -2,7 +2,7 @@ import { type CSSProperties, type ReactNode, useEffect } from 'react'
 
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { TopNav } from '../shared/components/TopNav'
-import { useSmartRouting } from './hooks/useSmartRouting'
+import { useSmartRoutingFlow } from './hooks/useSmartRoutingFlow'
 import { TransferFromWallet } from './pages/TransferFromWallet'
 import type { SmartRoutingStep } from './types'
 
@@ -27,7 +27,7 @@ function renderStep(
  *
  * Owns the `ScreenWrapper` + `TopNav` chrome and dispatches the current step
  * (from the kit's smart-routing store) to its page, mirroring `<AuthFlow>`.
- * Pages are pure content; navigation goes through `useSmartRouting`.
+ * Pages are pure content; navigation goes through `useSmartRoutingFlow`.
  */
 export function SmartRoutingAddress({
   className,
@@ -38,7 +38,7 @@ export function SmartRoutingAddress({
   style?: CSSProperties | undefined
   onClose?: () => void
 } = {}) {
-  const { step, goToStep, reset } = useSmartRouting()
+  const { step, goToStep, reset } = useSmartRoutingFlow()
 
   // When the card mounts and no step is active, kick off the flow at its
   // landing page. The dashboard mounts the card conditionally, so this

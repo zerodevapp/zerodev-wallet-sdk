@@ -11,12 +11,14 @@ function getKitStore(config: ReturnType<typeof useConfig>): Store | null {
   return connector.getKitStore()
 }
 
-export function useSmartRouting() {
+export function useSmartRoutingFlow() {
   const config = useConfig()
   const store = getKitStore(config)
 
   if (!store) {
-    throw new Error('useSmartRouting must be used with zeroDevWallet connector')
+    throw new Error(
+      'useSmartRoutingFlow must be used with zeroDevWallet connector',
+    )
   }
 
   const step = useStore(store, (state) => state.smartRouting.step)
