@@ -15,9 +15,13 @@ const PLACEHOLDER_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 interface TransferFromWalletProps {
   onGotIt: () => void
+  onShowQr: (address: string) => void
 }
 
-export function TransferFromWallet({ onGotIt }: TransferFromWalletProps) {
+export function TransferFromWallet({
+  onGotIt,
+  onShowQr,
+}: TransferFromWalletProps) {
   const { address: connectedAddress } = useAccount()
   // Placeholder src/dest pair until the UI has real selectors. We use a
   // specific token (USDC) — the SRA API's Across simulation cannot quote a
@@ -38,8 +42,6 @@ export function TransferFromWallet({ onGotIt }: TransferFromWalletProps) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleQr = () => {}
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0 overflow-y-auto pt-4 pb-2">
@@ -53,7 +55,7 @@ export function TransferFromWallet({ onGotIt }: TransferFromWalletProps) {
                     ? 'Error loading address'
                     : address
               }
-              onQrClick={handleQr}
+              onQrClick={() => canCopy && onShowQr(address)}
             />
             <Button
               action="primary"

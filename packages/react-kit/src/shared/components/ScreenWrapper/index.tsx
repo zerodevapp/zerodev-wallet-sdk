@@ -10,11 +10,18 @@ export function ScreenWrapper({
   className,
   style,
   topNav,
+  overlay,
 }: {
   children: ReactNode
   className?: string | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
+  /**
+   * Rendered as a sibling of the inner content at the outer card level —
+   * lets a modal `absolute inset-0` over everything (including the TopNav)
+   * without leaking outside the card's rounded boundary.
+   */
+  overlay?: ReactNode
 }) {
   return (
     <div
@@ -34,6 +41,7 @@ export function ScreenWrapper({
           {children}
         </div>
       </div>
+      {overlay}
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { type CSSProperties, type ReactNode, useEffect } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 
 import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { TopNav } from '../shared/components/TopNav'
+import { QrModal } from './components/QrModal'
 import { useSmartRoutingFlow } from './hooks/useSmartRoutingFlow'
 import { TransferFromWallet } from './pages/TransferFromWallet'
 import type { SmartRoutingStep } from './types'
@@ -13,10 +14,11 @@ const TITLE_BY_STEP: Partial<Record<SmartRoutingStep, string>> = {
 function renderStep(
   step: SmartRoutingStep | null,
   onGotIt: () => void,
+  onShowQr: (address: string) => void,
 ): ReactNode {
   switch (step) {
     case 'transfer-from-wallet':
-      return <TransferFromWallet onGotIt={onGotIt} />
+      return <TransferFromWallet onGotIt={onGotIt} onShowQr={onShowQr} />
     default:
       return null
   }
@@ -39,6 +41,7 @@ export function SmartRoutingAddress({
   onClose?: () => void
 } = {}) {
   const { step, goToStep, reset } = useSmartRoutingFlow()
+  const [qrAddress, setQrAddress] = useState<string | null>(null)
 
   // When the card mounts and no step is active, kick off the flow at its
   // landing page. The dashboard mounts the card conditionally, so this
@@ -49,10 +52,17 @@ export function SmartRoutingAddress({
 
   const handleClose = () => {
     reset()
+    setQrAddress(null)
     userOnClose?.()
   }
 
-  const content = renderStep(step, handleClose)
+  const handleCopyFromQr = async () => {
+    if (!qrAddress) return
+    await navigator.clipboard.writeText(qrAddress)
+    setQrAddress(null)
+  }
+
+  const content = renderStep(step, handleClose, setQrAddress)
   if (!content) return null
 
   const title = step ? TITLE_BY_STEP[step] : undefined
@@ -62,6 +72,15 @@ export function SmartRoutingAddress({
       {...(className && { className })}
       {...(style && { style })}
       topNav={<TopNav onClose={handleClose} {...(title && { title })} />}
+      overlay={
+        qrAddress ? (
+          <QrModal
+            address={qrAddress}
+            onCopy={handleCopyFromQr}
+            onClose={() => setQrAddress(null)}
+          />
+        ) : null
+      }
     >
       {content}
     </ScreenWrapper>
