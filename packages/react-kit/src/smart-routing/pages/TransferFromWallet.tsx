@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { mainnet } from 'viem/chains'
+import { type Address, zeroAddress } from 'viem'
+import { arbitrum, mainnet } from 'viem/chains'
+import { useAccount } from 'wagmi'
 
 import { Button } from '../../shared/components/Button'
 import { Select } from '../../shared/components/Select'
@@ -16,11 +18,13 @@ interface TransferFromWalletProps {
 }
 
 export function TransferFromWallet({ onGotIt }: TransferFromWalletProps) {
-  // UI-only placeholder srcTokens so the hook resolves a real SRA when the
-  // connector is configured. We use a specific token (USDC) — the SRA API's
-  // Across simulation cannot quote a route when the src/dest tokens resolve
-  // to a generic FLEX placeholder.
+  const { address: connectedAddress } = useAccount()
+  // Placeholder src/dest pair until the UI has real selectors. We use a
+  // specific token (USDC) — the SRA API's Across simulation cannot quote a
+  // route when the src/dest tokens resolve to a generic FLEX placeholder.
   const { data, error, isPending } = useSmartRoutingAddress({
+    owner: (connectedAddress ?? zeroAddress) as Address,
+    destChain: arbitrum,
     srcTokens: [{ tokenType: 'USDC', chain: mainnet }],
   })
   const address = data?.smartRoutingAddress ?? PLACEHOLDER_ADDRESS
