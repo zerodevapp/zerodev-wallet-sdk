@@ -3,7 +3,10 @@ import type {
   ZeroDevProvider,
   ZeroDevWalletConnectorParams,
 } from '@zerodev/wallet-react'
-import { zeroDevWallet as baseZeroDevWallet } from '@zerodev/wallet-react'
+import {
+  zeroDevWallet as baseZeroDevWallet,
+  NotAuthenticatedError,
+} from '@zerodev/wallet-react'
 import type { AuthConfig } from './auth/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
@@ -43,6 +46,29 @@ function requireUserConfirmation(
   })
 }
 
+/**
+ * Resolves when the user completes the auth flow (`step === 'authenticated'`),
+ * rejects when they dismiss it (`step === null`).
+ */
+function waitForAuthFlow(store: ReturnType<typeof createStore>): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const unsub = store.subscribe(
+      (state) => state.auth.step,
+      (step) => {
+        if (step === 'authenticated') {
+          unsub()
+          resolve()
+        } else if (step === null) {
+          // User dismissed the auth flow (e.g. clicked the TopNav close
+          // button) — abort the pending wagmi connect.
+          unsub()
+          reject(new Error('Auth flow dismissed'))
+        }
+      },
+    )
+  })
+}
+
 export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
@@ -61,45 +87,35 @@ export function zeroDevWallet(
       ...connector,
 
       async connect(connectParams) {
-        // wagmi sets `isReconnecting` on reconnectOnMount.
-        const isReconnecting = !!connectParams && connectParams.isReconnecting
+        // Try to connect first. If a session is persisted, base will load it
+        // and resolve — no auth UI needed. If not, it throws
+        // `NotAuthenticatedError` and we surface SignUp.
+        //
+        // This avoids forcing every connect to await the base store's init
+        // (which `isAuthorized()` deliberately skips for perf — see
+        // packages/react/src/core/connector.ts), and avoids flashing the auth
+        // UI on first paint when the session hasn't loaded yet.
+        try {
+          return await connector.connect(connectParams)
+        } catch (error) {
+          // wagmi sets `isReconnecting` on reconnectOnMount; a silent
+          // reconnect failure must not pop the auth UI.
+          const isReconnecting =
+            !!connectParams && connectParams.isReconnecting === true
 
-        // Force the base connector to finish initializing so its store can
-        // tell us if a session is already persisted. Base `isAuthorized()`
-        // only reads `store.eoaAccount` synchronously and reports `false`
-        // before init completes — surfacing SignUp here causes a visible
-        // flash on the next paint when a session exists but isn't loaded
-        // yet (common on first paint of a production build).
-        if ('getStore' in connector && typeof connector.getStore === 'function')
-          await connector.getStore()
+          if (
+            isReconnecting ||
+            !params.config?.auth ||
+            store.getState().auth.step !== null ||
+            !(error instanceof NotAuthenticatedError)
+          ) {
+            throw error
+          }
 
-        const isAuthorized = await connector.isAuthorized()
-        if (
-          !isReconnecting &&
-          !isAuthorized &&
-          params.config?.auth &&
-          store.getState().auth.step === null
-        ) {
           store.getState().auth.goToStep('sign-up')
-          await new Promise<void>((resolve, reject) => {
-            const unsub = store.subscribe(
-              (state) => state.auth.step,
-              (step) => {
-                if (step === 'authenticated') {
-                  unsub()
-                  resolve()
-                } else if (step === null) {
-                  // User dismissed the auth flow (e.g. clicked the TopNav
-                  // close button) — abort the pending wagmi connect so the
-                  // consumer's UI can drop out of the "connecting" state.
-                  unsub()
-                  reject(new Error('Auth flow dismissed'))
-                }
-              },
-            )
-          })
+          await waitForAuthFlow(store)
+          return connector.connect(connectParams)
         }
-        return connector.connect(connectParams)
       },
 
       async disconnect() {

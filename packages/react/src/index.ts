@@ -12,6 +12,7 @@ export {
   getZeroDevWallet,
 } from './actions.js'
 export type { GetOAuthSessionIdFn } from './authenticateOAuth.js'
+export { NotAuthenticatedError } from './errors.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
 export { useExportPrivateKey } from './hooks/useExportPrivateKey.js'
 export { useExportWallet } from './hooks/useExportWallet.js'

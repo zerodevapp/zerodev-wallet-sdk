@@ -14,6 +14,7 @@ import type {
 } from '@zerodev/wallet-core'
 import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
 import { type Chain, createPublicClient, createWalletClient, http } from 'viem'
+import { NotAuthenticatedError } from '../errors.js'
 import { createProvider } from '../provider.js'
 import { type CreateStoreOptions, createZeroDevWalletStore } from '../store.js'
 import { getAAUrl } from '../utils/aaUtils.js'
@@ -114,7 +115,7 @@ export function zeroDevWalletCore(
     ) => {
       const state = store.getState()
       const eoaAccount = state.eoaAccount
-      if (!eoaAccount) throw new Error('Not authenticated')
+      if (!eoaAccount) throw new NotAuthenticatedError()
 
       const chain = params.chains.find((c) => c.id === chainId)
       if (!chain) throw new Error(`Chain ${chainId} not found in config`)
@@ -317,7 +318,7 @@ export function zeroDevWalletCore(
         }
 
         if (!state.eoaAccount) {
-          throw new Error(
+          throw new NotAuthenticatedError(
             'Not authenticated. Please authenticate first using passkey, OAuth, or OTP.',
           )
         }
@@ -387,7 +388,7 @@ export function zeroDevWalletCore(
         const state = store.getState()
 
         if (!state.eoaAccount) {
-          throw new Error('Not authenticated')
+          throw new NotAuthenticatedError()
         }
 
         store.getState().setActiveChainId(chainId)
