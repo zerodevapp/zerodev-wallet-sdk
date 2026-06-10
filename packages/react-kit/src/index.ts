@@ -32,7 +32,7 @@ export type {
 // Smart Routing Address
 export type {
   SmartRoutingAddressConfig,
-  SmartRoutingAddressOverrides,
+  UseSmartRoutingAddressParams,
 } from './smart-routing/types.js'
 export { useSmartRoutingAddress } from './smart-routing/useSmartRoutingAddress.js'
 
