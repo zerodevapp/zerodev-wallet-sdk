@@ -19,6 +19,7 @@ export {
   getZeroDevWallet,
 } from './actions.js'
 export type { GetOAuthSessionIdFn } from './authenticateOAuth.js'
+export { NotAuthenticatedError } from './errors.js'
 // Generic OAuth hook — caller supplies getSessionId + redirectUri
 export { useAuthenticateOAuth } from './hooks/useAuthenticateOAuth.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
