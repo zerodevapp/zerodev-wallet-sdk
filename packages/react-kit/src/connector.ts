@@ -98,12 +98,8 @@ export function zeroDevWallet(
         try {
           return await connector.connect(connectParams)
         } catch (error) {
-          // wagmi sets `isReconnecting` on reconnectOnMount; a silent
-          // reconnect failure must not pop the auth UI.
-          const isReconnecting = !!connectParams?.isReconnecting
-
           if (
-            isReconnecting ||
+            !!connectParams?.isReconnecting ||
             !params.config?.auth ||
             !(error instanceof NotAuthenticatedError)
           ) {
