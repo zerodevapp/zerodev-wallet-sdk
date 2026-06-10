@@ -28,7 +28,7 @@ export function useSmartRoutingFlow() {
     step,
     goToStep: store.getState().smartRouting.goToStep,
     goBack:
-      stepHistory.length > 0 ? store.getState().smartRouting.goBack : null,
+      stepHistory.length > 1 ? store.getState().smartRouting.goBack : null,
     reset: store.getState().smartRouting.reset,
   }
 }

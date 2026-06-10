@@ -4,21 +4,32 @@ import { ScreenWrapper } from '../shared/components/ScreenWrapper'
 import { TopNav } from '../shared/components/TopNav'
 import { QrModal } from './components/QrModal'
 import { useSmartRoutingFlow } from './hooks/useSmartRoutingFlow'
+import { SelectNetwork } from './pages/SelectNetwork'
 import { TransferFromWallet } from './pages/TransferFromWallet'
 import type { SmartRoutingStep } from './types'
 
 const TITLE_BY_STEP: Partial<Record<SmartRoutingStep, string>> = {
   'transfer-from-wallet': 'Transfer from wallet',
+  'select-network': 'Select a network',
 }
 
 function renderStep(
   step: SmartRoutingStep | null,
   onGotIt: () => void,
   onShowQr: (address: string) => void,
+  onSelectNetwork: () => void,
 ): ReactNode {
   switch (step) {
     case 'transfer-from-wallet':
-      return <TransferFromWallet onGotIt={onGotIt} onShowQr={onShowQr} />
+      return (
+        <TransferFromWallet
+          onGotIt={onGotIt}
+          onShowQr={onShowQr}
+          onSelectNetwork={onSelectNetwork}
+        />
+      )
+    case 'select-network':
+      return <SelectNetwork />
     default:
       return null
   }
@@ -40,7 +51,7 @@ export function SmartRoutingAddress({
   style?: CSSProperties | undefined
   onClose?: () => void
 } = {}) {
-  const { step, goToStep, reset } = useSmartRoutingFlow()
+  const { step, goToStep, goBack, reset } = useSmartRoutingFlow()
   const [qrAddress, setQrAddress] = useState<string | null>(null)
 
   // When the card mounts and no step is active, kick off the flow at its
@@ -62,7 +73,9 @@ export function SmartRoutingAddress({
     setQrAddress(null)
   }
 
-  const content = renderStep(step, handleClose, setQrAddress)
+  const content = renderStep(step, handleClose, setQrAddress, () =>
+    goToStep('select-network'),
+  )
   if (!content) return null
 
   const title = step ? TITLE_BY_STEP[step] : undefined
@@ -71,7 +84,13 @@ export function SmartRoutingAddress({
     <ScreenWrapper
       {...(className && { className })}
       {...(style && { style })}
-      topNav={<TopNav onClose={handleClose} {...(title && { title })} />}
+      topNav={
+        <TopNav
+          {...(goBack !== null && { onBack: goBack })}
+          onClose={handleClose}
+          {...(title && { title })}
+        />
+      }
       overlay={
         qrAddress ? (
           <QrModal

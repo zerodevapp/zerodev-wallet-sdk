@@ -16,11 +16,13 @@ const PLACEHOLDER_ADDRESS = '0x0000000000000000000000000000000000000000'
 interface TransferFromWalletProps {
   onGotIt: () => void
   onShowQr: (address: string) => void
+  onSelectNetwork: () => void
 }
 
 export function TransferFromWallet({
   onGotIt,
   onShowQr,
+  onSelectNetwork,
 }: TransferFromWalletProps) {
   const { address: connectedAddress } = useAccount()
   // Placeholder src/dest pair until the UI has real selectors. We use a
@@ -78,6 +80,7 @@ export function TransferFromWallet({
               label="Arbitrum"
               iconName="arbitrum"
               className="flex-1 basis-0"
+              onClick={onSelectNetwork}
             />
           </SectionCard>
 
@@ -95,6 +98,7 @@ export function TransferFromWallet({
               trailingIcon={false}
               variant="ghost"
               className="flex-1 basis-0"
+              onClick={onSelectNetwork}
             />
           </SectionCard>
 

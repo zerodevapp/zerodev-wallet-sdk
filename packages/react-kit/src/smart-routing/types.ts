@@ -6,7 +6,7 @@ import type { Address, Chain } from 'viem'
  * the entry component dispatches each step to its page, and steps push/pop
  * a history so the TopNav back button works.
  */
-export type SmartRoutingStep = 'transfer-from-wallet'
+export type SmartRoutingStep = 'transfer-from-wallet' | 'select-network'
 
 /**
  * Connector-level config for the Smart Routing Address (SRA) feature.
