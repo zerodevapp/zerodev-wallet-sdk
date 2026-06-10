@@ -68,7 +68,7 @@ function LandingPageInner() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
+      className="mx-auto w-full max-w-[500px] flex flex-col flex-1 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
       {sessionExpired && (
         <div
           className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
