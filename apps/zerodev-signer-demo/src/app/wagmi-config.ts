@@ -43,7 +43,7 @@ export const config = createConfig({
         // (testnets above), so the demo points it at real mainnet chains.
         smartRoutingAddress: {
           enabled: true,
-          destinationChains: [arbitrum],
+          destinationChains: [arbitrum, mainnet],
           sourceChains: [mainnet, arbitrum],
         },
       },

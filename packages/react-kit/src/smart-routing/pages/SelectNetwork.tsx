@@ -1,86 +1,54 @@
 import { useState } from 'react'
+import type { Chain } from 'viem'
 import { useChains } from 'wagmi'
 
-import type { IconName } from '../../shared/components/Icon'
 import { Input } from '../../shared/components/Input'
-import { Text } from '../../shared/components/Text'
 import { TokenListItem } from '../../shared/components/TokenListItem'
 import { useSmartRoutingFlow } from '../hooks/useSmartRoutingFlow'
+import { getChainIcon } from '../utils/chainIcon'
 
-// Loose grouping per the design's "Ethereum Ecosystem" / "Other chains"
-// sections. Includes mainnets + corresponding testnets so the demo
-// renders something under the first section.
-const ETHEREUM_ECOSYSTEM_CHAIN_IDS = new Set<number>([
-  1,
-  11155111, // mainnet, sepolia
-  42161,
-  421614, // arbitrum, arbitrumSepolia
-  10,
-  11155420, // optimism, optimismSepolia
-  8453,
-  84532, // base, baseSepolia
-  137,
-  80002, // polygon, polygonAmoy
-  130, // unichain
-  59144, // linea
-  534352,
-  534351, // scroll, scrollSepolia
-  81457,
-  168587773, // blast, blastSepolia
-  7777777, // zora
-  480, // worldchain
-])
-
-const CHAIN_ICON_BY_ID: Record<number, IconName> = {
-  1: 'ethereum',
-  11155111: 'ethereum',
-  42161: 'arbitrum',
-  421614: 'arbitrum',
-}
-
-interface NetworkRowChain {
-  id: number
-  name: string
-}
-
-function NetworkRow({ chain }: { chain: NetworkRowChain }) {
-  const { goBack } = useSmartRoutingFlow()
-  const iconName = CHAIN_ICON_BY_ID[chain.id]
+function NetworkRow({
+  chain,
+  onSelect,
+}: {
+  chain: Chain
+  onSelect: (chain: Chain) => void
+}) {
+  const iconName = getChainIcon(chain.id)
   return (
     <TokenListItem
       symbol={chain.name}
       iconVariant="network"
       {...(iconName && { iconName })}
-      value="$0.00"
-      change="+0.00%"
-      onClick={() => goBack?.()}
+      onClick={() => onSelect(chain)}
     />
   )
 }
 
-function Section({
-  title,
-  chains,
-}: {
-  title: string
-  chains: NetworkRowChain[]
-}) {
-  if (chains.length === 0) return null
-  return (
-    <div className="flex flex-col gap-1">
-      <Text className="text-body2 px-2">{title}</Text>
-      <div className="flex flex-col gap-1">
-        {chains.map((chain) => (
-          <NetworkRow key={chain.id} chain={chain} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 export function SelectNetwork() {
-  const chains = useChains()
+  const wagmiChains = useChains()
+  const {
+    editingChainSlot,
+    sendChain,
+    receiveChain,
+    sourceChains,
+    destinationChains,
+    setChain,
+    setEditingChainSlot,
+    goBack,
+  } = useSmartRoutingFlow()
   const [query, setQuery] = useState('')
+
+  // Pick the slot-specific list from the connector's SRA config (which lists
+  // SRA-supported mainnets) so the picker doesn't surface chains the API
+  // would reject. Falls back to wagmi's chains if the consumer didn't
+  // configure source/destination lists.
+  const chains =
+    editingChainSlot === 'send'
+      ? (sourceChains ?? wagmiChains)
+      : editingChainSlot === 'receive'
+        ? (destinationChains ?? wagmiChains)
+        : wagmiChains
 
   const filtered = query
     ? chains.filter((c) =>
@@ -88,12 +56,23 @@ export function SelectNetwork() {
       )
     : chains
 
-  const ethereumEcosystem = filtered.filter((c) =>
-    ETHEREUM_ECOSYSTEM_CHAIN_IDS.has(c.id),
-  )
-  const otherChains = filtered.filter(
-    (c) => !ETHEREUM_ECOSYSTEM_CHAIN_IDS.has(c.id),
-  )
+  // Picking the chain that's currently in the *other* slot swaps the two,
+  // since Across can't quote a same-chain route.
+  const handleSelect = (chain: Chain) => {
+    if (!editingChainSlot) {
+      goBack?.()
+      return
+    }
+    const otherSlot = editingChainSlot === 'send' ? 'receive' : 'send'
+    const otherChain = editingChainSlot === 'send' ? receiveChain : sendChain
+    const currentChain = editingChainSlot === 'send' ? sendChain : receiveChain
+    if (otherChain && otherChain.id === chain.id && currentChain) {
+      setChain(otherSlot, currentChain)
+    }
+    setChain(editingChainSlot, chain)
+    setEditingChainSlot(null)
+    goBack?.()
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -105,8 +84,11 @@ export function SelectNetwork() {
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <Section title="Ethereum Ecosystem" chains={ethereumEcosystem} />
-        <Section title="Other chains" chains={otherChains} />
+        <div className="flex flex-col gap-1">
+          {filtered.map((chain) => (
+            <NetworkRow key={chain.id} chain={chain} onSelect={handleSelect} />
+          ))}
+        </div>
       </div>
     </div>
   )
