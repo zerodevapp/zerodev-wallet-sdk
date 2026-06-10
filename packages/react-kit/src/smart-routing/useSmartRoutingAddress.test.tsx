@@ -36,15 +36,9 @@ const mockConfig = {
     getKitStore?: () => unknown
   }>,
 }
-let mockChainId = mainnet.id
-const mockChains = [mainnet, optimism]
-const mockAccount = { address: WALLET as `0x${string}` | undefined }
 
 vi.mock('wagmi', () => ({
   useConfig: () => mockConfig,
-  useAccount: () => mockAccount,
-  useChainId: () => mockChainId,
-  useChains: () => mockChains,
 }))
 
 function makeWrapper() {
@@ -56,11 +50,15 @@ function makeWrapper() {
   )
 }
 
+const baseParams = {
+  owner: WALLET,
+  destChain: mainnet,
+  srcTokens: [{ tokenType: 'USDC' as const, chain: optimism }],
+}
+
 beforeEach(() => {
   mockCreateSmartRoutingAddress.mockReset()
   mockCreateCall.mockClear()
-  mockChainId = mainnet.id
-  mockAccount.address = WALLET
   mockConfig.connectors = [mockConnector]
   mockConnector.getKitStore.mockReset()
 })
@@ -74,7 +72,7 @@ describe('useSmartRoutingAddress', () => {
     mockConfig.connectors = []
     const wrapper = makeWrapper()
     expect(() =>
-      renderHook(() => useSmartRoutingAddress(), { wrapper }),
+      renderHook(() => useSmartRoutingAddress(baseParams), { wrapper }),
     ).toThrow(
       /useSmartRoutingAddress must be used with zeroDevWallet connector/,
     )
@@ -85,13 +83,7 @@ describe('useSmartRoutingAddress', () => {
     mockConnector.getKitStore.mockReturnValue(store)
 
     const wrapper = makeWrapper()
-    renderHook(
-      () =>
-        useSmartRoutingAddress({
-          srcTokens: [{ tokenType: 'ERC20', chain: optimism }],
-        }),
-      { wrapper },
-    )
+    renderHook(() => useSmartRoutingAddress(baseParams), { wrapper })
 
     expect(mockCreateSmartRoutingAddress).not.toHaveBeenCalled()
   })
@@ -102,43 +94,31 @@ describe('useSmartRoutingAddress', () => {
     mockConnector.getKitStore.mockReturnValue(store)
 
     const wrapper = makeWrapper()
-    renderHook(
-      () =>
-        useSmartRoutingAddress({
-          srcTokens: [{ tokenType: 'ERC20', chain: optimism }],
-        }),
-      { wrapper },
-    )
+    renderHook(() => useSmartRoutingAddress(baseParams), { wrapper })
 
     expect(mockCreateSmartRoutingAddress).not.toHaveBeenCalled()
   })
 
-  it('does not fire when srcTokens is empty', () => {
-    const store = createStore()
-    store.getState().smartRouting.initialize({})
-    mockConnector.getKitStore.mockReturnValue(store)
-
-    const wrapper = makeWrapper()
-    renderHook(() => useSmartRoutingAddress({ srcTokens: [] }), { wrapper })
-
-    expect(mockCreateSmartRoutingAddress).not.toHaveBeenCalled()
-  })
-
-  it('computes the SRA with connector defaults (owner, destChain, slippage, actions)', async () => {
+  it('forwards inputs verbatim and applies the default slippage + actions', async () => {
     mockCreateSmartRoutingAddress.mockResolvedValue({
       smartRoutingAddress: '0xSRA',
       estimatedFees: [],
     })
 
     const store = createStore()
-    store.getState().smartRouting.initialize({}) // no overrides; defaults take over
+    store.getState().smartRouting.initialize({})
     mockConnector.getKitStore.mockReturnValue(store)
 
     const wrapper = makeWrapper()
     const { result } = renderHook(
       () =>
         useSmartRoutingAddress({
-          srcTokens: [{ tokenType: 'ERC20', chain: optimism }],
+          owner: WALLET,
+          destChain: mainnet,
+          srcTokens: [
+            { tokenType: 'NATIVE', chain: optimism },
+            { tokenType: 'USDC', chain: optimism },
+          ],
         }),
       { wrapper },
     )
@@ -149,92 +129,48 @@ describe('useSmartRoutingAddress', () => {
 
     const args = mockCreateSmartRoutingAddress.mock.calls[0]?.[0]
     expect(args.owner).toBe(WALLET)
-    expect(args.destChain.id).toBe(mainnet.id) // matches useChainId default
-    expect(args.slippage).toBe(100) // default 1%
+    expect(args.destChain.id).toBe(mainnet.id)
+    expect(args.slippage).toBe(100) // hook default
     expect(args.actions).toBeDefined()
+    // Actions are built per unique src tokenType.
     expect(args.actions.NATIVE).toBeDefined()
-    expect(args.actions.ERC20).toBeDefined()
+    expect(args.actions.USDC).toBeDefined()
+    expect(args.actions.ERC20).toBeUndefined()
   })
 
-  it('uses the first destinationChains entry from connector config as destChain', async () => {
+  it('honors explicit slippage and actions overrides', async () => {
     mockCreateSmartRoutingAddress.mockResolvedValue({
       smartRoutingAddress: '0xSRA',
       estimatedFees: [],
     })
-
-    const store = createStore()
-    store
-      .getState()
-      .smartRouting.initialize({ destinationChains: [optimism, mainnet] })
-    mockConnector.getKitStore.mockReturnValue(store)
-
-    const wrapper = makeWrapper()
-    renderHook(
-      () =>
-        useSmartRoutingAddress({
-          srcTokens: [{ tokenType: 'ERC20', chain: mainnet }],
-        }),
-      { wrapper },
-    )
-
-    await waitFor(() => {
-      expect(mockCreateSmartRoutingAddress).toHaveBeenCalledTimes(1)
-    })
-    const args = mockCreateSmartRoutingAddress.mock.calls[0]?.[0]
-    expect(args.destChain.id).toBe(optimism.id)
-  })
-
-  it('per-call overrides win over connector config defaults', async () => {
-    mockCreateSmartRoutingAddress.mockResolvedValue({
-      smartRoutingAddress: '0xSRA',
-      estimatedFees: [],
-    })
-
-    const store = createStore()
-    store.getState().smartRouting.initialize({
-      maxSlippage: 50,
-      destinationChains: [mainnet],
-    })
-    mockConnector.getKitStore.mockReturnValue(store)
-
-    const wrapper = makeWrapper()
-    const customOwner = '0x2222222222222222222222222222222222222222' as const
-    renderHook(
-      () =>
-        useSmartRoutingAddress({
-          owner: customOwner,
-          destChain: optimism,
-          maxSlippage: 200,
-          srcTokens: [{ tokenType: 'NATIVE', chain: mainnet }],
-        }),
-      { wrapper },
-    )
-
-    await waitFor(() => {
-      expect(mockCreateSmartRoutingAddress).toHaveBeenCalledTimes(1)
-    })
-    const args = mockCreateSmartRoutingAddress.mock.calls[0]?.[0]
-    expect(args.owner).toBe(customOwner)
-    expect(args.destChain.id).toBe(optimism.id)
-    expect(args.slippage).toBe(200)
-  })
-
-  it('does not fire when no wallet is connected', () => {
-    mockAccount.address = undefined
 
     const store = createStore()
     store.getState().smartRouting.initialize({})
     mockConnector.getKitStore.mockReturnValue(store)
 
+    const customActions = {
+      NATIVE: { action: [{ __custom: true }], fallBack: [] },
+    } as never
+
     const wrapper = makeWrapper()
     renderHook(
       () =>
         useSmartRoutingAddress({
-          srcTokens: [{ tokenType: 'ERC20', chain: optimism }],
+          owner: WALLET,
+          destChain: optimism,
+          srcTokens: [{ tokenType: 'NATIVE', chain: mainnet }],
+          slippage: 200,
+          actions: customActions,
         }),
       { wrapper },
     )
 
-    expect(mockCreateSmartRoutingAddress).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(mockCreateSmartRoutingAddress).toHaveBeenCalledTimes(1)
+    })
+    const args = mockCreateSmartRoutingAddress.mock.calls[0]?.[0]
+    expect(args.destChain.id).toBe(optimism.id)
+    expect(args.slippage).toBe(200)
+    expect(args.actions).toBe(customActions)
   })
 })
