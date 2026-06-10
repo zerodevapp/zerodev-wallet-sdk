@@ -3,7 +3,10 @@ import type {
   ZeroDevProvider,
   ZeroDevWalletConnectorParams,
 } from '@zerodev/wallet-react'
-import { zeroDevWallet as baseZeroDevWallet } from '@zerodev/wallet-react'
+import {
+  zeroDevWallet as baseZeroDevWallet,
+  NotAuthenticatedError,
+} from '@zerodev/wallet-react'
 import type { AuthConfig } from './auth/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
@@ -43,6 +46,29 @@ function requireUserConfirmation(
   })
 }
 
+/**
+ * Resolves when the user completes the auth flow (`step === 'authenticated'`),
+ * rejects when they dismiss it (`step === null`).
+ */
+function waitForAuthFlow(store: ReturnType<typeof createStore>): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const unsub = store.subscribe(
+      (state) => state.auth.step,
+      (step) => {
+        if (step === 'authenticated') {
+          unsub()
+          resolve()
+        } else if (step === null) {
+          // User dismissed the auth flow (e.g. clicked the TopNav close
+          // button) — abort the pending wagmi connect.
+          unsub()
+          reject(new Error('Auth flow dismissed'))
+        }
+      },
+    )
+  })
+}
+
 export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
@@ -61,26 +87,33 @@ export function zeroDevWallet(
       ...connector,
 
       async connect(connectParams) {
-        const isAuthorized = await connector.isAuthorized()
-        if (
-          !isAuthorized &&
-          params.config?.auth &&
-          store.getState().auth.step === null
-        ) {
+        // Try to connect first. If a session is persisted, base will load it
+        // and resolve — no auth UI needed. If not, it throws
+        // `NotAuthenticatedError` and we surface SignUp.
+        //
+        // This avoids forcing every connect to await the base store's init
+        // (which `isAuthorized()` deliberately skips for perf — see
+        // packages/react/src/core/connector.ts), and avoids flashing the auth
+        // UI on first paint when the session hasn't loaded yet.
+        try {
+          return await connector.connect(connectParams)
+        } catch (error) {
+          if (
+            !!connectParams?.isReconnecting ||
+            !params.config?.auth ||
+            !(error instanceof NotAuthenticatedError)
+          ) {
+            throw error
+          }
+
+          if (store.getState().auth.step !== null) {
+            throw new Error('Auth flow already in progress')
+          }
+
           store.getState().auth.goToStep('sign-up')
-          await new Promise<void>((resolve) => {
-            const unsub = store.subscribe(
-              (state) => state.auth.step,
-              (step) => {
-                if (step === 'authenticated') {
-                  unsub()
-                  resolve()
-                }
-              },
-            )
-          })
+          await waitForAuthFlow(store)
+          return connector.connect(connectParams)
         }
-        return connector.connect(connectParams)
       },
 
       async disconnect() {
