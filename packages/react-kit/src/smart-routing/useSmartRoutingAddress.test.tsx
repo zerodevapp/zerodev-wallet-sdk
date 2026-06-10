@@ -11,18 +11,20 @@ import { createStore } from '../store'
 import { useSmartRoutingAddress } from './useSmartRoutingAddress'
 
 const mockCreateSmartRoutingAddress = vi.fn()
-const mockCreateCall = vi.fn((args) => ({ __call: args }))
 
-vi.mock('@zerodev/smart-routing-address', () => ({
-  createSmartRoutingAddress: (params: unknown) =>
-    mockCreateSmartRoutingAddress(params),
-  createCall: (args: unknown) => mockCreateCall(args),
-  FLEX: {
-    TOKEN_ADDRESS: 'TOKEN_ADDRESS',
-    AMOUNT: 'AMOUNT',
-    NATIVE_AMOUNT: 'NATIVE_AMOUNT',
-  },
-}))
+// Mock only the network-touching call. `createCall` and `FLEX` are pure
+// helpers/constants — using the real ones keeps the test honest, otherwise
+// we'd be asserting against our own mock's behavior.
+vi.mock('@zerodev/smart-routing-address', async () => {
+  const actual = await vi.importActual<
+    typeof import('@zerodev/smart-routing-address')
+  >('@zerodev/smart-routing-address')
+  return {
+    ...actual,
+    createSmartRoutingAddress: (params: unknown) =>
+      mockCreateSmartRoutingAddress(params),
+  }
+})
 
 const WALLET = '0x1111111111111111111111111111111111111111' as const
 
@@ -58,7 +60,6 @@ const baseParams = {
 
 beforeEach(() => {
   mockCreateSmartRoutingAddress.mockReset()
-  mockCreateCall.mockClear()
   mockConfig.connectors = [mockConnector]
   mockConnector.getKitStore.mockReset()
 })
