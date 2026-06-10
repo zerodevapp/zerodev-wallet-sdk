@@ -1,14 +1,13 @@
 'use client'
 
 import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
-import {Settings} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 
 export const dynamic = 'force-dynamic'
 
-type EmailAuthMethod = 'otp' | 'magicLink'
+type DemoMode = 'prebuilt' | 'whiteLabel'
 
 export default function LandingPage() {
   return (
@@ -22,6 +21,7 @@ function LandingPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
+  const [demoMode, setDemoMode] = useState<DemoMode>('prebuilt')
 
   const [loggedOut] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -48,6 +48,7 @@ function LandingPageInner() {
       router.push('/dashboard')
       return
     }
+    if (demoMode === 'whiteLabel') return
     if (skipAutoConnect) return
     if (
       accountStatus === 'disconnected' &&
@@ -63,22 +64,34 @@ function LandingPageInner() {
     router,
     connect,
     connectors,
+    demoMode,
     skipAutoConnect,
   ])
 
   return (
-    <div
-      className="mx-auto w-full max-w-[500px] flex flex-col flex-1 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:flex-row lg:items-start lg:justify-between lg:gap-14">
+      <DemoIntroPanel mode={demoMode} onModeChange={setDemoMode}/>
       {sessionExpired && (
         <div
-          className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
+          className="px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:hidden">
           Your session has expired. Please log in again.
         </div>
       )}
-      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
-        <EmailMethodSettings/>
-        <AuthFlow/>
-        {showReconnect && (
+      <div className="relative mx-auto flex w-full max-w-[430px] flex-col sm:h-[688px] lg:mx-0 lg:shrink-0">
+        {sessionExpired && (
+          <div
+            className="mb-4 hidden px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:block">
+            Your session has expired. Please log in again.
+          </div>
+        )}
+        {demoMode === 'prebuilt' ? (
+          <div className="w-full flex flex-col sm:w-[500px] sm:h-[800px] sm:origin-top sm:scale-[0.86]">
+            <AuthFlow/>
+          </div>
+        ) : (
+          <WhiteLabelWalletPreview onConnect={handleReconnect}/>
+        )}
+        {demoMode === 'prebuilt' && showReconnect && (
           <div className="flex-1 flex items-center justify-center p-6">
             <button
               type="button"
@@ -94,95 +107,142 @@ function LandingPageInner() {
   )
 }
 
-function EmailMethodSettings() {
-  const {step} = useAuth()
-  const [open, setOpen] = useState(false)
-  const [method, setMethod] = useState<EmailAuthMethod>(() => {
-    if (typeof window === 'undefined') return 'otp'
-    return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-      ? 'magicLink'
-      : 'otp'
-  })
-
-  const handleSave = (next: EmailAuthMethod) => {
-    localStorage.setItem('zd:emailAuthMethod', next)
-    window.location.reload()
-  }
-
-  const handleOpen = () => {
-    // Re-sync from storage on open so a previous Cancel doesn't leave the
-    // radios pointing at an unsaved selection.
-    setMethod(
-      localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-        ? 'magicLink'
-        : 'otp',
-    )
-    setOpen(true)
-  }
-
-  if (step === null || step === 'authenticated') return null
-
+function DemoIntroPanel({
+  mode,
+  onModeChange,
+}: {
+  mode: DemoMode
+  onModeChange: (mode: DemoMode) => void
+}) {
   return (
-    <div className="flex justify-end pb-2">
-      <button
-        type="button"
-        onClick={handleOpen}
-        aria-label="Email method settings"
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-      >
-        <Settings className="h-6 w-6"/>
-      </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg p-6 w-[320px] flex flex-col gap-4"
-            onClick={(e) => e.stopPropagation()}
+    <aside className="w-full max-w-2xl pt-2 lg:pt-8">
+      <p className="mb-4 text-sm font-semibold uppercase text-blue-500">
+        Wallet Demo
+      </p>
+      <h1 className="max-w-[620px] text-4xl font-semibold leading-tight text-gray-950">
+        The first AA native embedded wallet
+      </h1>
+      <p className="mt-5 max-w-[620px] text-lg leading-8 text-gray-500">
+        ZeroDev Wallet combines embedded authentication with smart accounts by
+        default, so account abstraction features are native to the wallet
+        experience.
+      </p>
+
+      <div className="mt-10 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+        {demoModes.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onModeChange(item.value)}
+            className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+              mode === item.value
+                ? 'bg-white text-gray-950 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
+            }`}
           >
-            <h2 className="text-base font-semibold text-gray-900">
-              Email auth method
-            </h2>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="otp"
-                checked={method === 'otp'}
-                onChange={() => setMethod('otp')}
-              />
-              <span className="text-gray-700">OTP code</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="magicLink"
-                checked={method === 'magicLink'}
-                onChange={() => setMethod('magicLink')}
-              />
-              <span className="text-gray-700">Magic link</span>
-            </label>
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave(method)}
-                className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 cursor-pointer"
-              >
-                Save and reload
-              </button>
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-16 divide-y divide-gray-200 border-y border-gray-200">
+        {demoValueProps.map((item) => (
+          <div key={item.title} className="py-6">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="font-mono text-2xl font-semibold text-gray-900">
+                {item.title}
+              </h2>
+              <span className="h-2 w-2 rounded-full bg-gray-400"/>
             </div>
+            <p className="mt-4 max-w-[620px] text-base leading-7 text-gray-500">
+              {item.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
+function WhiteLabelWalletPreview({onConnect}: {onConnect: () => void}) {
+  return (
+    <div className="flex min-h-[620px] w-full flex-col rounded-[34px] border border-gray-200 bg-[#101828] p-1.5 text-white shadow-2xl sm:h-[688px]">
+      <div className="flex flex-1 flex-col rounded-[30px] bg-white px-6 py-7 text-gray-950">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Acme Finance</p>
+            <h2 className="mt-1 text-2xl font-semibold">Create your wallet</h2>
+          </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white">
+            A
           </div>
         </div>
-      )}
+
+        <div className="mt-12 rounded-2xl bg-gray-50 p-5">
+          <p className="text-sm font-semibold text-gray-900">
+            Powered by ZeroDev Wallet Core
+          </p>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Keep the authentication, key management, and smart account APIs
+            underneath while your app owns every pixel of the wallet UI.
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={onConnect}
+            className="rounded-2xl bg-blue-600 px-5 py-4 text-base font-semibold text-white hover:bg-blue-700 cursor-pointer"
+          >
+            Continue with passkey
+          </button>
+          <button
+            type="button"
+            onClick={onConnect}
+            className="rounded-2xl border border-gray-200 px-5 py-4 text-base font-semibold text-gray-900 hover:bg-gray-50 cursor-pointer"
+          >
+            Continue with Google
+          </button>
+          <button
+            type="button"
+            onClick={onConnect}
+            className="rounded-2xl border border-gray-200 px-5 py-4 text-base font-semibold text-gray-900 hover:bg-gray-50 cursor-pointer"
+          >
+            Continue with email
+          </button>
+        </div>
+
+        <div className="mt-auto border-t border-gray-100 pt-6">
+          <p className="text-xs leading-5 text-gray-500">
+            This mode demonstrates a white-label integration: your design
+            system owns the interface, while ZeroDev provides the wallet
+            primitive underneath.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
+
+const demoModes: {value: DemoMode; label: string}[] = [
+  {value: 'prebuilt', label: 'Pre-built UI'},
+  {value: 'whiteLabel', label: 'White-label'},
+]
+
+const demoValueProps = [
+  {
+    title: '<SmartByDefault/>',
+    description:
+      'Use EIP-7702 and ERC-4337 smart accounts as the default wallet model, not as a secondary add-on.',
+  },
+  {
+    title: '<NativeAA/>',
+    description:
+      'Build with gas sponsorship, transaction batching, automation, and chain abstraction as native APIs.',
+  },
+  {
+    title: '<HybridSecurity/>',
+    description:
+      'Combine off-chain key management with on-chain smart account controls for a self-custodial wallet flow.',
+  },
+]
