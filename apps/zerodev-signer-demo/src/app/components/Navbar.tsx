@@ -1,20 +1,25 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import { useAuth } from '@zerodev/wallet-react-kit'
-import { Check, Copy, LogOut, Settings, Wallet } from 'lucide-react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Check, Copy, Loader2, LogOut, Wallet } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 import { ChainSelector } from './ChainSelector'
 
-type EmailAuthMethod = 'otp' | 'magicLink'
-
 export function Navbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const { address, isConnected } = useAccount()
   const { disconnectAsync } = useDisconnect()
   const [copied, setCopied] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => {
+    if (pathname === '/') {
+      setLoggingOut(false)
+    }
+  }, [pathname])
 
   const handleCopy = async () => {
     if (!address) return
@@ -24,16 +29,37 @@ export function Navbar() {
   }
 
   const handleLogout = async () => {
+    setLoggingOut(true)
     localStorage.setItem('zd:loggedOut', 'true')
-    await disconnectAsync()
-    router.push('/')
+    try {
+      await disconnectAsync()
+    } catch {
+      setLoggingOut(false)
+      return
+    }
+    router.push('/?logged_out=true')
   }
 
   const formatAddress = (addr: string) =>
     `${addr.slice(0, 6)}...${addr.slice(-4)}`
 
   return (
-    <header className="bg-white border-b border-gray-100">
+    <>
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-white transition-opacity duration-300 ${
+          loggingOut
+            ? 'opacity-100'
+            : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <div className="flex flex-col items-center gap-3 animate-[auth-transition-card_450ms_ease-out_forwards]">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-500"/>
+          <p className="text-sm font-medium text-gray-500">
+            Logging out...
+          </p>
+        </div>
+      </div>
+      <header className="bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
@@ -48,7 +74,6 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isConnected && <EmailMethodSettings />}
             {isConnected && address && (
               <>
                 <ChainSelector />
@@ -68,6 +93,7 @@ export function Navbar() {
                 </div>
                 <button
                   onClick={handleLogout}
+                  disabled={loggingOut}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all cursor-pointer"
                   title="Logout"
                 >
@@ -78,99 +104,7 @@ export function Navbar() {
           </div>
         </div>
       </div>
-    </header>
-  )
-}
-
-function EmailMethodSettings() {
-  const {step} = useAuth()
-  const [open, setOpen] = useState(false)
-  const [method, setMethod] = useState<EmailAuthMethod>(() => {
-    if (typeof window === 'undefined') return 'otp'
-    return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-      ? 'magicLink'
-      : 'otp'
-  })
-
-  const handleSave = (next: EmailAuthMethod) => {
-    localStorage.setItem('zd:emailAuthMethod', next)
-    window.location.reload()
-  }
-
-  const handleOpen = () => {
-    // Re-sync from storage on open so a previous Cancel doesn't leave the
-    // radios pointing at an unsaved selection.
-    setMethod(
-      localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-        ? 'magicLink'
-        : 'otp',
-    )
-    setOpen(true)
-  }
-
-  if (step === null || step === 'authenticated') return null
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={handleOpen}
-        aria-label="Email method settings"
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-      >
-        <Settings className="h-5 w-5" />
-      </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg p-6 w-[320px] flex flex-col gap-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-base font-semibold text-gray-900">
-              Email auth method
-            </h2>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="otp"
-                checked={method === 'otp'}
-                onChange={() => setMethod('otp')}
-              />
-              <span className="text-gray-700">OTP code</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="magicLink"
-                checked={method === 'magicLink'}
-                onChange={() => setMethod('magicLink')}
-              />
-              <span className="text-gray-700">Magic link</span>
-            </label>
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave(method)}
-                className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 cursor-pointer"
-              >
-                Save and reload
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </header>
     </>
   )
 }

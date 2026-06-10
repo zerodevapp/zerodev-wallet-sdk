@@ -115,6 +115,10 @@ export default function DashboardPage() {
   }, [status]);
   useEffect(() => {
     if (status === 'disconnected' && hasConnected) {
+      if (localStorage.getItem('zd:loggedOut') === 'true') {
+        router.push("/?logged_out=true");
+        return;
+      }
       router.push("/?session_expired=true");
     }
   }, [status, hasConnected, router]);
@@ -140,7 +144,7 @@ export default function DashboardPage() {
       {confirmationEnabled && (
         <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
       )}
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white animate-[dashboard-enter_360ms_ease-out_both]">
         {/* Main Content */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Wallet Card */}
