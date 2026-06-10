@@ -100,16 +100,18 @@ export function zeroDevWallet(
         } catch (error) {
           // wagmi sets `isReconnecting` on reconnectOnMount; a silent
           // reconnect failure must not pop the auth UI.
-          const isReconnecting =
-            !!connectParams && connectParams.isReconnecting === true
+          const isReconnecting = !!connectParams?.isReconnecting
 
           if (
             isReconnecting ||
             !params.config?.auth ||
-            store.getState().auth.step !== null ||
             !(error instanceof NotAuthenticatedError)
           ) {
             throw error
+          }
+
+          if (store.getState().auth.step !== null) {
+            throw new Error('Auth flow already in progress')
           }
 
           store.getState().auth.goToStep('sign-up')
