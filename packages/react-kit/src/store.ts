@@ -4,6 +4,10 @@ import {
   type AuthStoreSlice,
   createAuthStoreSlice,
 } from './auth/authStoreSlice'
+import {
+  createSmartRoutingStoreSlice,
+  type SmartRoutingStoreSlice,
+} from './smart-routing/smartRoutingStoreSlice'
 import type { PendingRequest } from './types.js'
 
 export type State = {
@@ -13,7 +17,8 @@ export type State = {
   removePendingRequest: (id: string) => void
   clearPendingRequests: () => void
   setUserConfirmationListenerActive: (active: boolean) => void
-} & AuthStoreSlice
+} & AuthStoreSlice &
+  SmartRoutingStoreSlice
 
 export const createStore = () =>
   create<State>()(
@@ -33,5 +38,6 @@ export const createStore = () =>
         set({ userConfirmationListenerActive: active }),
 
       ...createAuthStoreSlice(set, get, store),
+      ...createSmartRoutingStoreSlice(set, get, store),
     })),
   )
