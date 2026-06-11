@@ -8,8 +8,10 @@ import {
   Check,
   Copy,
   FileSignature,
+  Fuel,
   Key,
   Loader2,
+  LogOut,
   Send,
   Upload,
   Wallet
@@ -17,9 +19,11 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Address, formatEther, isAddress } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { ChainSelector } from "../components/ChainSelector";
 import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
 import { ExportWalletModal } from "../components/ExportWalletModal";
+import { LogoutOverlay } from "../components/LogoutOverlay";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
 import { submitToHubSpot } from "../lib/hubspot";
@@ -39,6 +43,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("transaction");
   const [balance, setBalance] = useState<string>("0");
   const [copied, setCopied] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showExportPrivateKeyModal, setShowExportPrivateKeyModal] = useState(false);
   // Toggle for whether SignatureRequest is mounted. When mounted, the kit
@@ -58,6 +63,7 @@ export default function DashboardPage() {
 
   // Wagmi hooks
   const { address, status, chain } = useAccount();
+  const { disconnectAsync } = useDisconnect();
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
 
@@ -105,6 +111,18 @@ export default function DashboardPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    localStorage.setItem('zd:loggedOut', 'true');
+    try {
+      await disconnectAsync();
+    } catch {
+      setLoggingOut(false);
+      return;
+    }
+    router.push('/?logged_out=true');
+  };
+
   // Redirect to login if disconnected (session expired)
   // Use a delay to avoid redirecting during initial reconnection
   const [hasConnected, setHasConnected] = useState(false);
@@ -139,6 +157,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <LogoutOverlay visible={loggingOut}/>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
       <ExportPrivateKeyModal isOpen={showExportPrivateKeyModal} onClose={() => setShowExportPrivateKeyModal(false)} />
       {confirmationEnabled && (
@@ -149,12 +168,18 @@ export default function DashboardPage() {
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Wallet Card */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-gray-700" />
-                <h1 className="text-lg font-semibold text-gray-900">Default Wallet</h1>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900">Wallet created</h1>
+                  <p className="text-sm text-gray-500">
+                    Smart account ready for sponsored actions.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <ChainSelector />
                 <button
                   onClick={() => setShowExportModal(true)}
                   className={cn(
@@ -179,6 +204,19 @@ export default function DashboardPage() {
                   <Key className="h-4 w-4" />
                   <span className="hidden sm:inline">Private Key</span>
                 </button>
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer",
+                    "border border-gray-200 text-gray-700 hover:bg-gray-50",
+                    "flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  )}
+                  title="Logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
@@ -199,7 +237,7 @@ export default function DashboardPage() {
               <span className="text-3xl font-bold text-gray-900">{parseFloat(balance).toFixed(4)}</span>
               <span className="text-lg text-gray-500 font-medium">ETH</span>
             </div>
-            <p className="text-sm text-gray-500 mt-1">{chain?.name} Testnet</p>
+            <p className="text-sm text-gray-500 mt-1">{chain?.name ?? 'Current network'}</p>
             <label className="mt-3 flex items-center gap-2 cursor-pointer text-sm leading-none">
               <input
                 type="checkbox"
@@ -210,6 +248,11 @@ export default function DashboardPage() {
               <span className="text-gray-700">Show transaction review</span>
             </label>
           </div>
+
+          <GaslessTransactionIntro
+            chainName={chain?.name}
+            onTry={() => setActiveTab("transaction")}
+          />
 
           {/* Tabs */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -258,4 +301,64 @@ export default function DashboardPage() {
       </div>
     </>
   );
+}
+
+function GaslessTransactionIntro({
+  chainName,
+  onTry,
+}: {
+  chainName?: string
+  onTry: () => void
+}) {
+  return (
+    <section className="mb-4 overflow-hidden rounded-lg border border-gray-200 bg-white sm:mb-6">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+            <Fuel className="h-3.5 w-3.5"/>
+            7702 smart account
+          </div>
+          <h1 className="max-w-xl text-2xl font-semibold tracking-tight text-gray-950 sm:text-3xl">
+            Try a gasless contract write
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">
+            This embedded wallet is a 7702 smart account by default. Sponsor
+            gas for users so they can write to contracts on{' '}
+            {chainName ? `${chainName} ` : ''}without holding native ETH for
+            fees.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onTry}
+              className="inline-flex h-10 items-center rounded-lg bg-gray-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-gray-800 cursor-pointer"
+            >
+              Try it below
+            </button>
+            <span className="text-sm text-gray-500">
+              Uses the connected wallet you just created.
+            </span>
+          </div>
+        </div>
+        <div className="border-t border-gray-200 bg-gray-950 p-4 sm:p-6 lg:border-l lg:border-t-0">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-white">Gasless write</p>
+            <span className="text-xs text-gray-500">React</span>
+          </div>
+          <pre className="overflow-x-auto text-sm leading-6 text-gray-100">
+            <code>{`import { useWriteContract } from 'wagmi'
+
+const { writeContract } = useWriteContract()
+
+writeContract({
+  address: nftAddress,
+  abi,
+  functionName: 'mint',
+  args: [userAddress],
+})`}</code>
+          </pre>
+        </div>
+      </div>
+    </section>
+  )
 }
