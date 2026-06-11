@@ -49,6 +49,16 @@ export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
     const fromBrowser = WebBrowser.openAuthSessionAsync(
       oauthUrl,
       params.redirectUri,
+      {
+        // iOS 17.4+: use the ASWebAuthenticationSession `.https(host:path:)`
+        // callback for https redirect URIs — without it the session falls back
+        // to callbackURLScheme "https", which never matches, and the flow
+        // dead-ends on the redirect page (expo-web-browser 56 made this
+        // opt-in; 55 applied it automatically). Requires the app to carry the
+        // Associated Domains `webcredentials:<host>` entitlement (same one
+        // passkeys use). No-op on Android and for custom-scheme redirects.
+        preferUniversalLinks: params.redirectUri.startsWith('https:'),
+      },
     ).then((r) => {
       if (r.type !== 'success') throw new Error('OAuth cancelled or failed')
       const parsed = new URL(r.url)
