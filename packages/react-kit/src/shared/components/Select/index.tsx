@@ -1,9 +1,9 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 import { cn } from '../../utils/common'
-import { Icon } from '../Icon'
+import { Icon, type IconName } from '../Icon'
 import { Text } from '../Text'
-import { Wrapper } from '../Wrapper'
+import { Wrapper, type WrapperVariant } from '../Wrapper'
 
 export interface SelectProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
@@ -11,7 +11,9 @@ export interface SelectProps
   label: string
   /** Optional subtitle row (e.g. chain name). */
   subtitle?: string
-  /** Optional leading image (e.g. token logo). Renders a 44x44 rounded square. */
+  /** Kit `Icon` name for the leading slot (preferred for known chains/tokens). */
+  iconName?: IconName
+  /** URL of the leading image. Used when `iconName` is absent. */
   leadingImage?: string
   /** Optional small icon shown next to the subtitle (e.g. chain badge). */
   chainImage?: string
@@ -19,6 +21,8 @@ export interface SelectProps
   trailingIcon?: boolean
   /** Render a skeleton placeholder instead of the content. */
   loading?: boolean
+  /** Background opacity tier. Forwarded to the inner `Wrapper`. */
+  variant?: WrapperVariant
 }
 
 export function SelectSkeleton({
@@ -36,24 +40,30 @@ export function SelectSkeleton({
 export function Select({
   label,
   subtitle,
+  iconName,
   leadingImage,
   chainImage,
   trailingIcon = true,
   loading = false,
+  variant,
   className,
   ...rest
 }: SelectProps) {
   if (loading) return <SelectSkeleton className={className} />
 
-  const hasLeadingBlock = !!leadingImage || !!subtitle
+  const hasLeading = !!iconName || !!leadingImage
+  const hasLeadingBlock = hasLeading || !!subtitle
 
   return (
-    <Wrapper className={cn('h-13 rounded-2xl', className)}>
+    <Wrapper
+      className={cn('h-13 rounded-2xl', className)}
+      {...(variant && { variant })}
+    >
       <button
         type="button"
         className={cn(
           'w-full h-full flex flex-row items-center justify-between gap-2 transition-colors',
-          leadingImage ? 'pl-1' : 'pl-4',
+          hasLeading ? 'pl-1' : 'pl-4',
           'pr-2 py-1',
           rest.disabled
             ? 'opacity-50 cursor-not-allowed'
@@ -62,13 +72,17 @@ export function Select({
         {...rest}
       >
         <div className="flex flex-row items-center gap-1.5 min-w-0">
-          {leadingImage && (
+          {hasLeading && (
             <div className="size-11 shrink-0 rounded-xl bg-white overflow-hidden flex items-center justify-center">
-              <img
-                src={leadingImage}
-                alt=""
-                className="size-full object-cover"
-              />
+              {iconName ? (
+                <Icon name={iconName} className="size-6" />
+              ) : leadingImage ? (
+                <img
+                  src={leadingImage}
+                  alt=""
+                  className="size-6 object-contain"
+                />
+              ) : null}
             </div>
           )}
           {hasLeadingBlock ? (

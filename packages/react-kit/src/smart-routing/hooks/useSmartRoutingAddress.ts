@@ -8,8 +8,8 @@ import {
 import { type Address, erc20Abi } from 'viem'
 import { useConfig } from 'wagmi'
 import { useStore } from 'zustand'
-import type { createStore } from '../store'
-import type { UseSmartRoutingAddressParams } from './types'
+import type { createStore } from '../../store'
+import type { UseSmartRoutingAddressParams } from '../types'
 
 type Store = ReturnType<typeof createStore>
 

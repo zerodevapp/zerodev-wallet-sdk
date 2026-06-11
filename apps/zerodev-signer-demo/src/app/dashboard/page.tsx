@@ -3,8 +3,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { SignatureRequest } from "@zerodev/wallet-react-kit";
+import { SignatureRequest, SmartRoutingAddress } from "@zerodev/wallet-react-kit";
 import {
+  ArrowDownToLine,
   Check,
   Copy,
   FileSignature,
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showExportPrivateKeyModal, setShowExportPrivateKeyModal] = useState(false);
+  const [showFund, setShowFund] = useState(false);
   // Toggle for whether SignatureRequest is mounted. When mounted, the kit
   // gates signing calls on user confirmation; when not, calls go through
   // silently (background mode). Default off; persisted in localStorage.
@@ -154,6 +156,12 @@ export default function DashboardPage() {
       {confirmationEnabled && (
         <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
       )}
+      {showFund && (
+        <SmartRoutingAddress
+          className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]'
+          onClose={() => setShowFund(false)}
+        />
+      )}
       <div className="min-h-screen bg-white">
         {/* Header */}
         <header className="bg-white border-b border-gray-100">
@@ -215,6 +223,17 @@ export default function DashboardPage() {
                 <h1 className="text-lg font-semibold text-gray-900">Default Wallet</h1>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFund(true)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer",
+                    "border border-blue-500 bg-blue-500 text-white hover:bg-blue-600",
+                    "flex items-center gap-2"
+                  )}
+                >
+                  <ArrowDownToLine className="h-4 w-4" />
+                  <span className="hidden sm:inline">Fund</span>
+                </button>
                 <button
                   onClick={() => setShowExportModal(true)}
                   className={cn(

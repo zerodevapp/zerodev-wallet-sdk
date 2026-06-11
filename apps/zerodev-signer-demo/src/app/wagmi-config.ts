@@ -3,7 +3,7 @@
 import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet } from '@zerodev/wallet-react-kit'
 import { createConfig, http } from 'wagmi'
-import { arbitrumSepolia, sepolia } from 'wagmi/chains'
+import { arbitrum, arbitrumSepolia, mainnet, sepolia } from 'wagmi/chains'
 
 const rpcUrls: Record<number, string | undefined> = {
   [arbitrumSepolia.id]: process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL,
@@ -38,6 +38,13 @@ export const config = createConfig({
           magicLinkBaseUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/verify`,
           enabledMethods: ['email', 'google', 'passkey'],
           emailAuthMethod: getEmailAuthMethod(),
+        },
+        // SRA API is mainnet-only — independent from the wallet's active chains
+        // (testnets above), so the demo points it at real mainnet chains.
+        smartRoutingAddress: {
+          enabled: true,
+          destinationChains: [arbitrum],
+          sourceChains: [mainnet, arbitrum],
         },
       },
     }),

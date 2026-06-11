@@ -1,9 +1,8 @@
 import type { HTMLAttributes } from 'react'
-
-import { cn } from '../../utils/common'
-import { Icon } from '../Icon'
-import { Text } from '../Text'
-import { Wrapper } from '../Wrapper'
+import { Icon } from '../../../shared/components/Icon'
+import { Text } from '../../../shared/components/Text'
+import { Wrapper } from '../../../shared/components/Wrapper'
+import { cn } from '../../../shared/utils/common'
 
 export interface AddressDisplayProps extends HTMLAttributes<HTMLDivElement> {
   /** The address (or other long identifier) to display. Wraps to the next line if it overflows. */
