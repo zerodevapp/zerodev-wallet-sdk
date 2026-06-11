@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import { mainnet, optimism } from 'viem/chains'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createStore } from '../store'
+import { createStore } from '../../store'
 import { useSmartRoutingAddress } from './useSmartRoutingAddress'
 
 const mockCreateSmartRoutingAddress = vi.fn()

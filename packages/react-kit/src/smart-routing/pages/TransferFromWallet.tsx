@@ -10,26 +10,41 @@ import { DataRow } from '../../signing/components/DataRow'
 import { DetailsContainer } from '../../signing/components/DetailsContainer'
 import { AddressDisplay } from '../components/AddressDisplay'
 import { useSmartRoutingAddress } from '../hooks/useSmartRoutingAddress'
+import { useSmartRoutingFlow } from '../hooks/useSmartRoutingFlow'
+import { getChainIcon } from '../utils/chainIcon'
 
 const PLACEHOLDER_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 interface TransferFromWalletProps {
   onGotIt: () => void
   onShowQr: (address: string) => void
+  onSelectNetwork: () => void
 }
 
 export function TransferFromWallet({
   onGotIt,
   onShowQr,
+  onSelectNetwork,
 }: TransferFromWalletProps) {
   const { address: connectedAddress } = useAccount()
-  // Placeholder src/dest pair until the UI has real selectors. We use a
-  // specific token (USDC) — the SRA API's Across simulation cannot quote a
-  // route when the src/dest tokens resolve to a generic FLEX placeholder.
+  const { sendChain, receiveChain, setEditingChainSlot } = useSmartRoutingFlow()
+
+  const sendChainIcon = getChainIcon(sendChain?.id) ?? 'arbitrum'
+  const receiveChainIcon = getChainIcon(receiveChain?.id) ?? 'arbitrum'
+
+  const openChainPicker = (slot: 'send' | 'receive') => {
+    setEditingChainSlot(slot)
+    onSelectNetwork()
+  }
+  // The SRA refetches whenever the user picks a new chain in either slot.
+  // We use a specific token (USDC) — the SRA API's Across simulation cannot
+  // quote a route when the src/dest tokens resolve to a generic FLEX
+  // placeholder. Defaults fall back to mainnet/arbitrum (which the SRA API
+  // supports) until the user makes a selection.
   const { data, error, isPending } = useSmartRoutingAddress({
     owner: (connectedAddress ?? zeroAddress) as Address,
-    destChain: arbitrum,
-    srcTokens: [{ tokenType: 'USDC', chain: mainnet }],
+    destChain: receiveChain ?? arbitrum,
+    srcTokens: [{ tokenType: 'USDC', chain: sendChain ?? mainnet }],
   })
   const address = data?.smartRoutingAddress ?? PLACEHOLDER_ADDRESS
   const canCopy = !!data?.smartRoutingAddress
@@ -75,9 +90,10 @@ export function TransferFromWallet({
               className="flex-1 basis-0"
             />
             <Select
-              label="Arbitrum"
-              iconName="arbitrum"
+              label={sendChain?.name ?? 'Arbitrum'}
+              iconName={sendChainIcon}
               className="flex-1 basis-0"
+              onClick={() => openChainPicker('send')}
             />
           </SectionCard>
 
@@ -90,11 +106,12 @@ export function TransferFromWallet({
               className="flex-1 basis-0"
             />
             <Select
-              label="Arbitrum"
-              iconName="arbitrum"
+              label={receiveChain?.name ?? 'Arbitrum'}
+              iconName={receiveChainIcon}
               trailingIcon={false}
               variant="ghost"
               className="flex-1 basis-0"
+              onClick={() => openChainPicker('receive')}
             />
           </SectionCard>
 
