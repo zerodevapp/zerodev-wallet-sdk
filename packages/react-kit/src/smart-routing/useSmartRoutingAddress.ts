@@ -22,7 +22,7 @@ function getKitStore(config: ReturnType<typeof useConfig>): Store | null {
   return connector.getKitStore()
 }
 
-function buildDefaultActions(
+function buildActions(
   owner: Address,
   srcTokens: UseSmartRoutingAddressParams['srcTokens'],
 ): CreateSmartRoutingAddressParams['actions'] {
@@ -64,7 +64,6 @@ export function useSmartRoutingAddress({
   destChain,
   srcTokens,
   slippage = DEFAULT_SLIPPAGE_BPS,
-  actions,
 }: UseSmartRoutingAddressParams) {
   const wagmiConfig = useConfig()
   const store = getKitStore(wagmiConfig)
@@ -76,8 +75,6 @@ export function useSmartRoutingAddress({
 
   const config = useStore(store, (state) => state.smartRouting.config)
   const enabled = !!config && config.enabled !== false
-
-  const resolvedActions = actions ?? buildDefaultActions(owner, srcTokens)
 
   return useQuery({
     queryKey: [
@@ -95,7 +92,7 @@ export function useSmartRoutingAddress({
         destChain,
         slippage,
         srcTokens,
-        actions: resolvedActions,
+        actions: buildActions(owner, srcTokens),
       })
       // The SDK currently swallows JSON-RPC error bodies (200 OK with `error`
       // instead of `result`) and returns `undefined`. React Query forbids

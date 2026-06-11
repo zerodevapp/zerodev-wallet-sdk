@@ -44,9 +44,4 @@ export interface UseSmartRoutingAddressParams {
   srcTokens: NonNullable<CreateSmartRoutingAddressParams['srcTokens']>
   /** Maximum slippage in basis points. Defaults to `100` (1%). */
   slippage?: number
-  /**
-   * Override the per-tokenType action map. Defaults to NATIVE + ERC-20
-   * deposit-to-owner actions built per unique src `tokenType`.
-   */
-  actions?: CreateSmartRoutingAddressParams['actions']
 }

@@ -100,7 +100,7 @@ describe('useSmartRoutingAddress', () => {
     expect(mockCreateSmartRoutingAddress).not.toHaveBeenCalled()
   })
 
-  it('forwards inputs verbatim and applies the default slippage + actions', async () => {
+  it('forwards inputs verbatim and applies the default slippage + builds actions per src tokenType', async () => {
     mockCreateSmartRoutingAddress.mockResolvedValue({
       smartRoutingAddress: '0xSRA',
       estimatedFees: [],
@@ -139,7 +139,7 @@ describe('useSmartRoutingAddress', () => {
     expect(args.actions.ERC20).toBeUndefined()
   })
 
-  it('honors explicit slippage and actions overrides', async () => {
+  it('honors explicit slippage overrides', async () => {
     mockCreateSmartRoutingAddress.mockResolvedValue({
       smartRoutingAddress: '0xSRA',
       estimatedFees: [],
@@ -149,10 +149,6 @@ describe('useSmartRoutingAddress', () => {
     store.getState().smartRouting.initialize({})
     mockConnector.getKitStore.mockReturnValue(store)
 
-    const customActions = {
-      NATIVE: { action: [{ __custom: true }], fallBack: [] },
-    } as never
-
     const wrapper = makeWrapper()
     renderHook(
       () =>
@@ -161,7 +157,6 @@ describe('useSmartRoutingAddress', () => {
           destChain: optimism,
           srcTokens: [{ tokenType: 'NATIVE', chain: mainnet }],
           slippage: 200,
-          actions: customActions,
         }),
       { wrapper },
     )
@@ -172,6 +167,5 @@ describe('useSmartRoutingAddress', () => {
     const args = mockCreateSmartRoutingAddress.mock.calls[0]?.[0]
     expect(args.destChain.id).toBe(optimism.id)
     expect(args.slippage).toBe(200)
-    expect(args.actions).toBe(customActions)
   })
 })
