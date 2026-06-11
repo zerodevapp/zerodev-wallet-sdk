@@ -1,8 +1,15 @@
 'use client'
 
-import {AuthFlow} from '@zerodev/wallet-react-kit'
+import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
 import {highlight} from 'sugar-high'
-import {ArrowRight, CheckCircle2, CircleHelp, Mail, Settings} from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  CircleHelp,
+  Loader2,
+  Mail,
+  Settings,
+} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import type {FormEvent} from 'react'
 import {Suspense, useEffect, useState} from 'react'
@@ -30,17 +37,31 @@ function LandingPageInner() {
   const [demoMode, setDemoMode] = useState<DemoMode>('prebuilt')
   const [authTransitioning, setAuthTransitioning] = useState(false)
   const [showLogoutToast, setShowLogoutToast] = useState(loggedOutSuccess)
+  const [loggedOut] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const value = localStorage.getItem('zd:loggedOut') === 'true'
+    if (value) localStorage.removeItem('zd:loggedOut')
+    return value
+  })
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
+  const {step: authStep} = useAuth()
+  const skipAutoConnect = sessionExpired || loggedOut || loggedOutSuccess
+  const isResolvingSession =
+    accountStatus === 'reconnecting' ||
+    accountStatus === 'connecting' ||
+    connectStatus === 'pending'
+  const showLoading = !isConnected && authStep === null && isResolvingSession
+  const showReconnect =
+    !isConnected &&
+    authStep === null &&
+    !isResolvingSession &&
+    (skipAutoConnect || connectStatus === 'error')
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
   }
-
-  useEffect(() => {
-    localStorage.removeItem('zd:loggedOut')
-  }, [])
 
   useEffect(() => {
     if (!loggedOutSuccess) return
@@ -60,6 +81,16 @@ function LandingPageInner() {
   }, [loggedOutSuccess, router])
 
   useEffect(() => {
+    if (!sessionExpired) return
+
+    const cleanUrlTimer = window.setTimeout(() => {
+      router.replace('/')
+    }, 3500)
+
+    return () => window.clearTimeout(cleanUrlTimer)
+  }, [sessionExpired, router])
+
+  useEffect(() => {
     if (isConnected) {
       setAuthTransitioning(true)
       const timer = window.setTimeout(() => {
@@ -68,7 +99,7 @@ function LandingPageInner() {
 
       return () => window.clearTimeout(timer)
     }
-    if (demoMode === 'whiteLabel') return
+    if (demoMode === 'whiteLabel' || skipAutoConnect || authStep !== null) return
     if (
       accountStatus === 'disconnected' &&
       connectStatus === 'idle' &&
@@ -84,6 +115,8 @@ function LandingPageInner() {
     connect,
     connectors,
     demoMode,
+    skipAutoConnect,
+    authStep,
   ])
 
   return (
@@ -146,10 +179,37 @@ function LandingPageInner() {
             </div>
           )}
           {demoMode === 'prebuilt' ? (
-            <div className="h-[544px] overflow-hidden sm:w-[390px] sm:h-[624px]">
+            <div className="relative h-[544px] overflow-hidden sm:w-[390px] sm:h-[624px]">
               <div className="w-[500px] h-[800px] origin-top-left flex flex-col scale-[0.68] sm:scale-[0.78]">
                 <AuthFlow/>
               </div>
+              {showLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500"/>
+                    Restoring session...
+                  </div>
+                </div>
+              )}
+              {showReconnect && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                  <div className="flex max-w-[280px] flex-col items-center gap-3 rounded-xl border border-gray-200 bg-white p-5 text-center shadow-sm">
+                    <p className="text-sm font-medium text-gray-900">
+                      Ready to continue
+                    </p>
+                    <p className="text-xs leading-5 text-gray-500">
+                      Reconnect your session to open the wallet.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleReconnect}
+                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+                    >
+                      Reconnect
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <WhiteLabelWalletPreview onConnect={handleReconnect}/>
