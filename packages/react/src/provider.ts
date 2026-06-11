@@ -11,6 +11,12 @@ const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
 
 type Signer = SmartAccount<KernelSmartAccountImplementation> | LocalAccount
 
+type WalletCall = {
+  to?: `0x${string}`
+  value?: `0x${string}`
+  data?: `0x${string}`
+}
+
 /**
  * Pick the right signer for `personal_sign` / `eth_signTypedData_v4`.
  *
@@ -256,20 +262,84 @@ export function createProvider({
             throw new Error('wallet_sendCalls is not supported in EOA mode')
           }
 
+          if (!Array.isArray(request.calls) || request.calls.length === 0) {
+            throw new Error('Missing calls')
+          }
+
           const kernelClient = store.getState().kernelClients.get(chainId)
           if (!kernelClient) {
             throw new Error(`No kernel client for chain ${chainId}`)
           }
 
-          // TODO: Type the provider RPC params as a shared request union so
-          // `request.calls` can be narrowed without `any`.
-          return await kernelClient.sendTransaction({
-            calls: request.calls.map((call: any) => ({
+          // EIP-5792 is async by design: return the bundle ID immediately,
+          // dapps poll wallet_getCallsStatus. The userOp hash is the ID.
+          const userOpHash = await kernelClient.sendUserOperation({
+            calls: request.calls.map((call: WalletCall) => ({
               ...(call.to && { to: call.to }),
               value: call.value ? BigInt(call.value) : 0n,
               data: call.data || '0x',
             })),
           })
+          return { id: userOpHash }
+        }
+
+        case 'wallet_getCallsStatus': {
+          if (!params || params.length === 0) {
+            throw new Error('Missing call bundle id')
+          }
+
+          const [id] = params
+          const kernelClient = store.getState().kernelClients.get(activeChainId)
+          if (!kernelClient) {
+            throw new Error(`No kernel client for chain ${activeChainId}`)
+          }
+
+          const receipt = await kernelClient
+            .getUserOperationReceipt({ hash: id })
+            .catch(() => null)
+          if (!receipt) {
+            return { version: '2.0.0', atomic: true, status: 100, receipts: [] }
+          }
+
+          // viem's getCallsStatus decoder expects RPC-hex receipts (it runs
+          // hexToBigInt on blockNumber/gasUsed), but the bundler client
+          // returns parsed bigint fields — re-encode them.
+          const r = receipt.receipt
+          return {
+            version: '2.0.0',
+            atomic: true,
+            chainId: `0x${activeChainId.toString(16)}`,
+            status: receipt.success ? 200 : 500,
+            receipts: [
+              {
+                transactionHash: r.transactionHash,
+                blockHash: r.blockHash,
+                blockNumber: `0x${r.blockNumber.toString(16)}`,
+                gasUsed: `0x${r.gasUsed.toString(16)}`,
+                status: r.status === 'success' ? '0x1' : '0x0',
+                // receipt.logs is scoped to this userOp — r.logs would leak
+                // logs from other userOps bundled into the same transaction.
+                logs: receipt.logs.map((log) => ({
+                  address: log.address,
+                  topics: log.topics,
+                  data: log.data,
+                })),
+              },
+            ],
+          }
+        }
+
+        case 'wallet_getCapabilities': {
+          const [, requestedChainIds] = params || []
+          const chains: string[] = requestedChainIds ?? [
+            `0x${activeChainId.toString(16)}`,
+          ]
+          // Sponsorship is project-level (dashboard policies / Ultra Relay),
+          // so we intentionally do not declare or honor dapp-supplied
+          // paymasterService.
+          const atomic =
+            mode === 'EOA' ? { status: 'unsupported' } : { status: 'supported' }
+          return Object.fromEntries(chains.map((cid) => [cid, { atomic }]))
         }
 
         case 'personal_sign': {
