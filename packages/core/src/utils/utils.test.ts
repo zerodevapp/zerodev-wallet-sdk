@@ -202,6 +202,17 @@ describe('base64UrlEncode', () => {
 
     expect(result).toBe('')
   })
+
+  it('encodes large buffers without exceeding the argument limit', () => {
+    const data = new Uint8Array(150_000)
+    for (let i = 0; i < data.length; i++) {
+      data[i] = i % 256
+    }
+
+    const result = base64UrlEncode(data.buffer)
+
+    expect(result).toBe(Buffer.from(data).toString('base64url'))
+  })
 })
 
 describe('pointEncode', () => {
