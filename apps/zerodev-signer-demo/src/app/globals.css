@@ -5,6 +5,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* sugar-high token colors (dark code block theme) */
+  --sh-keyword: #93c5fd;
+  --sh-string: #6ee7b7;
+  --sh-comment: #6b7280;
+  --sh-jsxliterals: #f9a8d4;
+  --sh-property: #e5e7eb;
+  --sh-entity: #fbbf24;
+  --sh-identifier: #e5e7eb;
+  --sh-sign: #9ca3af;
+  --sh-space: inherit;
+  --sh-class: #fbbf24;
 }
 
 @theme inline {

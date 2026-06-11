@@ -1,6 +1,7 @@
 'use client'
 
 import {AuthFlow} from '@zerodev/wallet-react-kit'
+import {highlight} from 'sugar-high'
 import {ArrowRight, CheckCircle2, CircleHelp, Mail, Settings} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import type {FormEvent} from 'react'
@@ -25,6 +26,7 @@ function LandingPageInner() {
   const searchParams = useSearchParams()
   const sessionExpired = searchParams.get('session_expired') === 'true'
   const loggedOutSuccess = searchParams.get('logged_out') === 'true'
+  const [videoReady, setVideoReady] = useState(false)
   const [demoMode, setDemoMode] = useState<DemoMode>('prebuilt')
   const [authTransitioning, setAuthTransitioning] = useState(false)
   const [showLogoutToast, setShowLogoutToast] = useState(loggedOutSuccess)
@@ -85,7 +87,19 @@ function LandingPageInner() {
   ])
 
   return (
-    <>
+    <div className="relative flex-1">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        onCanPlay={() => setVideoReady(true)}
+        className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${
+          videoReady ? 'opacity-[0.18]' : 'opacity-0'
+        }`}
+        poster="/videos/hero-bg-poster.jpg"
+        src="/videos/hero-bg.mp4"
+      />
       <div
         className={`fixed left-1/2 top-24 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-green-100 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-lg transition-all duration-300 ${
           showLogoutToast
@@ -110,32 +124,40 @@ function LandingPageInner() {
           </p>
         </div>
       </div>
-      <div className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:grid-cols-[minmax(0,500px)_390px] lg:items-start lg:justify-between lg:gap-12">
-        <DemoIntroPanel/>
-        {sessionExpired && (
-          <div
-            className="order-3 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:hidden">
-            Your session has expired. Please log in again.
-          </div>
-        )}
-        <div className="relative order-first mx-auto flex w-full max-w-[390px] flex-col lg:order-none lg:mx-0 lg:pt-3">
-          <ModeSelector mode={demoMode} onModeChange={setDemoMode}/>
+      {videoReady ? (
+        <div className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:grid-cols-[minmax(0,500px)_390px] lg:items-start lg:justify-between lg:gap-12 animate-[auth-transition-card_400ms_ease-out_forwards]">
+          <DemoIntroPanel/>
           {sessionExpired && (
             <div
-              className="mb-4 hidden px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:block">
+              className="order-3 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:hidden">
               Your session has expired. Please log in again.
             </div>
           )}
-          {demoMode === 'prebuilt' ? (
-            <div className="w-full flex flex-col sm:w-[500px] sm:h-[800px] sm:origin-top-left sm:scale-[0.78]">
-              <AuthFlow/>
-            </div>
-          ) : (
-            <WhiteLabelWalletPreview onConnect={handleReconnect}/>
-          )}
+          <div className="relative order-first mx-auto flex w-full max-w-[390px] flex-col lg:order-none lg:mx-0 lg:pt-3">
+            <ModeSelector mode={demoMode} onModeChange={setDemoMode}/>
+            {sessionExpired && (
+              <div
+                className="mb-4 hidden px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:block">
+                Your session has expired. Please log in again.
+              </div>
+            )}
+            {demoMode === 'prebuilt' ? (
+              <div className="h-[544px] overflow-hidden sm:w-[390px] sm:h-[624px]">
+                <div className="w-[500px] h-[800px] origin-top-left flex flex-col scale-[0.68] sm:scale-[0.78]">
+                  <AuthFlow/>
+                </div>
+              </div>
+            ) : (
+              <WhiteLabelWalletPreview onConnect={handleReconnect}/>
+            )}
+          </div>
         </div>
-      </div>
-    </>
+      ) : (
+        <div className="flex flex-1 items-center justify-center" style={{minHeight: 'calc(100vh - 5rem)'}}>
+          <div className="h-8 w-8 rounded-full border-2 border-blue-100 border-t-blue-500 animate-spin"/>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -212,7 +234,7 @@ function EmailMethodSettings() {
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <div
@@ -299,12 +321,17 @@ function DemoIntroPanel() {
         Wallet Demo
       </p>
       <h1 className="max-w-[500px] text-3xl font-semibold leading-tight text-gray-950">
-        One-click smart wallets
+        Auth in. Smart wallet out.
       </h1>
       <p className="mt-3 max-w-[500px] text-base leading-7 text-gray-500">
-        Give users a self-custodial wallet with the login method they already
-        know. ZeroDev handles the wallet complexity behind the scenes.
+        ZeroDev turns any sign-in — passkey, email, Google — into a
+        self-custodial smart account. Your users never touch a seed phrase
+        or pay unexpected gas.
       </p>
+
+      <div className="mt-6">
+        <InstallBlock/>
+      </div>
 
       <div className="mt-8 divide-y divide-gray-200 border-y border-gray-200">
         {demoValueProps.map((item, index) => {
@@ -371,43 +398,11 @@ function CodeSnippet({code, label}: {code: string; label: string}) {
         <p className="text-sm font-semibold text-white">{label}</p>
         <span className="text-xs text-gray-400">React</span>
       </div>
-      <pre className="max-h-[148px] overflow-x-auto overflow-y-hidden text-sm leading-6">
-        <code>{highlightCode(code)}</code>
+      <pre className="max-h-[148px] overflow-x-auto overflow-y-hidden text-sm leading-6 text-gray-200">
+        <code dangerouslySetInnerHTML={{__html: highlight(code)}}/>
       </pre>
     </div>
   )
-}
-
-function highlightCode(code: string) {
-  return code.split('\n').map((line, lineIndex) => (
-    <span key={`${line}-${lineIndex}`}>
-      {highlightLine(line)}
-      {lineIndex < code.split('\n').length - 1 && '\n'}
-    </span>
-  ))
-}
-
-function highlightLine(line: string) {
-  const tokens = line.split(/('[^']*'|"[^"]*"|\/\/.*|\b(?:await|const|export|function|import|return|from)\b|[{}()[\].,<>/=])/g)
-
-  return tokens.map((token, index) => {
-    if (!token) return null
-
-    let className = 'text-gray-200'
-    if (/^['"]/.test(token)) className = 'text-emerald-300'
-    else if (/^\/\//.test(token)) className = 'text-gray-500'
-    else if (/^(await|const|export|function|import|return|from)$/.test(token)) {
-      className = 'text-blue-300'
-    } else if (/^[{}()[\].,<>/=]$/.test(token)) {
-      className = 'text-gray-400'
-    }
-
-    return (
-      <span key={`${token}-${index}`} className={className}>
-        {token}
-      </span>
-    )
-  })
 }
 
 function WhiteLabelWalletPreview({onConnect}: {onConnect: () => void}) {
@@ -531,26 +526,66 @@ function GoogleLogo() {
   )
 }
 
+function InstallBlock() {
+  const [variant, setVariant] = useState<keyof typeof installVariants>('headless')
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-gray-800 bg-gray-950">
+      <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-3">
+        {(Object.keys(installVariants) as (keyof typeof installVariants)[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setVariant(key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border ${
+              variant === key
+                ? 'border-blue-500/40 bg-blue-500/10 text-blue-400'
+                : 'border-gray-700 text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {installVariants[key].label}
+          </button>
+        ))}
+      </div>
+      <div className="px-4 py-4 font-mono text-sm text-gray-300">
+        <span className="text-blue-400 select-none">{'>'}</span>{' '}
+        {installVariants[variant].command}
+      </div>
+    </div>
+  )
+}
+
+const installVariants = {
+  headless: {
+    label: 'Wallet Core (headless)',
+    command: 'npm install @zerodev/wallet-react',
+  },
+  uikit: {
+    label: 'Wallet Core with UI',
+    command: 'npm install @zerodev/wallet-react-kit',
+  },
+} as const
+
 const demoModes: {value: DemoMode; label: string; description: string}[] = [
   {
     value: 'prebuilt',
     label: 'Pre-built UI',
     description:
-      'Start quickly with ready-made wallet components and optional state management, then customize as much or as little as you need over time.',
+      'A production-ready auth component with state management, error handling, and redirect flows already wired up. Customize as your product matures.',
   },
   {
     value: 'whiteLabel',
     label: 'White-label',
     description:
-      'Build a branded flow around the same wallet infrastructure so the experience meets customers where they are.',
+      'Raw hooks against the same account infrastructure — no ZeroDev chrome, no constraints. Your design, your flow, same smart wallet underneath.',
   },
 ]
 
 const demoValueProps = [
   {
-    title: 'Any login method',
+    title: 'Bring your own auth',
     description:
-      'Support passkeys, email, social login, or your own authentication flow without rebuilding wallet infrastructure.',
+      'Passkeys, email, Google, or your own credential system — ZeroDev derives a wallet from whatever you already trust. No seed phrases, no browser extensions, no parallel auth stack to maintain.',
     codeLabel: 'Add Google OAuth',
     code: `import {
   OAUTH_PROVIDERS,
@@ -564,10 +599,10 @@ authenticateOAuth.mutateAsync({
 })`,
   },
   {
-    title: 'Smart wallets by default',
+    title: 'Smart accounts, not just wallets',
     description:
-      'Every user gets a smart wallet ready for sponsored gas, batching, automation, and smoother transactions.',
-    codeLabel: 'Use the component kit',
+      'Every user gets a programmable smart account from day one. Sponsor gas so transactions are free. Batch multiple calls into one. Automate on-chain actions users never need to sign for.',
+    codeLabel: 'Drop in AuthFlow',
     code: `import { AuthFlow } from '@zerodev/wallet-react-kit'
 
 export function SignIn() {
@@ -575,9 +610,9 @@ export function SignIn() {
 }`,
   },
   {
-    title: 'Your brand, your UI',
+    title: 'One component or raw hooks',
     description:
-      'Use the pre-built wallet UI or build a white-label experience with your own screens and components.',
+      'Ship with <AuthFlow /> and launch this afternoon. Or reach for raw hooks and own every pixel. The same account infrastructure works either way.',
     codeLabel: 'Own the UI',
     code: `const authenticateEmail = useAuthenticateEmail()
 
