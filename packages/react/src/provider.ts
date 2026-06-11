@@ -11,6 +11,12 @@ const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
 
 type Signer = SmartAccount<KernelSmartAccountImplementation> | LocalAccount
 
+type WalletCall = {
+  to?: `0x${string}`
+  value?: `0x${string}`
+  data?: `0x${string}`
+}
+
 /**
  * Pick the right signer for `personal_sign` / `eth_signTypedData_v4`.
  *
@@ -159,23 +165,39 @@ export function createProvider({
         throw new Error('No active chain')
       }
 
-      // Address that wagmi sees on this chain — kernel counterfactual
-      // for 4337, EOA otherwise.
-      const accountAddress = (): `0x${string}` | undefined => {
+      const accountAddressForChain = (
+        chainId: number,
+      ): `0x${string}` | undefined => {
         if (mode === '4337') {
-          return state.kernelAccounts.get(activeChainId)?.address
+          return state.kernelAccounts.get(chainId)?.address
         }
         return state.eoaAccount?.address
       }
 
+      const validateFromAddress = (
+        chainId: number,
+        from?: `0x${string}`,
+      ): void => {
+        if (!from) return
+
+        const expectedFrom = accountAddressForChain(chainId)
+        if (!expectedFrom) return
+
+        if (from.toLowerCase() !== expectedFrom.toLowerCase()) {
+          throw new Error(
+            `Invalid from address: expected ${expectedFrom}, got ${from}`,
+          )
+        }
+      }
+
       switch (method) {
         case 'eth_accounts': {
-          const addr = accountAddress()
+          const addr = accountAddressForChain(activeChainId)
           return addr ? [addr] : []
         }
 
         case 'eth_requestAccounts': {
-          const addr = accountAddress()
+          const addr = accountAddressForChain(activeChainId)
           if (!addr) throw new NotAuthenticatedError()
           return [addr]
         }
@@ -192,6 +214,7 @@ export function createProvider({
 
           const [tx] = params
           const chainId = tx.chainId ? parseInt(tx.chainId, 16) : activeChainId
+          validateFromAddress(chainId, tx.from)
 
           // EOA mode: send via plain RPC (no bundler, no sponsorship).
           if (mode === 'EOA') {
@@ -222,6 +245,101 @@ export function createProvider({
               },
             ],
           })
+        }
+
+        case 'wallet_sendCalls': {
+          if (!params || params.length === 0) {
+            throw new Error('Missing call parameters')
+          }
+
+          const [request] = params
+          const chainId = request.chainId
+            ? parseInt(request.chainId, 16)
+            : activeChainId
+          validateFromAddress(chainId, request.from)
+
+          if (mode === 'EOA') {
+            throw new Error('wallet_sendCalls is not supported in EOA mode')
+          }
+
+          if (!Array.isArray(request.calls) || request.calls.length === 0) {
+            throw new Error('Missing calls')
+          }
+
+          const kernelClient = store.getState().kernelClients.get(chainId)
+          if (!kernelClient) {
+            throw new Error(`No kernel client for chain ${chainId}`)
+          }
+
+          // EIP-5792 is async by design: return the bundle ID immediately,
+          // dapps poll wallet_getCallsStatus. The userOp hash is the ID.
+          const userOpHash = await kernelClient.sendUserOperation({
+            calls: request.calls.map((call: WalletCall) => ({
+              ...(call.to && { to: call.to }),
+              value: call.value ? BigInt(call.value) : 0n,
+              data: call.data || '0x',
+            })),
+          })
+          return { id: userOpHash }
+        }
+
+        case 'wallet_getCallsStatus': {
+          if (!params || params.length === 0) {
+            throw new Error('Missing call bundle id')
+          }
+
+          const [id] = params
+          const kernelClient = store.getState().kernelClients.get(activeChainId)
+          if (!kernelClient) {
+            throw new Error(`No kernel client for chain ${activeChainId}`)
+          }
+
+          const receipt = await kernelClient
+            .getUserOperationReceipt({ hash: id })
+            .catch(() => null)
+          if (!receipt) {
+            return { version: '2.0.0', atomic: true, status: 100, receipts: [] }
+          }
+
+          // viem's getCallsStatus decoder expects RPC-hex receipts (it runs
+          // hexToBigInt on blockNumber/gasUsed), but the bundler client
+          // returns parsed bigint fields — re-encode them.
+          const r = receipt.receipt
+          return {
+            version: '2.0.0',
+            atomic: true,
+            chainId: `0x${activeChainId.toString(16)}`,
+            status: receipt.success ? 200 : 500,
+            receipts: [
+              {
+                transactionHash: r.transactionHash,
+                blockHash: r.blockHash,
+                blockNumber: `0x${r.blockNumber.toString(16)}`,
+                gasUsed: `0x${r.gasUsed.toString(16)}`,
+                status: r.status === 'success' ? '0x1' : '0x0',
+                // receipt.logs is scoped to this userOp — r.logs would leak
+                // logs from other userOps bundled into the same transaction.
+                logs: receipt.logs.map((log) => ({
+                  address: log.address,
+                  topics: log.topics,
+                  data: log.data,
+                })),
+              },
+            ],
+          }
+        }
+
+        case 'wallet_getCapabilities': {
+          const [, requestedChainIds] = params || []
+          const chains: string[] = requestedChainIds ?? [
+            `0x${activeChainId.toString(16)}`,
+          ]
+          // Sponsorship is project-level (dashboard policies / Ultra Relay),
+          // so we intentionally do not declare or honor dapp-supplied
+          // paymasterService.
+          const atomic =
+            mode === 'EOA' ? { status: 'unsupported' } : { status: 'supported' }
+          return Object.fromEntries(chains.map((cid) => [cid, { atomic }]))
         }
 
         case 'personal_sign': {
