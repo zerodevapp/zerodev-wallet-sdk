@@ -30,8 +30,6 @@ import {
  */
 type Props = {
   kind: 'wallet' | 'privateKey'
-  /** Required: the wrapper's baseUrl origin (e.g. the consumer's RP_ID). */
-  rpId: string
   /** Fires after the iframe acks BUNDLE_INJECTED — the secret is on screen. */
   onReady?: () => void
   /** Fires on bundle-fetch failure or iframe-side ERROR. */
@@ -106,19 +104,17 @@ function buildWrapperHtml() {
 </html>`
 }
 
-export function ZeroDevExportWebView({
-  kind,
-  rpId,
-  onReady,
-  onError,
-  style,
-}: Props) {
+export function ZeroDevExportWebView({ kind, onReady, onError, style }: Props) {
+  const config = useConfig()
+  const connector = getZeroDevConnector(config)
+  const rpId = connector.rpId
   if (!rpId) {
-    throw new Error('ZeroDevExportWebView: rpId is required')
+    throw new Error(
+      'ZeroDevExportWebView: connector has no rpId. Pass rpId to zeroDevWallet({ rpId }).',
+    )
   }
   const wrapperOrigin = `https://${rpId}`
 
-  const config = useConfig()
   const webViewRef = useRef<WebView>(null)
   // PUBLIC_KEY_READY can only be acted on once per mount. Resets when the
   // parent unmounts/remounts the component (e.g. on Hide → Reveal).
@@ -142,7 +138,6 @@ export function ZeroDevExportWebView({
         if (typeof data.value !== 'string') return
         handledPubkey.current = true
         try {
-          const connector = getZeroDevConnector(config)
           const store = await getZeroDevStore(connector)
           const wallet = getZeroDevWallet(store)
           const bundle =

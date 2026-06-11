@@ -79,13 +79,14 @@ export type {
   AuthParams,
   ZeroDevWalletSDK,
 } from './core/createZeroDevWalletCore.js'
-// RN entry re-exports core directly. `ZeroDevWalletConfigCore` already has
-// all four adapter fields required, so RN consumers get compile-time enforcement
-// without a separate type wrapper.
+// RN entry re-exports through a thin wrapper that auto-injects the
+// `Origin: https://${rpId}` header on Turnkey requests. `ZeroDevWalletConfig`
+// matches the strict `ZeroDevWalletConfigCore` shape, so RN consumers still
+// get compile-time enforcement of the four required adapter fields.
 export {
-  createZeroDevWalletCore as createZeroDevWallet,
-  type ZeroDevWalletConfigCore as ZeroDevWalletConfig,
-} from './core/createZeroDevWalletCore.js'
+  createZeroDevWallet,
+  type ZeroDevWalletConfig,
+} from './native/createZeroDevWallet.js'
 export type {
   ApiKeyStamper,
   Attestation,

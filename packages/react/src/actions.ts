@@ -9,25 +9,35 @@ import type { createZeroDevWalletStore } from './store.js'
 type ZeroDevStore = ReturnType<typeof createZeroDevWalletStore>
 
 /**
+ * Wagmi `Connector` augmented with the ZeroDev-specific surface area
+ * (`rpId`, custom `getStore`). The connector factory in `core/connector.ts`
+ * attaches these as wagmi `Properties`, so the runtime shape is guaranteed.
+ */
+export type ZeroDevConnector = Connector & {
+  rpId: string | undefined
+  getStore: () => Promise<ZeroDevStore>
+}
+
+/**
  * Get ZeroDev connector from config
  */
-export function getZeroDevConnector(config: Config): Connector {
+export function getZeroDevConnector(config: Config): ZeroDevConnector {
   const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
   if (!connector) {
     throw new Error('ZeroDev connector not found in Wagmi config')
   }
-  return connector
+  return connector as ZeroDevConnector
 }
 
 /**
- * Get the typed ZeroDev store from a connector. Centralises the
- * `@ts-expect-error` cast for the connector's custom `getStore` method.
+ * Get the typed ZeroDev store from a connector. The connector must be the
+ * ZeroDev one (id `'zerodev-wallet'`); the cast is safe because that's the
+ * only connector wired with a `getStore` method.
  */
 export async function getZeroDevStore(
   connector: Connector,
 ): Promise<ZeroDevStore> {
-  // @ts-expect-error - getStore is a custom method on the ZeroDev connector
-  return (await connector.getStore()) as ZeroDevStore
+  return (connector as ZeroDevConnector).getStore()
 }
 
 /**

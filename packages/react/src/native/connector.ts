@@ -1,0 +1,47 @@
+import type { CreateConnectorFn } from '@wagmi/core'
+import type {
+  ApiKeyStamper,
+  PasskeyStamper,
+  StorageAdapter,
+} from '@zerodev/wallet-core'
+import {
+  type ConnectorCoreParams,
+  zeroDevWalletCore,
+} from '../core/connector.js'
+
+export type { WalletMode } from '../core/connector.js'
+
+/**
+ * React Native connector params. `apiKeyStamper`, `sessionStorage`, and
+ * `rpId` are required — unlike web, RN has no platform-native defaults for
+ * them. `passkeyStamper` is optional: omit it if your app doesn't use
+ * passkey auth (calling `useRegisterPasskey`/`useLoginPasskey` without one
+ * throws an actionable error). `fetchOptions` is dropped from the public
+ * surface; the wrapper derives it from `rpId` so both the Turnkey transport
+ * and the AA bundler/paymaster transports receive `Origin: https://${rpId}`.
+ * Power users who need a different Origin can drop to `zeroDevWalletCore`.
+ */
+export type ZeroDevWalletConnectorParams = Omit<
+  ConnectorCoreParams,
+  | 'apiKeyStamper'
+  | 'passkeyStamper'
+  | 'rpId'
+  | 'sessionStorage'
+  | 'fetchOptions'
+> & {
+  rpId: string
+  apiKeyStamper: ApiKeyStamper | Promise<ApiKeyStamper>
+  passkeyStamper?: PasskeyStamper | Promise<PasskeyStamper>
+  sessionStorage: StorageAdapter
+}
+
+export function zeroDevWallet(
+  params: ZeroDevWalletConnectorParams,
+): CreateConnectorFn {
+  return zeroDevWalletCore({
+    ...params,
+    fetchOptions: {
+      headers: { Origin: `https://${params.rpId}` },
+    },
+  })
+}

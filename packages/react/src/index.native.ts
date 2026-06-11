@@ -19,11 +19,7 @@ export {
   getZeroDevWallet,
 } from './actions.js'
 export type { GetOAuthSessionIdFn } from './authenticateOAuth.js'
-export type {
-  WalletMode,
-  ZeroDevWalletConnectorParams,
-} from './connector.js'
-export { zeroDevWallet } from './connector.js'
+export { NotAuthenticatedError } from './errors.js'
 // Generic OAuth hook — caller supplies getSessionId + redirectUri
 export { useAuthenticateOAuth } from './hooks/useAuthenticateOAuth.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
@@ -34,6 +30,11 @@ export { useSendMagicLink } from './hooks/useSendMagicLink.js'
 export { useSendOTP } from './hooks/useSendOTP.js'
 export { useVerifyMagicLink } from './hooks/useVerifyMagicLink.js'
 export { useVerifyOTP } from './hooks/useVerifyOTP.js'
+export type {
+  WalletMode,
+  ZeroDevWalletConnectorParams,
+} from './native/connector.js'
+export { zeroDevWallet } from './native/connector.js'
 export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
 export { createZeroDevWalletStore } from './store.js'

@@ -1,8 +1,7 @@
 {
   "name": "@zerodev/wallet-react",
-  "version": "0.0.1-alpha.23",
+  "version": "0.0.1-alpha.25",
   "description": "React hooks for ZeroDev Wallet SDK",
-  "type": "module",
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
@@ -32,6 +31,7 @@
     },
     "./react-native": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/index.native.d.ts",
         "default": "./dist/_esm/index.native.js"
@@ -40,6 +40,7 @@
     },
     "./react-native/oauth/with-expo-web-browser": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.d.ts",
         "default": "./dist/_esm/native/oauth/useAuthenticateOAuthWithExpoWebBrowser.js"
@@ -48,6 +49,7 @@
     },
     "./react-native/export/webview": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/export/ExportWebView.d.ts",
         "default": "./dist/_esm/native/export/ExportWebView.js"
@@ -55,6 +57,16 @@
       "default": "./dist/_esm/native/export/ExportWebView.js"
     }
   },
+  "files": [
+    "dist",
+    "./src/**/*.ts",
+    "!dist/_esm/**/*.tsbuildinfo",
+    "!dist/_cjs/**/*.tsbuildinfo",
+    "!dist/_types/**/*.tsbuildinfo",
+    "!.env",
+    "!./**/*.test.ts",
+    "!.changeset"
+  ],
   "scripts": {
     "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
     "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
@@ -114,5 +126,6 @@
     "react-native-webview": "13.16.0",
     "typescript": "5.9.3",
     "uuid": "^13.0.0"
-  }
+  },
+  "type": "module"
 }

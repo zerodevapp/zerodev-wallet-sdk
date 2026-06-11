@@ -1,8 +1,7 @@
 {
   "name": "@zerodev/wallet-core",
-  "version": "0.0.1-alpha.20",
+  "version": "0.0.1-alpha.22",
   "description": "ZeroDev Wallet SDK built on Turnkey",
-  "type": "module",
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
@@ -32,6 +31,7 @@
     },
     "./react-native": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/index.native.d.ts",
         "default": "./dist/_esm/index.native.js"
@@ -40,6 +40,7 @@
     },
     "./react-native/stampers/secure-store": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/stampers/secureStore.d.ts",
         "default": "./dist/_esm/native/stampers/secureStore.js"
@@ -48,6 +49,7 @@
     },
     "./react-native/stampers/passkey": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/stampers/passkey.d.ts",
         "default": "./dist/_esm/native/stampers/passkey.js"
@@ -56,6 +58,7 @@
     },
     "./react-native/storage/async-storage": {
       "browser": "./dist/_esm/stubs/native-on-web.js",
+      "node": "./dist/_esm/stubs/native-on-web.js",
       "import": {
         "types": "./dist/_types/native/storage/asyncStorage.d.ts",
         "default": "./dist/_esm/native/storage/asyncStorage.js"
@@ -156,5 +159,6 @@
     "expo-secure-store": "55.0.9",
     "typescript": "5.9.3",
     "uuid": "^13.0.0"
-  }
+  },
+  "type": "module"
 }
