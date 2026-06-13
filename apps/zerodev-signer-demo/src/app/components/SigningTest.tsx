@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAccount, useSignMessage, useSignTypedData } from "wagmi";
 import { cn } from "../lib/utils";
 import { arbitrumSepolia } from "viem/chains";
+import { type Address, zeroAddress } from "viem";
 
 type SigningMode = "message" | "typedData";
 
@@ -40,26 +41,28 @@ const typedData = {
 
 const message = "Hello World";
 
-export function SigningTest() {
+export function SigningTest({
+  accountAddress,
+}: {
+  accountAddress: Address | null
+}) {
   const [mode, setMode] = useState<SigningMode>("message");
   const [payload, setPayload] = useState(message);
   const [error, setError] = useState<string>("");
 
   // Wagmi hooks
   const { address } = useAccount();
+  const activeAddress = accountAddress ?? address;
+  const hasUsableAddress =
+    Boolean(activeAddress) && activeAddress?.toLowerCase() !== zeroAddress;
   // const publicClient = usePublicClient()
   const { signMessage, data: messageSignature, isPending: isSigningMessage, isSuccess: isMessageSuccess, error: signError } = useSignMessage();
   const { signTypedData, data: typedDataSignature, isPending: isSigningTypedData, isSuccess: isTypedDataSuccess, error: typedDataError } = useSignTypedData();
-  console.log("messageSignature", messageSignature);
-  console.log("isMessageSuccess", isMessageSuccess);
-  console.log("typedDataSignature", typedDataSignature);
-  console.log("isTypedDataSuccess", isTypedDataSuccess);
-
   const loading = isSigningMessage || isSigningTypedData;
   // const result = messageSignature || typedDataSignature;
 
   const handleSign = async () => {
-    if (!address) {
+    if (!activeAddress || !hasUsableAddress) {
       setError("Please authenticate first");
       return;
     }
@@ -148,7 +151,7 @@ export function SigningTest() {
       {/* Sign Button */}
       <button
         onClick={handleSign}
-        disabled={loading || !payload.trim() || !address}
+        disabled={loading || !payload.trim() || !activeAddress || !hasUsableAddress}
         style={{
           background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #22d3ee, #2563eb) border-box',
         }}

@@ -10,10 +10,8 @@ export function ChainSelector() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { chain } = useAccount();
-  console.log("chain", chain);
   const { switchChain, isPending } = useSwitchChain();
   const chains = useChains();
-  console.log("chains", chains);
 
   // Close dropdown when clicking outside
   useEffect(() => {
