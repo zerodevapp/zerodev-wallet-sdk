@@ -29,15 +29,18 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   Address,
+  createWalletClient,
   encodeFunctionData,
   formatEther,
   formatUnits,
+  http,
   isAddress,
   parseAbi,
   parseUnits,
   zeroAddress,
 } from "viem";
 import { useAccount, useConfig, useDisconnect, usePublicClient } from "wagmi";
+import { arbitrumSepolia } from "wagmi/chains";
 import { ChainSelector } from "../components/ChainSelector";
 import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
 import { ExportWalletModal } from "../components/ExportWalletModal";
@@ -129,6 +132,10 @@ const ARBITRUM_SEPOLIA_USDC_WETH_FEE = 3000;
 const usdcSwapAbi = parseAbi([
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function allowance(address owner, address spender) external view returns (uint256)",
+]);
+
+const wethAbi = parseAbi([
+  "function withdraw(uint256 amount) external",
 ]);
 
 const swapRouterAbi = parseAbi([
@@ -1112,11 +1119,17 @@ const stableGasModes: Array<{
   { mode: "manual", label: "EOA wallet", badge: "Traditional" },
 ]
 
-const stableGasSteps: StableGasStep[] = [
+const eoaStableGasSteps: StableGasStep[] = [
   { label: "Fund gas", detail: "native ETH required", threshold: 25, token: "eth" },
   { label: "Approve USDC", detail: "allow Uniswap to spend USDC", threshold: 50, token: "usdc" },
   { label: "Swap to WETH", detail: "USDC -> WETH on Uniswap", threshold: 75, token: "swap" },
   { label: "Unwrap to ETH", detail: "WETH -> native wallet ETH", threshold: 100, token: "eth" },
+]
+
+const zeroDevStableGasSteps: StableGasStep[] = [
+  { label: "Approve USDC", detail: "gas sponsored", threshold: 34, token: "usdc" },
+  { label: "Swap to WETH", detail: "gas sponsored on Uniswap", threshold: 67, token: "swap" },
+  { label: "Unwrap to ETH", detail: "gas sponsored", threshold: 100, token: "eth" },
 ]
 
 function StableGasSwapTest({
@@ -1136,6 +1149,7 @@ function StableGasSwapTest({
   const [availableUsdc, setAvailableUsdc] = useState("0")
   const [receivedEth, setReceivedEth] = useState<string | null>(null)
   const [batchDurationMs, setBatchDurationMs] = useState<number | null>(null)
+  const [wethToUnwrap, setWethToUnwrap] = useState<bigint>(BigInt(0))
   const [progressMessage, setProgressMessage] = useState("Ready")
   const [activeCallIndex, setActiveCallIndex] = useState<number | null>(null)
   const runVersionRef = useRef(0)
@@ -1200,44 +1214,188 @@ function StableGasSwapTest({
     return kernelClient
   }
 
+  const getRawEoaWalletClient = async () => {
+    const store = await getZeroDevStore(getZeroDevConnector(wagmiConfig))
+    const eoaAccount = store.getState().eoaAccount
+    if (!eoaAccount) {
+      throw new Error("Raw EOA signer is not ready. Reconnect the wallet and try again.")
+    }
+    return createWalletClient({
+      account: eoaAccount,
+      chain: arbitrumSepolia,
+      transport: http(process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL),
+    })
+  }
+
   const resetStableGasRun = () => {
     runVersionRef.current += 1
     setError("")
     setTxs([])
     setReceivedEth(null)
     setBatchDurationMs(null)
+    setWethToUnwrap(BigInt(0))
     setProgressMessage("Ready")
     setStatus("idle")
     setActiveCallIndex(null)
   }
 
-  const completeSimulatedEoaStep = async (index: number, label: string) => {
+  const completeGasCheckStep = async (runVersion: number) => {
+    if (!accountAddress || !publicClient) return
+    setProgressMessage("Checking native ETH")
+    const nativeBalance = await publicClient.getBalance({ address: accountAddress })
+    if (runVersionRef.current !== runVersion) return
+    if (nativeBalance <= BigInt(0)) {
+      throw new Error("Run the one-click sponsored route first to add native ETH, then retry the EOA steps.")
+    }
+    setTxs((current) => [
+      ...current,
+      {
+        id: "eoa-gas-ready",
+        label: "Native gas ready",
+        simulatedStep: true,
+      },
+    ])
+    setProgressMessage("Native gas ready")
+  }
+
+  const sendRawEoaTransaction = async ({
+    data,
+    label,
+    to,
+  }: {
+    data: `0x${string}`
+    label: string
+    to: Address
+  }) => {
+    if (!publicClient) throw new Error("RPC client is not ready.")
+    const walletClient = await getRawEoaWalletClient()
+    const hash = toTransactionHash(
+      await walletClient.sendTransaction({
+        data,
+        to,
+        value: BigInt(0),
+      }),
+    )
+    if (!hash) throw new Error(`${label} did not return a transaction hash.`)
+    setTxs((current) => [...current, { label, hash }])
+    await publicClient.waitForTransactionReceipt({ hash })
+    return hash
+  }
+
+  const handleEoaStep = async (index: number) => {
+    if (!accountAddress || !publicClient) return
+
     const runVersion = runVersionRef.current + 1
     runVersionRef.current = runVersion
     setError("")
     setStatus("swapping")
     setActiveCallIndex(index)
-    setProgressMessage(index === 0 ? "Funding native gas" : `Signing ${label}`)
 
-    await new Promise((resolve) => window.setTimeout(resolve, 650))
-    if (runVersionRef.current !== runVersion) return
-    setTxs((current) => [
-      ...current,
-      {
-        id: `eoa-step-${index}`,
-        label,
-        simulatedStep: true,
-      },
-    ])
-    if (index === 3) {
-      setReceivedEth("0.0003")
-      setStatus("complete")
-      setProgressMessage("Native ETH received")
-    } else {
+    try {
+      if (index === 0) {
+        await completeGasCheckStep(runVersion)
+      }
+
+      if (index === 1) {
+        if (amountIn <= BigInt(0)) throw new Error("Choose at least 1 USDC.")
+        setProgressMessage("Sending EOA approval")
+        await sendRawEoaTransaction({
+          label: "USDC approval",
+          to: usdcAddress,
+          data: encodeFunctionData({
+            abi: usdcSwapAbi,
+            functionName: "approve",
+            args: [ARBITRUM_SEPOLIA_SWAP_ROUTER, amountIn],
+          }),
+        })
+        if (runVersionRef.current !== runVersion) return
+        setProgressMessage("USDC approved")
+      }
+
+      if (index === 2) {
+        if (amountIn <= BigInt(0)) throw new Error("Choose at least 1 USDC.")
+        setProgressMessage("Swapping USDC to WETH")
+        const wethBefore = await publicClient.readContract({
+          address: ARBITRUM_SEPOLIA_WETH,
+          abi: erc20BalanceAbi,
+          functionName: "balanceOf",
+          args: [accountAddress],
+        })
+        await sendRawEoaTransaction({
+          label: "USDC to WETH swap",
+          to: ARBITRUM_SEPOLIA_SWAP_ROUTER,
+          data: encodeFunctionData({
+            abi: swapRouterAbi,
+            functionName: "exactInputSingle",
+            args: [
+              {
+                tokenIn: usdcAddress,
+                tokenOut: ARBITRUM_SEPOLIA_WETH,
+                fee: ARBITRUM_SEPOLIA_USDC_WETH_FEE,
+                recipient: accountAddress,
+                amountIn,
+                amountOutMinimum: BigInt(1),
+                sqrtPriceLimitX96: BigInt(0),
+              },
+            ],
+          }),
+        })
+        if (runVersionRef.current !== runVersion) return
+        const wethAfter = await publicClient.readContract({
+          address: ARBITRUM_SEPOLIA_WETH,
+          abi: erc20BalanceAbi,
+          functionName: "balanceOf",
+          args: [accountAddress],
+        })
+        const receivedWeth = wethAfter > wethBefore ? wethAfter - wethBefore : wethAfter
+        setWethToUnwrap(receivedWeth)
+        setProgressMessage("WETH received")
+      }
+
+      if (index === 3) {
+        const unwrapAmount =
+          wethToUnwrap > BigInt(0)
+            ? wethToUnwrap
+            : await publicClient.readContract({
+                address: ARBITRUM_SEPOLIA_WETH,
+                abi: erc20BalanceAbi,
+                functionName: "balanceOf",
+                args: [accountAddress],
+              })
+        if (unwrapAmount <= BigInt(0)) {
+          throw new Error("No WETH is available to unwrap. Complete the swap step first.")
+        }
+        setProgressMessage("Unwrapping WETH to native ETH")
+        const ethBefore = await publicClient.getBalance({ address: accountAddress })
+        await sendRawEoaTransaction({
+          label: "WETH unwrap",
+          to: ARBITRUM_SEPOLIA_WETH,
+          data: encodeFunctionData({
+            abi: wethAbi,
+            functionName: "withdraw",
+            args: [unwrapAmount],
+          }),
+        })
+        if (runVersionRef.current !== runVersion) return
+        const ethAfter = await publicClient.getBalance({ address: accountAddress })
+        if (ethAfter > ethBefore) setReceivedEth(formatEther(ethAfter - ethBefore))
+        setStatus("complete")
+        setProgressMessage("Native ETH received")
+        setActiveCallIndex(null)
+        onRefreshAssets()
+        return
+      }
+
       setStatus("idle")
-      setProgressMessage(index === 0 ? "Native gas funded" : `${label} signed`)
+      setActiveCallIndex(null)
+      onRefreshAssets()
+    } catch (err) {
+      if (runVersionRef.current !== runVersion) return
+      setError(getSwapErrorMessage(err))
+      setProgressMessage("Ready")
+      setStatus("idle")
+      setActiveCallIndex(null)
     }
-    setActiveCallIndex(null)
   }
 
   const handleSwapToNativeEth = async () => {
@@ -1249,6 +1407,7 @@ function StableGasSwapTest({
     setTxs([])
     setReceivedEth(null)
     setBatchDurationMs(null)
+    setWethToUnwrap(BigInt(0))
     setProgressMessage("Checking USDC balance and allowance")
     setStatus("checking")
     setActiveCallIndex(0)
@@ -1375,11 +1534,13 @@ function StableGasSwapTest({
         : activeCallIndex !== null
           ? Math.min(92, activeCallIndex * 25 + 14)
           : Math.min(100, txs.length * 25)
+  const activeStableGasSteps =
+    executionMode === "batch" ? zeroDevStableGasSteps : eoaStableGasSteps
   const manualStepHandlers = [
-    () => completeSimulatedEoaStep(0, "Native gas funding"),
-    () => completeSimulatedEoaStep(1, "USDC approval"),
-    () => completeSimulatedEoaStep(2, "USDC to WETH swap"),
-    () => completeSimulatedEoaStep(3, "WETH unwrap"),
+    () => handleEoaStep(0),
+    () => handleEoaStep(1),
+    () => handleEoaStep(2),
+    () => handleEoaStep(3),
   ]
   const flowLocked =
     isRunning ||
@@ -1403,11 +1564,12 @@ function StableGasSwapTest({
     return txs[index]
   }
   const getStepDetail = (index: number) => {
-    if (index === 0) {
-      return executionMode === "batch"
-        ? "Gas is sponsored by the ZeroDev policy."
-        : "EOA wallets need native ETH before the first transaction."
+    if (executionMode === "batch") {
+      if (index === 0) return `Approve ${amount} USDC with sponsored gas.`
+      if (index === 1) return `Swap ${amount} USDC through the USDC/WETH 0.3% pool with sponsored gas.`
+      return "Unwrap WETH into native ETH with sponsored gas."
     }
+    if (index === 0) return "EOA wallets need native ETH before the first transaction."
     if (index === 1) return `Approve ${amount} USDC for the Uniswap router.`
     if (index === 2) return `Swap ${amount} USDC through the USDC/WETH 0.3% pool.`
     return "Unwrap WETH into native ETH in the wallet."
@@ -1518,12 +1680,12 @@ function StableGasSwapTest({
           </span>
         </div>
         <div className="mt-3 grid gap-2">
-              {stableGasSteps.map((step, index) => {
+              {activeStableGasSteps.map((step, index) => {
                   const isDone =
                     executionMode === "batch"
                       ? zeroDevProgress >= step.threshold
                       : txs.length > index || (status === "complete" && index === 3)
-                  const currentStep = stableGasSteps.find(
+                  const currentStep = activeStableGasSteps.find(
                     (item) => visualProgress < item.threshold,
                   )
                   const canRunManualStep =
@@ -1592,6 +1754,11 @@ function StableGasSwapTest({
                           <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-950">
                             {step.label}
+                            {executionMode === "batch" && (
+                              <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-green-700">
+                                Gas sponsored
+                              </span>
+                            )}
                             {step.token === "swap" && (
                               <span className="ml-2 rounded-full bg-pink-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-pink-700">
                                 Uniswap
