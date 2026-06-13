@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Sparkles, AlertCircle, Loader2, Check, ChevronDown, Code2, ExternalLink } from "lucide-react";
+import { Sparkles, AlertCircle, Loader2, Check, ChevronDown, Code2, ExternalLink, Trash2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
   type Address,
@@ -28,6 +28,9 @@ const NFT_CONTRACT_ABI = parseAbi([
 const NFT_TRANSFER_EVENT = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 );
+
+const BURN_UNAVAILABLE_MESSAGE =
+  "Burn is not enabled in this demo. The current gas policy sponsors the free mint flow, but not ERC-721 transferFrom calls.";
 
 type MintedNft = {
   blockNumber?: bigint
@@ -56,11 +59,77 @@ function compareBlockNumbers(a?: bigint, b?: bigint) {
   return a > b ? -1 : 1;
 }
 
+function getMintErrorMessage(error: unknown) {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  if (
+    typeof error === "object" &&
+    "shortMessage" in error &&
+    typeof error.shortMessage === "string"
+  ) {
+    return error.shortMessage;
+  }
+  if (error instanceof Error) {
+    if (
+      error.message.toLowerCase().includes("unknown rpc error") ||
+      error.message.toLowerCase().includes("user rejected")
+    ) {
+      return "Transaction confirmation was not completed.";
+    }
+    return error.message;
+  }
+  return "Mint did not complete. Try again.";
+}
+
+function SeamlessImage({
+  alt,
+  className,
+  src,
+}: {
+  alt: string
+  className?: string
+  src: string
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [src]);
+
+  return (
+    <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <div
+        className={cn(
+          "absolute inset-0 bg-[linear-gradient(110deg,#f3f4f6_0%,#ffffff_45%,#f3f4f6_90%)] opacity-100 transition-opacity duration-300",
+          loaded && "opacity-0",
+        )}
+      />
+      <img
+        key={src}
+        src={src}
+        alt={alt}
+        loading="eager"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 ease-out motion-reduce:transition-none",
+          loaded && "opacity-100",
+          className,
+        )}
+      />
+    </div>
+  );
+}
+
 export function SendTransactionTest({
   accountAddress,
+  refreshKey = 0,
+  nftFocusRequest = 0,
   onNftCountChange,
 }: {
   accountAddress: Address | null
+  refreshKey?: number
+  nftFocusRequest?: number
   onNftCountChange?: (count: number) => void
 }) {
   const [error, setError] = useState<string>("");
@@ -70,7 +139,19 @@ export function SendTransactionTest({
   const [confirmingMint, setConfirmingMint] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
   const [nftsOpen, setNftsOpen] = useState(true);
-  const lastMintHashRef = useRef<`0x${string}` | undefined>(undefined);
+  const [checkoutSeed, setCheckoutSeed] = useState("demo-collectible");
+  const [checkoutImageVisible, setCheckoutImageVisible] = useState(true);
+  const [renderMintToast, setRenderMintToast] = useState(false);
+  const [mintToastVisible, setMintToastVisible] = useState(false);
+  const [renderMintError, setRenderMintError] = useState(false);
+  const [mintErrorVisible, setMintErrorVisible] = useState(false);
+  const [mintErrorMessage, setMintErrorMessage] = useState("");
+  const [mintErrorScope, setMintErrorScope] = useState<"mint" | "burn">("mint");
+  const [mintCtaHighlighted, setMintCtaHighlighted] = useState(false);
+  const [mintTxHash, setMintTxHash] = useState<`0x${string}` | undefined>();
+  const [latestMintedTokenId, setLatestMintedTokenId] = useState<string | null>(null);
+  const mintedImageByTokenIdRef = useRef<Record<string, string>>({});
+  const pendingMintImageUrlRef = useRef<string>("https://picsum.photos/seed/demo-collectible/800/600");
 
   // Wagmi hooks
   const { address, isConnected, chain } = useAccount();
@@ -78,13 +159,14 @@ export function SendTransactionTest({
   const hasUsableAddress =
     Boolean(activeAddress) && activeAddress?.toLowerCase() !== zeroAddress;
   const publicClient = usePublicClient({chainId: chain?.id});
-  const { writeContract, isPending: isMinting, data: mintTxHash, error: mintError } = useWriteContract();
+  const { writeContractAsync, isPending: isMinting, error: mintError } = useWriteContract();
 
   const nftContractAddress = chain?.id ? NFT_CONTRACTS[chain.id] : undefined;
   const explorerBaseUrl = chain?.blockExplorers?.default?.url ?? "https://sepolia.arbiscan.io";
   const galleryNfts = mintedNfts;
   const mintedCount = mintedNfts.length || Number(nftBalance) || 0;
   const mintInProgress = isMinting || confirmingMint;
+  const checkoutImageUrl = `https://picsum.photos/seed/${checkoutSeed}/800/600`;
 
   // Fetch NFT balance
   const fetchNftBalance = async () => {
@@ -115,7 +197,7 @@ export function SendTransactionTest({
       fetchNftBalance();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, publicClient, activeAddress, nftContractAddress]);
+  }, [isConnected, publicClient, activeAddress, nftContractAddress, refreshKey]);
 
   useEffect(() => {
     const fetchOwnedNfts = async () => {
@@ -147,7 +229,9 @@ export function SendTransactionTest({
           if (to === normalizedOwner) {
             owned.set(tokenId, {
               blockNumber: log.blockNumber,
-              imageUrl: `https://picsum.photos/seed/${tokenId}/800/600`,
+              imageUrl:
+                mintedImageByTokenIdRef.current[tokenId] ??
+                `https://picsum.photos/seed/${tokenId}/800/600`,
               tokenId,
               txHash: log.transactionHash,
             });
@@ -187,7 +271,7 @@ export function SendTransactionTest({
     };
 
     fetchOwnedNfts();
-  }, [publicClient, activeAddress, hasUsableAddress, nftContractAddress, onNftCountChange]);
+  }, [publicClient, activeAddress, hasUsableAddress, nftContractAddress, onNftCountChange, refreshKey]);
 
   useEffect(() => {
     if (!activeAddress || !nftContractAddress) {
@@ -207,40 +291,27 @@ export function SendTransactionTest({
     }
 
     setError("");
+    setRenderMintError(false);
+    setMintErrorVisible(false);
+    setMintErrorMessage("");
+    setMintErrorScope("mint");
+    setMintTxHash(undefined);
+    pendingMintImageUrlRef.current = checkoutImageUrl;
 
     try {
-      // Use Wagmi's useWriteContract - provider handles gasless via EIP-7702
-      await writeContract({
+      const txHash = await writeContractAsync({
         address: nftContractAddress,
         abi: NFT_CONTRACT_ABI,
         functionName: "mint",
         args: [activeAddress],
       });
 
-      // Refresh NFT balance after successful mint
-      setTimeout(() => fetchNftBalance(), 3000);
-    } catch (err) {
-      console.error("Mint error:", err);
-      setError("Mint failed");
-    }
-  };
-
-  // Watch for transaction success and derive the minted NFT from Transfer logs.
-  useEffect(() => {
-    if (!mintTxHash || lastMintHashRef.current === mintTxHash) {
-      return;
-    }
-
-    lastMintHashRef.current = mintTxHash;
-    setError("");
-
-    const loadMintReceipt = async () => {
-      if (!publicClient || !activeAddress) return;
-
       setConfirmingMint(true);
-      try {
+      setMintTxHash(txHash);
+
+      if (publicClient) {
         const receipt = await publicClient.waitForTransactionReceipt({
-          hash: mintTxHash,
+          hash: txHash,
         });
         const transferLogs = parseEventLogs({
           abi: NFT_CONTRACT_ABI,
@@ -260,32 +331,161 @@ export function SendTransactionTest({
           const block = await publicClient.getBlock({
             blockNumber: receipt.blockNumber,
           });
+          const mintedImageUrl = pendingMintImageUrlRef.current;
+          mintedImageByTokenIdRef.current[tokenId] = mintedImageUrl;
+          setLatestMintedTokenId(tokenId);
+          setCheckoutImageVisible(false);
+          window.setTimeout(() => {
+            setCheckoutSeed(`demo-collectible-next-${tokenId}`);
+            setCheckoutImageVisible(true);
+          }, 180);
           setMintedNfts((current) => {
-            if (current.some((item) => item.tokenId === tokenId)) return current;
+            if (current.some((item) => item.tokenId === tokenId)) {
+              return current.map((item) =>
+                item.tokenId === tokenId
+                  ? { ...item, imageUrl: mintedImageUrl, txHash }
+                  : item,
+              );
+            }
             return [
               {
                 blockNumber: receipt.blockNumber,
-                imageUrl: `https://picsum.photos/seed/${tokenId}/800/600`,
+                imageUrl: mintedImageUrl,
                 timestamp: new Date(Number(block.timestamp) * 1000).toISOString(),
                 tokenId,
-                txHash: mintTxHash,
+                txHash,
               },
               ...current,
             ];
           });
         }
-
-        await fetchNftBalance();
-      } catch (err) {
-        console.error("Failed to confirm minted NFT:", err);
-      } finally {
-        setConfirmingMint(false);
       }
-    };
 
-    loadMintReceipt();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mintTxHash, publicClient, activeAddress]);
+      await fetchNftBalance();
+    } catch (err) {
+      console.error("Mint error:", err);
+      setMintErrorScope("mint");
+      setError(getMintErrorMessage(err) || "Mint failed");
+    } finally {
+      setConfirmingMint(false);
+    }
+  };
+
+  const handleBurnNft = async (tokenId: string) => {
+    void tokenId;
+
+    setMintErrorScope("burn");
+    setMintErrorMessage(BURN_UNAVAILABLE_MESSAGE);
+    setRenderMintError(true);
+    setMintErrorVisible(true);
+    window.setTimeout(() => {
+      setMintErrorVisible(false);
+    }, 7600);
+    window.setTimeout(() => {
+      setRenderMintError(false);
+    }, 8000);
+  };
+
+  useEffect(() => {
+    if (!mintTxHash) return;
+
+    setRenderMintToast(true);
+    const showFrame = window.requestAnimationFrame(() => {
+      setMintToastVisible(true);
+    });
+    const hideTimeout = window.setTimeout(() => {
+      setMintToastVisible(false);
+    }, 7600);
+    const unmountTimeout = window.setTimeout(() => {
+      setRenderMintToast(false);
+    }, 8000);
+
+    return () => {
+      window.cancelAnimationFrame(showFrame);
+      window.clearTimeout(hideTimeout);
+      window.clearTimeout(unmountTimeout);
+    };
+  }, [mintTxHash]);
+
+  useEffect(() => {
+    if (mintTxHash || mintedCount > 0 || !mintError) return;
+
+    setMintErrorScope("mint");
+    setMintErrorMessage(getMintErrorMessage(mintError));
+    setRenderMintError(true);
+    const showFrame = window.requestAnimationFrame(() => {
+      setMintErrorVisible(true);
+    });
+    const hideTimeout = window.setTimeout(() => {
+      setMintErrorVisible(false);
+    }, 7600);
+    const unmountTimeout = window.setTimeout(() => {
+      setRenderMintError(false);
+    }, 8000);
+
+    return () => {
+      window.cancelAnimationFrame(showFrame);
+      window.clearTimeout(hideTimeout);
+      window.clearTimeout(unmountTimeout);
+    };
+  }, [mintError, mintTxHash, mintedCount]);
+
+  useEffect(() => {
+    if (!error || (mintedCount > 0 && mintErrorScope !== "burn")) return;
+
+    setMintErrorMessage(error);
+    setRenderMintError(true);
+    const showFrame = window.requestAnimationFrame(() => {
+      setMintErrorVisible(true);
+    });
+    const hideTimeout = window.setTimeout(() => {
+      setMintErrorVisible(false);
+    }, 7600);
+    const unmountTimeout = window.setTimeout(() => {
+      setRenderMintError(false);
+    }, 8000);
+
+    return () => {
+      window.cancelAnimationFrame(showFrame);
+      window.clearTimeout(hideTimeout);
+      window.clearTimeout(unmountTimeout);
+    };
+  }, [error, mintedCount, mintErrorScope]);
+
+  useEffect(() => {
+    if (mintedCount === 0 || mintErrorScope === "burn") return;
+
+    setError("");
+    setRenderMintError(false);
+    setMintErrorVisible(false);
+    setMintErrorMessage("");
+  }, [mintedCount, mintErrorScope]);
+
+  useEffect(() => {
+    if (!nftFocusRequest) return;
+
+    if (galleryNfts.length > 0) {
+      setNftsOpen(true);
+      requestAnimationFrame(() => {
+        document
+          .getElementById("minted-nfts")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+
+    setMintCtaHighlighted(true);
+    requestAnimationFrame(() => {
+      document
+        .getElementById("mint-nft-cta")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const timeout = window.setTimeout(() => {
+      setMintCtaHighlighted(false);
+    }, 1600);
+
+    return () => window.clearTimeout(timeout);
+  }, [nftFocusRequest, galleryNfts.length]);
 
   return (
     <div className="space-y-5">
@@ -300,10 +500,13 @@ export function SendTransactionTest({
 
 	      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-          <img
-            src="https://picsum.photos/800/600"
+          <SeamlessImage
+            src={checkoutImageUrl}
             alt="Random image"
-            className="aspect-[4/3] w-full object-cover"
+            className={cn(
+              "transition duration-300 ease-out motion-reduce:transition-none",
+              checkoutImageVisible ? "scale-100 opacity-100" : "scale-[0.985] opacity-0",
+            )}
           />
         </div>
         <div className="flex flex-col rounded-lg border border-gray-200 bg-white p-4">
@@ -324,13 +527,18 @@ export function SendTransactionTest({
             <CheckoutRow label="Network" value={chain?.name ?? "Current network"} />
             <CheckoutRow label="Gas" value="Sponsored" />
             <CheckoutRow label="Your NFTs" value={loadingBalance ? "Refreshing..." : String(mintedCount)} />
+            {latestMintedTokenId && (
+              <CheckoutRow label="Last minted" value={`#${latestMintedTokenId}`} />
+            )}
           </div>
           <button
+            id="mint-nft-cta"
             onClick={handleMintNft}
             disabled={mintInProgress || !activeAddress || !hasUsableAddress || !nftContractAddress}
             className={cn(
-              "mt-auto flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-gray-800 cursor-pointer",
-              "disabled:cursor-not-allowed disabled:opacity-50"
+              "mt-auto flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-gray-800 cursor-pointer",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              mintCtaHighlighted && "ring-4 ring-blue-200",
             )}
           >
             {mintInProgress ? (
@@ -341,48 +549,50 @@ export function SendTransactionTest({
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                Mint for free
+                {mintedCount > 0 ? "Mint another" : "Mint for free"}
               </>
             )}
 	          </button>
 	        </div>
 	      </div>
 
-	      {(error || mintError) && (
-        <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-lg overflow-hidden">
+	      {(mintErrorScope === "burn" || mintedCount === 0) && renderMintError && mintErrorMessage && (
+        <div
+          className={cn(
+            "flex items-start gap-2 overflow-hidden rounded-lg border border-red-100 bg-red-50 px-4 py-3 transition duration-300 ease-out motion-reduce:transition-none",
+            mintErrorVisible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0",
+          )}
+        >
           <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-red-900">Transaction Failed</p>
+            <p className="text-sm font-medium text-red-900">
+              {mintErrorScope === "burn" ? "Burn Failed" : "Transaction Failed"}
+            </p>
             <p className="text-sm text-red-700 mt-0.5 break-words line-clamp-3">
-              {error || (mintError as unknown as { shortMessage?: string })?.shortMessage || mintError?.message}
+              {mintErrorMessage}
             </p>
           </div>
         </div>
       )}
 
-      {mintTxHash && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-lg">
+      {mintTxHash && renderMintToast && (
+        <a
+          href={`${explorerBaseUrl}/tx/${mintTxHash}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "flex items-center justify-between gap-4 rounded-lg border border-green-100 bg-green-50 px-4 py-3 transition duration-300 ease-out hover:bg-green-100 motion-reduce:transition-none",
+            mintToastVisible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0",
+          )}
+        >
+          <span className="flex min-w-0 items-center gap-2">
             <Check className="h-4 w-4 text-green-600" />
-            <span className="text-sm text-green-700 font-medium">
-              NFT minted into your wallet.
+            <span className="truncate text-sm font-medium text-green-700">
+              NFT {latestMintedTokenId ? `#${latestMintedTokenId} ` : ""}minted. View tx {formatShortHash(mintTxHash)} on Arbiscan.
             </span>
-          </div>
-          <a
-            href={`${explorerBaseUrl}/tx/${mintTxHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              "flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg",
-              "hover:bg-gray-100 transition-colors group"
-            )}
-          >
-            <span className="text-sm text-gray-700 font-medium">
-              Confirm on Arbiscan
-            </span>
-            <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
-          </a>
-        </div>
+          </span>
+          <ExternalLink className="h-4 w-4 shrink-0 text-green-600" />
+        </a>
       )}
 
       {galleryNfts.length > 0 && (
@@ -393,8 +603,11 @@ export function SendTransactionTest({
             className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-gray-50 cursor-pointer"
             aria-expanded={nftsOpen}
           >
-            <span className="block text-sm font-semibold text-gray-950">
+            <span className="flex items-center gap-2 text-sm font-semibold text-gray-950">
               My NFTs
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                {galleryNfts.length}
+              </span>
             </span>
             <ChevronDown
               className={cn(
@@ -410,10 +623,9 @@ export function SendTransactionTest({
                   key={`${nft.txHash ?? "owned"}-${nft.tokenId}`}
                   className="w-[260px] shrink-0 snap-start overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
                 >
-                  <img
+                  <SeamlessImage
                     src={nft.imageUrl ?? `https://picsum.photos/seed/${nft.tokenId}/800/600`}
                     alt={`Minted NFT #${nft.tokenId}`}
-                    className="aspect-[4/3] w-full object-cover"
                   />
                   <div className="space-y-2 bg-white px-3 py-3">
                     <div className="flex items-center justify-between gap-3">
@@ -429,9 +641,14 @@ export function SendTransactionTest({
                         <span className="text-xs font-medium text-gray-500">
                           Receipt
                         </span>
-                        <span className="truncate font-mono text-xs font-medium text-gray-600">
+                        <a
+                          href={`${explorerBaseUrl}/tx/${nft.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate font-mono text-xs font-medium text-gray-600 underline-offset-2 transition-colors hover:text-gray-950 hover:underline"
+                        >
                           {formatShortHash(nft.txHash)}
-                        </span>
+                        </a>
                       </div>
                     )}
                     <div className="flex items-center justify-between gap-3">
@@ -462,6 +679,17 @@ export function SendTransactionTest({
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => handleBurnNft(nft.tokenId)}
+                      className={cn(
+                        "flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100",
+                        "disabled:cursor-not-allowed disabled:opacity-60",
+                      )}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Burn unavailable
+                    </button>
                   </div>
                 </div>
               ))}
