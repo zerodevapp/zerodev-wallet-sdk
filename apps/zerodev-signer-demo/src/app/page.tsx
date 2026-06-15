@@ -1,8 +1,15 @@
 'use client'
 
-import {AuthFlow} from '@zerodev/wallet-react-kit'
+import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
 import {highlight} from 'sugar-high'
-import {ArrowRight, CheckCircle2, CircleHelp, Mail, Settings} from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  CircleHelp,
+  Loader2,
+  Mail,
+  Settings,
+} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import type {FormEvent} from 'react'
 import {Suspense, useEffect, useState} from 'react'
@@ -30,17 +37,33 @@ function LandingPageInner() {
   const [demoMode, setDemoMode] = useState<DemoMode>('prebuilt')
   const [authTransitioning, setAuthTransitioning] = useState(false)
   const [showLogoutToast, setShowLogoutToast] = useState(loggedOutSuccess)
+  const [loggedOut, setLoggedOut] = useState(false)
+  useEffect(() => {
+    const value = localStorage.getItem('zd:loggedOut') === 'true'
+    if (value) {
+      localStorage.removeItem('zd:loggedOut')
+      setLoggedOut(true)
+    }
+  }, [])
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
+  const {step: authStep} = useAuth()
+  const skipAutoConnect = sessionExpired || loggedOut || loggedOutSuccess
+  const isResolvingSession =
+    accountStatus === 'reconnecting' ||
+    accountStatus === 'connecting' ||
+    connectStatus === 'pending'
+  const showLoading = !isConnected && authStep === null && isResolvingSession
+  const showReconnect =
+    !isConnected &&
+    authStep === null &&
+    !isResolvingSession &&
+    (skipAutoConnect || connectStatus === 'error')
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
   }
-
-  useEffect(() => {
-    localStorage.removeItem('zd:loggedOut')
-  }, [])
 
   useEffect(() => {
     if (!loggedOutSuccess) return
@@ -60,6 +83,16 @@ function LandingPageInner() {
   }, [loggedOutSuccess, router])
 
   useEffect(() => {
+    if (!sessionExpired) return
+
+    const cleanUrlTimer = window.setTimeout(() => {
+      router.replace('/')
+    }, 3500)
+
+    return () => window.clearTimeout(cleanUrlTimer)
+  }, [sessionExpired, router])
+
+  useEffect(() => {
     if (isConnected) {
       setAuthTransitioning(true)
       const timer = window.setTimeout(() => {
@@ -68,7 +101,7 @@ function LandingPageInner() {
 
       return () => window.clearTimeout(timer)
     }
-    if (demoMode === 'whiteLabel') return
+    if (demoMode === 'whiteLabel' || skipAutoConnect || authStep !== null) return
     if (
       accountStatus === 'disconnected' &&
       connectStatus === 'idle' &&
@@ -84,17 +117,24 @@ function LandingPageInner() {
     connect,
     connectors,
     demoMode,
+    skipAutoConnect,
+    authStep,
   ])
 
   return (
     <div className="relative flex-1">
+      <div
+        className="fixed inset-0 -z-10 h-screen w-screen bg-cover bg-center opacity-[0.18]"
+        style={{backgroundImage: 'url(/videos/hero-bg-poster.jpg)'}}
+      />
       <video
         autoPlay
         loop
         muted
         playsInline
-        onCanPlay={() => setVideoReady(true)}
-        className={`absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700 ${
+        preload="auto"
+        onLoadedData={() => setVideoReady(true)}
+        className={`fixed inset-0 -z-10 h-screen w-screen object-cover pointer-events-none transition-opacity duration-700 ${
           videoReady ? 'opacity-[0.18]' : 'opacity-0'
         }`}
         poster="/videos/hero-bg-poster.jpg"
@@ -124,39 +164,60 @@ function LandingPageInner() {
           </p>
         </div>
       </div>
-      {videoReady ? (
-        <div className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:grid-cols-[minmax(0,500px)_390px] lg:items-start lg:justify-between lg:gap-12 animate-[auth-transition-card_400ms_ease-out_forwards]">
-          <DemoIntroPanel/>
+      <div className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:grid-cols-[minmax(0,500px)_390px] lg:items-start lg:justify-between lg:gap-12 animate-[auth-transition-card_400ms_ease-out_forwards]">
+        <DemoIntroPanel/>
+        {sessionExpired && (
+          <div
+            className="order-3 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:hidden">
+            Your session has expired. Please log in again.
+          </div>
+        )}
+        <div className="relative order-first mx-auto flex w-full max-w-[390px] flex-col lg:order-none lg:mx-0 lg:pt-3">
+          <ModeSelector mode={demoMode} onModeChange={setDemoMode}/>
           {sessionExpired && (
             <div
-              className="order-3 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:hidden">
+              className="mb-4 hidden px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:block">
               Your session has expired. Please log in again.
             </div>
           )}
-          <div className="relative order-first mx-auto flex w-full max-w-[390px] flex-col lg:order-none lg:mx-0 lg:pt-3">
-            <ModeSelector mode={demoMode} onModeChange={setDemoMode}/>
-            {sessionExpired && (
-              <div
-                className="mb-4 hidden px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:block">
-                Your session has expired. Please log in again.
+          {demoMode === 'prebuilt' ? (
+            <div className="relative h-[544px] overflow-hidden sm:w-[390px] sm:h-[624px]">
+              <div className="w-[500px] h-[800px] origin-top-left flex flex-col scale-[0.68] sm:scale-[0.78]">
+                <AuthFlow/>
               </div>
-            )}
-            {demoMode === 'prebuilt' ? (
-              <div className="h-[544px] overflow-hidden sm:w-[390px] sm:h-[624px]">
-                <div className="w-[500px] h-[800px] origin-top-left flex flex-col scale-[0.68] sm:scale-[0.78]">
-                  <AuthFlow/>
+              {showLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500"/>
+                    Restoring session...
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <WhiteLabelWalletPreview onConnect={handleReconnect}/>
-            )}
-          </div>
+              )}
+              {showReconnect && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                  <div className="flex max-w-[280px] flex-col items-center gap-3 rounded-xl border border-gray-200 bg-white p-5 text-center shadow-sm">
+                    <p className="text-sm font-medium text-gray-900">
+                      Ready to continue
+                    </p>
+                    <p className="text-xs leading-5 text-gray-500">
+                      Reconnect your session to open the wallet.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleReconnect}
+                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+                    >
+                      Reconnect
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <WhiteLabelWalletPreview onConnect={handleReconnect}/>
+          )}
         </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center" style={{minHeight: 'calc(100vh - 5rem)'}}>
-          <div className="h-8 w-8 rounded-full border-2 border-blue-100 border-t-blue-500 animate-spin"/>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -170,9 +231,6 @@ function ModeSelector({
 }) {
   return (
     <div className="mb-4">
-      <p className="mb-2 text-sm font-medium text-gray-500">
-        Experience
-      </p>
       <div className="flex items-center gap-3">
         <div className="grid flex-1 grid-cols-2 rounded-lg border border-gray-200 bg-gray-50 p-1">
           {demoModes.map((item) => (
@@ -201,12 +259,10 @@ function ModeSelector({
 
 function EmailMethodSettings() {
   const [open, setOpen] = useState(false)
-  const [method, setMethod] = useState<EmailAuthMethod>(() => {
-    if (typeof window === 'undefined') return 'otp'
-    return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-      ? 'magicLink'
-      : 'otp'
-  })
+  const [method, setMethod] = useState<EmailAuthMethod>('otp')
+  useEffect(() => {
+    setMethod(localStorage.getItem('zd:emailAuthMethod') === 'magicLink' ? 'magicLink' : 'otp')
+  }, [])
 
   const handleSave = (next: EmailAuthMethod) => {
     localStorage.setItem('zd:emailAuthMethod', next)
@@ -317,9 +373,6 @@ function DemoIntroPanel() {
 
   return (
     <aside className="w-full max-w-[500px] pt-1 lg:pt-3">
-      <p className="mb-3 text-sm font-medium text-blue-500">
-        Wallet Demo
-      </p>
       <h1 className="max-w-[500px] text-3xl font-semibold leading-tight text-gray-950">
         Auth in. Smart wallet out.
       </h1>
