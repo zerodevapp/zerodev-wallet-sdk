@@ -156,6 +156,10 @@ const tokenMetadata = {
     name: "ETH",
     icon: "https://cryptologos.cc/logos/ethereum-eth-logo.svg",
   },
+  uni: {
+    name: "Uniswap",
+    icon: "https://cryptologos.cc/logos/uniswap-uni-logo.svg",
+  },
   usdc: {
     name: "USDC",
     icon: "https://cryptologos.cc/logos/usd-coin-usdc-logo.svg",
@@ -1735,9 +1739,7 @@ function StableGasSwapTest({
                             {step.token === "usdc" ? (
                               <img alt="" className="h-5 w-5" src={tokenMetadata.usdc.icon} />
                             ) : step.token === "swap" ? (
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[11px] font-black text-white">
-                                U
-                              </span>
+                              <img alt="" className="h-5 w-5" src={tokenMetadata.uni.icon} />
                             ) : (
                               <img alt="" className="h-5 w-5" src={tokenMetadata.eth.icon} />
                             )}
@@ -1757,11 +1759,6 @@ function StableGasSwapTest({
                             {executionMode === "batch" && (
                               <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-green-700">
                                 Gas sponsored
-                              </span>
-                            )}
-                            {step.token === "swap" && (
-                              <span className="ml-2 rounded-full bg-pink-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-pink-700">
-                                Uniswap
                               </span>
                             )}
                           </p>
