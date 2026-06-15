@@ -1,18 +1,22 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Sparkles, AlertCircle, Loader2, Check, ChevronDown, Code2, ExternalLink, Trash2, Shuffle } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
   type Address,
+  type PublicClient,
+  createPublicClient,
   encodeFunctionData,
+  http,
   parseAbi,
   parseEventLogs,
   parseAbiItem,
   zeroAddress,
 } from "viem";
 import { getZeroDevConnector, getZeroDevStore } from "@zerodev/wallet-react";
-import { sepolia } from "wagmi/chains";
+import { arbitrumSepolia, sepolia } from "wagmi/chains";
 import { useAccount, useConfig, usePublicClient } from "wagmi";
 
 // Per-chain NFT contract addresses
@@ -33,7 +37,44 @@ const NFT_TRANSFER_EVENT = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 );
 
+// Public archive RPCs used ONLY for the read-only Transfer-log scan that
+// rebuilds the gallery from chain history. The wallet's configured RPC is a
+// bundler endpoint and may not support (or may range-limit) eth_getLogs, so we
+// scan against a known-good full node instead. Verified to handle a
+// topic-filtered fromBlock:0 query.
+const LOG_SCAN_CHAINS = {
+  [arbitrumSepolia.id]: arbitrumSepolia,
+  [sepolia.id]: sepolia,
+} as const;
+
+const LOG_SCAN_RPC_URLS: Record<number, string> = {
+  [arbitrumSepolia.id]: "https://sepolia-rollup.arbitrum.io/rpc",
+  [sepolia.id]: "https://ethereum-sepolia-rpc.publicnode.com",
+};
+
+const logScanClientCache = new Map<number, PublicClient>();
+
+function getLogScanClient(chainId?: number): PublicClient | undefined {
+  if (!chainId) return undefined;
+  const cached = logScanClientCache.get(chainId);
+  if (cached) return cached;
+
+  const chain = LOG_SCAN_CHAINS[chainId as keyof typeof LOG_SCAN_CHAINS];
+  const url = LOG_SCAN_RPC_URLS[chainId];
+  if (!chain || !url) return undefined;
+
+  const client = createPublicClient({ chain, transport: http(url) }) as PublicClient;
+  logScanClientCache.set(chainId, client);
+  return client;
+}
+
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD" as const;
+
+// How far back to scan Transfer logs when there's no localStorage cache.
+// Arbitrum Sepolia produces blocks roughly every ~0.25s, so 8,000 blocks is
+// comfortably more than the ~10 minutes of recent history we care about, while
+// staying under the ~10k block-range cap common to public RPC providers.
+const RECENT_TRANSFER_BLOCK_WINDOW = BigInt(8000);
 
 type MintedNft = {
   blockNumber?: bigint
@@ -321,6 +362,7 @@ export function SendTransactionTest({
   nftFocusRequest?: number
   onNftCountChange?: (count: number) => void
 }) {
+  const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string>("");
   const [mintedNfts, setMintedNfts] = useState<MintedNft[]>([]);
   const [mintStatus, setMintStatus] = useState<MintStatus>("idle");
@@ -345,6 +387,16 @@ export function SendTransactionTest({
   const [latestBurnedTokenId, setLatestBurnedTokenId] = useState<string | null>(null);
   const [latestMintedTokenId, setLatestMintedTokenId] = useState<string | null>(null);
   const selectedImageByTokenIdRef = useRef<Record<string, string>>({});
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
+  // Always-current snapshot of the gallery, so mutators can compute the next
+  // array synchronously and persist exactly what they set — no reactive effect
+  // that could race the async load and clobber the cache with stale state.
+  const mintedNftsRef = useRef<MintedNft[]>([]);
+  mintedNftsRef.current = mintedNfts;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Wagmi hooks
   const { address, isConnected, chain } = useAccount();
@@ -362,32 +414,6 @@ export function SendTransactionTest({
   const nftActionInProgress = mintInProgress || Boolean(burningTokenId);
   const checkoutImageUrl = getPicsumImageUrl(previewImageSeed);
   const nextMintLabel = nextMintTokenId === "preview" ? "Next" : `#${nextMintTokenId}`;
-  const mintStatusSteps = [
-    {
-      key: "submitting",
-      label: "Submitting",
-      done: mintStatus !== "idle",
-      active: mintStatus === "submitting",
-    },
-    {
-      key: "submitted",
-      label: "Tx submitted",
-      done: ["submitted", "confirmed", "syncing"].includes(mintStatus),
-      active: mintStatus === "submitted",
-    },
-    {
-      key: "confirmed",
-      label: "Confirmed",
-      done: ["confirmed", "syncing"].includes(mintStatus),
-      active: mintStatus === "confirmed",
-    },
-    {
-      key: "syncing",
-      label: "Wallet updated",
-      done: mintStatus === "syncing",
-      active: mintStatus === "syncing",
-    },
-  ];
 
   const randomizePreviewImage = () => {
     if (nftActionInProgress) return;
@@ -468,46 +494,121 @@ export function SendTransactionTest({
       : new Error("Transaction was submitted but the receipt is still indexing.");
   };
 
-  const setGallery = (nextNfts: MintedNft[]) => {
-    setMintedNfts(nextNfts);
-  };
-
-  const addGalleryNft = (nft: MintedNft) => {
-    setMintedNfts((current) => {
-      const withoutDuplicate = current.filter((item) => item.tokenId !== nft.tokenId);
-      return [nft, ...withoutDuplicate].sort((a, b) =>
-        compareBlockNumbers(a.blockNumber, b.blockNumber),
-      );
-    });
-  };
-
-  const removeGalleryNft = (tokenId: string) => {
-    setMintedNfts((current) => {
-      return current.filter((nft) => nft.tokenId !== tokenId);
-    });
-  };
-
-  useEffect(() => {
-    onNftCountChange?.(mintedNfts.length);
-
+  // Persist the exact array we're about to render. Called explicitly by the
+  // mutators and the rebuild path — never as a reactive effect — so a stale
+  // empty state can't race the async load and overwrite a good cache.
+  const persistGallery = (nfts: MintedNft[]) => {
     if (!activeAddress || !hasUsableAddress || !nftContractAddress) return;
-
     writeCachedNftGallery(
       {
         chainId: chain?.id,
         contractAddress: nftContractAddress,
         ownerAddress: activeAddress,
       },
-      mintedNfts,
+      nfts,
     );
-  }, [
-    activeAddress,
-    chain?.id,
-    hasUsableAddress,
-    mintedNfts,
-    nftContractAddress,
-    onNftCountChange,
-  ]);
+  };
+
+  const setGallery = (nextNfts: MintedNft[]) => {
+    setMintedNfts(nextNfts);
+    persistGallery(nextNfts);
+  };
+
+  const addGalleryNft = (nft: MintedNft) => {
+    const withoutDuplicate = mintedNftsRef.current.filter(
+      (item) => item.tokenId !== nft.tokenId,
+    );
+    const next = [nft, ...withoutDuplicate].sort((a, b) =>
+      compareBlockNumbers(a.blockNumber, b.blockNumber),
+    );
+    setMintedNfts(next);
+    persistGallery(next);
+  };
+
+  const removeGalleryNft = (tokenId: string) => {
+    const next = mintedNftsRef.current.filter((nft) => nft.tokenId !== tokenId);
+    setMintedNfts(next);
+    persistGallery(next);
+  };
+
+  useEffect(() => {
+    onNftCountChange?.(mintedNfts.length);
+  }, [mintedNfts.length, onNftCountChange]);
+
+  // Fetch only transfers that involve this owner by filtering on the indexed
+  // `to`/`from` topics. Filtering keeps the result set tiny (just this wallet's
+  // transfers), so we can scan the full chain history in a single query without
+  // tripping the ~10k-result limit that public RPCs enforce on unfiltered scans.
+  // The scan runs against a dedicated public full node (the wallet RPC is a
+  // bundler endpoint that may not support eth_getLogs); from block 0 first to
+  // recover full history, falling back to a recent window if the range is
+  // rejected, and finally to the wallet client if the public node is down.
+  const fetchOwnerTransferLogs = async () => {
+    if (!nftContractAddress || !activeAddress || !chain?.id) return [];
+    const owner = activeAddress as Address;
+
+    const queryFromBlock = async (client: PublicClient, fromBlock: bigint) => {
+      const [received, sent] = await Promise.all([
+        client.getLogs({
+          address: nftContractAddress,
+          event: NFT_TRANSFER_EVENT,
+          args: { to: owner },
+          fromBlock,
+          toBlock: "latest",
+        }),
+        client.getLogs({
+          address: nftContractAddress,
+          event: NFT_TRANSFER_EVENT,
+          args: { from: owner },
+          fromBlock,
+          toBlock: "latest",
+        }),
+      ]);
+
+      // Merge and replay chronologically so the final owned set reflects the
+      // latest transfer per token (mint -> burn -> re-mint all resolve correctly).
+      return [...received, ...sent].sort((a, b) => {
+        if (a.blockNumber !== b.blockNumber) {
+          if (a.blockNumber == null) return 1;
+          if (b.blockNumber == null) return -1;
+          return a.blockNumber < b.blockNumber ? -1 : 1;
+        }
+        return (a.logIndex ?? 0) - (b.logIndex ?? 0);
+      });
+    };
+
+    const scanClient = getLogScanClient(chain.id) ?? publicClient;
+    if (!scanClient) return [];
+
+    try {
+      return await queryFromBlock(scanClient, BigInt(0));
+    } catch (err) {
+      // Provider likely enforces a max block-range per query. Fall back to a
+      // recent window so at least recently minted NFTs still show up.
+      console.info(
+        "Full-history NFT log scan failed; falling back to recent window:",
+        getMintErrorMessage(err),
+      );
+      try {
+        const latestBlock = await scanClient.getBlockNumber();
+        const fromBlock =
+          latestBlock > RECENT_TRANSFER_BLOCK_WINDOW
+            ? latestBlock - RECENT_TRANSFER_BLOCK_WINDOW
+            : BigInt(0);
+        return await queryFromBlock(scanClient, fromBlock);
+      } catch (windowErr) {
+        // Public node unreachable — last resort, try the wallet's own RPC.
+        if (publicClient && publicClient !== scanClient) {
+          console.info(
+            "Recent-window scan failed; retrying via wallet RPC:",
+            getMintErrorMessage(windowErr),
+          );
+          return await queryFromBlock(publicClient, BigInt(0));
+        }
+        throw windowErr;
+      }
+    }
+  };
 
   const rebuildGalleryFromLogs = async () => {
     if (!publicClient || !activeAddress || !hasUsableAddress || !nftContractAddress) {
@@ -515,12 +616,22 @@ export function SendTransactionTest({
     }
 
     try {
-      const logs = await publicClient.getLogs({
-        address: nftContractAddress,
-        event: NFT_TRANSFER_EVENT,
-        fromBlock: BigInt(0),
-        toBlock: "latest",
-      });
+      // The contract is plain ERC-721 (not Enumerable) with no totalSupply, so
+      // balanceOf tells us HOW MANY NFTs this wallet owns but not WHICH token
+      // IDs. We use it to skip the scan when the wallet is empty, and to detect
+      // when the log scan came back incomplete (e.g. provider range limit).
+      const ownedCount = await publicClient
+        .readContract({
+          address: nftContractAddress,
+          abi: NFT_CONTRACT_ABI,
+          functionName: "balanceOf",
+          args: [activeAddress],
+        })
+        .catch(() => undefined);
+
+      if (ownedCount === BigInt(0)) return [];
+
+      const logs = await fetchOwnerTransferLogs();
       const owned = new Map<string, MintedNft>();
       const normalizedOwner = activeAddress.toLowerCase();
       let highestTokenId: bigint | undefined;
@@ -552,6 +663,12 @@ export function SendTransactionTest({
         setNextMintTokenId((highestTokenId + BigInt(1)).toString());
       }
 
+      if (ownedCount !== undefined && BigInt(owned.size) !== ownedCount) {
+        console.info(
+          `NFT gallery may be incomplete: contract reports ${ownedCount} owned, recovered ${owned.size} from logs.`,
+        );
+      }
+
       const imageUrls = new Map<string, string>();
       Array.from(owned.keys()).forEach((tokenId) => {
         const selectedImageUrl = selectedImageByTokenIdRef.current[tokenId];
@@ -573,6 +690,7 @@ export function SendTransactionTest({
         imageUrls.set(tokenId, getNftImageUrl(tokenId));
       });
 
+      const blockClient = getLogScanClient(chain?.id) ?? publicClient;
       const blockTimestamps = new Map<bigint, string>();
       await Promise.all(
         Array.from(
@@ -582,11 +700,16 @@ export function SendTransactionTest({
               .filter((blockNumber): blockNumber is bigint => Boolean(blockNumber)),
           ),
         ).map(async (blockNumber) => {
-          const block = await publicClient.getBlock({ blockNumber });
-          blockTimestamps.set(
-            blockNumber,
-            new Date(Number(block.timestamp) * 1000).toISOString(),
-          );
+          // Timestamps are cosmetic — a failure here must not drop the NFT.
+          try {
+            const block = await blockClient.getBlock({ blockNumber });
+            blockTimestamps.set(
+              blockNumber,
+              new Date(Number(block.timestamp) * 1000).toISOString(),
+            );
+          } catch {
+            /* leave timestamp undefined */
+          }
         }),
       );
 
@@ -608,6 +731,9 @@ export function SendTransactionTest({
 
     const loadGallery = async () => {
       if (!activeAddress || !hasUsableAddress || !nftContractAddress) {
+        // Don't write here — just clear the view. Persisting only happens via
+        // the explicit mutators / rebuild, so a transient disconnect can't
+        // clobber the cache.
         setMintedNfts([]);
         return;
       }
@@ -618,7 +744,10 @@ export function SendTransactionTest({
         ownerAddress: activeAddress,
       });
 
-      if (cachedNfts) {
+      // Treat a non-empty cache as authoritative. An empty cached array is
+      // treated as a miss so we fall through to the RPC rebuild instead of
+      // showing an empty gallery forever.
+      if (cachedNfts && cachedNfts.length > 0) {
         if (cancelled) return;
         setMintedNfts(cachedNfts);
         const highestTokenId = cachedNfts.reduce<bigint | undefined>((highest, nft) => {
@@ -667,7 +796,6 @@ export function SendTransactionTest({
     setMintErrorScope("mint");
     setMintTxHash(undefined);
     setMintStatus("submitting");
-    setNftsOpen(false);
     const selectedImageUrl = checkoutImageUrl;
 
     let submittedTxHash: `0x${string}` | undefined;
@@ -892,6 +1020,17 @@ export function SendTransactionTest({
     setMintErrorMessage("");
   }, [mintTxHash, mintErrorScope]);
 
+  // When a new NFT is minted, open the gallery and scroll it back to the start
+  // so the newest token (prepended, hence leftmost) is immediately visible.
+  useEffect(() => {
+    if (!latestMintedTokenId) return;
+    setNftsOpen(true);
+    const raf = requestAnimationFrame(() => {
+      galleryScrollRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [latestMintedTokenId]);
+
   useEffect(() => {
     if (!nftFocusRequest) return;
 
@@ -934,7 +1073,7 @@ export function SendTransactionTest({
             visible: mintToastVisible,
             tone: "success" as const,
             href: `${explorerBaseUrl}/tx/${mintTxHash}`,
-            icon: <Check className="h-4 w-4 shrink-0 text-emerald-700" />,
+            icon: <Check className="h-4 w-4 shrink-0 text-white" />,
             title: "NFT minted",
             message: latestMintedTokenId
               ? `NFT #${latestMintedTokenId} minted.`
@@ -947,7 +1086,7 @@ export function SendTransactionTest({
               visible: burnToastVisible,
               tone: "success" as const,
               href: `${explorerBaseUrl}/tx/${burnTxHash}`,
-              icon: <Check className="h-4 w-4 shrink-0 text-emerald-700" />,
+              icon: <Check className="h-4 w-4 shrink-0 text-white" />,
               title: "NFT burned",
               message: latestBurnedTokenId
                 ? `NFT #${latestBurnedTokenId} burned.`
@@ -956,63 +1095,68 @@ export function SendTransactionTest({
             }
           : null;
 
+  // Render the notification through a portal to <body> so its `position: fixed`
+  // pins to the viewport (just below the navbar) rather than to a transformed
+  // dashboard ancestor, which would otherwise trap it inside the playground frame.
+  const notificationBar = notification && (
+    <div
+      className={cn(
+        "fixed inset-x-0 top-20 z-50 pointer-events-none border-b transition duration-300 ease-out motion-reduce:transition-none",
+        notification.tone === "success"
+          ? "border-emerald-400 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+          : "border-red-200 bg-red-50/95 text-red-950 backdrop-blur-xl",
+        notification.visible
+          ? "translate-y-0 opacity-100"
+          : "-translate-y-2 opacity-0",
+      )}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {notification.href ? (
+          <a
+            key={notification.key}
+            href={notification.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "pointer-events-auto flex min-h-10 items-center justify-between gap-4 py-2 transition-colors",
+              notification.tone === "success"
+                ? "hover:text-white/90"
+                : "border-red-200 bg-red-50/95 text-red-950",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              {notification.icon}
+              <span className="min-w-0 text-sm">
+                <span className="font-semibold">{notification.title}</span>
+                <span className="text-current/75"> · {notification.message}</span>
+              </span>
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold underline underline-offset-4">
+              {notification.action}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </span>
+          </a>
+        ) : (
+          <div
+            key={notification.key}
+            className="pointer-events-auto flex min-h-10 items-start gap-2 py-2 text-red-950"
+          >
+            {notification.icon}
+            <div className="min-w-0 text-sm">
+              <p className="font-semibold">{notification.title}</p>
+              <p className="line-clamp-2 break-words text-red-700">
+                {notification.message}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-5">
-      {notification && (
-        <div
-          className={cn(
-            "fixed inset-x-0 top-20 z-50 pointer-events-none border-b backdrop-blur-xl transition duration-300 ease-out motion-reduce:transition-none",
-            notification.tone === "success"
-              ? "border-emerald-200 bg-emerald-50/95 text-emerald-950"
-              : "border-red-200 bg-red-50/95 text-red-950",
-            notification.visible
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-2 opacity-0",
-          )}
-        >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {notification.href ? (
-              <a
-                key={notification.key}
-                href={notification.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "pointer-events-auto flex min-h-10 items-center justify-between gap-4 py-2 transition-colors",
-                  notification.tone === "success"
-                    ? "hover:text-emerald-800"
-                    : "border-red-200 bg-red-50/95 text-red-950",
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  {notification.icon}
-                  <span className="min-w-0 text-sm">
-                    <span className="font-semibold">{notification.title}</span>
-                    <span className="text-current/75"> · {notification.message}</span>
-                  </span>
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold underline underline-offset-4">
-                  {notification.action}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </span>
-              </a>
-            ) : (
-              <div
-                key={notification.key}
-                className="pointer-events-auto flex min-h-10 items-start gap-2 py-2 text-red-950"
-              >
-                {notification.icon}
-                <div className="min-w-0 text-sm">
-                  <p className="font-semibold">{notification.title}</p>
-                  <p className="line-clamp-2 break-words text-red-700">
-                    {notification.message}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {mounted && notificationBar && createPortal(notificationBar, document.body)}
 
       {!nftContractAddress && (
         <div className="flex items-start gap-2 px-4 py-3 bg-yellow-50 border border-yellow-100 rounded-lg">
@@ -1095,34 +1239,6 @@ export function SendTransactionTest({
               )}
 	          </button>
           </div>
-          {mintInProgress && (
-            <div className="grid gap-2 rounded-lg bg-gray-50 p-2 sm:grid-cols-4">
-              {mintStatusSteps.map((step) => (
-                <div
-                  key={step.key}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-gray-500",
-                    step.done && "text-gray-950",
-                    step.active && "bg-white shadow-sm",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex h-4 w-4 items-center justify-center rounded-full bg-gray-200",
-                      step.done && "bg-emerald-100 text-emerald-800",
-                    )}
-                  >
-                    {step.active ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : step.done ? (
-                      <Check className="h-3 w-3" />
-                    ) : null}
-                  </span>
-                  {step.label}
-                </div>
-              ))}
-            </div>
-          )}
 	      </div>
       </div>
 
@@ -1148,7 +1264,7 @@ export function SendTransactionTest({
             />
           </button>
           {nftsOpen && (
-            <div className="flex snap-x gap-3 overflow-x-auto border-t border-gray-200 p-4">
+            <div ref={galleryScrollRef} className="flex snap-x gap-3 overflow-x-auto border-t border-gray-200 p-4">
               {galleryNfts.map((nft) => (
                 <div
                   key={`${nft.txHash ?? "owned"}-${nft.tokenId}`}

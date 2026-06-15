@@ -2,8 +2,8 @@
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/50 bg-white/55 backdrop-blur-xl supports-[backdrop-filter]:bg-white/45">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white shadow-sm">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2.5">

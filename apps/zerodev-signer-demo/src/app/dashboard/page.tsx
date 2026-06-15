@@ -12,12 +12,12 @@ import {
   Check,
   Copy,
   Coins,
-  Component,
   ChevronDown,
   ExternalLink,
   Fuel,
   ImageIcon,
   Key,
+  KeyRound,
   Loader2,
   LogOut,
   RefreshCw,
@@ -46,7 +46,9 @@ import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { LogoutOverlay } from "../components/LogoutOverlay";
 import { SendTransactionTest } from "../components/SendTransactionTest";
+import { FaucetLink } from "../components/FaucetLink";
 import { SigningTest } from "../components/SigningTest";
+import { TreasuryPermissionsTest } from "../components/TreasuryPermissionsTest";
 import { cn } from "../lib/utils";
 
 export const dynamic = 'force-dynamic';
@@ -54,9 +56,9 @@ export const dynamic = 'force-dynamic';
 type ExperienceId =
   | "transact"
   | "stables"
+  | "permissions"
   | "sign"
-  | "export"
-  | "customize";
+  | "export";
 
 const experiences = [
   {
@@ -72,6 +74,12 @@ const experiences = [
     icon: Coins,
   },
   {
+    id: "permissions" as const,
+    title: "Delegate a budget",
+    description: "Grant a scoped session key that can only spend a set amount of USDC to specific wallets.",
+    icon: KeyRound,
+  },
+  {
     id: "sign" as const,
     title: "Sign anything",
     description: "Review and sign messages, typed data, and app requests.",
@@ -82,12 +90,6 @@ const experiences = [
     title: "Own and export keys",
     description: "Show that the wallet is non-custodial and user-owned.",
     icon: Key,
-  },
-  {
-    id: "customize" as const,
-    title: "Customize the flow",
-    description: "Start with prebuilt UI, then progressively replace every surface.",
-    icon: Component,
   },
 ];
 
@@ -256,15 +258,15 @@ export default function DashboardPage() {
   const [assetsRefreshKey, setAssetsRefreshKey] = useState(0);
   const [isRefreshingAssets, setIsRefreshingAssets] = useState(false);
   const [nftFocusRequest, setNftFocusRequest] = useState(0);
+  const [sendFocusRequest, setSendFocusRequest] = useState(0);
+  const [sendFocusAsset, setSendFocusAsset] = useState<"usdc" | "eth">("usdc");
   const [copied, setCopied] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showExportPrivateKeyModal, setShowExportPrivateKeyModal] = useState(false);
   const [walletLookupDebug, setWalletLookupDebug] = useState<string | null>(null);
-  const [confirmationEnabled, setConfirmationEnabled] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("zd:signingConfirmation") === "true";
-  });
+  const [confirmationEnabled, setConfirmationEnabled] = useState(false);
+  const skipConfirmationPersist = useRef(true);
 
   // Wagmi hooks
   const { address, status, chain } = useAccount();
@@ -274,6 +276,14 @@ export default function DashboardPage() {
   const safeAddress = isUsableAddress(address) ? address : null;
 
   useEffect(() => {
+    setConfirmationEnabled(localStorage.getItem("zd:signingConfirmation") === "true");
+  }, []);
+
+  useEffect(() => {
+    if (skipConfirmationPersist.current) {
+      skipConfirmationPersist.current = false;
+      return;
+    }
     localStorage.setItem(
       "zd:signingConfirmation",
       String(confirmationEnabled),
@@ -587,6 +597,12 @@ export default function DashboardPage() {
             onNftCountChange={setNftCount}
             onRefreshAssets={refreshAssets}
             onRequestNftFocus={() => setNftFocusRequest((request) => request + 1)}
+            sendFocusRequest={sendFocusRequest}
+            sendFocusAsset={sendFocusAsset}
+            onRequestSendFocus={(nextAsset) => {
+              setSendFocusAsset(nextAsset)
+              setSendFocusRequest((request) => request + 1)
+            }}
             onToggleConfirmation={setConfirmationEnabled}
           />
         </div>
@@ -669,6 +685,9 @@ function TryItExperience({
   onNftCountChange,
   onRefreshAssets,
   onRequestNftFocus,
+  sendFocusRequest,
+  sendFocusAsset,
+  onRequestSendFocus,
   onToggleConfirmation,
   serviceIssue,
   nftCount,
@@ -694,12 +713,14 @@ function TryItExperience({
   onNftCountChange: (count: number) => void
   onRefreshAssets: () => void
   onRequestNftFocus: () => void
+  sendFocusRequest: number
+  sendFocusAsset: "usdc" | "eth"
+  onRequestSendFocus: (asset: "usdc" | "eth") => void
   onToggleConfirmation: (enabled: boolean) => void
   serviceIssue: string | null
   nftCount: number
   usdcBalance: string
 }) {
-  const [walletActionsOpen, setWalletActionsOpen] = useState(false)
   const [walletSettingsOpen, setWalletSettingsOpen] = useState(false)
   const liveWalletAvailable = Boolean(safeAddress)
   const ethAmount = liveWalletAvailable ? parseFloat(balance).toFixed(4) : "0.0000"
@@ -769,52 +790,7 @@ function TryItExperience({
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => {
-                        setWalletActionsOpen((open) => !open)
-                        setWalletSettingsOpen(false)
-                      }}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 cursor-pointer"
-                      aria-expanded={walletActionsOpen}
-                    >
-                      Actions
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform",
-                          walletActionsOpen && "rotate-180",
-                        )}
-                      />
-                    </button>
-                    {walletActionsOpen && (
-                      <div className="absolute right-0 top-full z-20 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-                        <p className="text-xs font-medium text-gray-500">Wallet actions</p>
-                        <div className="mt-2 grid gap-2">
-                          <button
-                            type="button"
-                            onClick={onExportWallet}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 cursor-pointer"
-                          >
-                            <Key className="h-4 w-4" />
-                            Export keys
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onSelect("transact")}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 cursor-pointer"
-                          >
-                            <Upload className="h-4 w-4 rotate-90" />
-                            Withdraw
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWalletSettingsOpen((open) => !open)
-                        setWalletActionsOpen(false)
-                      }}
+                      onClick={() => setWalletSettingsOpen((open) => !open)}
                       className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 cursor-pointer"
                       aria-expanded={walletSettingsOpen}
                     >
@@ -894,6 +870,10 @@ function TryItExperience({
                     label="ETH"
                     value={ethAmount}
                     walletAddress={explorerAddress}
+                    onClick={() => {
+                      onSelect("sign")
+                      onRequestSendFocus("eth")
+                    }}
                   />
                   <CompactWalletMetric
                     faucet={tokenMetadata.usdc.faucet}
@@ -901,6 +881,10 @@ function TryItExperience({
                     label="USDC"
                     value={`$${usdcAmount}`}
                     walletAddress={explorerAddress}
+                    onClick={() => {
+                      onSelect("sign")
+                      onRequestSendFocus("usdc")
+                    }}
                   />
                   <CompactWalletMetric
                     icon={null}
@@ -912,6 +896,11 @@ function TryItExperience({
 	                    value={String(nftCount)}
 	                    walletAddress={explorerAddress}
 	                  />
+                  <SessionKeyBadge
+                    chainId={chainId}
+                    owner={safeAddress}
+                    onClick={() => onSelect("permissions")}
+                  />
                 </div>
               </div>
             </div>
@@ -964,6 +953,8 @@ function TryItExperience({
               chainId={chainId}
               experience={activeExperience}
               nftFocusRequest={nftFocusRequest}
+              sendFocusRequest={sendFocusRequest}
+              sendFocusAsset={sendFocusAsset}
               onNftCountChange={onNftCountChange}
               onRefreshAssets={onRefreshAssets}
               onExportPrivateKey={onExportPrivateKey}
@@ -987,9 +978,114 @@ function getScenarioCopy(experience: ExperienceId) {
       return "A developer can use familiar wagmi signing hooks while the kit provides a review layer for messages and typed data.";
     case "export":
       return "The app can prove the wallet is user-owned by letting the user export the seed phrase or account private key.";
-    case "customize":
-      return "Teams can ship the prebuilt wallet UI first, then progressively replace auth and signing surfaces for enterprise flows.";
+    case "permissions":
+      return "A user grants a scoped, rate-limited session key that can spend a set amount of USDC to specific wallets — then the account enforces those limits on-chain.";
   }
+}
+
+type ActiveSessionKey = {
+  sessionAddress: string
+  amountEach: string
+  count: number
+  used: number
+  intervalSec: number
+  recipientCount: number
+}
+
+// Polls localStorage for an active (granted, non-exhausted) treasury session key
+// so the header can surface it. The permissions tab is the source of truth: it
+// writes on grant and removes on revoke/reset.
+function useActiveSessionKey(chainId?: number, owner?: Address | null) {
+  const [info, setInfo] = useState<ActiveSessionKey | null>(null)
+
+  useEffect(() => {
+    if (!chainId || !owner) {
+      setInfo(null)
+      return
+    }
+    const key = `zd:treasury-session:${chainId}:${owner.toLowerCase()}`
+    const read = () => {
+      try {
+        const raw = window.localStorage.getItem(key)
+        if (!raw) {
+          setInfo(null)
+          return
+        }
+        const g = JSON.parse(raw)
+        const used = g.used ?? 0
+        if (
+          !g ||
+          typeof g.sessionAddress !== "string" ||
+          typeof g.count !== "number" ||
+          used >= g.count
+        ) {
+          setInfo(null)
+          return
+        }
+        setInfo({
+          sessionAddress: g.sessionAddress,
+          amountEach: String(g.amountEach ?? "0"),
+          count: g.count,
+          used,
+          intervalSec: g.intervalSec ?? 0,
+          recipientCount: Array.isArray(g.recipients) ? g.recipients.length : 0,
+        })
+      } catch {
+        setInfo(null)
+      }
+    }
+    read()
+    const id = window.setInterval(read, 2500)
+    return () => window.clearInterval(id)
+  }, [chainId, owner])
+
+  return info
+}
+
+function SessionKeyBadge({
+  chainId,
+  owner,
+  onClick,
+}: {
+  chainId?: number
+  owner: Address | null
+  onClick: () => void
+}) {
+  const session = useActiveSessionKey(chainId, owner)
+  if (!session) return null
+
+  const remaining = Math.max(0, session.count - session.used)
+  return (
+    <div className="group/sk relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 transition-colors hover:bg-emerald-100 cursor-pointer"
+      >
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        Session key active
+      </button>
+      <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden w-64 rounded-lg border border-gray-200 bg-white p-3 text-left shadow-lg group-hover/sk:block">
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-gray-900">
+          <KeyRound className="h-3.5 w-3.5 text-gray-500" />
+          {formatShortTx(session.sessionAddress as `0x${string}`)}
+        </p>
+        <p className="mt-1.5 text-[11px] leading-4 text-gray-600">
+          A delegated key can spend up to{" "}
+          <strong>{session.amountEach} USDC</strong> per payout, to{" "}
+          <strong>{session.recipientCount}</strong> allow-listed wallet
+          {session.recipientCount === 1 ? "" : "s"}, every {session.intervalSec}s.
+        </p>
+        <p className="mt-1.5 text-[11px] font-medium text-gray-700">
+          {remaining} of {session.count} payouts remaining
+        </p>
+        <p className="mt-1.5 text-[11px] text-gray-400">Click to manage</p>
+      </div>
+    </div>
+  )
 }
 
 function CompactWalletMetric({
@@ -1021,34 +1117,38 @@ function CompactWalletMetric({
         {value}
       </span>
       {faucet && (
-        <a
-          href={faucet}
-          onClick={() => {
-            if (walletAddress) {
-              navigator.clipboard.writeText(walletAddress).catch(() => {})
-            }
-          }}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
-          title={`${label} faucet`}
-        >
-          Faucet
-          <ExternalLink className="h-3 w-3" />
-        </a>
+        // Keep faucet clicks from triggering the metric's onClick navigation.
+        <span onClick={(e) => e.stopPropagation()}>
+          <FaucetLink
+            href={faucet}
+            address={walletAddress}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+          >
+            Faucet
+            <ExternalLink className="h-3 w-3" />
+          </FaucetLink>
+        </span>
       )}
     </>
   )
 
   if (onClick) {
+    // A div (not a button) so it can safely contain the faucet button.
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className="flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-white cursor-pointer"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onClick()
+          }
+        }}
+        className="flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-white"
       >
         {content}
-      </button>
+      </div>
     )
   }
 
@@ -1875,15 +1975,14 @@ function StableGasSwapTest({
             </div>
           )}
           {availableUsdcNumber < 1 && (
-            <a
+            <FaucetLink
               href={tokenMetadata.usdc.faucet}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+              address={accountAddress}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100 cursor-pointer"
             >
               Get test USDC
               <ExternalLink className="h-3.5 w-3.5" />
-            </a>
+            </FaucetLink>
           )}
           {!isArbitrumSepolia && (
             <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
@@ -1940,6 +2039,8 @@ function ScenarioPanel({
   chainId,
   experience,
   nftFocusRequest,
+  sendFocusRequest,
+  sendFocusAsset,
   onNftCountChange,
   onRefreshAssets,
   onExportPrivateKey,
@@ -1950,6 +2051,8 @@ function ScenarioPanel({
   chainId?: number
   experience: ExperienceId
   nftFocusRequest: number
+  sendFocusRequest: number
+  sendFocusAsset: "usdc" | "eth"
   onNftCountChange: (count: number) => void
   onRefreshAssets: () => void
   onExportPrivateKey: () => void
@@ -1968,10 +2071,22 @@ function ScenarioPanel({
     )
   }
 
+  if (experience === "permissions") {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <TreasuryPermissionsTest accountAddress={accountAddress} />
+      </div>
+    )
+  }
+
   if (experience === "sign") {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <SigningTest accountAddress={accountAddress} />
+        <SigningTest
+          accountAddress={accountAddress}
+          sendFocusRequest={sendFocusRequest}
+          sendFocusAsset={sendFocusAsset}
+        />
       </div>
     )
   }
@@ -2014,35 +2129,6 @@ function ScenarioPanel({
             Export private key
           </button>
         </div>
-      </div>
-    )
-  }
-
-  if (experience === "customize") {
-    return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-950">
-              Custom checkout auth
-            </p>
-            <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600">
-              White-label
-            </span>
-          </div>
-          <div className="space-y-3">
-            <div className="h-10 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
-              user@company.com
-            </div>
-            <button className="flex h-10 w-full items-center justify-center rounded-lg bg-gray-950 text-sm font-semibold text-white">
-              Continue with smart wallet
-            </button>
-          </div>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-gray-600">
-          The user experience can look native to the app while the wallet
-          stack stays integrated underneath.
-        </p>
       </div>
     )
   }

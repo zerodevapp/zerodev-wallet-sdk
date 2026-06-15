@@ -37,12 +37,14 @@ function LandingPageInner() {
   const [demoMode, setDemoMode] = useState<DemoMode>('prebuilt')
   const [authTransitioning, setAuthTransitioning] = useState(false)
   const [showLogoutToast, setShowLogoutToast] = useState(loggedOutSuccess)
-  const [loggedOut] = useState(() => {
-    if (typeof window === 'undefined') return false
+  const [loggedOut, setLoggedOut] = useState(false)
+  useEffect(() => {
     const value = localStorage.getItem('zd:loggedOut') === 'true'
-    if (value) localStorage.removeItem('zd:loggedOut')
-    return value
-  })
+    if (value) {
+      localStorage.removeItem('zd:loggedOut')
+      setLoggedOut(true)
+    }
+  }, [])
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
@@ -257,12 +259,10 @@ function ModeSelector({
 
 function EmailMethodSettings() {
   const [open, setOpen] = useState(false)
-  const [method, setMethod] = useState<EmailAuthMethod>(() => {
-    if (typeof window === 'undefined') return 'otp'
-    return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-      ? 'magicLink'
-      : 'otp'
-  })
+  const [method, setMethod] = useState<EmailAuthMethod>('otp')
+  useEffect(() => {
+    setMethod(localStorage.getItem('zd:emailAuthMethod') === 'magicLink' ? 'magicLink' : 'otp')
+  }, [])
 
   const handleSave = (next: EmailAuthMethod) => {
     localStorage.setItem('zd:emailAuthMethod', next)
