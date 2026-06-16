@@ -2,9 +2,6 @@
   "name": "@zerodev/wallet-react-kit",
   "version": "0.0.1-alpha.3",
   "description": "React UI components for ZeroDev Wallet SDK",
-  "publishConfig": {
-    "tag": "alpha"
-  },
   "sideEffects": [
     "**/*.css"
   ],
