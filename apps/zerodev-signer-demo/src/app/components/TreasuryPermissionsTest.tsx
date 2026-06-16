@@ -1236,7 +1236,7 @@ function InfoHint({ text }: { text: string }) {
   return (
     <span className="group/info relative inline-flex">
       <Info className="h-3.5 w-3.5 cursor-help text-gray-400" />
-      <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1.5 hidden w-56 -translate-x-1/2 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] font-normal leading-4 text-gray-600 shadow-md group-hover/info:block">
+      <span className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 hidden w-56 max-w-[calc(100vw-2.5rem)] rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] font-normal leading-4 text-gray-600 shadow-md group-hover/info:block">
         {text}
       </span>
     </span>

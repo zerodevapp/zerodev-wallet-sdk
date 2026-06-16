@@ -734,6 +734,10 @@ function TryItExperience({
         ? "Resolving account..."
         : "Address unavailable")
   const explorerAddress = address ?? (serviceIssue ? zeroAddress : null)
+  const shortDisplayAddress =
+    displayAddress.startsWith("0x") && displayAddress.length === 42
+      ? formatShortTx(displayAddress as `0x${string}`)
+      : displayAddress
 
   return (
     <div>
@@ -752,7 +756,8 @@ function TryItExperience({
 	                  <div className="flex h-10 w-fit max-w-full items-center gap-2 rounded-lg border border-gray-200 bg-white px-3">
 	                    <span className="text-xs font-medium text-gray-500">Address</span>
 	                    <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-sm text-gray-950">
-	                      {displayAddress}
+	                      <span className="sm:hidden">{shortDisplayAddress}</span>
+	                      <span className="hidden sm:inline">{displayAddress}</span>
                     </span>
                     {explorerAddress && (
                       <button
@@ -804,7 +809,7 @@ function TryItExperience({
                       />
                     </button>
                     {walletSettingsOpen && (
-                      <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                      <div className="absolute right-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
                         <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3">
                           <span>
                             <span className="block text-sm font-semibold text-gray-950">
@@ -1068,7 +1073,7 @@ function SessionKeyBadge({
         </span>
         Session key active
       </button>
-      <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden w-64 rounded-lg border border-gray-200 bg-white p-3 text-left shadow-lg group-hover/sk:block">
+      <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-3 text-left shadow-lg group-hover/sk:block">
         <p className="flex items-center gap-1.5 text-xs font-semibold text-gray-900">
           <KeyRound className="h-3.5 w-3.5 text-gray-500" />
           {formatShortTx(session.sessionAddress as `0x${string}`)}
