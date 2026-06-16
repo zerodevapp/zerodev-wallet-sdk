@@ -1,5 +1,11 @@
 # @zerodev/wallet-core
 
+## 0.0.1-alpha.23
+
+### Patch Changes
+
+- fix: sign stamp-login against the parent org so it works with the sub-org-less backend
+
 ## 0.0.1-alpha.22
 
 ### Patch Changes

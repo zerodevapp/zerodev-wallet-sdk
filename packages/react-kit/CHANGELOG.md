@@ -1,5 +1,13 @@
 # @zerodev/wallet-react-kit
 
+## 0.0.1-alpha.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @zerodev/wallet-core@0.0.1-alpha.23
+  - @zerodev/wallet-react@0.0.1-alpha.26
+
 ## 0.0.1-alpha.2
 
 ### Patch Changes
