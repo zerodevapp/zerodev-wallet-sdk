@@ -70,8 +70,11 @@ export async function loginWithStamp(
   return client.request({
     path: `${projectId}/auth/login/stamp`,
     method: 'POST',
+    // The sub-org id is intentionally not sent: the backend derives it from
+    // the stamped credential. `organizationId` (the parent org) is only
+    // signed into `stampPayload` above so the stamp matches the body the
+    // backend relays to Turnkey — it is not part of the wire request.
     body: {
-      subOrganizationId: organizationId,
       targetPublicKey,
       timestamp: timestampIso,
       stamp,

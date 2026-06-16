@@ -190,7 +190,11 @@ export async function createZeroDevWalletCore(
         const data = await client.loginWithStamp({
           targetPublicKey: compressedPublicKeyHex,
           projectId,
-          organizationId: activeSession.organizationId,
+          // Stamp-login is signed against the Turnkey parent org; the backend
+          // resolves the sub-org from the stamped credential. Signing the
+          // sub-org here makes the relayed payload's org mismatch the
+          // signature → Turnkey SIGNATURE_INVALID.
+          organizationId,
           stampWith: 'apiKey',
         })
         await client.apiKeyStamper.commitKeyRotation()
@@ -270,7 +274,9 @@ export async function createZeroDevWalletCore(
             const loginData = await client.loginWithStamp({
               projectId,
               targetPublicKey: compressedPublicKeyHex,
-              organizationId: data.subOrganizationId,
+              // Sign against the parent org (see refreshSession note) — the
+              // backend derives the sub-org from the stamped credential.
+              organizationId,
             })
             await client.apiKeyStamper.commitKeyRotation()
             const parsedSession = parseSession(loginData.session)
@@ -302,6 +308,9 @@ export async function createZeroDevWalletCore(
             const loginData = await client.loginWithStamp({
               targetPublicKey: generatedPublicKey,
               projectId,
+              // Sign against the parent org, not the user's sub-org (see the
+              // refreshSession note). The backend derives the sub-org from the
+              // stamped passkey credential.
               organizationId,
               stampWith: 'passkey',
             })
