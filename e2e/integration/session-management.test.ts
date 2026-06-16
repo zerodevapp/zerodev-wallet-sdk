@@ -10,6 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
 import {
   getAuthProxyConfigId,
+  getParentOrgId,
   waitForBackend,
 } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
@@ -21,6 +22,7 @@ import { createTestStamper } from '../helpers/test-stamper.js'
 describe('Session Management', () => {
   let projectId: string
   let authProxyConfigId: string
+  let parentOrgId: string
   let skipReason = ''
 
   beforeAll(async () => {
@@ -39,6 +41,7 @@ describe('Session Management', () => {
     }
 
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
+    parentOrgId = await getParentOrgId(BACKEND_URL)
 
     projectId = process.env.ZD_PROJECT_ID || ''
     if (!projectId) {
@@ -70,16 +73,21 @@ describe('Session Management', () => {
     const newPublicKey = (await newStamper.getPublicKey())!
 
     // Step 4: Login with stamp using the OLD stamper (active session key)
-    // targeting the NEW public key
+    // targeting the NEW public key. The stamp is signed against the PARENT
+    // org — the backend relays it to Turnkey under the parent and derives the
+    // sub-org from the credential. Signing the sub-org here would make the
+    // relayed payload mismatch the signature → Turnkey SIGNATURE_INVALID.
     const stampLoginResult = await client.loginWithStamp({
       projectId,
-      organizationId: session.organizationId,
+      organizationId: parentOrgId,
       targetPublicKey: newPublicKey,
     })
     expect(stampLoginResult.session).toBeTruthy()
     console.log('Stamp login successful')
 
-    // Step 5: Parse the new session and verify it
+    // Step 5: Parse the new session and verify it. The session itself is still
+    // scoped to the user's sub-org (Turnkey assigns it), even though we stamped
+    // against the parent.
     const newSession = parseSession(stampLoginResult.session)
     expect(newSession.userId).toBeTruthy()
     expect(newSession.organizationId).toBe(session.organizationId)
