@@ -362,14 +362,17 @@ function InfoTooltip({text}: {text: string}) {
 
 function DemoIntroPanel() {
   const [activeValueIndex, setActiveValueIndex] = useState(0)
+  // Auto-rotate through the value props until the user picks one, then stay put.
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
+    if (paused) return
     const timer = window.setInterval(() => {
       setActiveValueIndex((index) => (index + 1) % demoValueProps.length)
     }, 5000)
 
     return () => window.clearInterval(timer)
-  }, [])
+  }, [paused])
 
   return (
     <aside className="w-full max-w-[500px] pt-1 lg:pt-3">
@@ -394,14 +397,26 @@ function DemoIntroPanel() {
             <div key={item.title} className="py-4">
               <button
                 type="button"
-                onClick={() => setActiveValueIndex(index)}
+                onClick={() => {
+                  setActiveValueIndex(index)
+                  setPaused(true)
+                }}
                 className="block w-full text-left cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-4">
-                  <h2 className="text-base font-semibold text-gray-900">
-                    {item.title}
-                  </h2>
-                  <ProgressIndicator active={active}/>
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
+                        active
+                          ? 'bg-blue-500'
+                          : 'border border-gray-900 bg-transparent'
+                      }`}
+                    />
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {item.title}
+                    </h2>
+                  </span>
+                  <ProgressIndicator active={active} paused={paused}/>
                 </div>
               </button>
               <div
@@ -411,7 +426,7 @@ function DemoIntroPanel() {
                     : 'grid-rows-[0fr] opacity-0'
                 }`}
               >
-                <div className="overflow-hidden">
+                <div className="overflow-hidden pl-4">
                   <p className="mb-3 max-w-[500px] text-sm leading-6 text-gray-500">
                     {item.description}
                   </p>
@@ -428,16 +443,19 @@ function DemoIntroPanel() {
 
 function ProgressIndicator({
   active,
+  paused = false,
 }: {
   active: boolean
+  paused?: boolean
 }) {
+  // Once the user selects a section the auto-rotation stops, so drop the bar.
+  if (paused) return null
+
   return (
     <span className="flex items-center gap-2">
       <span className="h-1 w-10 overflow-hidden rounded-full bg-gray-100">
         {active && (
-          <span
-            className="block h-full origin-left animate-[demo-progress_5s_linear_forwards] rounded-full bg-blue-500"
-          />
+          <span className="block h-full origin-left animate-[demo-progress_5s_linear_forwards] rounded-full bg-blue-500" />
         )}
       </span>
     </span>
