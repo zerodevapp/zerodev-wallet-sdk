@@ -8,6 +8,7 @@ import {
   NotAuthenticatedError,
 } from '@zerodev/wallet-react'
 import type { AuthConfig } from './auth/types'
+import type { SmartRoutingAddressConfig } from './smart-routing/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
 
@@ -26,6 +27,7 @@ export type SigningConfig =
 export type ZeroDevKitConfig = {
   signing?: SigningConfig
   auth?: AuthConfig
+  smartRoutingAddress?: SmartRoutingAddressConfig
 }
 
 export type ZeroDevKitConnectorParams = ZeroDevWalletConnectorParams & {
@@ -78,6 +80,11 @@ export function zeroDevWallet(
   // Initialize auth config if provided
   if (params.config?.auth) {
     store.getState().auth.initialize(params.config.auth)
+  }
+
+  // Initialize smart routing address config if provided
+  if (params.config?.smartRoutingAddress) {
+    store.getState().smartRouting.initialize(params.config.smartRoutingAddress)
   }
 
   return (wagmiConfig) => {

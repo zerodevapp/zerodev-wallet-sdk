@@ -22,4 +22,11 @@ export { SignatureRequest } from './signing'
 export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 export { usePendingRequests } from './signing/hooks/usePendingRequests.js'
 
+// Smart Routing Address
+export type {
+  SmartRoutingAddressConfig,
+  UseSmartRoutingAddressParams,
+} from './smart-routing/types.js'
+export { useSmartRoutingAddress } from './smart-routing/useSmartRoutingAddress.js'
+
 export type { PendingRequest, Request, RequestMethod } from './types.js'

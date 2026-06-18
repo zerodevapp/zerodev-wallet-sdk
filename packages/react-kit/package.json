@@ -88,6 +88,7 @@
     "vocs": "^1.4.1"
   },
   "dependencies": {
+    "@zerodev/smart-routing-address": "^0.1.9",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0"
   },
