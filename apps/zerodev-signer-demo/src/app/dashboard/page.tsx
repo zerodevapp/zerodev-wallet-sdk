@@ -41,6 +41,7 @@ import {
 } from "viem";
 import { useAccount, useConfig, useDisconnect, usePublicClient } from "wagmi";
 import { arbitrumSepolia } from "wagmi/chains";
+import { clearWalletBrowserState } from "../lib/wallet-reset";
 import { ChainSelector } from "../components/ChainSelector";
 import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
 import { ExportWalletModal } from "../components/ExportWalletModal";
@@ -188,65 +189,11 @@ function isUsableAddress(value: string | null | undefined): value is Address {
   return Boolean(value && isAddress(value) && value.toLowerCase() !== zeroAddress)
 }
 
-async function deleteZeroDevIndexedDbState() {
-  if (typeof indexedDB === "undefined") return;
-
-  const indexedDbWithDatabases = indexedDB as IDBFactory & {
-    databases?: () => Promise<Array<{ name?: string }>>;
-  };
-  const databases = await indexedDbWithDatabases.databases?.();
-  if (!databases) return;
-
-  await Promise.all(
-    databases
-      .map((database) => database.name)
-      .filter((name): name is string => {
-        if (!name) return false;
-        const normalized = name.toLowerCase();
-        return normalized.includes("turnkey") || normalized.includes("zerodev");
-      })
-      .map(
-        (name) =>
-          new Promise<void>((resolve) => {
-            const request = indexedDB.deleteDatabase(name);
-            request.onsuccess = () => resolve();
-            request.onerror = () => resolve();
-            request.onblocked = () => resolve();
-          }),
-      ),
-  );
-}
-
-async function clearWalletBrowserState() {
-  if (typeof window === "undefined") return;
-
-  const storedSessionKeys = JSON.parse(
-    localStorage.getItem("@zerodev/sessions") || "[]",
-  ) as unknown;
-
-  const keysToRemove = [
-    "zerodev-wallet",
-    "zerodev:auth:otpSession",
-    "@zerodev/active_session",
-    "@zerodev/sessions",
-    "wagmi.store",
-    "wagmi.recentConnectorId",
-    "wagmi.connected",
-  ];
-
-  for (const key of keysToRemove) {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
-  }
-
-  if (Array.isArray(storedSessionKeys)) {
-    for (const key of storedSessionKeys) {
-      if (typeof key === "string") localStorage.removeItem(key);
-    }
-  }
-
-  await deleteZeroDevIndexedDbState();
-}
+// Dev-only preview: lets us open the logged-in dashboard UI without a live
+// wallet session (e.g. /dashboard?preview=1). Uses a placeholder address so
+// the page renders; on-chain reads just return empty/zero data.
+const PREVIEW_ADDRESS =
+  "0x1111111111111111111111111111111111111111" as Address;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -268,8 +215,17 @@ export default function DashboardPage() {
   const [confirmationEnabled, setConfirmationEnabled] = useState(false);
   const skipConfirmationPersist = useRef(true);
 
+  // Dev preview: reach the logged-in dashboard without a live session (?preview=1).
+  const [preview, setPreview] = useState(false);
+  useEffect(() => {
+    setPreview(
+      new URLSearchParams(window.location.search).get("preview") === "1",
+    );
+  }, []);
+
   // Wagmi hooks
-  const { address, status, chain } = useAccount();
+  const { address: connectedAddress, status, chain } = useAccount();
+  const address = connectedAddress ?? (preview ? PREVIEW_ADDRESS : undefined);
   const wagmiConfig = useConfig();
   const { disconnectAsync } = useDisconnect();
   const publicClient = usePublicClient({ chainId: chain?.id });
@@ -444,7 +400,7 @@ export default function DashboardPage() {
     }
   }, [status]);
   useEffect(() => {
-    if (status !== 'disconnected') return;
+    if (status !== 'disconnected' || preview) return;
 
     const timeout = window.setTimeout(() => {
       if (localStorage.getItem('zd:loggedOut') === 'true') {
@@ -455,7 +411,7 @@ export default function DashboardPage() {
     }, 1200);
 
     return () => window.clearTimeout(timeout);
-  }, [status, hasConnected, router]);
+  }, [status, hasConnected, router, preview]);
 
   useEffect(() => {
     if (status !== 'reconnecting' && status !== 'connecting') {
@@ -477,7 +433,7 @@ export default function DashboardPage() {
     };
   }, [status]);
 
-  if (reconnectTimedOut) {
+  if (reconnectTimedOut && !preview) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm">
@@ -501,9 +457,10 @@ export default function DashboardPage() {
 
   // Show loading while connecting or reconnecting
   if (
-    status === 'connecting' ||
-    status === 'reconnecting' ||
-    status === 'disconnected'
+    !preview &&
+    (status === 'connecting' ||
+      status === 'reconnecting' ||
+      status === 'disconnected')
   ) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -549,7 +506,31 @@ export default function DashboardPage() {
       {confirmationEnabled && (
         <SignatureRequestOverlay />
       )}
-      <div className="min-h-screen bg-white animate-[dashboard-enter_360ms_ease-out_both]">
+      {preview && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 -z-10 h-screen w-screen bg-cover bg-center opacity-[0.18]"
+            style={{ backgroundImage: "url(/videos/hero-bg-poster.jpg)" }}
+          />
+          <video
+            aria-hidden
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="pointer-events-none fixed inset-0 -z-10 h-screen w-screen object-cover opacity-[0.18]"
+            poster="/videos/hero-bg-poster.jpg"
+            src="/videos/hero-bg.mp4"
+          />
+        </>
+      )}
+      <div
+        className={`min-h-screen animate-[dashboard-enter_360ms_ease-out_both] ${
+          preview ? "[font-family:var(--font-dm-sans)]" : "bg-white"
+        }`}
+      >
         {serviceIssue && (
           <div className="border-b border-red-200 bg-red-50 text-red-950">
             <div className="mx-auto flex min-h-10 max-w-7xl flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
@@ -574,6 +555,7 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
           <TryItExperience
+            preview={preview}
             address={safeAddress}
             safeAddress={safeAddress}
             activeExperience={activeExperience}
@@ -692,6 +674,7 @@ function TryItExperience({
   serviceIssue,
   nftCount,
   usdcBalance,
+  preview,
 }: {
   address: Address | null
   safeAddress: Address | null
@@ -720,6 +703,7 @@ function TryItExperience({
   serviceIssue: string | null
   nftCount: number
   usdcBalance: string
+  preview: boolean
 }) {
   const [walletSettingsOpen, setWalletSettingsOpen] = useState(false)
   const liveWalletAvailable = Boolean(safeAddress)
@@ -739,17 +723,162 @@ function TryItExperience({
       ? formatShortTx(displayAddress as `0x${string}`)
       : displayAddress
 
+  const headerActions = (
+    <>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setWalletSettingsOpen((open) => !open)}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 cursor-pointer"
+          aria-expanded={walletSettingsOpen}
+        >
+          <Settings className="h-4 w-4" />
+          Settings
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform",
+              walletSettingsOpen && "rotate-180",
+            )}
+          />
+        </button>
+        {walletSettingsOpen && (
+          <div className="absolute right-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+            <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3">
+              <span>
+                <span className="block text-sm font-semibold text-gray-950">
+                  Transaction confirmation
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-gray-500">
+                  Show the review UI when wallet operations require signatures.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={confirmationEnabled}
+                onChange={(event) => onToggleConfirmation(event.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0"
+              />
+            </label>
+          </div>
+        )}
+      </div>
+      <button
+        onClick={onLogout}
+        disabled={loggingOut}
+        className={cn(
+          "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100 cursor-pointer",
+          "disabled:cursor-not-allowed disabled:opacity-60",
+        )}
+        title="Logout"
+      >
+        <LogOut className="h-4 w-4" />
+        Logout
+      </button>
+    </>
+  )
+
+  const assetsBlock = (
+    <>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="text-xs font-medium text-gray-500">Assets</span>
+        <div className="group/refresh relative">
+          <button
+            type="button"
+            onClick={onRefreshAssets}
+            disabled={isRefreshingAssets}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Refresh balances"
+          >
+            <RefreshCw
+              className={cn(
+                "h-3.5 w-3.5",
+                isRefreshingAssets && "animate-spin",
+              )}
+            />
+          </button>
+          <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm group-hover/refresh:block group-focus-within/refresh:block">
+            Refresh balances
+          </span>
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2">
+        <CompactWalletMetric
+          preview={preview}
+          faucet={ethFaucet ?? ethFaucets[421614]}
+          icon={tokenMetadata.eth.icon}
+          label="ETH"
+          value={ethAmount}
+          walletAddress={explorerAddress}
+          onClick={() => {
+            onSelect("sign")
+            onRequestSendFocus("eth")
+          }}
+        />
+        <CompactWalletMetric
+          preview={preview}
+          faucet={tokenMetadata.usdc.faucet}
+          icon={tokenMetadata.usdc.icon}
+          label="USDC"
+          value={`$${usdcAmount}`}
+          walletAddress={explorerAddress}
+          onClick={() => {
+            onSelect("sign")
+            onRequestSendFocus("usdc")
+          }}
+        />
+        <CompactWalletMetric
+          preview={preview}
+          icon={null}
+          label="NFTs"
+          onClick={() => {
+            onSelect("transact")
+            onRequestNftFocus()
+          }}
+          value={String(nftCount)}
+          walletAddress={explorerAddress}
+        />
+        <SessionKeyBadge
+          chainId={chainId}
+          owner={safeAddress}
+          onClick={() => onSelect("permissions")}
+        />
+      </div>
+    </>
+  )
+
   return (
     <div>
-      <section className="overflow-hidden rounded-xl border border-white/70 bg-white/75 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+      {preview && (
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2 className="text-2xl font-semibold tracking-tight text-gray-950">
+            Wallet playground
+          </h2>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {headerActions}
+          </div>
+        </div>
+      )}
+      <section
+        className={`overflow-hidden rounded-xl border border-white/70 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ${
+          preview
+            ? "bg-[#E7E2DD]/30 backdrop-blur-[30px]"
+            : "bg-white/75 backdrop-blur-xl"
+        }`}
+      >
         <div className="bg-white/55 px-4 pt-5 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-950">
-              Wallet playground
-            </h2>
+            {!preview && (
+              <h2 className="text-2xl font-semibold tracking-tight text-gray-950">
+                Wallet playground
+              </h2>
+            )}
             <div className="relative bg-gray-50/80 p-1.5">
               <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center">
+                <div
+                  className={`flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center ${
+                    preview ? "" : "flex-1"
+                  }`}
+                >
                   <div className="shrink-0">
                     <ChainSelector />
                   </div>
@@ -791,59 +920,19 @@ function TryItExperience({
                     )}
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2 xl:justify-end">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setWalletSettingsOpen((open) => !open)}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 cursor-pointer"
-                      aria-expanded={walletSettingsOpen}
-                    >
-                      <Settings className="h-4 w-4" />
-                      Settings
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform",
-                          walletSettingsOpen && "rotate-180",
-                        )}
-                      />
-                    </button>
-                    {walletSettingsOpen && (
-                      <div className="absolute right-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-                        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3">
-                          <span>
-                            <span className="block text-sm font-semibold text-gray-950">
-                              Transaction confirmation
-                            </span>
-                            <span className="mt-1 block text-xs leading-5 text-gray-500">
-                              Show the review UI when wallet operations require signatures.
-                            </span>
-                          </span>
-                          <input
-                            type="checkbox"
-                            checked={confirmationEnabled}
-                            onChange={(event) => onToggleConfirmation(event.target.checked)}
-                            className="mt-1 h-4 w-4 shrink-0"
-                          />
-                        </label>
-                      </div>
-                    )}
+                {preview && (
+                  <div className="flex min-w-0 flex-col gap-2 px-1 md:flex-row md:items-center md:gap-3">
+                    {assetsBlock}
                   </div>
-                  <button
-                    onClick={onLogout}
-                    disabled={loggingOut}
-                    className={cn(
-                      "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100 cursor-pointer",
-                      "disabled:cursor-not-allowed disabled:opacity-60",
-                    )}
-                    title="Logout"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </button>
-                </div>
+                )}
+                {!preview && (
+                  <div className="flex shrink-0 flex-wrap gap-2 xl:justify-end">
+                    {headerActions}
+                  </div>
+                )}
               </div>
-              <div className="mt-2 flex min-w-0 flex-col gap-2 px-1 pb-1 md:flex-row md:items-center">
+              {!preview && (
+                <div className="mt-2 flex min-w-0 flex-col gap-2 px-1 pb-1 md:flex-row md:items-center">
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="text-xs font-medium text-gray-500">
                     Assets
@@ -870,6 +959,7 @@ function TryItExperience({
                 </div>
                 <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2">
                   <CompactWalletMetric
+                    preview={preview}
                     faucet={ethFaucet ?? ethFaucets[421614]}
                     icon={tokenMetadata.eth.icon}
                     label="ETH"
@@ -881,6 +971,7 @@ function TryItExperience({
                     }}
                   />
                   <CompactWalletMetric
+                    preview={preview}
                     faucet={tokenMetadata.usdc.faucet}
                     icon={tokenMetadata.usdc.icon}
                     label="USDC"
@@ -892,6 +983,7 @@ function TryItExperience({
                     }}
                   />
                   <CompactWalletMetric
+                    preview={preview}
                     icon={null}
                     label="NFTs"
                     onClick={() => {
@@ -907,7 +999,8 @@ function TryItExperience({
                     onClick={() => onSelect("permissions")}
                   />
                 </div>
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1100,6 +1193,7 @@ function CompactWalletMetric({
   onClick,
   value,
   walletAddress,
+  preview,
 }: {
   faucet?: string
   icon: string | null
@@ -1107,35 +1201,58 @@ function CompactWalletMetric({
   onClick?: () => void
   value: string
   walletAddress: Address | null
+  preview?: boolean
 }) {
-  const content = (
+  const iconEl = (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-50">
+      {icon ? (
+        <img alt="" className="h-4 w-4" src={icon} />
+      ) : (
+        <ImageIcon className="h-4 w-4 text-gray-500" />
+      )}
+    </span>
+  )
+  const faucetEl = faucet && (
+    // Keep faucet clicks from triggering the metric's onClick navigation.
+    <span onClick={(e) => e.stopPropagation()}>
+      <FaucetLink
+        href={faucet}
+        address={walletAddress}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+      >
+        Faucet
+        <ExternalLink className="h-3 w-3" />
+      </FaucetLink>
+    </span>
+  )
+
+  // Preview: stack the logo + label as a top label with the value beneath.
+  const content = preview ? (
     <>
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-50">
-        {icon ? (
-          <img alt="" className="h-4 w-4" src={icon} />
-        ) : (
-          <ImageIcon className="h-4 w-4 text-gray-500" />
-        )}
+      <span className="flex items-baseline gap-1.5">
+        <span className="whitespace-nowrap text-base font-semibold text-gray-950">
+          {value}
+        </span>
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          {label}
+        </span>
       </span>
+      {faucetEl}
+    </>
+  ) : (
+    <>
+      {iconEl}
       <span className="text-xs font-medium text-gray-500">{label}</span>
       <span className="whitespace-nowrap text-sm font-semibold text-gray-950">
         {value}
       </span>
-      {faucet && (
-        // Keep faucet clicks from triggering the metric's onClick navigation.
-        <span onClick={(e) => e.stopPropagation()}>
-          <FaucetLink
-            href={faucet}
-            address={walletAddress}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
-          >
-            Faucet
-            <ExternalLink className="h-3 w-3" />
-          </FaucetLink>
-        </span>
-      )}
+      {faucetEl}
     </>
   )
+
+  const layoutClass = preview
+    ? "flex-col items-start gap-1"
+    : "items-center gap-2"
 
   if (onClick) {
     // A div (not a button) so it can safely contain the faucet button.
@@ -1150,7 +1267,7 @@ function CompactWalletMetric({
             onClick()
           }
         }}
-        className="flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-white"
+        className={`flex min-w-0 cursor-pointer rounded-md px-1.5 py-1 text-left transition-colors hover:bg-white ${layoutClass}`}
       >
         {content}
       </div>
@@ -1158,9 +1275,7 @@ function CompactWalletMetric({
   }
 
   return (
-    <div className="flex min-w-0 items-center gap-2 px-1.5 py-1">
-      {content}
-    </div>
+    <div className={`flex min-w-0 px-1.5 py-1 ${layoutClass}`}>{content}</div>
   )
 }
 

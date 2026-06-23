@@ -2,6 +2,8 @@
 
 import { ArrowRight, ExternalLink } from "lucide-react";
 
+import { PageToggle } from "./PageToggle";
+
 export function Navbar() {
   return (
     <header className="bg-black/[0.01] backdrop-blur-[60px] [font-family:var(--font-dm-sans)]">
@@ -14,7 +16,7 @@ export function Navbar() {
                 ZeroDev
               </span>
             </div>
-            <span className="text-sm md:text-base px-3 py-1.5 bg-blue-50 text-blue-500 rounded-full font-medium border border-blue-100">
+            <span className="text-xs font-semibold uppercase leading-none tracking-wider text-gray-400">
               Wallet Demo
             </span>
           </div>
@@ -23,6 +25,16 @@ export function Navbar() {
             aria-label="Primary navigation"
             className="hidden items-center gap-4 md:flex"
           >
+            <PageToggle />
+            {process.env.NODE_ENV === "development" && (
+              <a
+                href="/dashboard?preview=1"
+                className="inline-flex items-center rounded-full border border-dashed border-gray-400 px-3 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:border-gray-600 hover:text-gray-800"
+                title="Dev only: open the logged-in dashboard without a session"
+              >
+                Preview
+              </a>
+            )}
             <div className="flex items-center gap-6 rounded-full bg-[#E7E2DD]/30 px-5 py-2 backdrop-blur-[30px]">
               <a
                 href="https://docs.zerodev.app"
