@@ -1,7 +1,6 @@
 'use client'
 
 import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
-import {highlight} from 'sugar-high'
 import {
   ArrowRight,
   CheckCircle2,
@@ -38,6 +37,12 @@ function LandingPageInner() {
   const [authTransitioning, setAuthTransitioning] = useState(false)
   const [showLogoutToast, setShowLogoutToast] = useState(loggedOutSuccess)
   const [loggedOut, setLoggedOut] = useState(false)
+  // Wallet status is only known on the client (wagmi reads its stored session),
+  // so gate status-dependent UI until after mount to avoid a hydration mismatch.
+  const [mounted, setMounted] = useState(false)
+  // Safety net: if the reconnect never resolves, stop blocking the wallet UI.
+  const [resolveTimedOut, setResolveTimedOut] = useState(false)
+  useEffect(() => setMounted(true), [])
   useEffect(() => {
     const value = localStorage.getItem('zd:loggedOut') === 'true'
     if (value) {
@@ -54,12 +59,29 @@ function LandingPageInner() {
     accountStatus === 'reconnecting' ||
     accountStatus === 'connecting' ||
     connectStatus === 'pending'
-  const showLoading = !isConnected && authStep === null && isResolvingSession
+  const showLoading =
+    mounted &&
+    !isConnected &&
+    authStep === null &&
+    isResolvingSession &&
+    !resolveTimedOut
   const showReconnect =
+    mounted &&
     !isConnected &&
     authStep === null &&
     !isResolvingSession &&
     (skipAutoConnect || connectStatus === 'error')
+
+  // If the session reconnect stalls (e.g. a stale stored session), stop
+  // covering the wallet so the user can sign in instead of waiting forever.
+  useEffect(() => {
+    if (!isResolvingSession) {
+      setResolveTimedOut(false)
+      return
+    }
+    const timer = window.setTimeout(() => setResolveTimedOut(true), 4000)
+    return () => window.clearTimeout(timer)
+  }, [isResolvingSession])
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
@@ -164,19 +186,22 @@ function LandingPageInner() {
           </p>
         </div>
       </div>
-      <div className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:grid-cols-[minmax(0,500px)_390px] lg:items-start lg:justify-between lg:gap-12 animate-[auth-transition-card_400ms_ease-out_forwards]">
-        <DemoIntroPanel/>
-        {sessionExpired && (
-          <div
-            className="order-3 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:hidden">
-            Your session has expired. Please log in again.
-          </div>
-        )}
-        <div className="relative order-first mx-auto flex w-full max-w-[390px] flex-col lg:order-none lg:mx-0 lg:pt-3">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pt-8 text-center sm:px-6 sm:pt-12">
+        <h1 className="mx-auto max-w-[900px] text-4xl font-medium leading-[1.05] text-[#19110B] sm:text-5xl md:text-6xl lg:text-[76px] [font-family:var(--font-dm-sans)]">
+          Auth in. Smart wallet out.
+        </h1>
+        <p className="mx-auto mt-5 max-w-[640px] text-base leading-7 text-gray-500">
+          ZeroDev turns any sign-in — passkey, email, Google — into a
+          self-custodial smart account. Your users never touch a seed phrase
+          or pay unexpected gas.
+        </p>
+      </div>
+      <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center gap-8 px-4 py-6 sm:px-6 sm:py-8 animate-[auth-transition-card_400ms_ease-out_forwards]">
+        <div className="relative mx-auto flex w-full max-w-[390px] flex-col">
           <ModeSelector mode={demoMode} onModeChange={setDemoMode}/>
           {sessionExpired && (
             <div
-              className="mb-4 hidden px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200 lg:block">
+              className="mb-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
               Your session has expired. Please log in again.
             </div>
           )}
@@ -360,122 +385,6 @@ function InfoTooltip({text}: {text: string}) {
   )
 }
 
-function DemoIntroPanel() {
-  const [activeValueIndex, setActiveValueIndex] = useState(0)
-  // Auto-rotate through the value props until the user picks one, then stay put.
-  const [paused, setPaused] = useState(false)
-
-  useEffect(() => {
-    if (paused) return
-    const timer = window.setInterval(() => {
-      setActiveValueIndex((index) => (index + 1) % demoValueProps.length)
-    }, 5000)
-
-    return () => window.clearInterval(timer)
-  }, [paused])
-
-  return (
-    <aside className="w-full max-w-[500px] pt-1 lg:pt-3">
-      <h1 className="max-w-[500px] text-3xl font-semibold leading-tight text-gray-950">
-        Auth in. Smart wallet out.
-      </h1>
-      <p className="mt-3 max-w-[500px] text-base leading-7 text-gray-500">
-        ZeroDev turns any sign-in — passkey, email, Google — into a
-        self-custodial smart account. Your users never touch a seed phrase
-        or pay unexpected gas.
-      </p>
-
-      <div className="mt-6">
-        <InstallBlock/>
-      </div>
-
-      <div className="mt-8 divide-y divide-gray-200 border-y border-gray-200">
-        {demoValueProps.map((item, index) => {
-          const active = index === activeValueIndex
-
-          return (
-            <div key={item.title} className="py-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveValueIndex(index)
-                  setPaused(true)
-                }}
-                className="block w-full text-left cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
-                        active
-                          ? 'bg-blue-500'
-                          : 'border border-gray-900 bg-transparent'
-                      }`}
-                    />
-                    <h2 className="text-base font-semibold text-gray-900">
-                      {item.title}
-                    </h2>
-                  </span>
-                  <ProgressIndicator active={active} paused={paused}/>
-                </div>
-              </button>
-              <div
-                className={`grid transition-all duration-500 ease-out ${
-                  active
-                    ? 'grid-rows-[1fr] opacity-100'
-                    : 'grid-rows-[0fr] opacity-0'
-                }`}
-              >
-                <div className="overflow-hidden pl-4">
-                  <p className="mb-3 max-w-[500px] text-sm leading-6 text-gray-500">
-                    {item.description}
-                  </p>
-                  <CodeSnippet label={item.codeLabel} code={item.code}/>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </aside>
-  )
-}
-
-function ProgressIndicator({
-  active,
-  paused = false,
-}: {
-  active: boolean
-  paused?: boolean
-}) {
-  // Once the user selects a section the auto-rotation stops, so drop the bar.
-  if (paused) return null
-
-  return (
-    <span className="flex items-center gap-2">
-      <span className="h-1 w-10 overflow-hidden rounded-full bg-gray-100">
-        {active && (
-          <span className="block h-full origin-left animate-[demo-progress_5s_linear_forwards] rounded-full bg-blue-500" />
-        )}
-      </span>
-    </span>
-  )
-}
-
-function CodeSnippet({code, label}: {code: string; label: string}) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-gray-950 p-4 text-gray-100">
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <p className="text-sm font-semibold text-white">{label}</p>
-        <span className="text-xs text-gray-400">React</span>
-      </div>
-      <pre className="max-h-[148px] overflow-x-auto overflow-y-hidden text-sm leading-6 text-gray-200">
-        <code dangerouslySetInnerHTML={{__html: highlight(code)}}/>
-      </pre>
-    </div>
-  )
-}
-
 function WhiteLabelWalletPreview({onConnect}: {onConnect: () => void}) {
   const [email, setEmail] = useState('')
 
@@ -597,46 +506,6 @@ function GoogleLogo() {
   )
 }
 
-function InstallBlock() {
-  const [variant, setVariant] = useState<keyof typeof installVariants>('headless')
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-gray-800 bg-gray-950">
-      <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-3">
-        {(Object.keys(installVariants) as (keyof typeof installVariants)[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setVariant(key)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border ${
-              variant === key
-                ? 'border-blue-500/40 bg-blue-500/10 text-blue-400'
-                : 'border-gray-700 text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            {installVariants[key].label}
-          </button>
-        ))}
-      </div>
-      <div className="px-4 py-4 font-mono text-sm text-gray-300">
-        <span className="text-blue-400 select-none">{'>'}</span>{' '}
-        {installVariants[variant].command}
-      </div>
-    </div>
-  )
-}
-
-const installVariants = {
-  headless: {
-    label: 'Wallet Core (headless)',
-    command: 'npm install @zerodev/wallet-react',
-  },
-  uikit: {
-    label: 'Wallet Core with UI',
-    command: 'npm install @zerodev/wallet-react-kit',
-  },
-} as const
-
 const demoModes: {value: DemoMode; label: string; description: string}[] = [
   {
     value: 'prebuilt',
@@ -652,45 +521,3 @@ const demoModes: {value: DemoMode; label: string; description: string}[] = [
   },
 ]
 
-const demoValueProps = [
-  {
-    title: 'Bring your own auth',
-    description:
-      'Passkeys, email, Google, or your own credential system — ZeroDev derives a wallet from whatever you already trust. No seed phrases, no browser extensions, no parallel auth stack to maintain.',
-    codeLabel: 'Add Google OAuth',
-    code: `import {
-  OAUTH_PROVIDERS,
-  useAuthenticateOAuth,
-} from '@zerodev/wallet-react'
-
-const authenticateOAuth = useAuthenticateOAuth()
-
-authenticateOAuth.mutateAsync({
-  provider: OAUTH_PROVIDERS.GOOGLE,
-})`,
-  },
-  {
-    title: 'Smart accounts, not just wallets',
-    description:
-      'Every user gets a programmable smart account from day one. Sponsor gas so transactions are free. Batch multiple calls into one. Automate on-chain actions users never need to sign for.',
-    codeLabel: 'Drop in AuthFlow',
-    code: `import { AuthFlow } from '@zerodev/wallet-react-kit'
-
-export function SignIn() {
-  return <AuthFlow />
-}`,
-  },
-  {
-    title: 'One component or raw hooks',
-    description:
-      'Ship with <AuthFlow /> and launch this afternoon. Or reach for raw hooks and own every pixel. The same account infrastructure works either way.',
-    codeLabel: 'Own the UI',
-    code: `const authenticateEmail = useAuthenticateEmail()
-
-async function signIn(email: string) {
-  await authenticateEmail.mutateAsync({ email })
-}
-
-return <EmailForm onSubmit={signIn} />`,
-  },
-]
