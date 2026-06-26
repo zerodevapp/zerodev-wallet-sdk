@@ -27,7 +27,6 @@ pnpm add @zerodev/wallet-react-kit wagmi viem @tanstack/react-query
          chains: [sepolia],
          config: {
            auth: {
-             magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
              enabledMethods: ['email', 'google', 'passkey'],
            },
          },

@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { VERIFY_EMAIL_REDIRECT_URI } from '@/config/auth'
 import {
   clearPendingOtpMutationOptions,
   pendingOtpQueryOptions,
@@ -126,7 +125,6 @@ export default function VerifyEmail() {
     if (pending.method === 'magicLink') {
       sendMagicLink({
         email: pending.email,
-        redirectURL: VERIFY_EMAIL_REDIRECT_URI,
       })
     } else {
       sendOtp({ email: pending.email })
