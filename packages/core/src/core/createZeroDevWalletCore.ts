@@ -1,8 +1,4 @@
 import type { LocalAccount } from 'viem/accounts'
-import type {
-  EmailCustomization,
-  OtpCodeCustomization,
-} from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   type CreateTransportOptions,
@@ -37,8 +33,6 @@ export interface ZeroDevWalletConfigCore {
   fetchOptions?: CreateTransportOptions['fetchOptions']
 }
 
-// Re-export EmailCustomization for convenience
-export type { EmailCustomization } from '../actions/auth/index.js'
 export type { StorageAdapter, StorageManager } from '../storage/manager.js'
 // Re-export new session types
 export type { StamperType, ZeroDevWalletSession } from '../types/session.js'
@@ -61,8 +55,6 @@ export type AuthParams =
         type: 'email' | 'sms'
         contact: string
       }
-      emailCustomization?: EmailCustomization
-      otpCodeCustomization?: OtpCodeCustomization
     }
   | {
       type: 'otp'
@@ -79,8 +71,6 @@ export type AuthParams =
       type: 'magicLink'
       mode: 'send'
       email: string
-      redirectURL: string
-      otpCodeCustomization?: OtpCodeCustomization
     }
   | {
       type: 'magicLink'
@@ -338,17 +328,14 @@ export async function createZeroDevWalletCore(
           let otpParams: Extract<AuthParams, { type: 'otp' }>
           if (params.type === 'magicLink') {
             if (params.mode === 'send') {
+              // Magic-link vs plain-OTP delivery and the link URL template are
+              // configured per-project on the backend (`wallet.otp_configs`);
+              // the client just initiates OTP and the backend decides.
               otpParams = {
                 type: 'otp',
                 mode: 'sendOtp',
                 email: params.email,
                 contact: { type: 'email', contact: params.email },
-                emailCustomization: {
-                  magicLinkTemplate: `${params.redirectURL}${params.redirectURL.includes('?') ? '&' : '?'}code=%s`,
-                },
-                ...(params.otpCodeCustomization && {
-                  otpCodeCustomization: params.otpCodeCustomization,
-                }),
               }
             } else {
               otpParams = {
@@ -364,15 +351,12 @@ export async function createZeroDevWalletCore(
           }
 
           if (otpParams.mode === 'sendOtp') {
-            const { email, contact, emailCustomization, otpCodeCustomization } =
-              otpParams
+            const { email, contact } = otpParams
 
             const data = await client.registerWithOTP({
               email,
               contact,
               projectId,
-              ...(emailCustomization && { emailCustomization }),
-              ...(otpCodeCustomization && { otpCodeCustomization }),
             })
 
             return data

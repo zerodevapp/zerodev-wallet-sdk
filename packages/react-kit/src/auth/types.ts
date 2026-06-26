@@ -14,7 +14,6 @@ export type AuthStep =
 export type EmailAuthMethod = 'magicLink' | 'otp'
 
 export interface AuthConfig {
-  magicLinkBaseUrl: string
   enabledMethods: AuthMethod[]
   emailAuthMethod?: EmailAuthMethod
   termsAndConditionsUrl?: string

@@ -2,7 +2,6 @@ export {
   type AuthenticateWithEmailParameters,
   type AuthenticateWithEmailReturnType,
   authenticateWithEmail,
-  type EmailCustomization,
 } from './authenticateWithEmail.js'
 
 export {
@@ -44,7 +43,6 @@ export {
   loginWithStamp,
 } from './loginWithStamp.js'
 export {
-  type OtpCodeCustomization,
   type OtpContact,
   type RegisterWithOTPParameters,
   type RegisterWithOTPReturnType,

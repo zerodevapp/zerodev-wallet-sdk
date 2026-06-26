@@ -92,10 +92,6 @@ describe('OTP Authentication Flow', () => {
       email,
       contact: { type: 'email', contact: email },
       projectId,
-      otpCodeCustomization: {
-        length: OTP_CODE_LENGTH as 6 | 7 | 8 | 9,
-        alphanumeric: false,
-      },
     })
     expect(registerResult.otpId).toBeTruthy()
     expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()
@@ -185,10 +181,6 @@ describe('OTP Authentication Flow', () => {
       email,
       contact: { type: 'email', contact: email },
       projectId,
-      otpCodeCustomization: {
-        length: OTP_CODE_LENGTH as 6 | 7 | 8 | 9,
-        alphanumeric: false,
-      },
     })
 
     // Try to verify with a wrong code

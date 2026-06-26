@@ -35,10 +35,6 @@ export async function completeOtpLogin(
     email: emailAccount.address,
     contact: { type: 'email', contact: emailAccount.address },
     projectId,
-    otpCodeCustomization: {
-      length: OTP_CODE_LENGTH as 6 | 7 | 8 | 9,
-      alphanumeric: false,
-    },
   })
 
   const emailContent = await searchForNewEmail(
