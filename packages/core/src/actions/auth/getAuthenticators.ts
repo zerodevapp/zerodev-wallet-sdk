@@ -72,18 +72,18 @@ export async function getAuthenticators(
   client: Client,
   params: GetAuthenticatorsParameters,
 ): Promise<GetAuthenticatorsReturnType> {
-  const { subOrganizationId, projectId, token } = params
+  const { projectId, token } = params
 
+  // GET behind StampCheckUser: the backend resolves the user from the stamped
+  // credential (+ session JWT), so no body / sub-org is sent. The stamp signs
+  // the X-Timestamp value (see transport `stampPostion: 'timestamp'`).
   return await client.request({
     path: `${projectId}/authenticators`,
-    method: 'POST',
-    body: {
-      subOrganizationId,
-    },
+    method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
     },
     stamp: true,
-    stampPostion: 'headers',
+    stampPostion: 'timestamp',
   })
 }

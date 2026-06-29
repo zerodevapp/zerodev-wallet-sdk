@@ -158,17 +158,10 @@ await authenticateOAuth.mutateAsync({
 const sendMagicLink = useSendMagicLink()
 const verifyMagicLink = useVerifyMagicLink()
 
-// Send magic link
+// Send magic link. The link URL template and OTP code format are configured
+// per-project on the backend (`wallet.otp_configs`).
 const { otpId } = await sendMagicLink.mutateAsync({
   email: 'user@example.com',
-  redirectURL: 'https://yourapp.com/verify',
-})
-
-// With custom OTP code settings
-const { otpId } = await sendMagicLink.mutateAsync({
-  email: 'user@example.com',
-  redirectURL: 'https://yourapp.com/verify',
-  otpCodeCustomization: { length: 8, alphanumeric: false },
 })
 
 // Verify (on /verify page, extract code from URL)
@@ -187,27 +180,12 @@ const { otpId } = await sendOTP.mutateAsync({
   email: 'user@example.com'
 })
 
-// With custom OTP code settings
-const { otpId } = await sendOTP.mutateAsync({
-  email: 'user@example.com',
-  otpCodeCustomization: { length: 8, alphanumeric: false },
-})
-
 // Verify OTP code
 await verifyOTP.mutateAsync({
   code: '12345678',
   otpId,
 })
 ```
-
-### OTP Code Customization
-
-Both `useSendOTP` and `useSendMagicLink` accept an optional `otpCodeCustomization` parameter:
-
-| Field | Type | Description |
-|---|---|---|
-| `length` | `6 \| 7 \| 8 \| 9` | Code length (default: 6) |
-| `alphanumeric` | `boolean` | Use alphanumeric characters instead of digits only (default: false) |
 
 ## Configuration Options
 

@@ -665,14 +665,12 @@ describe('getUserWallet', () => {
 
     expect(mockClient.request).toHaveBeenCalledWith({
       path: 'proj-456/user-wallet',
-      body: {
-        organizationId: 'org-123',
-      },
+      method: 'GET',
       headers: {
         Authorization: 'Bearer bearer-token-jwt',
       },
       stamp: true,
-      stampPostion: 'headers',
+      stampPostion: 'timestamp',
     })
     expect(result).toEqual({
       walletAddresses: [
@@ -732,7 +730,7 @@ describe('getUserWallet', () => {
     )
   })
 
-  it('requests stamping in headers', async () => {
+  it('requests a timestamped stamp on a GET', async () => {
     const mockClient = createMockClient(async () => ({ walletAddresses: [] }))
 
     await getUserWallet(mockClient, {
@@ -743,8 +741,9 @@ describe('getUserWallet', () => {
 
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
+        method: 'GET',
         stamp: true,
-        stampPostion: 'headers',
+        stampPostion: 'timestamp',
       }),
     )
   })

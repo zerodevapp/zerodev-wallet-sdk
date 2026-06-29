@@ -3,11 +3,6 @@ import type { Client } from '../../client/types.js'
 import type { Stamp } from '../../stampers/types.js'
 import type { StamperType } from '../../types/session.js'
 
-export type EmailCustomization = {
-  /** A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
-  magicLinkTemplate?: string
-}
-
 export type LoginWithStampParameters = {
   /** The project ID for the request */
   projectId: string

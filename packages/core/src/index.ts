@@ -15,7 +15,6 @@ export type {
   AuthenticateWithOAuthParameters,
   AuthenticateWithOAuthReturnType,
   EmailContact,
-  EmailCustomization,
   GetAuthenticatorsParameters,
   GetAuthenticatorsReturnType,
   // Wallet types

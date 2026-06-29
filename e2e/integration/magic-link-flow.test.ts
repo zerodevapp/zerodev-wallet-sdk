@@ -3,13 +3,16 @@
  *
  * Magic link is built on top of the OTP flow. Instead of sending a plain
  * OTP code, Turnkey embeds the code into a clickable URL in the email.
- * The SDK uses registerWithOTP with emailCustomization.magicLinkTemplate
- * where %s is replaced with the OTP code by Turnkey.
+ * Whether a magic link (vs a plain code) is sent — and the link's URL
+ * template — is configured per-project on the backend
+ * (`wallet.otp_configs.magic_link_template`); the SDK just calls
+ * registerWithOTP. This test extracts the code from the magic-link URL when
+ * present and otherwise falls back to plain-code extraction.
  *
  * Flow:
  * 1. Create temp email account
- * 2. Register with OTP + emailCustomization.magicLinkTemplate
- * 3. Extract OTP code from the magic link URL in the email
+ * 2. Register with OTP
+ * 3. Extract OTP code from the magic link URL in the email (or plain code)
  * 4. Verify OTP with Auth Proxy
  * 5. Build client signature
  * 6. Login with OTP via backend
@@ -42,12 +45,6 @@ import {
 } from '../helpers/temp-email.js'
 import { createTestClient } from '../helpers/test-client.js'
 import { createTestStamper } from '../helpers/test-stamper.js'
-
-// The magic link template URL must have an origin that matches the project's
-// ACL security policies. The test client uses Origin: http://localhost:3000
-// which should be allowed by the staging project.
-const MAGIC_LINK_REDIRECT_URL =
-  process.env.MAGIC_LINK_REDIRECT_URL || 'http://localhost:3000/auth/callback'
 
 describe('Magic Link Authentication Flow', () => {
   let projectId: string
@@ -95,19 +92,14 @@ describe('Magic Link Authentication Flow', () => {
     // Step 3: Create SDK client
     const client = createTestClient(stamper)
 
-    // Step 4: Register with OTP + magic link template
-    // The magic link template uses %s as a placeholder for the OTP code.
-    // Turnkey will replace %s with the actual code in the email.
-    const magicLinkTemplate = `${MAGIC_LINK_REDIRECT_URL}${MAGIC_LINK_REDIRECT_URL.includes('?') ? '&' : '?'}code=%s`
-    console.log(`Magic link template: ${magicLinkTemplate}`)
-
+    // Step 4: Register with OTP. Whether the email carries a magic link or a
+    // plain code (and the link template) is configured per-project on the
+    // backend (`wallet.otp_configs.magic_link_template`); the client no longer
+    // supplies a template.
     const registerResult = await client.registerWithOTP({
       email,
       contact: { type: 'email', contact: email },
       projectId,
-      emailCustomization: {
-        magicLinkTemplate,
-      },
     })
     expect(registerResult.otpId).toBeTruthy()
     expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()

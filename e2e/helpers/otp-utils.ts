@@ -36,7 +36,7 @@ export function extractMagicLinkCode(content: string): string | null {
 /**
  * Extracts the OTP code from a magic link URL in email content.
  *
- * When using OTP with emailCustomization.magicLinkTemplate, Turnkey sends
+ * When a project is configured with a magic-link template, Turnkey sends
  * an email containing a URL with the OTP code embedded as a query parameter.
  * For example, with template "http://localhost:3000/callback?code=%s",
  * the email will contain "http://localhost:3000/callback?code=1234567".

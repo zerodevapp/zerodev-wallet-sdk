@@ -40,7 +40,6 @@ export const config = createConfig({
       ...(mode && { mode }),
       config: {
         auth: {
-          magicLinkBaseUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/verify`,
           enabledMethods: ['email', 'google', 'passkey'],
           emailAuthMethod: getEmailAuthMethod(),
         },

@@ -4,7 +4,6 @@ import type { AuthConfig } from './types'
 
 function createMockAuthConfig(overrides?: Partial<AuthConfig>): AuthConfig {
   return {
-    magicLinkBaseUrl: 'https://example.com/auth/verify',
     enabledMethods: ['email', 'google', 'passkey'],
     onSuccess: () => {},
     onError: () => {},

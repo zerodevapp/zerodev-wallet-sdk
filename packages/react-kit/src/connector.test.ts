@@ -231,7 +231,6 @@ describe('connector', () => {
   describe('auth integration', () => {
     it('initializes auth when config is provided', () => {
       const authConfig = {
-        magicLinkBaseUrl: 'https://example.com/auth/verify',
         enabledMethods: ['email' as const, 'google' as const],
         onSuccess: vi.fn(),
         onError: vi.fn(),
@@ -257,7 +256,6 @@ describe('connector', () => {
 
     it('auth config works with signing config', () => {
       const authConfig = {
-        magicLinkBaseUrl: 'https://example.com/auth/verify',
         enabledMethods: ['passkey' as const],
       }
       const connector = createKitConnector({
@@ -274,7 +272,6 @@ describe('connector', () => {
 
     it('disconnect resets auth state to null step', async () => {
       const authConfig = {
-        magicLinkBaseUrl: 'https://example.com/auth/verify',
         enabledMethods: ['email' as const],
       }
       const connector = createKitConnector({
@@ -297,7 +294,6 @@ describe('connector', () => {
 
     it('supports all auth methods in config', () => {
       const authConfig = {
-        magicLinkBaseUrl: 'https://example.com/auth/verify',
         enabledMethods: [
           'email' as const,
           'google' as const,
@@ -318,7 +314,6 @@ describe('connector', () => {
 
     it('auth state persists across signing operations', async () => {
       const authConfig = {
-        magicLinkBaseUrl: 'https://example.com/auth/verify',
         enabledMethods: ['email' as const],
       }
       const connector = createKitConnector({

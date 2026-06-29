@@ -281,28 +281,6 @@ describe('React Actions', () => {
       })
     })
 
-    it('includes email customization when provided', async () => {
-      const wallet = createMockWallet()
-      const store = createMockStore(wallet)
-      const connector = createMockConnector(store)
-      const config = createMockConfig(connector)
-
-      await sendOTP(config, {
-        email: 'user@example.com',
-        emailCustomization: { magicLinkTemplate: 'https://app.com/verify/%s' },
-      })
-
-      expect(wallet.auth).toHaveBeenCalledWith({
-        type: 'otp',
-        mode: 'sendOtp',
-        email: 'user@example.com',
-        contact: { type: 'email', contact: 'user@example.com' },
-        emailCustomization: {
-          magicLinkTemplate: 'https://app.com/verify/%s',
-        },
-      })
-    })
-
     it('throws when wallet is not initialized', async () => {
       const store = createMockStore(null)
       const connector = createMockConnector(store)
