@@ -26,7 +26,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install --lockfile-only",
-    "changeset:release": "pnpm build && bash scripts/remove-type.sh && changeset publish --tag alpha && bash scripts/restore-type.sh && pnpm format"
+    "changeset:release": "pnpm build && bash scripts/remove-type.sh && changeset publish && bash scripts/restore-type.sh && pnpm format"
   },
   "keywords": [
     "monorepo",
