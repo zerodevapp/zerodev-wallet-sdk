@@ -1,0 +1,81 @@
+# Configuration
+
+The kit connector accepts all base `zeroDevWallet` params plus an optional `config` object for kit-specific features.
+
+## Basic
+
+```tsx
+import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+
+zeroDevWallet({
+  projectId: 'your-project-id',
+  chains: [sepolia],
+})
+```
+
+Signing confirmation is enabled by default (`prompt` mode). No extra config needed.
+
+## Auth
+
+Configure how users sign in. To display the auth UI, mount the [`<AuthFlow />`](/react-kit/features/authentication) component in your app.
+
+```tsx
+zeroDevWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    auth: {
+      enabledMethods: ['email', 'google', 'passkey'],
+      termsAndConditionsUrl: 'https://yourdomain.com/terms',
+      privacyPolicyUrl: 'https://yourdomain.com/privacy',
+    },
+  },
+})
+```
+
+### `config.auth`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`. |
+| `termsAndConditionsUrl` | `string` (optional) | Your terms and conditions URL. When set (alone or with `privacyPolicyUrl`), the auth UI shows a required agreement checkbox. |
+| `privacyPolicyUrl` | `string` (optional) | Your privacy policy URL. When set (alone or with `termsAndConditionsUrl`), the auth UI shows a required agreement checkbox. |
+| `onSuccess` | `() => void` | Called when authentication completes successfully. |
+| `onError` | `(error: unknown) => void` | Called when authentication fails. |
+
+## Signing
+
+Control whether transactions and signing requests show a confirmation UI. To display the confirmation UI, mount the [`<SignatureRequest />`](/react-kit/features/transaction-signing) component in your app.
+
+```tsx
+zeroDevWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    signing: {
+      mode: 'prompt',
+    },
+  },
+})
+```
+
+### `config.signing`
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `"prompt"` or `"background"` | `"prompt"` | `prompt` shows confirmation UI. `background` skips it. |
+| `methods` | `RequestMethod[]` | `eth_sendTransaction`, `wallet_sendTransaction`, `wallet_sendCalls`, `personal_sign`, `eth_signTypedData_v4` | Which RPC methods trigger the confirmation UI. |
+
+### Background mode
+
+Set `mode: 'background'` to disable the signing gate entirely. Transactions execute immediately without confirmation UI.
+
+```tsx
+zeroDevWallet({
+  projectId: '...',
+  chains: [sepolia],
+  config: {
+    signing: { mode: 'background' },
+  },
+})
+```

@@ -1,0 +1,34 @@
+# ZeroDev React Kit
+
+UI components and enhanced connector for the ZeroDev Wallet SDK.
+
+## Quick Start
+
+```bash
+pnpm add @zerodev/react-wallet-ui
+```
+
+```tsx
+import { zeroDevWallet, SignatureRequest } from '@zerodev/react-wallet-ui'
+import { createConfig } from 'wagmi'
+import { sepolia } from 'wagmi/chains'
+
+const config = createConfig({
+  connectors: [
+    zeroDevWallet({
+      projectId: 'your-project-id',
+      chains: [sepolia],
+    }),
+  ],
+  // ...
+})
+
+function App() {
+  return (
+    <>
+      <YourApp />
+      <SignatureRequest />
+    </>
+  )
+}
+```

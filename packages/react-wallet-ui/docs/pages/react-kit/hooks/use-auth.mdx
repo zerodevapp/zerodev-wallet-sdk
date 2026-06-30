@@ -1,0 +1,74 @@
+# useAuth
+
+Access the auth flow state. Use this to build a custom auth UI instead
+of the default `<AuthFlow />`, or to react to auth state changes
+elsewhere in your app.
+
+## Import
+
+```tsx
+import { useAuth } from '@zerodev/react-wallet-ui'
+```
+
+## Usage
+
+```tsx
+function MyCustomAuth() {
+  const { step, email, enabledMethods, goToStep, setEmail } = useAuth()
+
+  if (step === 'sign-up') {
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          goToStep('email-verification')
+        }}
+      >
+        <input
+          value={email ?? ''}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <button type="submit">Continue</button>
+      </form>
+    )
+  }
+
+  return null
+}
+```
+
+## Return value
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `step` | `AuthStep \| null` | The current step in the auth flow. `null` means nothing should render yet. |
+| `email` | `string \| null` | The email entered by the user, if any. |
+| `otpId` | `string \| null` | The id of the active OTP challenge, if any. |
+| `enabledMethods` | `AuthMethod[]` | Methods enabled by `config.auth.enabledMethods`. |
+| `config` | `AuthConfig \| null` | The full auth config passed to the connector. |
+| `goToStep` | `(step: AuthStep \| null) => void` | Move the flow to a specific step (or `null` to render nothing). |
+| `goBack` | `(() => void) \| null` | Go back to the previous step. `null` when there's no previous step. |
+| `reset` | `() => void` | Reset the flow to its initial state. |
+| `setEmail` | `(email: string) => void` | Set the email value. |
+| `setOtpId` | `(otpId: string) => void` | Set the OTP challenge id. |
+
+### `AuthStep`
+
+```ts
+type AuthStep =
+  | 'sign-up'
+  | 'email-verification'
+  | 'otp-input'
+  | 'verifying-otp'
+  | 'passkey-prompt'
+  | 'oauth-in-progress'
+  | 'wallet-selection'
+  | 'authenticated'
+  | 'error'
+```
+
+### `AuthMethod`
+
+```ts
+type AuthMethod = 'email' | 'google' | 'passkey'
+```
