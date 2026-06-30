@@ -90,16 +90,16 @@
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/sdk": "5.5.4",
     "@zerodev/wallet-core": "workspace:*",
-    "ox": "^0.3.0",
-    "react": "^18.0.0 || ^19.0.0",
-    "viem": "^2.38.0",
-    "wagmi": "^2.19.0",
-    "zustand": "^5.0.3",
     "expo-linking": ">=7.0.0",
     "expo-web-browser": ">=14.0.0",
+    "ox": "^0.3.0",
+    "react": "^18.0.0 || ^19.0.0",
     "react-native": ">=0.73.0",
     "react-native-webview": ">=13.0.0",
-    "uuid": ">=11.0.0"
+    "uuid": ">=11.0.0",
+    "viem": "^2.38.0",
+    "wagmi": "^2.19.0",
+    "zustand": "^5.0.3"
   },
   "peerDependenciesMeta": {
     "expo-linking": {
@@ -120,10 +120,10 @@
   },
   "devDependencies": {
     "@types/react": "^19",
-    "expo-linking": "^8.0.8",
-    "expo-web-browser": "^15.0.7",
-    "react-native": "0.83.4",
-    "react-native-webview": "13.16.0",
+    "expo-linking": "^56.0.13",
+    "expo-web-browser": "^56.0.5",
+    "react-native": "0.85.2",
+    "react-native-webview": "13.16.1",
     "typescript": "5.9.3",
     "uuid": "^13.0.0"
   },
