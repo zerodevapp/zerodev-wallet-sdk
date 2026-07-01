@@ -57,42 +57,12 @@ describe('registerWithOTP', () => {
           type: 'email',
           contact: 'user@example.com',
         },
-        emailCustomization: undefined,
       },
     })
     expect(result).toEqual({
       otpId: 'otp-123',
       otpEncryptionTargetBundle: 'bundle-stub',
     })
-  })
-
-  it('includes email customization when provided', async () => {
-    const mockClient = createMockClient(async () => ({
-      otpId: 'otp-123',
-      otpEncryptionTargetBundle: 'bundle-stub',
-    }))
-
-    await registerWithOTP(mockClient, {
-      email: 'user@example.com',
-      contact: {
-        type: 'email',
-        contact: 'user@example.com',
-      },
-      projectId: 'proj-456',
-      emailCustomization: {
-        magicLinkTemplate: 'https://example.com/verify/%s',
-      },
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: expect.objectContaining({
-          emailCustomization: {
-            magicLinkTemplate: 'https://example.com/verify/%s',
-          },
-        }),
-      }),
-    )
   })
 
   it('supports SMS contact type', async () => {

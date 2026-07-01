@@ -135,7 +135,6 @@ describe('authenticateWithEmail', () => {
       method: 'POST',
       body: {
         email: 'user@example.com',
-        emailCustomization: undefined,
         targetPublicKey: '03abcdef1234567890',
         projectId: 'proj-456',
       },
@@ -144,29 +143,6 @@ describe('authenticateWithEmail', () => {
       userId: 'user-123',
       requiresMagicLink: true,
     })
-  })
-
-  it('includes email customization when provided', async () => {
-    const mockClient = createMockClient(async () => ({}))
-
-    await authenticateWithEmail(mockClient, {
-      email: 'user@example.com',
-      projectId: 'proj-456',
-      targetPublicKey: '03abcdef',
-      emailCustomization: {
-        magicLinkTemplate: 'https://myapp.com/verify/%s',
-      },
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: expect.objectContaining({
-          emailCustomization: {
-            magicLinkTemplate: 'https://myapp.com/verify/%s',
-          },
-        }),
-      }),
-    )
   })
 
   it('returns turnkey session when available', async () => {
@@ -215,13 +191,14 @@ describe('loginWithStamp', () => {
     })
     expect(stampPayload.timestampMs).toBeDefined()
 
-    // Verify request was made correctly
+    // Verify request was made correctly. The sub-org id is NOT sent — the
+    // backend derives it from the stamped credential; the org only lives in
+    // the signed stampPayload above.
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'proj-456/auth/login/stamp',
         method: 'POST',
         body: expect.objectContaining({
-          subOrganizationId: 'org-123',
           targetPublicKey: '03abcdef1234567890',
           stamp: expect.objectContaining({
             stampHeaderName: 'X-Stamp',
@@ -230,6 +207,8 @@ describe('loginWithStamp', () => {
         }),
       }),
     )
+    const sentBody = vi.mocked(mockClient.request).mock.calls[0][0].body
+    expect(sentBody).not.toHaveProperty('subOrganizationId')
 
     expect(result).toEqual({ session: 'session-jwt' })
   })
@@ -379,15 +358,12 @@ describe('getAuthenticators', () => {
 
     expect(mockClient.request).toHaveBeenCalledWith({
       path: 'proj-456/authenticators',
-      method: 'POST',
-      body: {
-        subOrganizationId: 'suborg-123',
-      },
+      method: 'GET',
       headers: {
         Authorization: 'Bearer test-token',
       },
       stamp: true,
-      stampPostion: 'headers',
+      stampPostion: 'timestamp',
     })
     expect(result).toEqual(mockResponse)
   })

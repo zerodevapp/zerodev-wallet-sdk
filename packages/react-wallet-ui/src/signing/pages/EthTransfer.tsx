@@ -1,0 +1,82 @@
+import { Text } from '@zerodev/react-ui'
+import { type Address, formatEther, type Hex } from 'viem'
+import { shortenHex } from '../../shared/utils/common'
+import { ArrowCardPair } from '../components/ArrowCardPair'
+import { DataRow, DataRowSkeleton } from '../components/DataRow'
+import { InfoCard } from '../components/InfoCard'
+import { Section } from '../components/Section'
+import { SigningLayout } from '../components/SigningLayout'
+import { useGasEstimate } from '../hooks/useGasEstimate'
+import { formatGasFee } from '../utils/formatGasFee'
+
+const TOKEN_IMAGE_SOURCE = 'https://img.icons8.com/color/1200/ethereum.jpg'
+const RECIPIENT_IMAGE_SOURCE =
+  'https://api.dicebear.com/7.x/identicon/svg?seed=recipient'
+
+interface EthTransferProps {
+  to: Address
+  value: Hex
+  confirm: () => void
+  reject: () => void
+}
+
+export function EthTransfer({ to, value, confirm, reject }: EthTransferProps) {
+  const formattedAmount = formatEther(BigInt(value))
+
+  const {
+    data: gasEstimate,
+    isFetching,
+    error: gasError,
+  } = useGasEstimate({ calls: [{ to, value }] })
+
+  const confirmDisabled = isFetching || gasEstimate == null
+
+  return (
+    <SigningLayout
+      onConfirm={confirm}
+      onReject={reject}
+      disabled={confirmDisabled}
+      error={gasError}
+    >
+      <div className="flex flex-col gap-2 pt-4">
+        <div className="flex flex-col items-center justify-center gap-2 pb-2">
+          <Text className="text-h2">Send Token</Text>
+          <Text className="text-center">
+            You are about to send {formattedAmount} ETH to {shortenHex(to)}.
+          </Text>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Text className="text-body1">You&#39;re sending</Text>
+          <ArrowCardPair
+            topCard={
+              <InfoCard
+                title={`${formattedAmount} ETH`}
+                imageSource={TOKEN_IMAGE_SOURCE}
+              />
+            }
+            bottomCard={
+              <InfoCard
+                title={shortenHex(to)}
+                subtitle="Recipient"
+                imageSource={RECIPIENT_IMAGE_SOURCE}
+              />
+            }
+          />
+          {!gasError && (
+            <Section title="Estimated Gas Fee" iconName="lightingFill">
+              {gasEstimate != null ? (
+                <DataRow
+                  label="Fee"
+                  value={formatGasFee(gasEstimate)}
+                  iconName="gasStation"
+                />
+              ) : (
+                <DataRowSkeleton label="Fee" />
+              )}
+            </Section>
+          )}
+        </div>
+      </div>
+    </SigningLayout>
+  )
+}

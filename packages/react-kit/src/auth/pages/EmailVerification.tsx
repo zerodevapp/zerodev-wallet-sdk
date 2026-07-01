@@ -6,7 +6,7 @@ import { Text } from '../../shared/components/Text'
 import { useAuth } from '../hooks/useAuth'
 
 export function EmailVerification() {
-  const { email, setOtpSession, config } = useAuth()
+  const { email, setOtpSession } = useAuth()
   const { mutateAsync: sendMagicLink, isPending: isSendPending } =
     useSendMagicLink()
 
@@ -31,7 +31,6 @@ export function EmailVerification() {
     try {
       const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
         email,
-        redirectURL: config?.magicLinkBaseUrl ?? '',
       })
       setOtpSession({ otpId, otpEncryptionTargetBundle })
       setSecondsLeftUntilResend(60)

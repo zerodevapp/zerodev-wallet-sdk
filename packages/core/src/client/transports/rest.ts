@@ -10,7 +10,14 @@ export type RestRequestArgs = {
   headers?: Record<string, string>
   stamp?: boolean
   stampWith?: StamperType
-  stampPostion?: 'body' | 'headers'
+  /**
+   * Where the stamp goes / what it signs:
+   * - `body`/`headers`: sign the canonicalized request body (POST endpoints).
+   * - `timestamp`: GET endpoints behind StampCheckUser — sign the current
+   *   unix-millis string, send it as the `X-Timestamp` header plus the stamp
+   *   header. No request body. Matches the backend's `FormatTimestamp`.
+   */
+  stampPostion?: 'body' | 'headers' | 'timestamp'
   /** Include credentials (cookies) in the request */
   credentials?: RequestCredentials
 }
@@ -49,8 +56,8 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
 
     try {
       let requestBody = args.body
-      let requestHeaders = {
-        ...(cfg.fetchOptions?.headers ?? {}),
+      let requestHeaders: Record<string, string> = {
+        ...((cfg.fetchOptions?.headers as Record<string, string>) ?? {}),
         ...(args.headers ?? {}),
         'content-type': 'application/json',
       }
@@ -65,32 +72,47 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
         } else {
           stamper = cfg.apiKeyStamper
         }
-        const { body, apiUrl } = args.body
-        const bodyString = canonicalizeEx(body ?? args.body)
-        const stamp = await stamper.stamp(bodyString)
 
-        // Restructure request body to match backend expectation
-        if (args.stampPostion === 'headers') {
+        // Timestamped stamp for GET endpoints behind StampCheckUser: the
+        // signed body is the unix-millis string itself (the backend rebuilds
+        // it from the X-Timestamp header via FormatTimestamp). No request body.
+        if (args.stampPostion === 'timestamp') {
+          const ts = Date.now().toString()
+          const stamp = await stamper.stamp(ts)
           requestHeaders = {
             ...requestHeaders,
+            'X-Timestamp': ts,
             [stamp.stampHeaderName]: stamp.stampHeaderValue,
           }
-        } else if (body) {
-          requestBody = {
-            body: bodyString,
-            stamp: {
-              stampHeaderName: stamp.stampHeaderName,
-              stampHeaderValue: stamp.stampHeaderValue,
-            },
-            apiUrl: apiUrl,
-          }
+          requestBody = undefined
         } else {
-          requestBody = {
-            ...args.body,
-            stamp: {
-              stampHeaderName: stamp.stampHeaderName,
-              stampHeaderValue: stamp.stampHeaderValue,
-            },
+          const { body, apiUrl } = args.body
+          const bodyString = canonicalizeEx(body ?? args.body)
+          const stamp = await stamper.stamp(bodyString)
+
+          // Restructure request body to match backend expectation
+          if (args.stampPostion === 'headers') {
+            requestHeaders = {
+              ...requestHeaders,
+              [stamp.stampHeaderName]: stamp.stampHeaderValue,
+            }
+          } else if (body) {
+            requestBody = {
+              body: bodyString,
+              stamp: {
+                stampHeaderName: stamp.stampHeaderName,
+                stampHeaderValue: stamp.stampHeaderValue,
+              },
+              apiUrl: apiUrl,
+            }
+          } else {
+            requestBody = {
+              ...args.body,
+              stamp: {
+                stampHeaderName: stamp.stampHeaderName,
+                stampHeaderValue: stamp.stampHeaderValue,
+              },
+            }
           }
         }
       }

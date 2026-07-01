@@ -1,18 +1,10 @@
 import type { Client } from '../../client/types.js'
-import type { EmailCustomization } from './authenticateWithEmail.js'
 
 export type OtpContact = {
   /** The OTP delivery type (currently only 'email' is supported) */
   type: 'email' | 'sms'
   /** The contact information (email address or phone number) */
   contact: string
-}
-
-export type OtpCodeCustomization = {
-  /** The length of the OTP code (must be between 6 and 9 inclusive) */
-  length: 6 | 7 | 8 | 9
-  /** Whether the OTP code should be alphanumeric */
-  alphanumeric: boolean
 }
 
 export type RegisterWithOTPParameters = {
@@ -22,10 +14,6 @@ export type RegisterWithOTPParameters = {
   contact: OtpContact
   /** The project ID for the request */
   projectId: string
-  /** Optional email customization settings */
-  emailCustomization?: EmailCustomization
-  /** Optional OTP code customization settings */
-  otpCodeCustomization?: OtpCodeCustomization
 }
 
 export type RegisterWithOTPReturnType = {
@@ -42,6 +30,10 @@ export type RegisterWithOTPReturnType = {
 /**
  * Initiates OTP (One-Time Password) authentication
  * This will send an OTP code to the specified contact method
+ *
+ * OTP code length/format and, when enabled, the magic-link URL template are
+ * configured per-project on the backend (`wallet.otp_configs`). The client no
+ * longer sends customization fields — they are ignored server-side.
  *
  * @param client - The ZeroDev Wallet client
  * @param params - The parameters for OTP initiation
@@ -65,20 +57,7 @@ export async function registerWithOTP(
   client: Client,
   params: RegisterWithOTPParameters,
 ): Promise<RegisterWithOTPReturnType> {
-  const {
-    email,
-    contact,
-    projectId,
-    emailCustomization,
-    otpCodeCustomization,
-  } = params
-
-  if (
-    otpCodeCustomization &&
-    (otpCodeCustomization.length < 6 || otpCodeCustomization.length > 9)
-  ) {
-    throw new Error('OTP code length must be between 6 and 9')
-  }
+  const { email, contact, projectId } = params
 
   return await client.request({
     path: `${projectId}/auth/init/otp`,
@@ -86,8 +65,6 @@ export async function registerWithOTP(
     body: {
       email,
       contact,
-      emailCustomization,
-      otpCodeCustomization,
     },
   })
 }

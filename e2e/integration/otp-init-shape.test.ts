@@ -45,7 +45,6 @@ describe('OTP init wire shape', () => {
           type: 'email',
           contact: `smoke-${Date.now()}@example.com`,
         },
-        otpCodeCustomization: { length: 7, alphanumeric: false },
       }),
     })
     expect(res.ok).toBe(true)

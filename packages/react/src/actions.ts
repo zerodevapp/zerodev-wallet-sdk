@@ -133,8 +133,6 @@ export async function sendOTP(
   config: Config,
   parameters: {
     email: string
-    emailCustomization?: { magicLinkTemplate?: string }
-    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   },
 ): Promise<{ otpId: string; otpEncryptionTargetBundle: string }> {
@@ -147,12 +145,6 @@ export async function sendOTP(
     mode: 'sendOtp',
     email: parameters.email,
     contact: { type: 'email', contact: parameters.email },
-    ...(parameters.emailCustomization && {
-      emailCustomization: parameters.emailCustomization,
-    }),
-    ...(parameters.otpCodeCustomization && {
-      otpCodeCustomization: parameters.otpCodeCustomization,
-    }),
   })
 
   return {
@@ -164,8 +156,6 @@ export async function sendOTP(
 export declare namespace sendOTP {
   type Parameters = {
     email: string
-    emailCustomization?: { magicLinkTemplate?: string }
-    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   }
   type ReturnType = { otpId: string; otpEncryptionTargetBundle: string }
@@ -295,8 +285,6 @@ export async function sendMagicLink(
   config: Config,
   parameters: {
     email: string
-    redirectURL: string
-    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   },
 ): Promise<{ otpId: string; otpEncryptionTargetBundle: string }> {
@@ -308,10 +296,6 @@ export async function sendMagicLink(
     type: 'magicLink',
     mode: 'send',
     email: parameters.email,
-    redirectURL: parameters.redirectURL,
-    ...(parameters.otpCodeCustomization && {
-      otpCodeCustomization: parameters.otpCodeCustomization,
-    }),
   })
 
   return {
@@ -323,8 +307,6 @@ export async function sendMagicLink(
 export declare namespace sendMagicLink {
   type Parameters = {
     email: string
-    redirectURL: string
-    otpCodeCustomization?: { length: 6 | 7 | 8 | 9; alphanumeric: boolean }
     connector?: Connector
   }
   type ReturnType = { otpId: string; otpEncryptionTargetBundle: string }

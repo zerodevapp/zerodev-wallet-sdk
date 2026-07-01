@@ -25,7 +25,6 @@ zeroDevWallet({
   chains: [sepolia],
   config: {
     auth: {
-      magicLinkBaseUrl: 'https://yourdomain.com/auth/verify',
       enabledMethods: ['email', 'google', 'passkey'],
       termsAndConditionsUrl: 'https://yourdomain.com/terms',
       privacyPolicyUrl: 'https://yourdomain.com/privacy',
@@ -38,7 +37,6 @@ zeroDevWallet({
 
 | Property | Type | Description |
 | --- | --- | --- |
-| `magicLinkBaseUrl` | `string` | The URL the magic link points to. |
 | `enabledMethods` | `AuthMethod[]` | Which methods to offer: `'email'`, `'google'`, `'passkey'`. |
 | `termsAndConditionsUrl` | `string` (optional) | Your terms and conditions URL. When set (alone or with `privacyPolicyUrl`), the auth UI shows a required agreement checkbox. |
 | `privacyPolicyUrl` | `string` (optional) | Your privacy policy URL. When set (alone or with `termsAndConditionsUrl`), the auth UI shows a required agreement checkbox. |

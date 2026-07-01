@@ -4,6 +4,7 @@ import { Provider } from 'ox'
 import type { Chain, LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
 import type { ConnectorCoreParams, WalletMode } from './core/connector.js'
+import { NotAuthenticatedError } from './errors.js'
 import type { createZeroDevWalletStore } from './store.js'
 
 const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
@@ -175,7 +176,7 @@ export function createProvider({
 
         case 'eth_requestAccounts': {
           const addr = accountAddress()
-          if (!addr) throw new Error('Not authenticated')
+          if (!addr) throw new NotAuthenticatedError()
           return [addr]
         }
 
@@ -230,7 +231,7 @@ export function createProvider({
 
           const [message] = params
           const account = await signerForActiveChain(state, activeChainId, mode)
-          if (!account) throw new Error('Not authenticated')
+          if (!account) throw new NotAuthenticatedError()
 
           return await account.signMessage({
             message: { raw: message as `0x${string}` },
@@ -244,7 +245,7 @@ export function createProvider({
 
           const [, typedDataJson] = params
           const account = await signerForActiveChain(state, activeChainId, mode)
-          if (!account) throw new Error('Not authenticated')
+          if (!account) throw new NotAuthenticatedError()
 
           const typedData = JSON.parse(typedDataJson)
           return await account.signTypedData(typedData)

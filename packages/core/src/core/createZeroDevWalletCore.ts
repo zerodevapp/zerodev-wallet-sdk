@@ -1,8 +1,4 @@
 import type { LocalAccount } from 'viem/accounts'
-import type {
-  EmailCustomization,
-  OtpCodeCustomization,
-} from '../actions/auth/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   type CreateTransportOptions,
@@ -37,8 +33,6 @@ export interface ZeroDevWalletConfigCore {
   fetchOptions?: CreateTransportOptions['fetchOptions']
 }
 
-// Re-export EmailCustomization for convenience
-export type { EmailCustomization } from '../actions/auth/index.js'
 export type { StorageAdapter, StorageManager } from '../storage/manager.js'
 // Re-export new session types
 export type { StamperType, ZeroDevWalletSession } from '../types/session.js'
@@ -61,8 +55,6 @@ export type AuthParams =
         type: 'email' | 'sms'
         contact: string
       }
-      emailCustomization?: EmailCustomization
-      otpCodeCustomization?: OtpCodeCustomization
     }
   | {
       type: 'otp'
@@ -79,8 +71,6 @@ export type AuthParams =
       type: 'magicLink'
       mode: 'send'
       email: string
-      redirectURL: string
-      otpCodeCustomization?: OtpCodeCustomization
     }
   | {
       type: 'magicLink'
@@ -190,7 +180,11 @@ export async function createZeroDevWalletCore(
         const data = await client.loginWithStamp({
           targetPublicKey: compressedPublicKeyHex,
           projectId,
-          organizationId: activeSession.organizationId,
+          // Stamp-login is signed against the Turnkey parent org; the backend
+          // resolves the sub-org from the stamped credential. Signing the
+          // sub-org here makes the relayed payload's org mismatch the
+          // signature → Turnkey SIGNATURE_INVALID.
+          organizationId,
           stampWith: 'apiKey',
         })
         await client.apiKeyStamper.commitKeyRotation()
@@ -270,7 +264,9 @@ export async function createZeroDevWalletCore(
             const loginData = await client.loginWithStamp({
               projectId,
               targetPublicKey: compressedPublicKeyHex,
-              organizationId: data.subOrganizationId,
+              // Sign against the parent org (see refreshSession note) — the
+              // backend derives the sub-org from the stamped credential.
+              organizationId,
             })
             await client.apiKeyStamper.commitKeyRotation()
             const parsedSession = parseSession(loginData.session)
@@ -302,6 +298,9 @@ export async function createZeroDevWalletCore(
             const loginData = await client.loginWithStamp({
               targetPublicKey: generatedPublicKey,
               projectId,
+              // Sign against the parent org, not the user's sub-org (see the
+              // refreshSession note). The backend derives the sub-org from the
+              // stamped passkey credential.
               organizationId,
               stampWith: 'passkey',
             })
@@ -329,17 +328,14 @@ export async function createZeroDevWalletCore(
           let otpParams: Extract<AuthParams, { type: 'otp' }>
           if (params.type === 'magicLink') {
             if (params.mode === 'send') {
+              // Magic-link vs plain-OTP delivery and the link URL template are
+              // configured per-project on the backend (`wallet.otp_configs`);
+              // the client just initiates OTP and the backend decides.
               otpParams = {
                 type: 'otp',
                 mode: 'sendOtp',
                 email: params.email,
                 contact: { type: 'email', contact: params.email },
-                emailCustomization: {
-                  magicLinkTemplate: `${params.redirectURL}${params.redirectURL.includes('?') ? '&' : '?'}code=%s`,
-                },
-                ...(params.otpCodeCustomization && {
-                  otpCodeCustomization: params.otpCodeCustomization,
-                }),
               }
             } else {
               otpParams = {
@@ -355,15 +351,12 @@ export async function createZeroDevWalletCore(
           }
 
           if (otpParams.mode === 'sendOtp') {
-            const { email, contact, emailCustomization, otpCodeCustomization } =
-              otpParams
+            const { email, contact } = otpParams
 
             const data = await client.registerWithOTP({
               email,
               contact,
               projectId,
-              ...(emailCustomization && { emailCustomization }),
-              ...(otpCodeCustomization && { otpCodeCustomization }),
             })
 
             return data

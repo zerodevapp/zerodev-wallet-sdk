@@ -8,7 +8,6 @@ export {
   authenticateWithEmail,
   authenticateWithOAuth,
   type EmailContact,
-  type EmailCustomization,
   type GetAuthenticatorsParameters,
   type GetAuthenticatorsReturnType,
   type GetAuthProxyConfigIdReturnType,

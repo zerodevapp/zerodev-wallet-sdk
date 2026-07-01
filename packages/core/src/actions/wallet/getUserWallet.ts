@@ -37,17 +37,17 @@ export async function getUserWallet(
   client: Client,
   params: GetUserWalletParameters,
 ): Promise<GetUserWalletReturnType> {
-  const { organizationId, projectId, token } = params
+  const { projectId, token } = params
 
+  // GET behind StampCheckUser: user is resolved from the stamped credential
+  // (+ session JWT); no body sent. The stamp signs the X-Timestamp value.
   return await client.request({
     path: `${projectId}/user-wallet`,
-    body: {
-      organizationId,
-    },
+    method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
     },
     stamp: true,
-    stampPostion: 'headers',
+    stampPostion: 'timestamp',
   })
 }

@@ -1,10 +1,5 @@
 import type { Client } from '../../client/types.js'
 
-export type EmailCustomization = {
-  /** A template for the URL to be used in a magic link button, e.g. `https://dapp.xyz/%s`. The auth bundle will be interpolated into the `%s`. */
-  magicLinkTemplate?: string
-}
-
 export type RegisterWithPasskeyParameters = {
   /** The project ID for the request */
   projectId: string

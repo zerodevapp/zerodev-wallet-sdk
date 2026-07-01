@@ -164,7 +164,6 @@ export function SignUp() {
     try {
       const { otpId, otpEncryptionTargetBundle } = await sendMagicLink({
         email: emailInput,
-        redirectURL: config?.magicLinkBaseUrl ?? '',
       })
       setEmail(emailInput)
       setOtpSession({ otpId, otpEncryptionTargetBundle })
