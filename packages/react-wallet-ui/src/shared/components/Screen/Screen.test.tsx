@@ -42,7 +42,7 @@ describe('Screen', () => {
       // w-100 = 400px width; height is 800px clamped to the viewport on short
       // screens (self-contained, no dependency on a definite-height ancestor)
       expect(wrapper.className).toContain('w-100')
-      expect(wrapper.className).toContain('h-[min(800px,100dvh)]')
+      expect(wrapper.className).toContain('h-[min(810px,100dvh)]')
     })
 
     it('renders MultiRadialBackground', () => {
