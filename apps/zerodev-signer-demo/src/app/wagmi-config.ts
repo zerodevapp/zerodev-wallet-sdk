@@ -32,6 +32,11 @@ export const config = createConfig({
       projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID!,
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
       chains: [arbitrumSepolia, sepolia],
+      // Local backend deployments may use a different Turnkey parent org than
+      // the SDK default, so allow the demo env to override it.
+      ...(process.env.NEXT_PUBLIC_ZERODEV_ORG_ID && {
+        organizationId: process.env.NEXT_PUBLIC_ZERODEV_ORG_ID,
+      }),
       ...(mode && { mode }),
       config: {
         auth: {

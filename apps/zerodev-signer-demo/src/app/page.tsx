@@ -81,14 +81,16 @@ function LandingPageInner() {
   useEffect(() => {
     if (!isResolvingSession) {
       setResolveTimedOut(false)
-      try {
-        sessionStorage.removeItem('zd:recovering')
-      } catch {}
+      if (isConnected || authStep !== null || skipAutoConnect) {
+        try {
+          sessionStorage.removeItem('zd:recovering')
+        } catch {}
+      }
       return
     }
     const timer = window.setTimeout(() => setResolveTimedOut(true), 8000)
     return () => window.clearTimeout(timer)
-  }, [isResolvingSession])
+  }, [isResolvingSession, isConnected, authStep, skipAutoConnect])
 
   // Auto-recover once: a stalled restore is almost always a stale stored
   // session (kept in IndexedDB), so clear it and reload to start fresh. The
@@ -215,18 +217,23 @@ function LandingPageInner() {
           </p>
         </div>
       </div>
-      <div className="relative mx-auto w-full max-w-7xl px-4 pt-8 text-center sm:px-6 sm:pt-12">
-        <h1 className="mx-auto max-w-[900px] text-4xl font-medium leading-[1.05] text-[#19110B] sm:text-5xl md:text-6xl lg:text-[76px] [font-family:var(--font-dm-sans)]">
-          Auth in. Smart wallet out.
-        </h1>
-        <p className="mx-auto mt-5 max-w-[640px] text-base leading-7 text-[#19110B] [font-family:var(--font-dm-sans)]">
-          ZeroDev turns any sign-in — passkey, email, Google — into a
-          self-custodial smart account. Your users never touch a seed phrase
-          or pay unexpected gas.
-        </p>
-      </div>
-      <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col items-center gap-8 px-4 py-6 sm:px-6 sm:py-8 animate-[auth-transition-card_400ms_ease-out_forwards]">
-        <div className="relative mx-auto flex w-full max-w-[390px] flex-col">
+      <div className="relative mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 items-center gap-10 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,600px)_390px] lg:justify-center lg:gap-10 animate-[auth-transition-card_400ms_ease-out_forwards]">
+        <div className="text-center lg:text-left">
+          <span className="mb-4 block text-sm font-medium uppercase tracking-wider text-[#19110B]/70 [font-family:var(--font-dm-sans)]">
+            Wallet demo
+          </span>
+          <h1 className="mx-auto max-w-[600px] text-4xl font-medium leading-[1.05] text-[#19110B] sm:text-5xl md:text-6xl lg:mx-0 lg:text-[76px] [font-family:var(--font-dm-sans)]">
+            Auth in.
+            <br />
+            Smart wallet out.
+          </h1>
+          <p className="mx-auto mt-5 max-w-[520px] text-base leading-7 text-[#19110B] lg:mx-0 [font-family:var(--font-dm-sans)]">
+            ZeroDev turns any sign-in — passkey, email, Google — into a
+            self-custodial smart account. Your users never touch a seed phrase
+            or pay unexpected gas.
+          </p>
+        </div>
+        <div className="relative mx-auto flex w-full max-w-[390px] flex-col lg:mx-0">
           <ModeSelector mode={demoMode} onModeChange={setDemoMode}/>
           {sessionExpired && (
             <div
@@ -578,4 +585,3 @@ const demoModes: {value: DemoMode; label: string; description: string}[] = [
       'Raw hooks against the same account infrastructure — no ZeroDev chrome, no constraints. Your design, your flow, same smart wallet underneath.',
   },
 ]
-

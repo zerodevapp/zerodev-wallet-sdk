@@ -2,8 +2,6 @@
 
 import { ArrowRight, ExternalLink } from "lucide-react";
 
-import { PageToggle } from "./PageToggle";
-
 export function Navbar() {
   return (
     <header className="bg-black/[0.01] backdrop-blur-[60px] [font-family:var(--font-dm-sans)]">
@@ -25,7 +23,6 @@ export function Navbar() {
             aria-label="Primary navigation"
             className="hidden items-center gap-4 md:flex"
           >
-            <PageToggle />
             {process.env.NODE_ENV === "development" && (
               <a
                 href="/dashboard?preview=1"
