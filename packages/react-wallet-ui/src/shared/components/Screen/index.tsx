@@ -25,7 +25,9 @@ export function Screen({
   return (
     <div
       className={cn(
-        'zd:flex zd:flex-col zd:relative zd:overflow-hidden zd:w-100 zd:max-w-full zd:h-[min(810px,100dvh)] zd:rounded-[36px] zd:text-left',
+        'zd:flex zd:flex-col zd:overflow-hidden zd:text-left',
+        'zd:fixed zd:inset-0 zd:z-50 zd:w-screen zd:h-[100dvh] zd:rounded-[36px]',
+        'zd:sm:relative zd:sm:z-auto zd:sm:w-100 zd:sm:max-w-full zd:sm:h-[810px] zd:sm:max-h-[100dvh]',
         className,
       )}
       style={style}

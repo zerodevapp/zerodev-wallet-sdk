@@ -39,10 +39,17 @@ describe('Screen', () => {
         </Screen>,
       )
       const wrapper = container.firstChild as HTMLElement
-      // w-100 = 400px width; height is 800px clamped to the viewport on short
-      // screens (self-contained, no dependency on a definite-height ancestor)
-      expect(wrapper.className).toContain('w-100')
-      expect(wrapper.className).toContain('h-[min(810px,100dvh)]')
+      // Mobile: pinned full-screen (fixed inset-0, h-[100dvh]) so the wallet
+      // fills the viewport from top-0 regardless of sibling chrome. sm+: normal
+      // in-flow 810px block (w-100 = 400px) capped at the viewport height.
+      // Self-contained — no dependency on a definite-height ancestor.
+      expect(wrapper.className).toContain('zd:fixed')
+      expect(wrapper.className).toContain('zd:inset-0')
+      expect(wrapper.className).toContain('zd:h-[100dvh]')
+      expect(wrapper.className).toContain('zd:sm:relative')
+      expect(wrapper.className).toContain('zd:sm:w-100')
+      expect(wrapper.className).toContain('zd:sm:h-[810px]')
+      expect(wrapper.className).toContain('zd:sm:max-h-[100dvh]')
     })
 
     it('renders MultiRadialBackground', () => {
