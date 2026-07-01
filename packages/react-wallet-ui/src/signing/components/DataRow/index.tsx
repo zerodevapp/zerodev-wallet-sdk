@@ -1,0 +1,62 @@
+import { cn, Icon, type IconName, Text } from '@zerodev/react-ui'
+import type { ReactNode } from 'react'
+import { camelCaseToTitle } from '../../../shared/utils/common'
+
+export interface DataRowProps {
+  label?: string
+  value: string | ReactNode
+  iconName?: IconName
+  leadingIconName?: IconName
+  className?: string
+}
+
+export function DataRow({
+  label,
+  value,
+  iconName,
+  leadingIconName,
+  className,
+}: DataRowProps) {
+  if (!label) return null
+
+  return (
+    <div
+      className={cn('flex flex-row items-center justify-between', className)}
+    >
+      <Text>{camelCaseToTitle(label)}</Text>
+      <div className="flex flex-row items-center gap-1">
+        {leadingIconName && (
+          <Icon name={leadingIconName} className="h-3 w-3 text-solarOrange" />
+        )}
+        {typeof value === 'string' ? (
+          <Text className="text-body1">{value}</Text>
+        ) : (
+          value
+        )}
+        {iconName && (
+          <Icon name={iconName} className="w-4 h-4 text-solarOrange" />
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface DataRowSkeletonProps {
+  className?: string
+  label?: string
+}
+
+export function DataRowSkeleton({ className, label }: DataRowSkeletonProps) {
+  return (
+    <div
+      className={cn('flex flex-row items-center justify-between', className)}
+    >
+      {label ? (
+        <Text>{camelCaseToTitle(label)}</Text>
+      ) : (
+        <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+      )}
+      <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+    </div>
+  )
+}
