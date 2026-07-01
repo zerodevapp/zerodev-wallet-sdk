@@ -28,6 +28,10 @@ export {
   getOAuthLoginUrl,
 } from './getOAuthLoginUrl.js'
 export {
+  type GetParentOrgIdReturnType,
+  getParentOrgId,
+} from './getParentOrgId.js'
+export {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getWhoami,
