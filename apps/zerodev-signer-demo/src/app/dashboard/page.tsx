@@ -3,7 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { SignatureRequest } from "@zerodev/wallet-react-kit";
+import { SignatureRequest } from "@zerodev/react-wallet-ui";
 import {
   Check,
   Copy,
