@@ -21,20 +21,26 @@ export function DataRow({
 
   return (
     <div
-      className={cn('flex flex-row items-center justify-between', className)}
+      className={cn(
+        'zd:flex zd:flex-row zd:items-center zd:justify-between',
+        className,
+      )}
     >
       <Text>{camelCaseToTitle(label)}</Text>
-      <div className="flex flex-row items-center gap-1">
+      <div className="zd:flex zd:flex-row zd:items-center zd:gap-1">
         {leadingIconName && (
-          <Icon name={leadingIconName} className="h-3 w-3 text-solarOrange" />
+          <Icon
+            name={leadingIconName}
+            className="zd:h-3 zd:w-3 zd:text-solarOrange"
+          />
         )}
         {typeof value === 'string' ? (
-          <Text className="text-body1">{value}</Text>
+          <Text className="zd:text-body1">{value}</Text>
         ) : (
           value
         )}
         {iconName && (
-          <Icon name={iconName} className="w-4 h-4 text-solarOrange" />
+          <Icon name={iconName} className="zd:w-4 zd:h-4 zd:text-solarOrange" />
         )}
       </div>
     </div>
@@ -49,14 +55,17 @@ interface DataRowSkeletonProps {
 export function DataRowSkeleton({ className, label }: DataRowSkeletonProps) {
   return (
     <div
-      className={cn('flex flex-row items-center justify-between', className)}
+      className={cn(
+        'zd:flex zd:flex-row zd:items-center zd:justify-between',
+        className,
+      )}
     >
       {label ? (
         <Text>{camelCaseToTitle(label)}</Text>
       ) : (
-        <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+        <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
       )}
-      <div className="w-24 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+      <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
     </div>
   )
 }

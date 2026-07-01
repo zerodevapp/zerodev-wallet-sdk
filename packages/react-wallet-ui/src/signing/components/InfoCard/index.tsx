@@ -19,12 +19,12 @@ export function InfoCard({
   rightElement,
 }: InfoCardProps) {
   return (
-    <Wrapper className="h-[84px] px-3 rounded-2xl flex flex-row items-center gap-2 w-full justify-between">
-      <div className="gap-2 flex flex-row items-center h-[52px]">
+    <Wrapper className="zd:h-[84px] zd:px-3 zd:rounded-2xl zd:flex zd:flex-row zd:items-center zd:gap-2 zd:w-full zd:justify-between">
+      <div className="zd:gap-2 zd:flex zd:flex-row zd:items-center zd:h-[52px]">
         {imageStyle === 'contained' ? (
-          <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
+          <div className="zd:w-11 zd:h-11 zd:rounded-xl zd:bg-white zd:flex zd:items-center zd:justify-center zd:shrink-0">
             {imageSource && (
-              <img src={imageSource} alt="" className="w-8 h-8" />
+              <img src={imageSource} alt="" className="zd:w-8 zd:h-8" />
             )}
           </div>
         ) : (
@@ -32,13 +32,13 @@ export function InfoCard({
             <img
               src={imageSource}
               alt=""
-              className="w-11 h-11 rounded-xl shrink-0"
+              className="zd:w-11 zd:h-11 zd:rounded-xl zd:shrink-0"
             />
           )
         )}
-        <div className="flex flex-col">
-          <Text className="text-body1">{title}</Text>
-          {subtitle && <Text className="text-greyScale/50">{subtitle}</Text>}
+        <div className="zd:flex zd:flex-col">
+          <Text className="zd:text-body1">{title}</Text>
+          {subtitle && <Text className="zd:text-greyScale/50">{subtitle}</Text>}
         </div>
       </div>
       {rightElement}

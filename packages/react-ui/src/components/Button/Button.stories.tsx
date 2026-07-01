@@ -95,7 +95,7 @@ export const SecondaryWithIcon: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div className="flex flex-col gap-4 w-72">
+    <div className="zd:flex zd:flex-col zd:gap-4 zd:w-72">
       <Button text="Primary" action="primary" />
       <Button text="Secondary" action="secondary" />
       <Button text="Disabled" action="primary" disabled />

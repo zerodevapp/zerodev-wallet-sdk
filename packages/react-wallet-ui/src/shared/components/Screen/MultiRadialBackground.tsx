@@ -15,7 +15,7 @@ export function MultiRadialBackground() {
   // just a flat, soft warm-white fill behind it so CardGlow's colors read
   // bright and clean, with no gray muddiers underneath.
   return (
-    <div className="absolute inset-0 z-0 rounded-4xl pointer-events-none">
+    <div className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:pointer-events-none">
       <svg
         width="100%"
         height="100%"
@@ -115,7 +115,7 @@ export function CardGlow() {
   ]
 
   return (
-    <div className="absolute inset-0 z-0 rounded-4xl pointer-events-none overflow-hidden">
+    <div className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:pointer-events-none zd:overflow-hidden">
       <svg
         width="100%"
         height="100%"
@@ -279,7 +279,7 @@ export function WrapperBorder() {
   ]
 
   return (
-    <div className="absolute inset-0 z-0 rounded-4xl pointer-events-none overflow-hidden">
+    <div className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:pointer-events-none zd:overflow-hidden">
       <svg
         width="100%"
         height="100%"

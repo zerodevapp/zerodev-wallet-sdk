@@ -302,12 +302,12 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
       disabled={confirmDisabled}
       error={gasError}
     >
-      <div className="flex flex-col gap-2 pt-4">
-        <div className="flex flex-col items-center justify-center gap-2 pb-2">
-          <Text className="text-h2">Confirm Transaction</Text>
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+        <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+          <Text className="zd:text-h2">Confirm Transaction</Text>
         </div>
         <Section title="Transaction Details" iconName="arrowSwapHorizontal">
-          <div className="flex flex-col gap-1">
+          <div className="zd:flex zd:flex-col zd:gap-1">
             {calls.map((call, i) => (
               <CallItem
                 key={`${call.to ?? 'unknown'}-${i}`}

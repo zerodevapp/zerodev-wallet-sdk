@@ -26,9 +26,9 @@ type Story = StoryObj<typeof meta>
 export const Ghost: Story = {
   args: {
     variant: 'ghost',
-    className: 'rounded-2xl p-6',
+    className: 'zd:rounded-2xl zd:p-6',
     children: (
-      <p className="text-gray-900 text-base font-medium">
+      <p className="zd:text-gray-900 zd:text-base zd:font-medium">
         Ghost variant — most transparent (α 0.2)
       </p>
     ),
@@ -38,9 +38,9 @@ export const Ghost: Story = {
 export const Soft: Story = {
   args: {
     variant: 'soft',
-    className: 'rounded-2xl p-6',
+    className: 'zd:rounded-2xl zd:p-6',
     children: (
-      <p className="text-gray-900 text-base font-medium">
+      <p className="zd:text-gray-900 zd:text-base zd:font-medium">
         Soft variant — default (α 0.4)
       </p>
     ),
@@ -50,9 +50,9 @@ export const Soft: Story = {
 export const Solid: Story = {
   args: {
     variant: 'solid',
-    className: 'rounded-2xl p-6',
+    className: 'zd:rounded-2xl zd:p-6',
     children: (
-      <p className="text-gray-900 text-base font-medium">
+      <p className="zd:text-gray-900 zd:text-base zd:font-medium">
         Solid variant — most opaque (α 0.8)
       </p>
     ),
@@ -61,15 +61,21 @@ export const Solid: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div className="flex flex-col gap-4 w-80">
-      <Wrapper variant="ghost" className="rounded-2xl p-6">
-        <p className="text-gray-900 text-base font-medium">Ghost (α 0.2)</p>
+    <div className="zd:flex zd:flex-col zd:gap-4 zd:w-80">
+      <Wrapper variant="ghost" className="zd:rounded-2xl zd:p-6">
+        <p className="zd:text-gray-900 zd:text-base zd:font-medium">
+          Ghost (α 0.2)
+        </p>
       </Wrapper>
-      <Wrapper variant="soft" className="rounded-2xl p-6">
-        <p className="text-gray-900 text-base font-medium">Soft (α 0.4)</p>
+      <Wrapper variant="soft" className="zd:rounded-2xl zd:p-6">
+        <p className="zd:text-gray-900 zd:text-base zd:font-medium">
+          Soft (α 0.4)
+        </p>
       </Wrapper>
-      <Wrapper variant="solid" className="rounded-2xl p-6">
-        <p className="text-gray-900 text-base font-medium">Solid (α 0.8)</p>
+      <Wrapper variant="solid" className="zd:rounded-2xl zd:p-6">
+        <p className="zd:text-gray-900 zd:text-base zd:font-medium">
+          Solid (α 0.8)
+        </p>
       </Wrapper>
     </div>
   ),
@@ -77,13 +83,15 @@ export const AllVariants: Story = {
 
 export const WithRichContent: Story = {
   render: () => (
-    <Wrapper variant="soft" className="rounded-2xl p-6 w-80">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-gray-900 text-lg font-semibold">Wallet Balance</h3>
-        <p className="text-gray-700 text-sm">
+    <Wrapper variant="soft" className="zd:rounded-2xl zd:p-6 zd:w-80">
+      <div className="zd:flex zd:flex-col zd:gap-2">
+        <h3 className="zd:text-gray-900 zd:text-lg zd:font-semibold">
+          Wallet Balance
+        </h3>
+        <p className="zd:text-gray-700 zd:text-sm">
           Your current balance across all chains
         </p>
-        <p className="text-gray-900 text-2xl font-bold">$1,234.56</p>
+        <p className="zd:text-gray-900 zd:text-2xl zd:font-bold">$1,234.56</p>
       </div>
     </Wrapper>
   ),

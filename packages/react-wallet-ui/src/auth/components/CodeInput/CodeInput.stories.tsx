@@ -56,21 +56,29 @@ export const EightDigits: Story = {
 
 export const AllStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-8 items-center">
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-500 font-medium">Default (6)</span>
+    <div className="zd:flex zd:flex-col zd:gap-8 zd:items-center">
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
+        <span className="zd:text-sm zd:text-gray-500 zd:font-medium">
+          Default (6)
+        </span>
         <CodeInput onComplete={() => window.alert('Completed')} />
       </div>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-500 font-medium">4 digits</span>
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
+        <span className="zd:text-sm zd:text-gray-500 zd:font-medium">
+          4 digits
+        </span>
         <CodeInput length={4} />
       </div>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-500 font-medium">8 digits</span>
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
+        <span className="zd:text-sm zd:text-gray-500 zd:font-medium">
+          8 digits
+        </span>
         <CodeInput length={8} />
       </div>
-      <div className="flex flex-col gap-2 items-center">
-        <span className="text-sm text-gray-400 font-medium">Disabled</span>
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
+        <span className="zd:text-sm zd:text-gray-400 zd:font-medium">
+          Disabled
+        </span>
         <CodeInput disabled />
       </div>
     </div>

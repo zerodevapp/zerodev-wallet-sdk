@@ -21,18 +21,18 @@ export function TokenCard({
   const { symbol, imageSource, network } = token
 
   return (
-    <div className="w-full p-2 flex flex-row justify-between items-center">
-      <div className="flex flex-row items-center gap-2">
-        <div className="bg-offWhite rounded-xl w-8 h-8 flex items-center justify-center shrink-0">
+    <div className="zd:w-full zd:p-2 zd:flex zd:flex-row zd:justify-between zd:items-center">
+      <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+        <div className="zd:bg-offWhite zd:rounded-xl zd:w-8 zd:h-8 zd:flex zd:items-center zd:justify-center zd:shrink-0">
           {imageSource && (
-            <img src={imageSource} alt="" className="w-[18px] h-[18px]" />
+            <img src={imageSource} alt="" className="zd:w-[18px] zd:h-[18px]" />
           )}
         </div>
-        <div className="flex flex-col">
-          <Text className="text-body1">{symbol}</Text>
-          <div className="flex flex-row gap-1 items-center">
-            <Icon name={network as IconName} className="h-3 w-3" />
-            <Text className="text-body3 text-greyScale/50">
+        <div className="zd:flex zd:flex-col">
+          <Text className="zd:text-body1">{symbol}</Text>
+          <div className="zd:flex zd:flex-row zd:gap-1 zd:items-center">
+            <Icon name={network as IconName} className="zd:h-3 zd:w-3" />
+            <Text className="zd:text-body3 zd:text-greyScale/50">
               {capitalizeFirst(network)}
             </Text>
           </div>
@@ -40,7 +40,7 @@ export function TokenCard({
       </div>
       <Text>
         {pooledAmount}{' '}
-        <Text as="span" className="text-greyScale/50">
+        <Text as="span" className="zd:text-greyScale/50">
           / {availableAmount} {symbol}
         </Text>
       </Text>

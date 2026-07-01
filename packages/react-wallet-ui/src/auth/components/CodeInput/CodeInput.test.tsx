@@ -16,7 +16,7 @@ describe('CodeInput', () => {
 
     it('renders all boxes as empty initially', () => {
       const { container } = render(<CodeInput />)
-      const textElements = container.querySelectorAll('.text-h2')
+      const textElements = container.querySelectorAll('.zd\\:text-h2')
       Array.from(textElements).forEach((el) => {
         expect(el.textContent).toBe('')
       })
@@ -43,7 +43,7 @@ describe('CodeInput', () => {
         'input[aria-label="Verification code"]',
       ) as HTMLInputElement
       fireEvent.change(hiddenInput, { target: { value: '3' } })
-      const textElements = container.querySelectorAll('.text-h2')
+      const textElements = container.querySelectorAll('.zd\\:text-h2')
       expect(textElements[0].textContent).toBe('3')
     })
 
@@ -217,7 +217,7 @@ describe('CodeInput', () => {
 
       fireEvent.change(hiddenInput, { target: { value: 'ABC' } })
 
-      const textElements = container.querySelectorAll('.text-h2')
+      const textElements = container.querySelectorAll('.zd\\:text-h2')
       expect(textElements[0].textContent).toBe('A')
       expect(textElements[1].textContent).toBe('B')
       expect(textElements[2].textContent).toBe('C')

@@ -93,11 +93,11 @@ describe('Input', () => {
       // the focused state is conveyed by a bg-white/20 overlay, not a variant
       // change.
       expect(wrapper.style.backgroundColor).toBe('rgba(255, 255, 255, 0.5)')
-      expect(container.querySelector('.bg-white\\/20')).toBeNull()
+      expect(container.querySelector('.zd\\:bg-white\\/20')).toBeNull()
 
       fireEvent.focus(input)
       expect(wrapper.style.backgroundColor).toBe('rgba(255, 255, 255, 0.5)')
-      expect(container.querySelector('.bg-white\\/20')).not.toBeNull()
+      expect(container.querySelector('.zd\\:bg-white\\/20')).not.toBeNull()
     })
 
     it('removes the tint overlay on blur', () => {
@@ -105,10 +105,10 @@ describe('Input', () => {
       const input = screen.getByPlaceholderText('Blur me')
 
       fireEvent.focus(input)
-      expect(container.querySelector('.bg-white\\/20')).not.toBeNull()
+      expect(container.querySelector('.zd\\:bg-white\\/20')).not.toBeNull()
 
       fireEvent.blur(input)
-      expect(container.querySelector('.bg-white\\/20')).toBeNull()
+      expect(container.querySelector('.zd\\:bg-white\\/20')).toBeNull()
     })
 
     it('calls the original onFocus handler', () => {
@@ -231,7 +231,7 @@ describe('Input', () => {
         <Input variant="listItemStyle" iconName="check" placeholder="List" />,
       )
       // Should have the icon wrapper div
-      const iconWrapper = container.querySelector('.bg-white')
+      const iconWrapper = container.querySelector('.zd\\:bg-white')
       expect(iconWrapper).not.toBeNull()
       expect(iconWrapper?.className).toContain('w-13')
       expect(iconWrapper?.className).toContain('h-13')

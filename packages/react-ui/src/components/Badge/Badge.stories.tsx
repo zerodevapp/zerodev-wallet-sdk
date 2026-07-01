@@ -81,16 +81,16 @@ export const AllVariants = {
     text: 'Example',
   },
   render: () => (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-2 flex-wrap">
+    <div className="zd:flex zd:flex-col zd:gap-4">
+      <div className="zd:flex zd:gap-2 zd:flex-wrap">
         <Badge text="Primary" variant="primary" />
         <Badge text="Secondary" variant="secondary" />
       </div>
-      <div className="flex gap-2 flex-wrap">
+      <div className="zd:flex zd:gap-2 zd:flex-wrap">
         <Badge text="With Icon" variant="secondary" leadingIcon="check" />
         <Badge text="Trailing" variant="primary" trailingIcon="chevronRight" />
       </div>
-      <div className="flex gap-2 flex-wrap">
+      <div className="zd:flex zd:gap-2 zd:flex-wrap">
         <Badge
           text="Both Icons"
           variant="secondary"
