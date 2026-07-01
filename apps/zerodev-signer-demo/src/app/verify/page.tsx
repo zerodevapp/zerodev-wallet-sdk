@@ -26,9 +26,11 @@ function VerifyPageInner() {
   }, [isConnected, router])
 
   return (
-    <div className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
-      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
-        <AuthFlow />
+    <div className="mx-auto w-full max-w-[500px] flex flex-col flex-1 px-4 py-6 sm:max-w-none sm:flex-row sm:items-start sm:justify-center sm:px-6 sm:py-10">
+      <div className="w-full flex flex-col sm:w-[430px] sm:h-[688px] sm:overflow-hidden">
+        <div className="w-full flex flex-col sm:w-[500px] sm:h-[800px] sm:origin-top sm:scale-[0.86]">
+          <AuthFlow />
+        </div>
       </div>
     </div>
   )
