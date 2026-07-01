@@ -21,8 +21,8 @@ import {
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
+import { createOrganizationIdResolver } from '../utils/resolveOrganizationId.js'
 import { humanReadableDateTime, parseSession } from '../utils/utils.js'
-import { createOrganizationIdResolver } from './resolveOrganizationId.js'
 export interface ZeroDevWalletConfigCore {
   organizationId?: string
   proxyBaseUrl?: string
