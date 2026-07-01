@@ -25,7 +25,7 @@ export function Screen({
   return (
     <div
       className={cn(
-        'flex flex-col relative overflow-hidden w-100 max-w-full h-[min(800px,100dvh)] rounded-[36px] text-left',
+        'flex flex-col relative overflow-hidden w-100 max-w-full h-[min(810px,100dvh)] rounded-[36px] text-left',
         className,
       )}
       style={style}
