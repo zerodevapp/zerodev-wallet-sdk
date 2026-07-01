@@ -48,7 +48,7 @@ export function Screen({
       >
         <MultiRadialBackground />
         <CardGlow />
-        <div className="relative z-10 flex flex-1 flex-col min-h-0">
+        <div className="relative z-10 flex flex-1 flex-col">
           {topNav}
           <div
             className="flex flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden"
