@@ -12,6 +12,10 @@ export default defineConfig({
         __dirname,
         'packages/react/src/index.ts',
       ),
+      '@zerodev/react-ui': path.resolve(
+        __dirname,
+        'packages/react-ui/src/index.ts',
+      ),
       'react-native': 'react-native-web',
     },
   },
