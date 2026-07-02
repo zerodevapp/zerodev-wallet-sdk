@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "scheme": "zerodev-example",
     "experiments": {
       "typedRoutes": true
@@ -21,7 +16,8 @@
       "associatedDomains": [
         "applinks:zerodev-expo-example.vercel.app?mode=developer",
         "webcredentials:zerodev-expo-example.vercel.app"
-      ]
+      ],
+      "appleTeamId": "88J4C462WP"
     },
     "android": {
       "package": "com.zerodev.expoexample",
@@ -57,6 +53,10 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
+      ],
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -70,6 +70,14 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "Authenticate to reveal your wallet seed phrase or private key."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
         }
       ]
     ]
