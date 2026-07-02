@@ -9,7 +9,7 @@ current step.
 ## Import
 
 ```tsx
-import { AuthFlow } from '@zerodev/react-wallet-ui'
+import { AuthFlow } from '@zerodev/wallet-react-ui'
 ```
 
 ## Configure auth
@@ -17,7 +17,7 @@ import { AuthFlow } from '@zerodev/react-wallet-ui'
 Pass an `auth` block to the connector to enable authentication:
 
 ```tsx
-import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 
 zeroDevWallet({
   projectId: '...',
@@ -53,7 +53,7 @@ auth screen when the user is signing in and renders nothing otherwise.
 Trigger the flow with wagmi's `useConnect`:
 
 ```tsx
-import { AuthFlow } from '@zerodev/react-wallet-ui'
+import { AuthFlow } from '@zerodev/wallet-react-ui'
 import { useConnect } from 'wagmi'
 
 function App() {

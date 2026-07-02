@@ -1,4 +1,4 @@
-import { AuthFlow } from '@zerodev/react-wallet-ui'
+import { AuthFlow } from '@zerodev/wallet-react-ui'
 import { ConnectButton } from '../ConnectButton'
 
 export default function AuthFlowDemo() {

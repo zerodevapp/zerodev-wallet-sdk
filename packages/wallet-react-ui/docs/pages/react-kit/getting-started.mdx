@@ -1,6 +1,6 @@
 # Getting Started
 
-`@zerodev/react-wallet-ui` is the React UI layer for the ZeroDev
+`@zerodev/wallet-react-ui` is the React UI layer for the ZeroDev
 Wallet SDK. It ships an enhanced wagmi connector and drop-in components
 for the most common wallet flows, built on wagmi so it slots into a
 standard wagmi setup.
@@ -8,7 +8,7 @@ standard wagmi setup.
 ## Installation
 
 ```bash
-pnpm add @zerodev/react-wallet-ui wagmi viem @tanstack/react-query
+pnpm add @zerodev/wallet-react-ui wagmi viem @tanstack/react-query
 ```
 
 ## Setup
@@ -16,7 +16,7 @@ pnpm add @zerodev/react-wallet-ui wagmi viem @tanstack/react-query
 ### 1. Create a wagmi config with the kit connector
 
 ```tsx
-import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 
@@ -40,7 +40,7 @@ export const config = createConfig({
 Once, anywhere in your app entry (e.g. `main.tsx`):
 
 ```tsx
-import '@zerodev/react-wallet-ui/styles.css'
+import '@zerodev/wallet-react-ui/styles.css'
 ```
 
 This stylesheet contains the styles for the kit's components. Without

@@ -1,7 +1,7 @@
 # @zerodev/react-ui
 
 React UI primitives for ZeroDev — the shared component layer that
-[`@zerodev/react-wallet-ui`](../react-wallet-ui/README.md) is built on. Frosted-glass surfaces,
+[`@zerodev/wallet-react-ui`](../wallet-react-ui/README.md) is built on. Frosted-glass surfaces,
 buttons, inputs, icons, and other building blocks, styled with a fixed ZeroDev
 look via Tailwind CSS v4.
 
