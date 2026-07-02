@@ -12,6 +12,7 @@
   "exclude": [
     "node_modules",
     "dist",
+    "src/signing/**",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.stories.ts",

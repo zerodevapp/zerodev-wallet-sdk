@@ -1,9 +1,9 @@
 import { cn, Text } from '@zerodev/react-ui'
 import type { ReactNode } from 'react'
-import errorImg from '../../../../assets/states/error.png'
-import loadingImg from '../../../../assets/states/loading.png'
-import sendImg from '../../../../assets/states/send.png'
-import successImg from '../../../../assets/states/success.png'
+import errorImg from '../../../../assets/states/error.webp?no-inline'
+import loadingImg from '../../../../assets/states/loading.webp?no-inline'
+import sendImg from '../../../../assets/states/send.webp?no-inline'
+import successImg from '../../../../assets/states/success.webp?no-inline'
 
 export type StateImageName = 'error' | 'loading' | 'send' | 'success'
 

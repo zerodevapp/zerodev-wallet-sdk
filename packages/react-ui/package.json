@@ -24,7 +24,6 @@
   },
   "files": [
     "dist",
-    "assets",
     "tailwind.config.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
@@ -58,8 +57,7 @@
     "zerodev"
   ],
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.3.3",

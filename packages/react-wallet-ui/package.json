@@ -28,6 +28,7 @@
     "src/**/*.tsx",
     "!dist/**/*.tsbuildinfo",
     "!.env",
+    "!src/signing/**",
     "!src/**/*.test.ts",
     "!src/**/*.test.tsx",
     "!src/**/*.stories.ts",
