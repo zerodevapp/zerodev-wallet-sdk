@@ -1,7 +1,7 @@
 'use client'
 
 import { type WalletMode } from '@zerodev/wallet-react'
-import { zeroDevWallet } from '@zerodev/wallet-react-kit'
+import { zeroDevWallet } from '@zerodev/react-wallet-ui'
 import { createConfig, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
 

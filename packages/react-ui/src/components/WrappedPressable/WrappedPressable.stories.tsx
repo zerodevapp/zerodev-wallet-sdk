@@ -1,0 +1,27 @@
+import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Text } from '../Text'
+import { WrappedPressable } from '.'
+
+const meta = {
+  title: 'Shared/WrappedPressable',
+  component: WrappedPressable,
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    disabled: { control: 'boolean' },
+  },
+  args: {
+    children: <Text>Press me</Text>,
+  },
+} satisfies Meta<typeof WrappedPressable>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Default: Story = {
+  args: {
+    className: 'zd:h-12 zd:px-6',
+  },
+}

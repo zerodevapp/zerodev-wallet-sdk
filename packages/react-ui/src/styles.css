@@ -1,0 +1,2 @@
+@import "tailwindcss" prefix(zd);
+@config "../tailwind.config.ts";
