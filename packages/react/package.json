@@ -121,7 +121,7 @@
   "devDependencies": {
     "@types/react": "^19",
     "expo-linking": "^8.0.8",
-    "expo-web-browser": "^15.0.7",
+    "expo-web-browser": ">=15.0.7 <57",
     "react-native": "0.83.4",
     "react-native-webview": "13.16.0",
     "typescript": "5.9.3",
