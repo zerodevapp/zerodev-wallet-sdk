@@ -16,8 +16,7 @@
       "associatedDomains": [
         "applinks:zerodev-expo-example.vercel.app?mode=developer",
         "webcredentials:zerodev-expo-example.vercel.app"
-      ],
-      "appleTeamId": "88J4C462WP"
+      ]
     },
     "android": {
       "package": "com.zerodev.expoexample",
