@@ -1,5 +1,16 @@
 # @zerodev/wallet-core
 
+## 0.0.1
+
+Initial public release.
+
+- Framework-agnostic core for ZeroDev smart embedded wallets.
+- Authentication: passkey (WebAuthn), email OTP, magic link, and Google OAuth, backed by Turnkey secure-enclave key management.
+- Encrypted OTP flow (HPKE-sealed OTP + client key) and client-side verification of the Google OAuth login URL.
+- Session management with automatic refresh and pluggable storage.
+- Wallet key export (seed phrase / private key) through a secure iframe.
+- Defaults to production endpoints (`kms.zerodev.app`) and the production parent organization.
+
 ## 0.0.1-alpha.24
 
 ### Patch Changes

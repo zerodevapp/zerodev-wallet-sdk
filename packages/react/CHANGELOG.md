@@ -1,5 +1,15 @@
 # @zerodev/wallet-react
 
+## 0.0.1
+
+Initial public release.
+
+- React hooks and a wagmi connector for ZeroDev smart embedded wallets, built on `@zerodev/wallet-core`.
+- Auth hooks: `useRegisterPasskey`, `useLoginPasskey`, `useSendOTP` / `useVerifyOTP`, `useSendMagicLink` / `useVerifyMagicLink`, `useAuthenticateOAuth`.
+- Wallet hooks: `useAuthenticators`, `useRefreshSession`, `useExportWallet`, `useExportPrivateKey`.
+- `zeroDevWallet` connector with account modes `'7702'` (default), `'4337'`, and `'EOA'`; standard wagmi hooks (`useAccount`, `useSignMessage`, `useSendTransaction`, `wallet_sendCalls`) work after login.
+- Defaults to the production ZeroDev bundler/paymaster host (`rpc.zerodev.app`).
+
 ## 0.0.1-alpha.27
 
 ### Patch Changes

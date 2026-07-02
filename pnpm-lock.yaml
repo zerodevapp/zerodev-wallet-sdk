@@ -171,9 +171,6 @@ importers:
       '@zerodev/react-ui':
         specifier: workspace:*
         version: link:../../packages/react-ui
-      '@zerodev/wallet-react-ui':
-        specifier: workspace:*
-        version: link:../../packages/wallet-react-ui
       '@zerodev/sdk':
         specifier: ^5.0.0
         version: 5.5.4(viem@2.38.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
@@ -183,6 +180,9 @@ importers:
       '@zerodev/wallet-react':
         specifier: workspace:*
         version: link:../../packages/react
+      '@zerodev/wallet-react-ui':
+        specifier: workspace:*
+        version: link:../../packages/wallet-react-ui
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
