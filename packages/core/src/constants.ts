@@ -1,8 +1,10 @@
 export const DEFAULT_SESSION_EXPIRATION_IN_SECONDS = '900' // default to 15 minutes
 export const DEFAULT_IFRAME_CONTAINER_ID = 'turnkey-auth-iframe-container-id'
 export const DEFAULT_IFRAME_ELEMENT_ID = 'turnkey-default-iframe-element-id'
-export const DEFAULT_ORGANIZATION_ID = '0d98e826-dd8f-44ca-a585-3afcd27d4002'
-export const KMS_SERVER_URL = 'https://kms.staging.zerodev.app'
+// Prod parent organization id. Only a fallback — the SDK resolves the parent
+// org at runtime from the KMS `server-info/parent-org-id` endpoint.
+export const DEFAULT_ORGANIZATION_ID = '65028f18-01c6-4ed4-beff-2ed1be5d6bad'
+export const KMS_SERVER_URL = 'https://kms.zerodev.app'
 
 // Pinned ECDSA P-256 public key (uncompressed, 65 bytes hex) of Turnkey's
 // TLS Fetcher Sign enclave. Used to verify the signature on the OTP encryption
