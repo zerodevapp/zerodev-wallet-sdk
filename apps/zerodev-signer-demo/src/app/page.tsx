@@ -30,8 +30,13 @@ function LandingPageInner() {
     accountStatus === 'reconnecting' ||
     accountStatus === 'connecting' ||
     connectStatus === 'pending'
+  // Auth has succeeded (AuthFlow unmounts once step hits `authenticated`) but
+  // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
+  // still pending. Cover this window (and the eventual redirect) with a
+  // loading screen so the page doesn't sit blank and then jump.
+  const isRedirecting = isConnected || authStep === 'authenticated'
   const showLoading =
-    !isConnected && authStep === null && isResolvingSession
+    isRedirecting || (authStep === null && isResolvingSession)
   const showReconnect =
     !isConnected &&
     authStep === null &&
@@ -67,11 +72,22 @@ function LandingPageInner() {
     connectors,
   ])
 
+  if (showLoading) {
+    return (
+      <div className="min-h-screen">
+        <AppHeader/>
+        <div className="flex min-h-[calc(100vh-88px)] items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-[var(--muted)]" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen">
       <AppHeader/>
       <main
-        className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-[1040px] items-center gap-x-10 gap-y-4 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-0 lg:py-12">
+        className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-[1040px] items-center gap-x-10 gap-y-4 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-0 lg:py-12">
         <section className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
           <h1 className="font-[var(--font-dm-sans)] text-4xl font-bold leading-[1.06] text-[var(--ink)] sm:text-5xl">
             Embedded Smart Wallets
@@ -99,32 +115,28 @@ function LandingPageInner() {
           </div>
         </section>
 
-        <div className="mx-auto flex w-full max-w-[380px] flex-col items-center lg:mx-0">
-          <div className="h-[570px] w-[380px] overflow-hidden">
-            <div className="origin-top-left scale-[0.74]">
-              <div className="flex h-[770px] w-[512px] flex-col">
-                <AuthFlow/>
-                {showLoading && (
-                  <div className="flex flex-1 items-center justify-center p-6">
-                    <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                  </div>
-                )}
-                {showReconnect && (
-                  <div className="flex flex-1 items-center justify-center p-6">
-                    <button
-                      type="button"
-                      onClick={handleReconnect}
-                      className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
-                    >
-                      Reconnect
-                    </button>
-                  </div>
-                )}
+        <div className="mx-auto flex w-full max-w-[360px] flex-col items-center lg:mx-0">
+          {showReconnect ? (
+            <div className="flex h-[729px] w-[360px] items-center justify-center">
+              <button
+                type="button"
+                onClick={handleReconnect}
+                className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
+              >
+                Reconnect
+              </button>
+            </div>
+          ) : (
+            <div className="h-[729px] w-[360px] overflow-hidden">
+              <div className="origin-top-left scale-[0.9]">
+                <div className="w-[400px]">
+                  <AuthFlow/>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <p className="mt-1 max-w-[340px] text-center text-xs leading-5 text-[var(--muted)]">
+          <p className="mt-3 max-w-[360px] text-center text-xs leading-5 text-[var(--muted)]">
             By signing up for ZeroDev Wallet Demo, you agree to our{' '}
             <a
               href="https://zerodev.app/terms-of-service"
