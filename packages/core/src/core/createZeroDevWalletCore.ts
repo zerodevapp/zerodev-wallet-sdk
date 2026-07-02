@@ -21,6 +21,7 @@ import {
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
+import { createOrganizationIdResolver } from '../utils/resolveOrganizationId.js'
 import { humanReadableDateTime, parseSession } from '../utils/utils.js'
 export interface ZeroDevWalletConfigCore {
   organizationId?: string
@@ -109,13 +110,8 @@ export interface ZeroDevWalletSDK {
 export async function createZeroDevWalletCore(
   config: ZeroDevWalletConfigCore,
 ): Promise<ZeroDevWalletSDK> {
-  const {
-    projectId,
-    sessionStorage,
-    rpId,
-    apiKeyStamper,
-    organizationId = DEFAULT_ORGANIZATION_ID,
-  } = config
+  const { projectId, sessionStorage, rpId, apiKeyStamper, organizationId } =
+    config
   const passkeyStamper = config.passkeyStamper ?? createNoopPasskeyStamper()
 
   const sessionStorageManager = createStorageManager(sessionStorage)
@@ -130,6 +126,16 @@ export async function createZeroDevWalletCore(
   })
 
   let cachedAuthProxyConfigId: string | undefined
+
+  // Resolve the Turnkey parent org that stamp-login is signed against: explicit
+  // override → backend fetch (/server-info/parent-org-id, cached) → hardcoded
+  // fallback if the endpoint is unavailable (older backends). This is why the
+  // org no longer needs to be hardcoded/overridden per environment.
+  const resolveOrganizationId = createOrganizationIdResolver({
+    organizationId,
+    fetchParentOrgId: async () => (await client.getParentOrgId()).parentOrgId,
+    fallback: DEFAULT_ORGANIZATION_ID,
+  })
 
   return {
     client,
@@ -184,7 +190,7 @@ export async function createZeroDevWalletCore(
           // resolves the sub-org from the stamped credential. Signing the
           // sub-org here makes the relayed payload's org mismatch the
           // signature → Turnkey SIGNATURE_INVALID.
-          organizationId,
+          organizationId: await resolveOrganizationId(),
           stampWith: 'apiKey',
         })
         await client.apiKeyStamper.commitKeyRotation()
@@ -266,7 +272,7 @@ export async function createZeroDevWalletCore(
               targetPublicKey: compressedPublicKeyHex,
               // Sign against the parent org (see refreshSession note) — the
               // backend derives the sub-org from the stamped credential.
-              organizationId,
+              organizationId: await resolveOrganizationId(),
             })
             await client.apiKeyStamper.commitKeyRotation()
             const parsedSession = parseSession(loginData.session)
@@ -301,7 +307,7 @@ export async function createZeroDevWalletCore(
               // Sign against the parent org, not the user's sub-org (see the
               // refreshSession note). The backend derives the sub-org from the
               // stamped passkey credential.
-              organizationId,
+              organizationId: await resolveOrganizationId(),
               stampWith: 'passkey',
             })
             const parsedSession = parseSession(loginData.session)

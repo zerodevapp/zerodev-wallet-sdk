@@ -1,5 +1,6 @@
 'use client'
 
+import { Icon } from '@zerodev/react-ui'
 import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet } from '@zerodev/react-wallet-ui'
 import { createConfig, http } from 'wagmi'
@@ -34,11 +35,12 @@ export const config = createConfig({
       chains: [arbitrumSepolia, sepolia],
       // Local testing override: our docker backend's Turnkey base org differs
       // from the SDK's hardcoded prod default, so point the connector at it.
-      ...(process.env.NEXT_PUBLIC_ZERODEV_ORG_ID && {
-        organizationId: process.env.NEXT_PUBLIC_ZERODEV_ORG_ID,
+      ...(process.env.NEXT_PUBLIC_ORG_ID && {
+        organizationId: process.env.NEXT_PUBLIC_ORG_ID,
       }),
       ...(mode && { mode }),
       config: {
+        logo: <Icon name="zerodevLogo" className="zd:h-8 zd:w-auto" />,
         auth: {
           enabledMethods: ['email', 'google', 'passkey'],
           emailAuthMethod: getEmailAuthMethod(),
