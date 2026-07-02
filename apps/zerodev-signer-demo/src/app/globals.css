@@ -2,7 +2,12 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #19110b;
+  --ink: #19110b;
+  --muted: #6b6359;
+  --border-warm: #e7e2dd;
+  --surface-warm: #faf7f4;
+  --accent-warm: #f26c1a;
 }
 
 @theme inline {
@@ -10,10 +15,22 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-dm-sans);
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(120% 120% at 50% 0, var(--surface-warm) 0, #ffffff 60%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes tab-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

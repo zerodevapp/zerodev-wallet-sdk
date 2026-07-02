@@ -1,26 +1,26 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-// import { SignatureRequest } from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
+  ExternalLink,
   FileSignature,
   Key,
   Loader2,
   LogOut,
+  RefreshCw,
   Send,
-  Upload,
+  Sparkles,
   Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Address, formatEther, isAddress } from "viem";
+import { useCallback, useEffect, useState } from "react";
+import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
 import { useAccount, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
-import { ExportPrivateKeyModal } from "../components/ExportPrivateKeyModal";
+import { AppHeader } from "../components/AppHeader";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
@@ -29,40 +29,100 @@ import { cn } from "../lib/utils";
 
 export const dynamic = 'force-dynamic';
 
-type ActiveTab = "signing" | "transaction";
+type ActiveTab = "signing" | "mint" | "send";
+type BatchAsset = "ETH" | "USDC";
 
 const tabs = [
-  { id: "signing" as const, name: "Sign Message", icon: FileSignature },
-  { id: "transaction" as const, name: "Send Transaction", icon: Send },
+  { id: "mint" as const, name: "Gas-free Mint", icon: Sparkles },
+  { id: "signing" as const, name: "Sign Anything", icon: FileSignature },
+  { id: "send" as const, name: "Batch Transactions", icon: Send },
 ];
+
+const USDC_CONTRACTS: Record<number, `0x${string}`> = {
+  [11155111]: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  [421614]: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+};
+
+const ERC20_BALANCE_ABI = parseAbi([
+  "function balanceOf(address owner) external view returns (uint256 balance)",
+]);
+
+function formatAuthMethod(
+  authenticators: Awaited<ReturnType<typeof useAuthenticators>>["data"],
+) {
+  const oauthProvider = authenticators?.oauths?.[0]?.provider;
+  if (oauthProvider) {
+    return oauthProvider.toLowerCase() === "google"
+      ? "Google"
+      : oauthProvider.charAt(0).toUpperCase() + oauthProvider.slice(1);
+  }
+  if (authenticators?.emailContacts?.[0]?.email) return "Email";
+  if (authenticators?.passkeys?.length) return "Passkey";
+  return "Connected";
+}
+
+function EthIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-6 w-6"
+    >
+      <path fill="#627EEA" d="M12 2 5.75 12.35 12 16.05l6.25-3.7L12 2Z" />
+      <path fill="#536DD5" d="M12 2v14.05l6.25-3.7L12 2Z" />
+      <path fill="#8FA2FF" d="m5.75 13.55 6.25 8.8 6.25-8.8L12 17.25l-6.25-3.7Z" />
+      <path fill="#627EEA" d="M12 22.35v-5.1l6.25-3.7-6.25 8.8Z" />
+    </svg>
+  );
+}
+
+function UsdcIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="96"
+      height="96"
+      viewBox="0 0 96 96"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-6 w-6"
+    >
+      <path d="M48 95C73.9574 95 95 73.9574 95 48C95 22.0426 73.9574 1 48 1C22.0426 1 1 22.0426 1 48C1 73.9574 22.0426 95 48 95Z" fill="#0B53BF" />
+      <path d="M56.4609 13.7778V19.8291C68.5341 23.4716 77.3759 34.6928 77.3759 47.9997C77.3759 61.3066 68.5341 72.5278 56.4609 76.1703V82.2216C71.8534 78.4616 83.2509 64.5672 83.2509 47.9997C83.2509 31.4322 71.8534 17.5378 56.4609 13.7778Z" fill="white" />
+      <path d="M18.625 47.9997C18.625 34.6928 27.4669 23.4716 39.54 19.8291V13.7778C24.1475 17.5378 12.75 31.4322 12.75 47.9997C12.75 64.5672 24.1475 78.4616 39.54 82.2216V76.1703C27.4669 72.5572 18.625 61.3066 18.625 47.9997Z" fill="white" />
+      <path d="M60.6319 54.5506C60.6319 42.5362 41.8025 47.4713 41.8025 40.8325C41.8025 38.4531 43.7119 36.9256 47.3544 36.9256C51.7019 36.9256 53.2 39.0406 53.67 41.89H59.6625C59.1279 36.5426 56.0588 33.1662 50.9382 32.1604V27.4375H45.0632V31.9918C39.4534 32.7062 35.9275 35.973 35.9275 40.8325C35.9275 52.9056 54.7863 48.3819 54.7863 54.9031C54.7863 57.3706 52.4069 59.0156 48.3825 59.0156C43.1244 59.0156 41.3913 56.695 40.745 53.4931H34.8994C35.2781 59.3502 38.8897 63.0159 45.0632 63.9307V68.5625H50.9382V63.9923C56.9633 63.2139 60.6319 59.7089 60.6319 54.5506Z" fill="white" />
+    </svg>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ActiveTab>("transaction");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("mint");
+  const [selectedAsset, setSelectedAsset] = useState<BatchAsset>("ETH");
   const [balance, setBalance] = useState<string>("0");
+  const [usdcBalance, setUsdcBalance] = useState<string>("0");
   const [copied, setCopied] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showExportPrivateKeyModal, setShowExportPrivateKeyModal] = useState(false);
-  // Toggle for whether SignatureRequest is mounted. When mounted, the kit
-  // gates signing calls on user confirmation; when not, calls go through
-  // silently (background mode). Default off; persisted in localStorage.
-  // const [confirmationEnabled, setConfirmationEnabled] = useState<boolean>(() => {
-  //   if (typeof window === "undefined") return false;
-  //   return localStorage.getItem("zd:signingConfirmation") === "true";
-  // });
-  //
-  // useEffect(() => {
-  //   localStorage.setItem(
-  //     "zd:signingConfirmation",
-  //     String(confirmationEnabled),
-  //   );
-  // }, [confirmationEnabled]);
+  const [gaslessTxCount, setGaslessTxCount] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
+  const authMethodLabel = formatAuthMethod(authenticatorData);
+  const walletExplorerUrl =
+    address && chain?.blockExplorers?.default?.url
+      ? `${chain.blockExplorers.default.url}/address/${address}`
+      : undefined;
+
+  useEffect(() => {
+    if (localStorage.getItem("zd:loggedOut") === "true") {
+      window.location.replace("/");
+    }
+  }, [router]);
 
   useQuery(
     {
@@ -85,21 +145,42 @@ export default function DashboardPage() {
     }
   )
 
-  useEffect(() => {
-    const loadBalance = async () => {
-      if (address && isAddress(address)) {
-        try {
-          if (!publicClient) return;
-          const balanceWei = await publicClient.getBalance({ address: address as Address });
-          setBalance(formatEther(balanceWei));
-        } catch (err) {
-          console.error("Dashboard: Failed to load balance:", err);
-          setBalance("0");
-        }
+  const loadBalances = useCallback(async () => {
+    if (!address || !isAddress(address) || !publicClient) return;
+
+    setIsBalanceRefreshing(true);
+    try {
+      const balanceWei = await publicClient.getBalance({ address: address as Address });
+      setBalance(formatEther(balanceWei));
+      const usdcContractAddress = chain?.id ? USDC_CONTRACTS[chain.id] : undefined;
+      if (usdcContractAddress) {
+        const tokenBalance = await publicClient.readContract({
+          address: usdcContractAddress,
+          abi: ERC20_BALANCE_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        });
+        setUsdcBalance(formatUnits(tokenBalance, 6));
+      } else {
+        setUsdcBalance("0");
       }
-    };
-    loadBalance();
+    } catch (err) {
+      console.error("Dashboard: Failed to load balance:", err);
+      setBalance("0");
+      setUsdcBalance("0");
+    } finally {
+      setIsBalanceRefreshing(false);
+    }
   }, [address, chain, publicClient]);
+
+  useEffect(() => {
+    loadBalances();
+    const interval = window.setInterval(() => {
+      loadBalances();
+    }, 10_000);
+
+    return () => window.clearInterval(interval);
+  }, [loadBalances]);
 
   const handleCopy = async () => {
     if (!address) return;
@@ -109,14 +190,13 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
-    localStorage.setItem("zd:loggedOut", "true");
-    await logout();
-    router.push("/");
-  };
-
-  const formatAddress = (address: string) => {
-    if (!address) return "";
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      localStorage.setItem("zd:loggedOut", "true");
+      window.location.assign("/");
+    }
   };
 
   // Redirect to login if disconnected (session expired)
@@ -129,17 +209,28 @@ export default function DashboardPage() {
   }, [status]);
   useEffect(() => {
     if (status === 'disconnected' && hasConnected) {
-      router.push("/?session_expired=true");
+      const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
+      router.replace(loggedOut ? "/" : "/?session_expired=true");
     }
   }, [status, hasConnected, router]);
 
-  // Show loading while connecting or reconnecting
-  if (status === 'connecting' || status === 'reconnecting' || status === 'disconnected' || !address) {
+  useEffect(() => {
+    if (status !== 'disconnected' || isLoggingOut) return;
+
+    const timeout = window.setTimeout(() => {
+      const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
+      window.location.replace(loggedOut ? "/" : "/?session_expired=true");
+    }, 750);
+
+    return () => window.clearTimeout(timeout);
+  }, [status, isLoggingOut]);
+
+  if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-          <span className="text-sm text-gray-600">
+          <Loader2 className="h-5 w-5 animate-spin text-[#9c958c]" />
+          <span className="text-sm text-[var(--muted)]">
             {status === 'reconnecting' ? 'Reconnecting...' : 'Loading wallet...'}
           </span>
         </div>
@@ -150,131 +241,121 @@ export default function DashboardPage() {
   return (
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
-      <ExportPrivateKeyModal isOpen={showExportPrivateKeyModal} onClose={() => setShowExportPrivateKeyModal(false)} />
-      {/*{confirmationEnabled && (*/}
-      {/*  <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />*/}
-      {/*)}*/}
-      <div className="min-h-screen bg-white">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              {/* Logo */}
-              <div className="flex items-center gap-3">
-                <img
-                  src="/images/zerodev-logo.png"
-                  alt="ZeroDev Logo"
-                  className="w-8 h-8"
-                />
-                <div className="flex flex-col">
-                  <span className="text-lg font-semibold text-gray-900 leading-tight">ZeroDev</span>
-                  <span className="text-[10px] text-gray-500">By Offchain Labs</span>
-                </div>
-                <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-500 rounded-full font-medium border border-blue-100">
-                  Wallet Demo
-                </span>
-              </div>
-
-              {/* Wallet Address & Actions */}
-              <div className="flex items-center gap-3">
-                <ChainSelector />
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200 group cursor-pointer">
-                  <Wallet className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-mono text-gray-700">{formatAddress(address)}</span>
-                  <button
-                    onClick={handleCopy}
-                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                  >
-                    {copied ? (
-                      <Check className="h-3.5 w-3.5 text-green-600" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all cursor-pointer"
-                  title="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen">
+        <AppHeader />
 
         {/* Main Content */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Wallet Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-gray-700" />
-                <h1 className="text-lg font-semibold text-gray-900">Default Wallet</h1>
+                <Wallet className="h-5 w-5 text-[var(--ink)]" />
+                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">Your Smart Wallet</h1>
+                <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                  Created with {authMethodLabel}
+                </span>
               </div>
               <div className="flex items-center gap-2">
+                <ChainSelector className="h-9 rounded-full px-3 text-xs" />
                 <button
                   onClick={() => setShowExportModal(true)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer",
-                    "border border-gray-200 text-gray-700 hover:bg-gray-50",
-                    "flex items-center gap-2"
-                  )}
-                  title="Export Seed Phrase"
+                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
+                  title="Export keys"
                 >
-                  <Upload className="h-4 w-4" />
-                  <span className="hidden sm:inline">Seed Phrase</span>
+                  <Key className="h-3.5 w-3.5" />
+                  Export keys
                 </button>
                 <button
-                  onClick={() => setShowExportPrivateKeyModal(true)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer",
-                    "border border-gray-200 text-gray-700 hover:bg-gray-50",
-                    "flex items-center gap-2"
-                  )}
-                  title="Export Private Key"
+                  onClick={handleLogout}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 cursor-pointer"
+                  title="Logout"
                 >
-                  <Key className="h-4 w-4" />
-                  <span className="hidden sm:inline">Private Key</span>
+                  <LogOut className="h-3.5 w-3.5" />
+                  Logout
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-              <span className="font-mono text-xs sm:text-sm break-all">{address}</span>
-              <button
-                onClick={handleCopy}
-                className="text-gray-400 hover:text-gray-600 shrink-0 cursor-pointer"
-                title="Copy address"
-              >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-green-600" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-              </button>
+
+            <div className="mt-5 border-t border-[var(--border-warm)] pt-4">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--border-warm)] bg-white shadow-sm">
+                    {selectedAsset === "ETH" ? <EthIcon /> : <UsdcIcon />}
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-[var(--font-dm-sans)] text-3xl font-bold leading-none text-[var(--ink)]">
+                      {selectedAsset === "ETH" ? parseFloat(balance).toFixed(4) : parseFloat(usdcBalance).toFixed(2)}
+                    </span>
+                    <span className="text-lg font-medium text-[var(--muted)]">{selectedAsset}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadBalances}
+                    disabled={isBalanceRefreshing}
+                    className="grid h-9 w-9 place-items-center rounded-full border border-[var(--border-warm)] bg-white text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Refresh balances"
+                  >
+                    <RefreshCw className={cn("h-4 w-4", isBalanceRefreshing && "animate-spin")} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-1 rounded-full border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
+                  {(["ETH", "USDC"] as const).map((asset) => (
+                    <button
+                      key={asset}
+                      type="button"
+                      onClick={() => setSelectedAsset(asset)}
+                      className={cn(
+                        "h-7 rounded-full px-3 text-xs font-semibold transition-colors cursor-pointer",
+                        selectedAsset === asset
+                          ? "bg-white text-[var(--ink)] shadow-sm"
+                          : "text-[var(--muted)] hover:text-[var(--ink)]"
+                      )}
+                    >
+                      {asset}
+                    </button>
+                  ))}
+                </div>
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-green-100 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {gaslessTxCount} gasless {gaslessTxCount === 1 ? "tx" : "txs"} this session
+                </div>
+              </div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-gray-900">{parseFloat(balance).toFixed(4)}</span>
-              <span className="text-lg text-gray-500 font-medium">ETH</span>
+
+            <div className="mt-4 flex min-w-0 items-center justify-center gap-2">
+                  <p className="min-w-0 truncate text-center font-mono text-sm font-semibold text-[var(--ink)]">
+                    {address}
+                  </p>
+                  <button
+                    onClick={handleCopy}
+                    className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                    title="Copy address"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                  {walletExplorerUrl && (
+                    <a
+                      href={walletExplorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                      title="View wallet on explorer"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  )}
             </div>
-            <p className="text-sm text-gray-500 mt-1">{chain?.name} Testnet</p>
-            {/*<label className="mt-3 flex items-center gap-2 cursor-pointer text-sm leading-none">*/}
-            {/*  <input*/}
-            {/*    type="checkbox"*/}
-            {/*    checked={confirmationEnabled}*/}
-            {/*    onChange={(e) => setConfirmationEnabled(e.target.checked)}*/}
-            {/*    className="h-3 w-3 m-0"*/}
-            {/*  />*/}
-            {/*  <span className="text-gray-700">Show transaction review</span>*/}
-            {/*</label>*/}
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="border-b border-gray-200">
-              <nav className="flex">
+          <div className="overflow-hidden rounded-lg border border-[var(--border-warm)] bg-white">
+            <div className="border-b border-[var(--border-warm)] bg-[var(--surface-warm)]">
+              <nav className="grid grid-cols-3">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -283,10 +364,10 @@ export default function DashboardPage() {
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer",
+                        "flex h-14 items-center justify-center gap-1.5 border-b-2 px-2 text-xs font-semibold transition-all duration-200 cursor-pointer sm:gap-2 sm:px-4 sm:text-sm",
                         isActive
-                          ? "text-gray-900 underline decoration-2 decoration-blue-600 underline-offset-8"
-                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                          ? "border-[var(--ink)] bg-white text-[var(--ink)]"
+                          : "border-transparent text-[var(--muted)] hover:bg-white hover:text-[var(--ink)]"
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -297,23 +378,29 @@ export default function DashboardPage() {
               </nav>
             </div>
 
-            <div className="p-4 sm:p-6 lg:p-8">
+            <div className="min-h-[360px] p-4 sm:min-h-[420px] sm:p-6 lg:p-8">
+              <div
+                key={activeTab}
+                className="motion-safe:animate-[tab-panel-enter_180ms_ease-out]"
+              >
               {activeTab === "signing" && <SigningTest />}
-              {activeTab === "transaction" && <SendTransactionTest />}
+              {activeTab === "mint" && (
+                <SendTransactionTest
+                  mode="mint-nft"
+                  onGaslessTransaction={() => setGaslessTxCount((count) => count + 1)}
+                />
+              )}
+              {activeTab === "send" && (
+                <SendTransactionTest
+                  mode="send-eth"
+                  batchAsset={selectedAsset}
+                  onBatchAssetChange={setSelectedAsset}
+                  onGaslessTransaction={() => setGaslessTxCount((count) => count + 1)}
+                />
+              )}
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* GitHub Footer */}
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 text-center">
-          <a
-            href="https://github.com/zerodevapp/zerodev-wallet-sdk/tree/main/apps/zerodev-signer-demo"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            View source on GitHub
-          </a>
         </div>
       </div>
     </>

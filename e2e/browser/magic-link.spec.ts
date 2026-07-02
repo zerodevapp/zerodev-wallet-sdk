@@ -78,7 +78,7 @@ test.describe('Magic Link Flow', () => {
     // Wallet creation (EIP-7702 Kernel) can be slow, so accept either
     // the loaded state or the loading spinner as proof of successful auth
     await expect(
-      page.getByText('Default Wallet').or(page.getByText('Loading wallet')),
+      page.getByText('Your Smart Wallet').or(page.getByText('Loading wallet')),
     ).toBeVisible({ timeout: 60_000 })
     console.log('Magic link login successful')
   })

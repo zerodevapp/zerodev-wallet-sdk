@@ -1,14 +1,13 @@
 'use client'
 
 import {AuthFlow, useAuth} from '@zerodev/wallet-react-ui'
-import {Loader2, Settings} from 'lucide-react'
-import {useRouter, useSearchParams} from 'next/navigation'
-import {Suspense, useEffect, useState} from 'react'
+import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
+import {useRouter} from 'next/navigation'
+import {Suspense, useEffect} from 'react'
 import {useAccount, useConnect} from 'wagmi'
+import { AppHeader } from './components/AppHeader'
 
 export const dynamic = 'force-dynamic'
-
-type EmailAuthMethod = 'otp' | 'magicLink'
 
 export default function LandingPage() {
   return (
@@ -20,45 +19,40 @@ export default function LandingPage() {
 
 function LandingPageInner() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const sessionExpired = searchParams.get('session_expired') === 'true'
 
-  const [loggedOut] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const value = localStorage.getItem('zd:loggedOut') === 'true'
-    if (value) localStorage.removeItem('zd:loggedOut')
-    return value
-  })
-
-  const skipAutoConnect = sessionExpired || loggedOut
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
-  // wagmi is still resolving the session (reconnect on mount, or an explicit
-  // connect in flight). Show a spinner instead of the Reconnect button so we
-  // don't flash a misleading CTA before the redirect to /dashboard.
-  const isResolvingSession =
-    accountStatus === 'reconnecting' ||
-    accountStatus === 'connecting' ||
-    connectStatus === 'pending'
-  const showLoading =
-    !isConnected && authStep === null && isResolvingSession
+  // Auth has succeeded (AuthFlow unmounts once step hits `authenticated`) but
+  // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
+  // still pending. Cover this window (and the eventual redirect) with a
+  // loading screen so the page doesn't sit blank and then jump.
+  const isRedirecting = isConnected || authStep === 'authenticated'
+  // wagmi failed to (re)connect — offer a manual Reconnect instead of a
+  // misleading CTA.
   const showReconnect =
-    !isConnected &&
-    authStep === null &&
-    !isResolvingSession &&
-    (skipAutoConnect || connectStatus === 'error')
+    !isConnected && authStep === null && connectStatus === 'error'
+  // AuthFlow renders nothing until it has a `step`, so any time we're not
+  // connected and have no step yet — initial session probe, auto-connect in
+  // flight, or landing back here right after logout — show the loader instead
+  // of a blank column. Keeps the login <-> dashboard transition smooth in
+  // both directions.
+  const showLoading =
+    isRedirecting || (!isConnected && authStep === null && !showReconnect)
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
   }
 
   useEffect(() => {
+    localStorage.removeItem('zd:loggedOut')
+  }, [])
+
+  useEffect(() => {
     if (isConnected) {
       router.push('/dashboard')
       return
     }
-    if (skipAutoConnect) return
     if (
       accountStatus === 'disconnected' &&
       connectStatus === 'idle' &&
@@ -73,131 +67,117 @@ function LandingPageInner() {
     router,
     connect,
     connectors,
-    skipAutoConnect,
   ])
 
-  return (
-    <div
-      className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:flex-row sm:items-center sm:justify-center">
-      {sessionExpired && (
-        <div
-          className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
-          Your session has expired. Please log in again.
+  if (showLoading) {
+    return (
+      <div className="min-h-screen">
+        <AppHeader/>
+        <div className="flex min-h-[calc(100vh-88px)] items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-[var(--muted)]" />
         </div>
-      )}
-      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px]">
-        <EmailMethodSettings/>
-        <AuthFlow/>
-        {showLoading && (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-          </div>
-        )}
-        {showReconnect && (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <button
-              type="button"
-              onClick={handleReconnect}
-              className="px-8 py-4 rounded-3xl bg-gray-900 text-white text-body1 font-semibold hover:bg-gray-800 cursor-pointer"
-            >
-              Reconnect
-            </button>
-          </div>
-        )}
       </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen">
+      <AppHeader/>
+      <main
+        className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-[1040px] items-center gap-x-10 gap-y-4 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-0 lg:py-12">
+        <section className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
+          <h1 className="font-[var(--font-dm-sans)] text-4xl font-bold leading-[1.06] text-[var(--ink)] sm:text-5xl">
+            Embedded Smart Wallets
+          </h1>
+          <p className="mt-5 max-w-[34rem] text-lg leading-8 text-[var(--muted)]">
+            Give users a seamless wallet experience with built-in auth, gas sponsorship, batching, and smart account infrastructure behind one integration.
+          </p>
+
+          <div className="mt-8 space-y-5 text-left">
+            <DemoStep
+              icon={Sparkles}
+              title="Gas Sponsorship Built In"
+              text="Configure and customize gas policies in a few clicks, with no code changes required."
+            />
+            <DemoStep
+              icon={KeyRound}
+              title="One-click onchain flows"
+              text="Batch multiple onchain actions into a single user approval, from sponsored transactions to app-specific workflows."
+            />
+            <DemoStep
+              icon={Layers}
+              title="Unified developer platform"
+              text="Smart accounts, modules, permissions, policies, tracking, and billing bundled into one integration with less maintenance."
+            />
+          </div>
+        </section>
+
+        <div className="mx-auto flex w-full max-w-[360px] flex-col items-center lg:mx-0">
+          {showReconnect ? (
+            <div className="flex h-[729px] w-[360px] items-center justify-center">
+              <button
+                type="button"
+                onClick={handleReconnect}
+                className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
+              >
+                Reconnect
+              </button>
+            </div>
+          ) : (
+            <div className="h-[729px] w-[360px] overflow-hidden">
+              <div className="origin-top-left scale-[0.9]">
+                <div className="w-[400px]">
+                  <AuthFlow/>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p className="mt-3 max-w-[360px] text-center text-xs leading-5 text-[var(--muted)]">
+            By signing up for ZeroDev Wallet Demo, you agree to our{' '}
+            <a
+              href="https://zerodev.app/terms-of-service"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--ink)] underline underline-offset-2"
+            >
+              Terms of Service
+            </a>{' '}
+            and to receive product updates. View our{' '}
+            <a
+              href="https://zerodev.app/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--ink)] underline underline-offset-2"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
+      </main>
     </div>
   )
 }
 
-function EmailMethodSettings() {
-  const {step} = useAuth()
-  const [open, setOpen] = useState(false)
-  const [method, setMethod] = useState<EmailAuthMethod>(() => {
-    if (typeof window === 'undefined') return 'otp'
-    return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-      ? 'magicLink'
-      : 'otp'
-  })
-
-  const handleSave = (next: EmailAuthMethod) => {
-    localStorage.setItem('zd:emailAuthMethod', next)
-    window.location.reload()
-  }
-
-  const handleOpen = () => {
-    // Re-sync from storage on open so a previous Cancel doesn't leave the
-    // radios pointing at an unsaved selection.
-    setMethod(
-      localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-        ? 'magicLink'
-        : 'otp',
-    )
-    setOpen(true)
-  }
-
-  if (step === null || step === 'authenticated') return null
-
+function DemoStep({
+  icon: Icon,
+  title,
+  text,
+}: {
+  icon: typeof Sparkles
+  title: string
+  text: string
+}) {
   return (
-    <div className="absolute top-[22px] left-[22px] z-60 sm:static sm:z-auto flex justify-start sm:justify-end pb-2">
-      <button
-        type="button"
-        onClick={handleOpen}
-        aria-label="Email method settings"
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-      >
-        <Settings className="h-6 w-6"/>
-      </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg p-6 w-[320px] flex flex-col gap-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-base font-semibold text-gray-900">
-              Email auth method
-            </h2>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="otp"
-                checked={method === 'otp'}
-                onChange={() => setMethod('otp')}
-              />
-              <span className="text-gray-700">OTP code</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="magicLink"
-                checked={method === 'magicLink'}
-                onChange={() => setMethod('magicLink')}
-              />
-              <span className="text-gray-700">Magic link</span>
-            </label>
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave(method)}
-                className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 cursor-pointer"
-              >
-                Save and reload
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="flex gap-4">
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ink)] text-white">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div>
+        <h2 className="font-[var(--font-dm-sans)] text-base font-bold text-[var(--ink)]">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{text}</p>
+      </div>
     </div>
   )
 }

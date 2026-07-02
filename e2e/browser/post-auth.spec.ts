@@ -95,7 +95,7 @@ async function loginWithOtp(
   await page.getByRole('button', { name: /Confirm code/i }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 60_000 })
-  await expect(page.getByText('Default Wallet')).toBeVisible({
+  await expect(page.getByText('Your Smart Wallet')).toBeVisible({
     timeout: 60_000,
   })
 }
@@ -116,21 +116,20 @@ test.describe('Post-Auth Operations', () => {
     // Click the "Sign Message" tab (in the navigation area)
     await page
       .getByRole('navigation')
-      .getByRole('button', { name: /Sign Message/i })
+      .getByRole('button', { name: /Sign Anything/i })
       .click()
 
-    // Load sample message
-    await page.getByRole('button', { name: /Load Sample/i }).click()
-
-    // Click the "Sign Message" action button (second one — first is the tab)
+    // Payload is pre-filled with the sample; sign directly. ("Load Sample"
+    // only appears once the user edits the payload.)
+    // Click the sign action button (nth(1) — nth(0) is the nav tab)
     await page
-      .getByRole('button', { name: /Sign Message/i })
+      .getByRole('button', { name: /Sign Anything/i })
       .nth(1)
       .click()
 
     // Exact match avoids the kit's "Signature Request" heading; match only
     // the result-panel label.
-    await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+    await expect(page.getByText('Message signed successfully')).toBeVisible({
       timeout: 30_000,
     })
     console.log('Message signed successfully')
@@ -143,7 +142,7 @@ test.describe('Post-Auth Operations', () => {
     // Click the "Sign Message" tab
     await page
       .getByRole('navigation')
-      .getByRole('button', { name: /Sign Message/i })
+      .getByRole('button', { name: /Sign Anything/i })
       .click()
 
     // Switch to Typed Data mode
@@ -153,12 +152,15 @@ test.describe('Post-Auth Operations', () => {
     const textarea = page.getByPlaceholder('Enter EIP-712 typed data JSON...')
     await textarea.fill(TYPED_DATA_SAMPLE)
 
-    // Click the "Sign Typed Data" action button
-    await page.getByRole('button', { name: /Sign Typed Data/i }).click()
+    // Click the sign action button (nth(1) — nth(0) is the nav tab)
+    await page
+      .getByRole('button', { name: /Sign Anything/i })
+      .nth(1)
+      .click()
 
     // Exact match avoids the kit's "Signature Request" heading; match only
     // the result-panel label.
-    await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+    await expect(page.getByText('Message signed successfully')).toBeVisible({
       timeout: 30_000,
     })
     console.log('Typed data (EIP-712) signed successfully')
@@ -168,20 +170,18 @@ test.describe('Post-Auth Operations', () => {
     const emailAccount = await createNewAccount()
     await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
 
-    // Navigate to Send Transaction tab
+    // Navigate to the "Gas-free Mint" tab
     await page
       .getByRole('navigation')
-      .getByRole('button', { name: /Send Transaction/i })
+      .getByRole('button', { name: /Gas-free Mint/i })
       .click()
 
-    // Click the "Mint NFT" action button (second match — first is the mode selector)
-    await page
-      .getByRole('button', { name: /Mint NFT/i })
-      .nth(1)
-      .click()
+    // Fixed-mode tab hides the mode selector, so there is a single Mint button.
+    // Exact match avoids the "Gas-free Mint" tab.
+    await page.getByRole('button', { name: 'Mint', exact: true }).click()
 
     // Wait for success
-    await expect(page.getByText('NFT minted successfully!')).toBeVisible({
+    await expect(page.getByText(/NFT minted/i)).toBeVisible({
       timeout: 60_000,
     })
     console.log('Mint NFT (send transaction) successful')
@@ -194,14 +194,12 @@ test.describe('Post-Auth Operations', () => {
     // Click logout
     await page.getByRole('button', { name: /Logout/i }).click()
 
-    // Verify redirect to login page. Post-logout the landing page shows a
-    // Reconnect button instead of auto-triggering AuthFlow, so the user has
-    // to opt back into the sign-in flow.
+    // Verify redirect to the login page. Post-logout the landing auto-restarts
+    // the auth flow, so the login UI reappears (no manual Reconnect step).
     await page.waitForURL('/', { timeout: 15_000 })
-    const reconnectButton = page.getByRole('button', { name: /Reconnect/i })
-    await expect(reconnectButton).toBeVisible()
-    await reconnectButton.click()
-    await expect(page.getByText('Continue to your wallet')).toBeVisible()
+    await expect(page.getByText('Continue to your wallet')).toBeVisible({
+      timeout: 30_000,
+    })
     console.log('Logout successful')
   })
 })

@@ -80,7 +80,7 @@ test.describe('OTP Flow', () => {
     await page.waitForURL('**/dashboard', { timeout: 60_000 })
 
     // Step 10: Verify dashboard elements (wallet creation can take time)
-    await expect(page.getByText('Default Wallet')).toBeVisible({
+    await expect(page.getByText('Your Smart Wallet')).toBeVisible({
       timeout: 60_000,
     })
   })
