@@ -58,13 +58,13 @@ describe('Switch', () => {
   describe('thumb color', () => {
     it('uses the solarOrange hex color when value is true', () => {
       const { container } = render(<Switch value={true} />)
-      const thumb = container.querySelector('.rounded-full')
+      const thumb = container.querySelector('.zd\\:rounded-full')
       expect(thumb?.className).toContain('bg-solarOrange')
     })
 
     it('uses greyScale/30 when value is false', () => {
       const { container } = render(<Switch value={false} />)
-      const thumb = container.querySelector('.rounded-full')
+      const thumb = container.querySelector('.zd\\:rounded-full')
       expect(thumb?.className).toContain('bg-greyScale/30')
     })
   })

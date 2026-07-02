@@ -39,5 +39,5 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
 export function Icon({ name, className, ...props }: IconProps) {
   const Component = icons[name]
   if (!Component) return null
-  return <Component className={cn('text-greyScale', className)} {...props} />
+  return <Component className={cn('zd:text-greyScale', className)} {...props} />
 }

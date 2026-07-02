@@ -31,7 +31,7 @@ export function Wrapper({
   return (
     <div
       className={cn(
-        'overflow-hidden border-offWhite border-[0.3px] backdrop-blur-[15px]',
+        'zd:overflow-hidden zd:border-offWhite zd:border-[0.3px] zd:backdrop-blur-[15px]',
         className,
       )}
       {...rest}

@@ -18,23 +18,23 @@ export function SigningActions({
   const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
 
   return (
-    <Wrapper className="p-1 gap-2 mb-1.5 rounded-3xl">
-      <div className="flex flex-row items-center gap-1">
+    <Wrapper className="zd:p-1 zd:gap-2 zd:mb-1.5 zd:rounded-3xl">
+      <div className="zd:flex zd:flex-row zd:items-center zd:gap-1">
         <Button
           text="Reject"
           action="secondary"
-          className="flex-1"
+          className="zd:flex-1"
           onClick={onReject}
         />
         <Button
           text="Confirm"
-          className="flex-1"
+          className="zd:flex-1"
           disabled={disabled}
           onClick={onConfirm}
         />
       </div>
       {showAgreement && (
-        <Text className="text-center text-body3 mt-2">
+        <Text className="zd:text-center zd:text-body3 zd:mt-2">
           By continuing, you accept the{' '}
           {termsAndConditionsUrl && (
             <Text
@@ -42,7 +42,7 @@ export function SigningActions({
               href={termsAndConditionsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline text-body3"
+              className="zd:underline zd:text-body3"
             >
               Terms
             </Text>
@@ -54,7 +54,7 @@ export function SigningActions({
               href={privacyPolicyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline text-body3"
+              className="zd:underline zd:text-body3"
             >
               Privacy Policy
             </Text>

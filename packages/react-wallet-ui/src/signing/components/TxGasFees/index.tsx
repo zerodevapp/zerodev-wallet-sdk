@@ -41,35 +41,43 @@ function getTierIcon(tier: GasTier): IconName {
 
 function SkeletonBar({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-lg bg-offWhite/50 animate-pulse', className)} />
+    <div
+      className={cn(
+        'zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse',
+        className,
+      )}
+    />
   )
 }
 
 export function TxGasFeesSkeleton() {
   return (
-    <Wrapper className="rounded-xl p-4 w-full flex flex-col gap-3">
-      <div className="flex flex-row items-center justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <Icon name="lightingFill" className="h-4 w-4 text-solarOrange" />
-          <Text className="text-xl">Estimated Gas Fees</Text>
+    <Wrapper className="zd:rounded-xl zd:p-4 zd:w-full zd:flex zd:flex-col zd:gap-3">
+      <div className="zd:flex zd:flex-row zd:items-center zd:justify-between">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+          <Icon
+            name="lightingFill"
+            className="zd:h-4 zd:w-4 zd:text-solarOrange"
+          />
+          <Text className="zd:text-xl">Estimated Gas Fees</Text>
         </div>
-        <WrappedPressable className="h-7 pl-3 pr-2">
+        <WrappedPressable className="zd:h-7 zd:pl-3 zd:pr-2">
           <Text>Market</Text>
-          <Icon name="chevronDown" className="h-4 w-4" />
+          <Icon name="chevronDown" className="zd:h-4 zd:w-4" />
         </WrappedPressable>
       </div>
-      <div className="flex flex-col gap-4 my-[1.5px]">
+      <div className="zd:flex zd:flex-col zd:gap-4 zd:my-[1.5px]">
         <DataRow
           label="Fee"
           value={
-            <div className="flex flex-row gap-1">
-              <SkeletonBar className="w-[105px] h-3" />
-              <SkeletonBar className="w-14 h-3" />
+            <div className="zd:flex zd:flex-row zd:gap-1">
+              <SkeletonBar className="zd:w-[105px] zd:h-3" />
+              <SkeletonBar className="zd:w-14 zd:h-3" />
             </div>
           }
         />
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="zd:flex zd:flex-col zd:gap-1">
         <ListItemSkeleton />
         <ListItemSkeleton />
         <ListItemSkeleton />
@@ -86,18 +94,21 @@ export function TxGasFees({
   const selectedGasFee = gasFees.find((g) => g.tier === selectedGasTier)
 
   return (
-    <Wrapper className="rounded-xl p-4 w-full flex flex-col gap-3">
-      <div className="flex flex-row items-center justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <Icon name="lightingFill" className="h-4 w-4 text-solarOrange" />
-          <Text className="text-xl">Estimated Gas Fees</Text>
+    <Wrapper className="zd:rounded-xl zd:p-4 zd:w-full zd:flex zd:flex-col zd:gap-3">
+      <div className="zd:flex zd:flex-row zd:items-center zd:justify-between">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+          <Icon
+            name="lightingFill"
+            className="zd:h-4 zd:w-4 zd:text-solarOrange"
+          />
+          <Text className="zd:text-xl">Estimated Gas Fees</Text>
         </div>
-        <WrappedPressable className="h-7 pl-3 pr-2">
+        <WrappedPressable className="zd:h-7 zd:pl-3 zd:pr-2">
           <Text>{capitalizeFirst(selectedGasTier)}</Text>
-          <Icon name="chevronDown" className="h-4 w-4" />
+          <Icon name="chevronDown" className="zd:h-4 zd:w-4" />
         </WrappedPressable>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="zd:flex zd:flex-col zd:gap-4">
         <DataRow
           label="Fee"
           value={`${selectedGasFee?.fee} (${selectedGasFee?.feeUsd})`}
@@ -112,7 +123,7 @@ export function TxGasFees({
           />
         )}
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="zd:flex zd:flex-col zd:gap-1">
         {gasFees.map((item) => (
           <ListItem
             key={item.tier}

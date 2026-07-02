@@ -44,27 +44,27 @@ export const AsLabel: Story = {
 export const CustomColor: Story = {
   args: {
     children: 'Orange text',
-    className: 'text-orange',
+    className: 'zd:text-orange',
   },
 }
 
 export const LargerSize: Story = {
   args: {
     children: 'Larger body1 text',
-    className: 'text-body1',
+    className: 'zd:text-body1',
   },
 }
 
 export const AllSizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-3">
-      <Text className="text-h1">Heading 1</Text>
-      <Text className="text-h2">Heading 2</Text>
-      <Text className="text-h3">Heading 3</Text>
-      <Text className="text-body1">Body 1</Text>
+    <div className="zd:flex zd:flex-col zd:gap-3">
+      <Text className="zd:text-h1">Heading 1</Text>
+      <Text className="zd:text-h2">Heading 2</Text>
+      <Text className="zd:text-h3">Heading 3</Text>
+      <Text className="zd:text-body1">Body 1</Text>
       <Text>Body 2 (default)</Text>
-      <Text className="text-body3">Body 3</Text>
-      <Text className="text-body4">Body 4</Text>
+      <Text className="zd:text-body3">Body 3</Text>
+      <Text className="zd:text-body4">Body 4</Text>
     </div>
   ),
 }

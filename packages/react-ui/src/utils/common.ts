@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from 'clsx'
 import { extendTailwindMerge } from 'tailwind-merge'
 
 const customTwMerge = extendTailwindMerge({
+  prefix: 'zd',
   extend: {
     classGroups: {
       'font-size': [

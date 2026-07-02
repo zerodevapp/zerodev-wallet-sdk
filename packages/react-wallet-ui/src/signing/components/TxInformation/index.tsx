@@ -7,17 +7,17 @@ export interface TxInformationProps {
 
 export function TxInformation({ network }: TxInformationProps) {
   return (
-    <Wrapper className="rounded-2xl w-full">
-      <div className="flex flex-col p-4 gap-2">
+    <Wrapper className="zd:rounded-2xl zd:w-full">
+      <div className="zd:flex zd:flex-col zd:p-4 zd:gap-2">
         {network && (
-          <div className="flex flex-row justify-between">
+          <div className="zd:flex zd:flex-row zd:justify-between">
             <Text>Network</Text>
-            <div className="flex flex-row gap-2 items-center">
-              <Text className="text-body1">{capitalizeFirst(network)}</Text>
-              <div className="h-[18px] w-[18px] bg-white flex items-center justify-center rounded-full">
+            <div className="zd:flex zd:flex-row zd:gap-2 zd:items-center">
+              <Text className="zd:text-body1">{capitalizeFirst(network)}</Text>
+              <div className="zd:h-[18px] zd:w-[18px] zd:bg-white zd:flex zd:items-center zd:justify-center zd:rounded-full">
                 <Icon
                   name={network as IconName}
-                  className="h-[18px] w-[18px]"
+                  className="zd:h-[18px] zd:w-[18px]"
                 />
               </div>
             </div>

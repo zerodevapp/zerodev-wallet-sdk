@@ -1,6 +1,6 @@
 'use client'
 
-import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
+import {AuthFlow, useAuth} from '@zerodev/react-wallet-ui'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
 import {useRouter} from 'next/navigation'
 import {Suspense, useEffect} from 'react'

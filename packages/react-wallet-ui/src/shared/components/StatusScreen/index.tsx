@@ -28,15 +28,21 @@ export function StatusScreen({
   className,
 }: StatusScreenProps) {
   return (
-    <div className={cn('flex flex-col gap-8 items-center', className)}>
+    <div
+      className={cn('zd:flex zd:flex-col zd:gap-8 zd:items-center', className)}
+    >
       <img
         src={STATE_IMAGES[imageName]}
         alt={imageName}
-        className="w-[118px] h-[118px] bg-transparent"
+        className="zd:w-[118px] zd:h-[118px] zd:bg-transparent"
       />
-      <div className="flex flex-col gap-4 items-center">
-        <Text className="text-h2 text-center whitespace-pre-wrap">{title}</Text>
-        <Text className="text-center whitespace-pre-wrap">{children}</Text>
+      <div className="zd:flex zd:flex-col zd:gap-4 zd:items-center">
+        <Text className="zd:text-h2 zd:text-center zd:whitespace-pre-wrap">
+          {title}
+        </Text>
+        <Text className="zd:text-center zd:whitespace-pre-wrap">
+          {children}
+        </Text>
       </div>
     </div>
   )

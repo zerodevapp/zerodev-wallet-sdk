@@ -155,7 +155,7 @@ describe('TxGasFeesSkeleton', () => {
 
   it('renders three ListItem skeletons', () => {
     const { container } = render(<TxGasFeesSkeleton />)
-    const pulses = container.querySelectorAll('.animate-pulse')
+    const pulses = container.querySelectorAll('.zd\\:animate-pulse')
     // 2 bars per ListItemSkeleton * 3 rows + avatar circle per row + 2 inline Fee bars
     expect(pulses.length).toBeGreaterThanOrEqual(3)
   })

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Geist, Geist_Mono } from "next/font/google";
 import { Providers } from './providers';
 
+import "@zerodev/react-wallet-ui/styles.css";
 import "./globals.css";
 
 const geistSans = Geist({

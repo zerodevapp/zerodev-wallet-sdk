@@ -9,22 +9,26 @@ export interface SwitchProps {
 
 export function Switch({ value, onValueChange }: SwitchProps) {
   return (
-    <Wrapper variant="ghost" className="w-14 h-7 rounded-xl p-1">
+    <Wrapper variant="ghost" className="zd:w-14 zd:h-7 zd:rounded-xl zd:p-1">
       <button
         type="button"
         role="switch"
         aria-checked={value ?? false}
         onClick={onValueChange}
-        className="flex items-center justify-center flex-row gap-1.5 w-full h-full rounded-lg bg-white/70 cursor-pointer"
+        className="zd:flex zd:items-center zd:justify-center zd:flex-row zd:gap-1.5 zd:w-full zd:h-full zd:rounded-lg zd:bg-white/70 zd:cursor-pointer"
       >
-        {value && <Text className="text-body3 text-greyScale/90">On</Text>}
+        {value && (
+          <Text className="zd:text-body3 zd:text-greyScale/90">On</Text>
+        )}
         <div
           className={cn(
-            'w-3.5 h-3.5 rounded-full shadow-sm',
-            value ? 'bg-solarOrange' : 'bg-greyScale/30',
+            'zd:w-3.5 zd:h-3.5 zd:rounded-full zd:shadow-sm',
+            value ? 'zd:bg-solarOrange' : 'zd:bg-greyScale/30',
           )}
         />
-        {!value && <Text className="text-body3 text-greyScale/50">Off</Text>}
+        {!value && (
+          <Text className="zd:text-body3 zd:text-greyScale/50">Off</Text>
+        )}
       </button>
     </Wrapper>
   )

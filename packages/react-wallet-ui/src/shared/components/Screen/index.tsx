@@ -25,7 +25,9 @@ export function Screen({
   return (
     <div
       className={cn(
-        'flex flex-col relative overflow-hidden w-100 max-w-full h-[min(800px,100dvh)] rounded-[36px] text-left',
+        'zd:flex zd:flex-col zd:overflow-hidden zd:text-left',
+        'zd:fixed zd:inset-0 zd:z-50 zd:w-screen zd:h-[100dvh] zd:rounded-[36px]',
+        'zd:sm:relative zd:sm:z-auto zd:sm:w-100 zd:sm:max-w-full zd:sm:h-[810px] zd:sm:max-h-[100dvh]',
         className,
       )}
       style={style}
@@ -38,7 +40,7 @@ export function Screen({
           vivid and distinct from the border. */}
       <div
         className={cn(
-          'flex flex-1 flex-col m-1.5 px-4 overflow-hidden rounded-4xl relative',
+          'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:px-4 zd:overflow-hidden zd:rounded-4xl zd:relative',
           contentClassName,
         )}
         // clip-path clips backdrop-filter to the rounded corners; plain
@@ -48,10 +50,10 @@ export function Screen({
       >
         <MultiRadialBackground />
         <CardGlow />
-        <div className="relative z-10 flex flex-1 flex-col min-h-0">
+        <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}
           <div
-            className="flex flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden"
+            className="zd:flex zd:flex-1 zd:flex-col zd:min-h-0 zd:overflow-y-auto zd:overflow-x-hidden"
             style={{ paddingTop: `${CONTENT_PADDING_TOP}px` }}
           >
             {children}

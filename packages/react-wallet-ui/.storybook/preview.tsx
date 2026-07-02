@@ -12,8 +12,8 @@ const withScreen: Decorator = (Story, context) => {
   // instead of being clipped.
   return (
     <Screen
-      className="w-125 min-h-75 flex flex-col relative overflow-hidden rounded-[34px]"
-      contentClassName="flex-1 grid place-items-center bg-offWhite/85 m-1.5 px-4 py-6 rounded-[30px] relative"
+      className="zd:w-125 zd:min-h-75 zd:flex zd:flex-col zd:relative zd:overflow-hidden zd:rounded-[34px]"
+      contentClassName="zd:flex-1 zd:grid zd:place-items-center zd:bg-offWhite/85 zd:m-1.5 zd:px-4 zd:py-6 zd:rounded-[30px] zd:relative"
     >
       <div>
         <Story />

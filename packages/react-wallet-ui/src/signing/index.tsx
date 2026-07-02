@@ -89,7 +89,7 @@ function UncontrolledSignatureRequest({
     <Screen className={className} style={style}>
       {renderRequestContent(pendingRequest, confirm, reject)}
       {pendingRequests.length > 1 && (
-        <p className="text-xs text-gray-500 mt-3">
+        <p className="zd:text-xs zd:text-gray-500 zd:mt-3">
           +{pendingRequests.length - 1} more pending{' '}
           {pendingRequests.length - 1 === 1 ? 'request' : 'requests'}
         </p>

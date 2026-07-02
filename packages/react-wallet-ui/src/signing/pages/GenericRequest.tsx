@@ -32,15 +32,15 @@ export function GenericRequest({
   ) {
     return (
       <SigningLayout onConfirm={confirm} onReject={reject}>
-        <div className="flex flex-col gap-2 pt-4">
-          <div className="flex flex-col items-center justify-center gap-2 pb-2">
-            <Text className="text-h2">Confirm Request</Text>
+        <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+          <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+            <Text className="zd:text-h2">Confirm Request</Text>
           </div>
-          <div className="text-sm">
-            <span className="font-medium text-gray-500">Method: </span>
-            <span className="text-gray-900">{request.method}</span>
+          <div className="zd:text-sm">
+            <span className="zd:font-medium zd:text-gray-500">Method: </span>
+            <span className="zd:text-gray-900">{request.method}</span>
           </div>
-          <pre className="rounded-lg bg-gray-50 p-3 text-xs text-gray-700 overflow-auto max-h-48 border border-gray-100">
+          <pre className="zd:rounded-lg zd:bg-gray-50 zd:p-3 zd:text-xs zd:text-gray-700 zd:overflow-auto zd:max-h-48 zd:border zd:border-gray-100">
             {JSON.stringify(request.params, null, 2)}
           </pre>
         </div>
@@ -94,9 +94,9 @@ function GenericSendTransaction({
       disabled={confirmDisabled}
       error={gasError}
     >
-      <div className="flex flex-col gap-2 pt-4">
-        <div className="flex flex-col items-center justify-center gap-2 pb-2">
-          <Text className="text-h2">Confirm Transaction</Text>
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+        <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+          <Text className="zd:text-h2">Confirm Transaction</Text>
         </div>
         <Section title="Transaction Summary" iconName="arrowSwapHorizontal">
           <DataRow label="To" value={shortenHex((to ?? '0x') as string)} />
