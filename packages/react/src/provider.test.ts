@@ -40,7 +40,7 @@ beforeEach(() => {
 
 describe('wallet_sendCalls', () => {
   it('submits a userOp and returns its hash as the bundle id', async () => {
-    sendUserOperationMock.mockResolvedValue('0xuserophash')
+    sendUserOperationMock.mockResolvedValue('0xuserophash:11155111')
     const provider = createTestProvider()
 
     const result = await provider.request({
@@ -56,7 +56,7 @@ describe('wallet_sendCalls', () => {
       ],
     })
 
-    expect(result).toEqual({ id: '0xuserophash' })
+    expect(result).toEqual({ id: '0xuserophash:11155111' })
     expect(sendUserOperationMock).toHaveBeenCalledWith({
       calls: [
         {
@@ -118,7 +118,7 @@ describe('wallet_getCallsStatus', () => {
 
     const result = await provider.request({
       method: 'wallet_getCallsStatus',
-      params: ['0xuserophash'],
+      params: ['0xuserophash:11155111'],
     })
 
     expect(result).toEqual({
@@ -155,7 +155,7 @@ describe('wallet_getCallsStatus', () => {
 
     const result = await provider.request({
       method: 'wallet_getCallsStatus',
-      params: ['0xuserophash'],
+      params: ['0xuserophash:11155111'],
     })
 
     expect(result).toEqual({
@@ -199,7 +199,7 @@ describe('wallet_getCallsStatus', () => {
 
     const result = (await provider.request({
       method: 'wallet_getCallsStatus',
-      params: ['0xuserophash'],
+      params: ['0xuserophash:11155111'],
     })) as { status: number; receipts: { status: string }[] }
 
     expect(result.status).toBe(500)
