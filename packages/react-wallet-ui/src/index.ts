@@ -10,16 +10,16 @@ export type { AuthMethod, AuthStep } from './auth/types'
 
 // Connector
 export type {
-  SigningConfig,
+  // SigningConfig,
   ZeroDevKitConfig,
   ZeroDevKitConnectorParams,
 } from './connector.js'
 export { zeroDevWallet } from './connector.js'
 
 // Signing
-export type { SignatureRequestProps } from './signing'
-export { SignatureRequest } from './signing'
-export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
-export { usePendingRequests } from './signing/hooks/usePendingRequests.js'
-
-export type { PendingRequest, Request, RequestMethod } from './types.js'
+// export type { SignatureRequestProps } from './signing'
+// export { SignatureRequest } from './signing'
+// export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
+// export { usePendingRequests } from './signing/hooks/usePendingRequests.js'
+//
+// export type { PendingRequest, Request, RequestMethod } from './types.js'
