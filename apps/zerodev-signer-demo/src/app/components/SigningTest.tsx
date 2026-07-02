@@ -51,10 +51,6 @@ export function SigningTest() {
   // const publicClient = usePublicClient()
   const { signMessage, data: messageSignature, isPending: isSigningMessage, isSuccess: isMessageSuccess, error: signError, reset: resetSignMessage } = useSignMessage();
   const { signTypedData, data: typedDataSignature, isPending: isSigningTypedData, isSuccess: isTypedDataSuccess, error: typedDataError, reset: resetSignTypedData } = useSignTypedData();
-  console.log("messageSignature", messageSignature);
-  console.log("isMessageSuccess", isMessageSuccess);
-  console.log("typedDataSignature", typedDataSignature);
-  console.log("isTypedDataSuccess", isTypedDataSuccess);
 
   const loading = isSigningMessage || isSigningTypedData;
   const result = messageSignature || typedDataSignature;

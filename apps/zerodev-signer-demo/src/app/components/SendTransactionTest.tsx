@@ -388,6 +388,8 @@ export function SendTransactionTest({
       const result = await waitForCallsStatus(config, { id });
       if (result.status === "failure") {
         setError("Batch transaction failed");
+        await refreshBalances();
+        return;
       }
       const txHash = result.receipts?.[0]?.transactionHash;
       if (txHash) {
