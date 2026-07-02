@@ -10,14 +10,14 @@ export interface CalloutProps {
 export function Callout({ title, description }: CalloutProps) {
   return (
     <Wrapper
-      className="w-full py-5 px-4 flex flex-col gap-4 rounded-xl"
+      className="zd:w-full zd:py-5 zd:px-4 zd:flex zd:flex-col zd:gap-4 zd:rounded-xl"
       variant="solid"
     >
-      <div className="flex flex-row items-center gap-2">
-        <Icon name="info" className="h-3.5 w-3.5 text-solarOrange" />
-        <Text className="text-body1">{title}</Text>
+      <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+        <Icon name="info" className="zd:h-3.5 zd:w-3.5 zd:text-solarOrange" />
+        <Text className="zd:text-body1">{title}</Text>
       </div>
-      <Text className="text-body3 break-all">{description}</Text>
+      <Text className="zd:text-body3 zd:break-all">{description}</Text>
     </Wrapper>
   )
 }

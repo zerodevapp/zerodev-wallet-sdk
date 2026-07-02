@@ -10,18 +10,18 @@ import { Wrapper } from '../Wrapper'
 // border (overriding Wrapper's offWhite stroke), and the "blur effect" inset
 // shadows. Per-variant colour + hover/active live on the inner <button>.
 const surfaceClass =
-  'rounded-3xl border-white/0 ' +
-  'shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.10),inset_0_3px_4px_0_rgba(0,0,0,0.02)]'
+  'zd:rounded-3xl zd:border-white/0 ' +
+  'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.10),inset_0_3px_4px_0_rgba(0,0,0,0.02)]'
 
 const innerClass =
-  'flex items-center justify-center gap-2 h-16 w-full px-5 py-3.5 cursor-pointer transition-colors'
+  'zd:flex zd:items-center zd:justify-center zd:gap-2 zd:h-16 zd:w-full zd:px-5 zd:py-3.5 zd:cursor-pointer zd:transition-colors'
 
 // secondary keeps Wrapper's white@0.5 surface; primary overrides it with a dark
 // translucent fill (via inline style, since Wrapper sets its bg inline). Hover/
 // active tints sit on the inner button.
 const bgClasses: Record<NonNullable<ButtonProps['action']>, string> = {
-  primary: 'hover:bg-white/5 active:bg-white/10',
-  secondary: 'hover:bg-white/20 active:bg-white/30',
+  primary: 'zd:hover:bg-white/5 zd:active:bg-white/10',
+  secondary: 'zd:hover:bg-white/20 zd:active:bg-white/30',
 }
 
 const primaryStyle: CSSProperties = {
@@ -29,8 +29,8 @@ const primaryStyle: CSSProperties = {
 }
 
 const textClasses: Record<NonNullable<ButtonProps['action']>, string> = {
-  primary: 'text-white text-body1',
-  secondary: 'text-greyScale text-body1',
+  primary: 'zd:text-white zd:text-body1',
+  secondary: 'zd:text-greyScale zd:text-body1',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -51,13 +51,13 @@ export function Button({
 }: ButtonProps) {
   return (
     <Wrapper
-      className={cn(surfaceClass, { 'opacity-50': disabled }, className)}
+      className={cn(surfaceClass, { 'zd:opacity-50': disabled }, className)}
       {...(action === 'primary' && { style: primaryStyle })}
     >
       <button
         type={rest.type ?? 'button'}
         className={cn(innerClass, bgClasses[action], {
-          'cursor-not-allowed': disabled,
+          'zd:cursor-not-allowed': disabled,
         })}
         disabled={disabled}
         {...rest}
@@ -65,14 +65,14 @@ export function Button({
         {iconName && !trailIcon && (
           <Icon
             name={iconName}
-            className={cn('w-6 h-6', textClasses[action])}
+            className={cn('zd:w-6 zd:h-6', textClasses[action])}
           />
         )}
         {text && <Text className={textClasses[action]}>{text}</Text>}
         {iconName && trailIcon && (
           <Icon
             name={iconName}
-            className={cn('w-6 h-6', textClasses[action])}
+            className={cn('zd:w-6 zd:h-6', textClasses[action])}
           />
         )}
       </button>

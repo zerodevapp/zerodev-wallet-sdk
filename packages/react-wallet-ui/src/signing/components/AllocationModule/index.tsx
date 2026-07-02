@@ -26,19 +26,19 @@ export function AllocationModule({
   const checkboxId = useId()
 
   return (
-    <div className="w-full flex flex-col p-2 pb-3 gap-2 border-b border-offWhite/50">
-      <div className="flex flex-row items-center justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <div className="bg-offWhite rounded-xl w-11 h-11 flex items-center justify-center shrink-0">
+    <div className="zd:w-full zd:flex zd:flex-col zd:p-2 zd:pb-3 zd:gap-2 zd:border-b zd:border-offWhite/50">
+      <div className="zd:flex zd:flex-row zd:items-center zd:justify-between">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+          <div className="zd:bg-offWhite zd:rounded-xl zd:w-11 zd:h-11 zd:flex zd:items-center zd:justify-center zd:shrink-0">
             {imageSource && (
-              <img src={imageSource} alt="" className="w-6 h-6" />
+              <img src={imageSource} alt="" className="zd:w-6 zd:h-6" />
             )}
           </div>
-          <div className="flex flex-col">
-            <Text className="text-body1">{symbol}</Text>
-            <div className="flex flex-row gap-1 items-center">
-              <Icon name={network as IconName} className="h-3 w-3" />
-              <Text className="text-body3 text-greyScale/50">
+          <div className="zd:flex zd:flex-col">
+            <Text className="zd:text-body1">{symbol}</Text>
+            <div className="zd:flex zd:flex-row zd:gap-1 zd:items-center">
+              <Icon name={network as IconName} className="zd:h-3 zd:w-3" />
+              <Text className="zd:text-body3 zd:text-greyScale/50">
                 {capitalizeFirst(network)}
               </Text>
             </div>
@@ -46,9 +46,9 @@ export function AllocationModule({
         </div>
         <label
           htmlFor={checkboxId}
-          className="flex flex-row items-center gap-2 cursor-pointer select-none"
+          className="zd:flex zd:flex-row zd:items-center zd:gap-2 zd:cursor-pointer zd:select-none"
         >
-          <Text className="text-body1">
+          <Text className="zd:text-body1">
             {availableAmount} {symbol}
           </Text>
           <input
@@ -56,12 +56,12 @@ export function AllocationModule({
             type="checkbox"
             checked={checked}
             onChange={onCheck}
-            className="h-4 w-4 cursor-pointer accent-solarOrange"
+            className="zd:h-4 zd:w-4 zd:cursor-pointer zd:accent-solarOrange"
           />
         </label>
       </div>
       <Input placeholder="0">
-        <WrappedPressable className="w-14 h-7">
+        <WrappedPressable className="zd:w-14 zd:h-7">
           <Text>Max</Text>
         </WrappedPressable>
       </Input>

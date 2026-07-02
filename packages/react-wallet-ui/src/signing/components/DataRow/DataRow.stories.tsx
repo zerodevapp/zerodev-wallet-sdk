@@ -66,7 +66,7 @@ export const WithTrailingIcon: Story = {
 export const WithCustomValue: Story = {
   args: {
     label: 'status',
-    value: <Text className="text-solarOrange">Pending</Text>,
+    value: <Text className="zd:text-solarOrange">Pending</Text>,
   },
 }
 

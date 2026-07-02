@@ -11,8 +11,8 @@ export interface BadgeProps {
 }
 
 const variantStyles = {
-  primary: 'bg-white/40',
-  secondary: 'bg-orange/10',
+  primary: 'zd:bg-white/40',
+  secondary: 'zd:bg-orange/10',
 }
 
 export function Badge({
@@ -25,16 +25,21 @@ export function Badge({
   return (
     <div
       className={cn(
-        'py-1 px-2 gap-1 flex flex-row items-center rounded-lg self-start',
+        'zd:py-1 zd:px-2 zd:gap-1 zd:flex zd:flex-row zd:items-center zd:rounded-lg zd:self-start',
         variantStyles[variant],
         className,
       )}
     >
       {leadingIcon && (
-        <Icon name={leadingIcon} className="w-3 h-3 text-solarOrange" />
+        <Icon
+          name={leadingIcon}
+          className="zd:w-3 zd:h-3 zd:text-solarOrange"
+        />
       )}
-      <Text className="text-body3">{text}</Text>
-      {trailingIcon && <Icon name={trailingIcon} className="w-2.5 h-2.5" />}
+      <Text className="zd:text-body3">{text}</Text>
+      {trailingIcon && (
+        <Icon name={trailingIcon} className="zd:w-2.5 zd:h-2.5" />
+      )}
     </div>
   )
 }

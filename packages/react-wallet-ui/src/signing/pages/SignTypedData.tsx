@@ -24,13 +24,13 @@ export function SignTypedData({
   if (!decoded) {
     return (
       <SigningLayout onConfirm={confirm} onReject={reject}>
-        <div className="flex flex-col gap-3">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="zd:flex zd:flex-col zd:gap-3">
+          <h3 className="zd:text-lg zd:font-semibold zd:text-gray-900">
             Sign Typed Data
           </h3>
-          <div className="rounded-lg bg-gray-50 p-4 border border-gray-100">
-            <p className="text-xs text-gray-500 mb-1">Raw data:</p>
-            <pre className="text-sm text-gray-900 whitespace-pre-wrap break-all">
+          <div className="zd:rounded-lg zd:bg-gray-50 zd:p-4 zd:border zd:border-gray-100">
+            <p className="zd:text-xs zd:text-gray-500 zd:mb-1">Raw data:</p>
+            <pre className="zd:text-sm zd:text-gray-900 zd:whitespace-pre-wrap zd:break-all">
               {typedData}
             </pre>
           </div>
@@ -48,10 +48,10 @@ export function SignTypedData({
 
   return (
     <SigningLayout onConfirm={confirm} onReject={reject}>
-      <div className="flex flex-col gap-2 pt-4">
-        <div className="flex flex-col items-center justify-center gap-2 pb-2">
-          <Text className="text-h2">Signature Request</Text>
-          <Text className="text-center">
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+        <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+          <Text className="zd:text-h2">Signature Request</Text>
+          <Text className="zd:text-center">
             Review request details before you confirm.
           </Text>
         </div>

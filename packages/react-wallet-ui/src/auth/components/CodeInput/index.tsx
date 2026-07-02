@@ -20,11 +20,11 @@ function CharBox({ char, isFocused }: CharBoxProps) {
       data-testid="code-input-box"
       data-active={isFocused || undefined}
       className={cn(
-        'h-16 w-14 rounded-lg flex items-center justify-center',
-        isFocused && 'border-[1.5px] border-greyScale',
+        'zd:h-16 zd:w-14 zd:rounded-lg zd:flex zd:items-center zd:justify-center',
+        isFocused && 'zd:border-[1.5px] zd:border-greyScale',
       )}
     >
-      <Text className="text-h2">{char}</Text>
+      <Text className="zd:text-h2">{char}</Text>
     </Wrapper>
   )
 }
@@ -89,7 +89,7 @@ export function CodeInput({
   return (
     <button
       type="button"
-      className="flex flex-row items-center justify-between gap-2 w-full cursor-text"
+      className="zd:flex zd:flex-row zd:items-center zd:justify-between zd:gap-2 zd:w-full zd:cursor-text"
       onClick={() => inputRef.current?.focus()}
       disabled={disabled}
       data-testid={testId}
@@ -102,7 +102,7 @@ export function CodeInput({
         onBlur={() => setIsFocused(false)}
         maxLength={codeLength}
         disabled={disabled}
-        className="absolute opacity-0 pointer-events-none"
+        className="zd:absolute zd:opacity-0 zd:pointer-events-none"
         style={{ position: 'absolute', opacity: 0 }}
         aria-label="Verification code"
       />

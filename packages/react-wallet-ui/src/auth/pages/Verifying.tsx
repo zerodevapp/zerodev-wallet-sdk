@@ -59,7 +59,7 @@ export function Verifying() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col gap-8 items-center justify-center">
+      <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:items-center zd:justify-center">
         {!error && isVerificationLoading && (
           <StatusScreen imageName="loading" title="Verifying Your Email">
             Please wait while we securely connect your wallet.
@@ -102,7 +102,7 @@ export function Verifying() {
         )}
       </div>
 
-      <PoweredBy className="self-center pt-4 pb-6" />
+      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
     </>
   )
 }

@@ -17,20 +17,22 @@ export function SignUpFooter({
   const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
 
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="zd:flex zd:flex-col zd:items-center zd:gap-5">
       {showAgreement && (
         <div
-          className={`flex flex-row items-center gap-2 rounded-md p-2 transition-colors ${
-            highlight ? 'border border-negative' : 'border border-transparent'
+          className={`zd:flex zd:flex-row zd:items-center zd:gap-2 zd:rounded-md zd:p-2 zd:transition-colors ${
+            highlight
+              ? 'zd:border zd:border-negative'
+              : 'zd:border zd:border-transparent'
           }`}
         >
           <input
             type="checkbox"
             checked={agreedToTerms}
             onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="cursor-pointer [color-scheme:light]"
+            className="zd:cursor-pointer zd:[color-scheme:light]"
           />
-          <Text className="flex-1">
+          <Text className="zd:flex-1">
             I agree to the{' '}
             {termsAndConditionsUrl && (
               <Text
@@ -38,7 +40,7 @@ export function SignUpFooter({
                 href={termsAndConditionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline"
+                className="zd:underline"
               >
                 Terms & Conditions
               </Text>
@@ -50,7 +52,7 @@ export function SignUpFooter({
                 href={privacyPolicyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline"
+                className="zd:underline"
               >
                 Privacy Policy
               </Text>

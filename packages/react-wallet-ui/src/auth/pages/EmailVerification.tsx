@@ -41,26 +41,26 @@ export function EmailVerification() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col gap-8 justify-center">
+      <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:justify-center">
         <StatusScreen
           imageName="send"
           title={'Check your email!\n An Email is On Its Way'}
         >
           We've sent a magic link to{' '}
-          <Text as="span" className="text-solarOrange">
+          <Text as="span" className="zd:text-solarOrange">
             {email}
           </Text>
           {'\n'}Please open the email and click the link to log in.
         </StatusScreen>
 
-        <div className="flex flex-col gap-1">
-          <Text className="text-center">
+        <div className="zd:flex zd:flex-col zd:gap-1">
+          <Text className="zd:text-center">
             Did not get an email?{' '}
             <button
               type="button"
               disabled={!canResend}
               onClick={handleResend}
-              className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="zd:cursor-pointer zd:underline zd:disabled:opacity-50 zd:disabled:cursor-not-allowed"
             >
               {canResend
                 ? 'Resend'
@@ -70,7 +70,7 @@ export function EmailVerification() {
         </div>
       </div>
 
-      <PoweredBy className="self-center pt-4 pb-6" />
+      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
     </>
   )
 }

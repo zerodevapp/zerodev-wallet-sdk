@@ -30,7 +30,7 @@ describe('InfoCard', () => {
       const { container } = render(
         <InfoCard title="My Title" imageSource="https://example.com/x.png" />,
       )
-      expect(container.querySelector('.bg-white')).not.toBeNull()
+      expect(container.querySelector('.zd\\:bg-white')).not.toBeNull()
       const img = container.querySelector('img') as HTMLImageElement
       expect(img.src).toBe('https://example.com/x.png')
       expect(img.className).toContain('w-8')
@@ -45,7 +45,7 @@ describe('InfoCard', () => {
           imageStyle="filled"
         />,
       )
-      expect(container.querySelector('.bg-white')).toBeNull()
+      expect(container.querySelector('.zd\\:bg-white')).toBeNull()
       const img = container.querySelector('img') as HTMLImageElement
       expect(img.className).toContain('w-11')
       expect(img.className).toContain('h-11')

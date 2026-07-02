@@ -18,7 +18,7 @@ const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
 
 function OAuthCallback() {
   return (
-    <div className="flex flex-1 items-center justify-center">
+    <div className="zd:flex zd:flex-1 zd:items-center zd:justify-center">
       <StatusScreen imageName="loading" title="Authenticating...">
         Please wait while we complete the OAuth authentication.
       </StatusScreen>
@@ -28,7 +28,7 @@ function OAuthCallback() {
 
 function PasskeyPrompt() {
   return (
-    <div className="flex flex-1 items-center justify-center">
+    <div className="zd:flex zd:flex-1 zd:items-center zd:justify-center">
       <StatusScreen imageName="loading" title="Passkey authentication">
         Please authenticate with your passkey.
       </StatusScreen>
@@ -86,13 +86,16 @@ export function AuthFlow({
     <Screen
       // Some elements in SignUp need to go from edge to edge.
       // No vertical padding; we set px-0 so we can fully control this padding.
-      contentClassName={step === 'sign-up' ? 'px-0' : undefined}
+      contentClassName={step === 'sign-up' ? 'zd:px-0' : undefined}
       topNav={
         <TopNav
           {...(goBack !== null && { onBack: goBack })}
           onClose={handleClose}
           {...(title && { title })}
-          {...(step === 'sign-up' && { centerLogo: true, className: 'px-4' })}
+          {...(step === 'sign-up' && {
+            centerLogo: true,
+            className: 'zd:px-4',
+          })}
         />
       }
     >

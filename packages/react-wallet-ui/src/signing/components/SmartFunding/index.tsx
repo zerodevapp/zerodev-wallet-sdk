@@ -23,16 +23,19 @@ export function SmartFunding({
   totalPooledAmount,
 }: SmartFundingProps) {
   return (
-    <Wrapper className="p-4 flex flex-col gap-3 rounded-xl w-full">
-      <div className="flex flex-row items-center justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <Icon name="stars" className="h-4 w-4 text-solarOrange" />
-          <Text className="text-h3">Smart Funding</Text>
+    <Wrapper className="zd:p-4 zd:flex zd:flex-col zd:gap-3 zd:rounded-xl zd:w-full">
+      <div className="zd:flex zd:flex-row zd:items-center zd:justify-between">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+          <Icon name="stars" className="zd:h-4 zd:w-4 zd:text-solarOrange" />
+          <Text className="zd:text-h3">Smart Funding</Text>
         </div>
-        <div className="flex flex-row items-center gap-1">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-1">
           <Switch value={true} />
-          <WrappedPressable className="w-7 h-7">
-            <Icon name="edit" className="h-3.5 w-3.5 text-solarOrange" />
+          <WrappedPressable className="zd:w-7 zd:h-7">
+            <Icon
+              name="edit"
+              className="zd:h-3.5 zd:w-3.5 zd:text-solarOrange"
+            />
           </WrappedPressable>
         </div>
       </div>
@@ -48,9 +51,9 @@ export function SmartFunding({
           availableAmount={pooledToken.availableAmount}
         />
       ))}
-      <div className="flex flex-row items-center justify-between pt-4 px-2 border-t border-offWhite/50">
-        <Text className="text-body1">Pooling outcome</Text>
-        <Text className="text-body1">
+      <div className="zd:flex zd:flex-row zd:items-center zd:justify-between zd:pt-4 zd:px-2 zd:border-t zd:border-offWhite/50">
+        <Text className="zd:text-body1">Pooling outcome</Text>
+        <Text className="zd:text-body1">
           {totalPooledAmount} {inputTokenSymbol}
         </Text>
       </div>

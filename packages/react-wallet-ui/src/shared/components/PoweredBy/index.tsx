@@ -9,9 +9,18 @@ export function PoweredBy({
   style?: CSSProperties
 }) {
   return (
-    <div className={cn('gap-1.5 flex flex-row items-center', className)}>
+    <div
+      className={cn(
+        'zd:gap-1.5 zd:flex zd:flex-row zd:items-center',
+        className,
+      )}
+    >
       <Text>Powered by</Text>
-      <Icon name="zerodevLogo" className="h-[18px] w-auto" style={style} />
+      <Icon
+        name="zerodevLogo"
+        className="zd:h-[18px] zd:w-auto"
+        style={style}
+      />
     </div>
   )
 }

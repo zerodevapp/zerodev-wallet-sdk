@@ -3,18 +3,23 @@ import { DataRowSkeleton } from '../DataRow'
 
 function SkeletonBar({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-lg bg-offWhite/50 animate-pulse', className)} />
+    <div
+      className={cn(
+        'zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse',
+        className,
+      )}
+    />
   )
 }
 
 function SkeletonCard() {
   return (
-    <Wrapper className="rounded-xl p-4 w-full flex flex-col gap-3">
-      <div className="flex flex-row items-center gap-3">
-        <SkeletonBar className="w-12 h-12 rounded-2xl" />
-        <div className="flex flex-col gap-2 flex-1">
-          <SkeletonBar className="w-1/2 h-4" />
-          <SkeletonBar className="w-1/3 h-3" />
+    <Wrapper className="zd:rounded-xl zd:p-4 zd:w-full zd:flex zd:flex-col zd:gap-3">
+      <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
+        <SkeletonBar className="zd:w-12 zd:h-12 zd:rounded-2xl" />
+        <div className="zd:flex zd:flex-col zd:gap-2 zd:flex-1">
+          <SkeletonBar className="zd:w-1/2 zd:h-4" />
+          <SkeletonBar className="zd:w-1/3 zd:h-3" />
         </div>
       </div>
     </Wrapper>
@@ -23,7 +28,7 @@ function SkeletonCard() {
 
 export function SigningPageSkeleton() {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="zd:flex zd:flex-col zd:gap-2">
       <SkeletonCard />
       <SkeletonCard />
       <DataRowSkeleton />

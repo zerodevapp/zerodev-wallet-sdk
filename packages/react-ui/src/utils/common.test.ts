@@ -14,7 +14,7 @@ describe('cn', () => {
   })
 
   it('merges conflicting tailwind utilities, keeping the last one', () => {
-    expect(cn('p-2', 'p-4')).toBe('p-4')
+    expect(cn('zd:p-2', 'zd:p-4')).toBe('zd:p-4')
   })
 
   it('supports conditional object syntax (clsx)', () => {
@@ -22,6 +22,6 @@ describe('cn', () => {
   })
 
   it('merges custom font-size tokens from the extended config', () => {
-    expect(cn('text-body2', 'text-body1')).toBe('text-body1')
+    expect(cn('zd:text-body2', 'zd:text-body1')).toBe('zd:text-body1')
   })
 })

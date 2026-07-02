@@ -26,7 +26,7 @@ const meta = {
     title: 'Transaction details',
     iconName: 'wallet',
     children: (
-      <div className="flex flex-col gap-2">
+      <div className="zd:flex zd:flex-col zd:gap-2">
         <Text>Some random text</Text>
       </div>
     ),

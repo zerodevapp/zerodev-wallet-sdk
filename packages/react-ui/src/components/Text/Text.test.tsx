@@ -69,14 +69,14 @@ describe('Text', () => {
     })
 
     it('allows overriding default classes via tailwind-merge', () => {
-      render(<Text className="font-bold">Bold</Text>)
+      render(<Text className="zd:font-bold">Bold</Text>)
       const el = screen.getByText('Bold')
       expect(el.className).toContain('font-bold')
       expect(el.className).not.toContain('font-medium')
     })
 
     it('allows overriding font family', () => {
-      render(<Text className="font-roboto">Roboto</Text>)
+      render(<Text className="zd:font-roboto">Roboto</Text>)
       const el = screen.getByText('Roboto')
       expect(el.className).toContain('font-roboto')
       expect(el.className).not.toContain('font-sans')

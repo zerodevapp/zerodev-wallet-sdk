@@ -61,7 +61,7 @@ describe('Screen', () => {
           <div>Content</div>
         </Screen>,
       )
-      const contentWrapper = container.querySelector('.m-1\\.5')
+      const contentWrapper = container.querySelector('.zd\\:m-1\\.5')
       expect(contentWrapper).not.toBeNull()
       expect(contentWrapper?.className).toContain('rounded-4xl')
       expect(contentWrapper?.className).toContain('px-4')

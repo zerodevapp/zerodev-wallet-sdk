@@ -22,12 +22,12 @@ export function WalletSelection() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col gap-8 justify-center">
-        <Text className="text-h2 text-center">Select your wallet</Text>
+      <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:justify-center">
+        <Text className="zd:text-h2 zd:text-center">Select your wallet</Text>
 
-        <div className="flex flex-col gap-2">
+        <div className="zd:flex zd:flex-col zd:gap-2">
           {externalConnectors.length === 0 ? (
-            <Text className="text-center">
+            <Text className="zd:text-center">
               No wallets detected. Install a browser wallet extension to
               continue.
             </Text>
@@ -40,14 +40,14 @@ export function WalletSelection() {
                 {...(connector.icon ? { imageUri: connector.icon } : {})}
                 disabled={isPending}
                 onClick={() => handleSelect(connector)}
-                className="rounded-3xl"
+                className="zd:rounded-3xl"
               />
             ))
           )}
         </div>
       </div>
 
-      <PoweredBy className="self-center pt-4 pb-6" />
+      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
     </>
   )
 }

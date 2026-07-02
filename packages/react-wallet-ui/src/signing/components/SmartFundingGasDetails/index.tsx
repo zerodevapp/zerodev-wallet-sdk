@@ -31,11 +31,11 @@ export function SmartFundingGasDetails({
   const { bridge, swapped } = gasRoutes
 
   return (
-    <Wrapper className="p-4 flex flex-col gap-6 rounded-xl w-full">
-      <div className="flex flex-row justify-between items-center">
-        <div className="flex flex-row items-center gap-2">
-          <Icon name="stars" className="h-4 w-4 text-solarOrange" />
-          <Text className="text-h3">Smart Funding Gas Details</Text>
+    <Wrapper className="zd:p-4 zd:flex zd:flex-col zd:gap-6 zd:rounded-xl zd:w-full">
+      <div className="zd:flex zd:flex-row zd:justify-between zd:items-center">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
+          <Icon name="stars" className="zd:h-4 zd:w-4 zd:text-solarOrange" />
+          <Text className="zd:text-h3">Smart Funding Gas Details</Text>
         </div>
         <button
           type="button"
@@ -44,17 +44,17 @@ export function SmartFundingGasDetails({
           }}
           aria-label={expanded ? 'Collapse' : 'Expand'}
           aria-expanded={expanded}
-          className="cursor-pointer"
+          className="zd:cursor-pointer"
         >
           <Icon
             name={expanded ? 'chevronUp' : 'chevronDown'}
-            className="w-4 h-4 text-greyScale"
+            className="zd:w-4 zd:h-4 zd:text-greyScale"
           />
         </button>
       </div>
       {expanded && (
         <>
-          <div className="flex flex-col gap-3">
+          <div className="zd:flex zd:flex-col zd:gap-3">
             <DataRow
               label="Total execution time"
               value={formattedExecutionTime}
@@ -68,7 +68,7 @@ export function SmartFundingGasDetails({
           </div>
 
           {bridge && bridge.length > 0 && (
-            <div className="flex flex-col gap-3">
+            <div className="zd:flex zd:flex-col zd:gap-3">
               <Text>{bridge.length} Bridge</Text>
               {bridge.map((gasRoute, key) => (
                 <RouteItem
@@ -82,7 +82,7 @@ export function SmartFundingGasDetails({
           )}
 
           {swapped && swapped.length > 0 && (
-            <div className="flex flex-col gap-3">
+            <div className="zd:flex zd:flex-col zd:gap-3">
               <Text>{swapped.length} Swapped</Text>
               {swapped.map((gasRoute, key) => (
                 <RouteItem
@@ -95,7 +95,7 @@ export function SmartFundingGasDetails({
             </div>
           )}
 
-          <div className="flex flex-col gap-3">
+          <div className="zd:flex zd:flex-col zd:gap-3">
             <Text>Fees:</Text>
             {providerFees.map((item, key) => (
               <DataRow

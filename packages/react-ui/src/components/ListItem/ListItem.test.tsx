@@ -57,7 +57,7 @@ describe('ListItem', () => {
     const { container } = render(
       <ListItem title="Test Title" badgeProps={{ text: 'Badge' }} />,
     )
-    const contentDiv = container.querySelector('.gap-2')
+    const contentDiv = container.querySelector('.zd\\:gap-2')
     expect(contentDiv).not.toBeNull()
   })
 
@@ -90,7 +90,7 @@ describe('ListItem', () => {
 describe('ListItemSkeleton', () => {
   it('renders skeleton loading state', () => {
     const { container } = render(<ListItemSkeleton />)
-    const skeleton = container.querySelector('.animate-pulse')
+    const skeleton = container.querySelector('.zd\\:animate-pulse')
     expect(skeleton).not.toBeNull()
   })
 

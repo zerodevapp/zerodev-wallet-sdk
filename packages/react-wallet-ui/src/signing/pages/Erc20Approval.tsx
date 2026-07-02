@@ -86,16 +86,16 @@ export function Erc20Approval({
       disabled={confirmDisabled}
       error={gasError}
     >
-      <div className="flex flex-col gap-2 pt-4">
-        <div className="flex flex-col items-center justify-center gap-2 pb-2">
-          <Text className="text-h2">Approve Token Spending</Text>
-          <Text className="text-center">
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+        <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+          <Text className="zd:text-h2">Approve Token Spending</Text>
+          <Text className="zd:text-center">
             This contract is requesting permission to spend your {symbol}. This
             is required for future transactions.
           </Text>
         </div>
-        <div className="flex flex-col gap-2">
-          <Text className="text-body1">You&#39;re approving:</Text>
+        <div className="zd:flex zd:flex-col zd:gap-2">
+          <Text className="zd:text-body1">You&#39;re approving:</Text>
           <ArrowCardPair
             topCard={<InfoCard title={`${formattedAmount} ${symbol}`} />}
             bottomCard={

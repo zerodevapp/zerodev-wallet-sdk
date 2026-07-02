@@ -14,21 +14,21 @@ export function ListItemSkeleton({ className }: ListItemSkeletonProps) {
   return (
     <div
       className={cn(
-        'w-full h-[68px] rounded-2xl border-offWhite border-[0.3px]',
+        'zd:w-full zd:h-[68px] zd:rounded-2xl zd:border-offWhite zd:border-[0.3px]',
         className,
       )}
     >
-      <div className="flex flex-row justify-between items-center p-2">
-        <div className="flex flex-row items-center gap-3">
-          <div className="w-[52px] h-[52px] rounded-2xl bg-offWhite/50 animate-pulse" />
-          <div className="gap-2">
-            <div className="w-14 h-3 rounded-lg bg-offWhite/50 animate-pulse mb-2" />
-            <div className="w-14 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+      <div className="zd:flex zd:flex-row zd:justify-between zd:items-center zd:p-2">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
+          <div className="zd:w-[52px] zd:h-[52px] zd:rounded-2xl zd:bg-offWhite/50 zd:animate-pulse" />
+          <div className="zd:gap-2">
+            <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse zd:mb-2" />
+            <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
           </div>
         </div>
-        <div className="gap-2">
-          <div className="w-14 h-3 rounded-lg bg-offWhite/50 animate-pulse mb-2" />
-          <div className="w-14 h-3 rounded-lg bg-offWhite/50 animate-pulse" />
+        <div className="zd:gap-2">
+          <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse zd:mb-2" />
+          <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
         </div>
       </div>
     </div>
@@ -61,64 +61,73 @@ export function ListItem({
   return (
     <Wrapper
       className={cn(
-        'w-full h-[68px] rounded-2xl',
-        alert && 'border-0',
+        'zd:w-full zd:h-[68px] zd:rounded-2xl',
+        alert && 'zd:border-0',
         className,
       )}
     >
       <button
         type="button"
         className={cn(
-          'w-full flex flex-row justify-between items-center p-2 transition-colors cursor-pointer',
-          alert ? 'bg-solarOrange/15' : 'hover:bg-white/20 active:bg-white/30',
-          rest.disabled && 'opacity-50 cursor-not-allowed',
+          'zd:w-full zd:flex zd:flex-row zd:justify-between zd:items-center zd:p-2 zd:transition-colors zd:cursor-pointer',
+          alert
+            ? 'zd:bg-solarOrange/15'
+            : 'zd:hover:bg-white/20 zd:active:bg-white/30',
+          rest.disabled && 'zd:opacity-50 zd:cursor-not-allowed',
         )}
         {...rest}
       >
-        <div className="flex flex-row items-center gap-3">
+        <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
           <div
             className={cn(
-              'w-[52px] h-[52px] rounded-2xl flex items-center justify-center shrink-0',
-              alert ? 'bg-offWhite/50' : 'bg-white',
+              'zd:w-[52px] zd:h-[52px] zd:rounded-2xl zd:flex zd:items-center zd:justify-center zd:shrink-0',
+              alert ? 'zd:bg-offWhite/50' : 'zd:bg-white',
             )}
           >
             {imageUri ? (
-              <img src={imageUri} alt="" className="w-6 h-6" />
+              <img src={imageUri} alt="" className="zd:w-6 zd:h-6" />
             ) : iconName ? (
               <Icon
                 name={iconName}
                 className={cn(
-                  'w-6 h-6',
-                  details || alert ? 'text-solarOrange' : 'text-greyScale',
+                  'zd:w-6 zd:h-6',
+                  details || alert
+                    ? 'zd:text-solarOrange'
+                    : 'zd:text-greyScale',
                 )}
               />
             ) : null}
           </div>
           <div
             className={cn(
-              'flex flex-col justify-center text-left',
-              badgeProps ? 'gap-2' : 'gap-1',
+              'zd:flex zd:flex-col zd:justify-center zd:text-left',
+              badgeProps ? 'zd:gap-2' : 'zd:gap-1',
             )}
           >
-            <Text className="text-body1">{title}</Text>
+            <Text className="zd:text-body1">{title}</Text>
             {subtitle && (
-              <Text className="text-body3 text-greyScale/50">{subtitle}</Text>
+              <Text className="zd:text-body3 zd:text-greyScale/50">
+                {subtitle}
+              </Text>
             )}
             {badgeProps && <Badge {...badgeProps} />}
           </div>
         </div>
         {details ? (
-          <div className="flex flex-col pr-1">
-            <Text className="text-body1">{details.text}</Text>
+          <div className="zd:flex zd:flex-col zd:pr-1">
+            <Text className="zd:text-body1">{details.text}</Text>
             {details.subtext && (
-              <Text className="text-body3 text-greyScale/50 self-end">
+              <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
                 {details.subtext}
               </Text>
             )}
           </div>
         ) : chevron ? (
-          <div className="w-13 h-13 flex items-center justify-center">
-            <Icon name="chevronRight" className="h-6 w-6 text-greyScale" />
+          <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
+            <Icon
+              name="chevronRight"
+              className="zd:h-6 zd:w-6 zd:text-greyScale"
+            />
           </div>
         ) : null}
       </button>

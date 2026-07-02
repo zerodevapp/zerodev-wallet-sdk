@@ -12,13 +12,16 @@ export function TxDetailsItem({ title, index, data }: TxDetailsItemProps) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <Wrapper className="w-full flex flex-col rounded-xl gap-2" variant="ghost">
-      <Wrapper className="w-full h-[68px] rounded-xl p-4 flex flex-row justify-between items-center">
-        <div className="flex flex-row gap-2 items-center">
-          <div className="w-11 h-11 bg-white flex items-center justify-center rounded-xl">
-            <Text className="text-body1">{index}</Text>
+    <Wrapper
+      className="zd:w-full zd:flex zd:flex-col zd:rounded-xl zd:gap-2"
+      variant="ghost"
+    >
+      <Wrapper className="zd:w-full zd:h-[68px] zd:rounded-xl zd:p-4 zd:flex zd:flex-row zd:justify-between zd:items-center">
+        <div className="zd:flex zd:flex-row zd:gap-2 zd:items-center">
+          <div className="zd:w-11 zd:h-11 zd:bg-white zd:flex zd:items-center zd:justify-center zd:rounded-xl">
+            <Text className="zd:text-body1">{index}</Text>
           </div>
-          <Text className="text-body1">{title}</Text>
+          <Text className="zd:text-body1">{title}</Text>
         </div>
         <button
           type="button"
@@ -27,16 +30,16 @@ export function TxDetailsItem({ title, index, data }: TxDetailsItemProps) {
           }}
           aria-label={expanded ? 'Collapse' : 'Expand'}
           aria-expanded={expanded}
-          className="cursor-pointer"
+          className="zd:cursor-pointer"
         >
           <Icon
             name={expanded ? 'chevronUp' : 'chevronDown'}
-            className="w-4 h-4"
+            className="zd:w-4 zd:h-4"
           />
         </button>
       </Wrapper>
       {expanded && (
-        <div className="flex flex-col px-5 pb-2 gap-2">
+        <div className="zd:flex zd:flex-col zd:px-5 zd:pb-2 zd:gap-2">
           {Object.entries(data).map(([label, value]) => (
             <DataRow key={label} label={label} value={value} />
           ))}
