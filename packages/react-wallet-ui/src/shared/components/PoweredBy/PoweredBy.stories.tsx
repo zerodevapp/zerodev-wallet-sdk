@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>
 export const MultipleColors: Story = {
   render: () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <PoweredBy className="text-gray-900" />
+      <PoweredBy className="zd:text-gray-900" />
     </div>
   ),
 }

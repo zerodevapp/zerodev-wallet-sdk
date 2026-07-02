@@ -10,7 +10,7 @@ export function Text({ as: Tag = 'p', className, ...props }: TextProps) {
   return (
     <Tag
       className={cn(
-        'font-medium font-sans text-body2 text-greyScale',
+        'zd:font-medium zd:font-sans zd:text-body2 zd:text-greyScale',
         className,
       )}
       {...(props as HTMLAttributes<HTMLElement> &

@@ -62,15 +62,17 @@ export function MintNft({ contract, data, confirm, reject }: MintNftProps) {
       disabled={confirmDisabled}
       error={gasError}
     >
-      <div className="flex flex-col gap-2 pt-4">
-        <div className="flex flex-col items-center justify-center gap-2 pb-2">
-          <Text className="text-h2">Mint NFT</Text>
-          <Text className="text-center">
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+        <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+          <Text className="zd:text-h2">Mint NFT</Text>
+          <Text className="zd:text-center">
             You are about to mint an NFT from {collectionName}.
           </Text>
         </div>
-        <div className="flex flex-col gap-2">
-          <Text className="text-body1 pt-2 px-2">You&#39;re minting from</Text>
+        <div className="zd:flex zd:flex-col zd:gap-2">
+          <Text className="zd:text-body1 zd:pt-2 zd:px-2">
+            You&#39;re minting from
+          </Text>
           <InfoCard
             title={collectionName}
             imageSource={COLLECTION_IMAGE_SOURCE}

@@ -19,8 +19,8 @@ export function SigningLayout({
   error,
 }: SigningLayoutProps) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pb-2">
+    <div className="zd:flex zd:flex-col zd:h-full">
+      <div className="zd:flex-1 zd:min-h-0 zd:overflow-y-auto zd:flex zd:flex-col zd:gap-2 zd:pb-2">
         {children}
         {!!error && <Callout {...getTxErrorInfo(error)} />}
       </div>

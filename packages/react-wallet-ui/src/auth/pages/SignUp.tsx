@@ -176,10 +176,10 @@ export function SignUp() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="flex flex-col gap-4 max-w-md">
-          <Text className="text-h2 text-center">Error occurred</Text>
-          <Text className="text-center text-red-500">{error}</Text>
+      <div className="zd:flex zd:items-center zd:justify-center zd:h-full">
+        <div className="zd:flex zd:flex-col zd:gap-4 zd:max-w-md">
+          <Text className="zd:text-h2 zd:text-center">Error occurred</Text>
+          <Text className="zd:text-center zd:text-red-500">{error}</Text>
           <Button
             action="primary"
             text="Try again"
@@ -191,21 +191,23 @@ export function SignUp() {
   }
 
   return (
-    <div className="flex-1 flex flex-col justify-between pb-4 overflow-y-auto overflow-x-hidden">
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="px-4 flex flex-col items-center">
-          <div className="w-full px-16 py-4">
-            <BlobAnimation className="w-full pointer-events-none select-none" />
+    <div className="zd:flex-1 zd:flex zd:flex-col zd:justify-between zd:pb-4 zd:overflow-y-auto zd:overflow-x-hidden">
+      <div className="zd:flex-1 zd:flex zd:flex-col zd:justify-center">
+        <div className="zd:px-4 zd:flex zd:flex-col zd:items-center">
+          <div className="zd:w-full zd:px-16 zd:py-4">
+            <BlobAnimation className="zd:w-full zd:pointer-events-none zd:select-none" />
           </div>
-          <Text className="text-h2 text-center">Continue to your wallet</Text>
-          <Text className="mt-2 text-center text-greyScale/50">
+          <Text className="zd:text-h2 zd:text-center">
+            Continue to your wallet
+          </Text>
+          <Text className="zd:mt-2 zd:text-center zd:text-greyScale/50">
             Choose a sign-in method to proceed
           </Text>
         </div>
-        <div className="mt-6 flex flex-col gap-4 mb-4">
+        <div className="zd:mt-6 zd:flex zd:flex-col zd:gap-4 zd:mb-4">
           {enabledMethods.includes('passkey') && (
             <>
-              <div className="px-4 flex flex-col gap-2">
+              <div className="zd:px-4 zd:flex zd:flex-col zd:gap-2">
                 <Button
                   action="secondary"
                   text="Create a passkey"
@@ -223,20 +225,20 @@ export function SignUp() {
                   onClick={handleLoginPasskey}
                 />
               </div>
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-greyScale/30" />
-                <Text className="text-body3">or</Text>
-                <div className="h-px flex-1 bg-greyScale/30" />
+              <div className="zd:flex zd:items-center zd:gap-3">
+                <div className="zd:h-px zd:flex-1 zd:bg-greyScale/30" />
+                <Text className="zd:text-body3">or</Text>
+                <div className="zd:h-px zd:flex-1 zd:bg-greyScale/30" />
               </div>
             </>
           )}
-          <div className="px-4 flex flex-col gap-2">
+          <div className="zd:px-4 zd:flex zd:flex-col zd:gap-2">
             {enabledMethods.includes('google') && (
               <ListItem
                 iconName="google"
                 title="Google"
                 chevron
-                className="rounded-3xl"
+                className="zd:rounded-3xl"
                 disabled={anyPending}
                 onClick={handleGoogleAuth}
               />
@@ -252,7 +254,7 @@ export function SignUp() {
                 autoComplete="email"
                 disabled={anyPending}
                 variant="listItemStyle"
-                containerClassName="rounded-3xl"
+                containerClassName="zd:rounded-3xl"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && emailInput && !anyPending) {
                     void handleEmailSubmit()
@@ -260,8 +262,8 @@ export function SignUp() {
                 }}
               >
                 {isEmailLoading ? (
-                  <div className="w-13 h-13 flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-solarOrange border-t-transparent rounded-full animate-spin" />
+                  <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
+                    <div className="zd:w-5 zd:h-5 zd:border-2 zd:border-solarOrange zd:border-t-transparent zd:rounded-full zd:animate-spin" />
                   </div>
                 ) : (
                   <button
@@ -269,14 +271,14 @@ export function SignUp() {
                     disabled={
                       !isValidEmailAddress(emailInput) || needsToAcceptAgreement
                     }
-                    className={`w-13 h-13 rounded-2xl flex items-center justify-center transition-colors ${
+                    className={`zd:w-13 zd:h-13 zd:rounded-2xl zd:flex zd:items-center zd:justify-center zd:transition-colors ${
                       isValidEmailAddress(emailInput) && !needsToAcceptAgreement
-                        ? 'cursor-pointer'
-                        : 'cursor-not-allowed opacity-50'
+                        ? 'zd:cursor-pointer'
+                        : 'zd:cursor-not-allowed zd:opacity-50'
                     }`}
                     onClick={() => handleEmailSubmit()}
                   >
-                    <Icon name="chevronRight" className="text-greyScale" />
+                    <Icon name="chevronRight" className="zd:text-greyScale" />
                   </button>
                 )}
               </Input>
@@ -284,7 +286,7 @@ export function SignUp() {
           </div>
         </div>
       </div>
-      <div className="px-4">
+      <div className="zd:px-4">
         <SignUpFooter
           termsAndConditionsUrl={config?.termsAndConditionsUrl}
           privacyPolicyUrl={config?.privacyPolicyUrl}

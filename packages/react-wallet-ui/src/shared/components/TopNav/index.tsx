@@ -18,7 +18,7 @@ export function TopNav({
   return (
     <div
       className={cn(
-        'absolute top-4 left-0 right-0 flex flex-row items-center justify-between',
+        'zd:absolute zd:top-4 zd:left-0 zd:right-0 zd:flex zd:flex-row zd:items-center zd:justify-between',
         className,
       )}
       style={{ height: TOP_NAV_HEIGHT }}
@@ -26,16 +26,16 @@ export function TopNav({
       {onBack ? (
         <IconButton iconName="chevronLeft" onClick={onBack} />
       ) : (
-        <div className="h-13 w-13" />
+        <div className="zd:h-13 zd:w-13" />
       )}
       {centerLogo && (
-        <div className="absolute left-0 right-0 flex items-center justify-center pointer-events-none">
-          <Icon name="zerodevLogo" className="h-8 w-auto" />
+        <div className="zd:absolute zd:left-0 zd:right-0 zd:flex zd:items-center zd:justify-center zd:pointer-events-none">
+          <Icon name="zerodevLogo" className="zd:h-8 zd:w-auto" />
         </div>
       )}
       {title && (
-        <div className="absolute left-0 right-0 flex items-center justify-center pointer-events-none">
-          <Text className="text-body1">{title}</Text>
+        <div className="zd:absolute zd:left-0 zd:right-0 zd:flex zd:items-center zd:justify-center zd:pointer-events-none">
+          <Text className="zd:text-body1">{title}</Text>
         </div>
       )}
       <IconButton iconName="x" onClick={onClose} />

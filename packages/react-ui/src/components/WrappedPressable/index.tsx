@@ -20,12 +20,15 @@ export function WrappedPressable({
 
   return (
     <Wrapper
-      className={cn('rounded-xl flex items-center justify-center', className)}
+      className={cn(
+        'zd:rounded-xl zd:flex zd:items-center zd:justify-center',
+        className,
+      )}
       variant={isHovered ? 'soft' : 'ghost'}
     >
       <button
         type="button"
-        className="flex flex-row items-center justify-center gap-2 w-full h-full cursor-pointer"
+        className="zd:flex zd:flex-row zd:items-center zd:justify-center zd:gap-2 zd:w-full zd:h-full zd:cursor-pointer"
         onMouseEnter={(e) => {
           setIsHovered(true)
           onMouseEnter?.(e)

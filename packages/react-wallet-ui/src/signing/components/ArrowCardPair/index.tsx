@@ -86,7 +86,7 @@ function ClippedCard({
     <div
       ref={ref}
       data-testid={`clipped-card-${position}`}
-      className="w-full"
+      className="zd:w-full"
       style={{ clipPath }}
     >
       {children}
@@ -96,9 +96,9 @@ function ClippedCard({
 
 function Arrow({ className }: { className?: string }) {
   return (
-    <div className={cn('p-1 rounded-2xl', className)}>
-      <Wrapper className="w-11 h-11 flex items-center justify-center rounded-xl">
-        <Icon name="chevronDown" className="w-4 h-4" />
+    <div className={cn('zd:p-1 zd:rounded-2xl', className)}>
+      <Wrapper className="zd:w-11 zd:h-11 zd:flex zd:items-center zd:justify-center zd:rounded-xl">
+        <Icon name="chevronDown" className="zd:w-4 zd:h-4" />
       </Wrapper>
     </div>
   )
@@ -115,10 +115,10 @@ export interface ArrowCardPairProps {
 
 export function ArrowCardPair({ topCard, bottomCard }: ArrowCardPairProps) {
   return (
-    <div className="relative flex flex-col gap-1 items-center justify-center w-full">
+    <div className="zd:relative zd:flex zd:flex-col zd:gap-1 zd:items-center zd:justify-center zd:w-full">
       <ClippedCard position="top">{topCard}</ClippedCard>
       <ClippedCard position="bottom">{bottomCard}</ClippedCard>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="zd:absolute zd:inset-0 zd:flex zd:items-center zd:justify-center zd:pointer-events-none">
         <Arrow />
       </div>
     </div>

@@ -78,21 +78,21 @@ export function CollectionApproval({
       disabled={confirmDisabled}
       error={gasError}
     >
-      <div className="flex flex-col gap-2 pt-4">
-        <div className="flex flex-col items-center justify-center gap-2 pb-2">
-          <Text className="text-h2">
+      <div className="zd:flex zd:flex-col zd:gap-2 zd:pt-4">
+        <div className="zd:flex zd:flex-col zd:items-center zd:justify-center zd:gap-2 zd:pb-2">
+          <Text className="zd:text-h2">
             {approved
               ? 'Grant Collection Approval'
               : 'Revoke Collection Approval'}
           </Text>
-          <Text className="text-center">
+          <Text className="zd:text-center">
             {approved
               ? `Allow this contract to manage all your ${collectionName} tokens.`
               : `Revoke this contract's permission to manage your ${collectionName} tokens.`}
           </Text>
         </div>
-        <div className="flex flex-col gap-2">
-          <Text className="text-body1 pt-2 px-2">
+        <div className="zd:flex zd:flex-col zd:gap-2">
+          <Text className="zd:text-body1 zd:pt-2 zd:px-2">
             You&#39;re approving permission to
           </Text>
           <ArrowCardPair

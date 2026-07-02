@@ -76,12 +76,14 @@ export function OtpInput() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col gap-8 justify-center items-center">
-        <div className="flex flex-col gap-4">
-          <Text className="text-h2 text-center">Enter verification code</Text>
-          <Text className="text-center">
+      <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:justify-center zd:items-center">
+        <div className="zd:flex zd:flex-col zd:gap-4">
+          <Text className="zd:text-h2 zd:text-center">
+            Enter verification code
+          </Text>
+          <Text className="zd:text-center">
             Enter the code from the email we sent to{' '}
-            <Text className="text-solarOrange">{email}</Text>
+            <Text className="zd:text-solarOrange">{email}</Text>
           </Text>
         </div>
 
@@ -99,14 +101,14 @@ export function OtpInput() {
           disabled={!otp.trim() || isPending}
         />
 
-        <div className="flex flex-col gap-1">
-          <Text className="text-center">
+        <div className="zd:flex zd:flex-col zd:gap-1">
+          <Text className="zd:text-center">
             Did not get an email?{' '}
             <button
               type="button"
               disabled={!canResend}
               onClick={handleResend}
-              className="cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="zd:cursor-pointer zd:underline zd:disabled:opacity-50 zd:disabled:cursor-not-allowed"
             >
               {canResend
                 ? 'Resend'
@@ -116,7 +118,7 @@ export function OtpInput() {
         </div>
       </div>
 
-      <PoweredBy className="self-center pt-4 pb-6" />
+      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
     </>
   )
 }

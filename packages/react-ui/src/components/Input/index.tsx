@@ -20,9 +20,9 @@ export interface InputProps
 }
 
 function getHeightClass(multiline: boolean | undefined, variant: Variant) {
-  if (multiline) return 'h-32 py-3'
-  if (variant === 'listItemStyle') return 'h-[68px]'
-  return 'h-11'
+  if (multiline) return 'zd:h-32 zd:py-3'
+  if (variant === 'listItemStyle') return 'zd:h-[68px]'
+  return 'zd:h-11'
 }
 
 function InputIcon({
@@ -34,19 +34,24 @@ function InputIcon({
 }) {
   if (variant === 'listItemStyle') {
     return (
-      <div className="w-13 h-13 shrink-0 bg-white rounded-2xl flex items-center justify-center">
-        <Icon name={iconName} className="w-6 h-6 text-greyScale" />
+      <div className="zd:w-13 zd:h-13 zd:shrink-0 zd:bg-white zd:rounded-2xl zd:flex zd:items-center zd:justify-center">
+        <Icon name={iconName} className="zd:w-6 zd:h-6 zd:text-greyScale" />
       </div>
     )
   }
-  return <Icon name={iconName} className="w-5 h-5 shrink-0 text-greyScale/50" />
+  return (
+    <Icon
+      name={iconName}
+      className="zd:w-5 zd:h-5 zd:shrink-0 zd:text-greyScale/50"
+    />
+  )
 }
 
 // `min-w-0` is required so the input doesn't claim its intrinsic content
 // width on mobile browsers (Chrome on Android most visibly), which would
 // squash the leading icon and the trailing chevron-button child.
 const baseInputClass =
-  'flex-1 min-w-0 px-0 text-gray-900 font-medium outline-none bg-transparent min-h-11 placeholder:text-gray-900/50 caret-gray-900'
+  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-gray-900 zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-gray-900/50 zd:caret-gray-900'
 
 export function Input({
   variant = 'default',
@@ -80,14 +85,14 @@ export function Input({
       {...(inputProps as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      className={cn(baseInputClass, 'resize-none h-full', className)}
+      className={cn(baseInputClass, 'zd:resize-none zd:h-full', className)}
     />
   ) : (
     <input
       {...inputProps}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      className={cn(baseInputClass, 'h-full', className)}
+      className={cn(baseInputClass, 'zd:h-full', className)}
     />
   )
 
@@ -101,7 +106,7 @@ export function Input({
         onBlur={onBlur as TextareaHTMLAttributes<HTMLTextAreaElement>['onBlur']}
         className={cn(
           baseInputClass,
-          'w-full pl-4 pr-2 resize-none',
+          'zd:w-full zd:pl-4 zd:pr-2 zd:resize-none',
           className,
         )}
       />
@@ -110,19 +115,19 @@ export function Input({
         {...inputProps}
         onFocus={onFocus}
         onBlur={onBlur}
-        className={cn(baseInputClass, 'w-full pl-4 pr-2', className)}
+        className={cn(baseInputClass, 'zd:w-full zd:pl-4 zd:pr-2', className)}
       />
     )
   }
 
   const heightClass = getHeightClass(multiline, variant)
-  const paddingLeft = variant === 'listItemStyle' ? 'pl-2' : 'pl-4'
+  const paddingLeft = variant === 'listItemStyle' ? 'zd:pl-2' : 'zd:pl-4'
 
   return (
     <Wrapper
       data-testid="input-wrapper"
       className={cn(
-        'relative flex w-full rounded-2xl items-center gap-3 pr-2',
+        'zd:relative zd:flex zd:w-full zd:rounded-2xl zd:items-center zd:gap-3 zd:pr-2',
         heightClass,
         paddingLeft,
         containerClassName,
@@ -132,7 +137,7 @@ export function Input({
       {/* On focus, overlay a white/20 tint over the soft (white/0.5) base so the
           field matches the button hover state. */}
       {isFocused && (
-        <div className="absolute inset-0 bg-white/20 pointer-events-none" />
+        <div className="zd:absolute zd:inset-0 zd:bg-white/20 zd:pointer-events-none" />
       )}
       {iconName && <InputIcon variant={variant} iconName={iconName} />}
       {inputElement}

@@ -1,6 +1,6 @@
 'use client'
 
-import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
+import {AuthFlow, useAuth} from '@zerodev/react-wallet-ui'
 import {Loader2, Settings} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
@@ -78,14 +78,14 @@ function LandingPageInner() {
 
   return (
     <div
-      className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
+      className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:flex-row sm:items-center sm:justify-center">
       {sessionExpired && (
         <div
           className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
           Your session has expired. Please log in again.
         </div>
       )}
-      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
+      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px]">
         <EmailMethodSettings/>
         <AuthFlow/>
         {showLoading && (
@@ -138,7 +138,7 @@ function EmailMethodSettings() {
   if (step === null || step === 'authenticated') return null
 
   return (
-    <div className="flex justify-end pb-2">
+    <div className="absolute top-[22px] left-[22px] z-60 sm:static sm:z-auto flex justify-start sm:justify-end pb-2">
       <button
         type="button"
         onClick={handleOpen}

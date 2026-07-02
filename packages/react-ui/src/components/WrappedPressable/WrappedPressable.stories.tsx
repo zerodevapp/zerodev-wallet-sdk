@@ -22,6 +22,6 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    className: 'h-12 px-6',
+    className: 'zd:h-12 zd:px-6',
   },
 }

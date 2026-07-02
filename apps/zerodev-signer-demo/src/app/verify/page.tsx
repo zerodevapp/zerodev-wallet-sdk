@@ -1,6 +1,6 @@
 'use client'
 
-import { AuthFlow } from '@zerodev/wallet-react-kit'
+import { AuthFlow } from '@zerodev/react-wallet-ui'
 import { useRouter } from 'next/navigation'
 import { Suspense, useEffect } from 'react'
 import { useAccount } from 'wagmi'
