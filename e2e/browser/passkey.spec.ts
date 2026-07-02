@@ -72,7 +72,7 @@ async function registerAndWaitForDashboard(
   await page.goto('/')
   await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
-  await page.getByRole('button', { name: /Register a new passkey/i }).click()
+  await page.getByRole('button', { name: /Create a passkey/i }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 60_000 })
   await expect(page.getByText('Default Wallet')).toBeVisible({
