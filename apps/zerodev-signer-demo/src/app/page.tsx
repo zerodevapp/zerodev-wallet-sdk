@@ -1,14 +1,13 @@
 'use client'
 
 import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
-import {Loader2, Settings} from 'lucide-react'
+import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
+import { AppHeader } from './components/AppHeader'
 
 export const dynamic = 'force-dynamic'
-
-type EmailAuthMethod = 'otp' | 'magicLink'
 
 export default function LandingPage() {
   return (
@@ -77,127 +76,92 @@ function LandingPageInner() {
   ])
 
   return (
-    <div
-      className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
-      {sessionExpired && (
-        <div
-          className="m-4 px-4 py-3 rounded-lg text-sm text-center bg-yellow-50 text-yellow-700 border border-yellow-200">
-          Your session has expired. Please log in again.
+    <div className="min-h-screen bg-white">
+      <AppHeader/>
+      <main
+        className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-6xl items-center gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_400px] lg:px-8 lg:py-12">
+        {sessionExpired && (
+          <div
+            className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-center text-sm text-yellow-700 lg:col-span-2">
+            Your session has expired. Please log in again.
+          </div>
+        )}
+
+        <section className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
+          <h1 className="text-4xl font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-5xl">
+            ZeroDev Smart Wallet
+          </h1>
+          <p className="mt-5 text-lg leading-8 text-gray-600">
+            A pre-built wallet experience for auth, sponsored transactions, message signing, and batch transfers.
+          </p>
+
+          <div className="mt-8 space-y-5 text-left">
+            <DemoStep
+              icon={Sparkles}
+              title="Mint without gas"
+              text="Try a sponsored NFT mint from a smart wallet without funding native gas first."
+            />
+            <DemoStep
+              icon={KeyRound}
+              title="Sign anything"
+              text="Sign messages or typed data from the same embedded wallet session."
+            />
+            <DemoStep
+              icon={Layers}
+              title="Batch transactions"
+              text="Split ETH or USDC across recipients and preview the batch flow."
+            />
+          </div>
+        </section>
+
+        <div className="mx-auto flex w-full max-w-[400px] justify-center overflow-hidden lg:mx-0">
+          <div className="h-[630px] w-[400px] overflow-hidden">
+            <div className="origin-top-left scale-[0.78]">
+              <div className="flex h-[770px] w-[512px] flex-col">
+                <AuthFlow/>
+                {showLoading && (
+                  <div className="flex flex-1 items-center justify-center p-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                  </div>
+                )}
+                {showReconnect && (
+                  <div className="flex flex-1 items-center justify-center p-6">
+                    <button
+                      type="button"
+                      onClick={handleReconnect}
+                      className="rounded-3xl bg-gray-900 px-8 py-4 text-body1 font-semibold text-white hover:bg-gray-800 cursor-pointer"
+                    >
+                      Reconnect
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      <div className="flex-1 w-full flex flex-col sm:flex-none sm:w-[500px] sm:h-[800px]">
-        <EmailMethodSettings/>
-        <AuthFlow/>
-        {showLoading && (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-          </div>
-        )}
-        {showReconnect && (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <button
-              type="button"
-              onClick={handleReconnect}
-              className="px-8 py-4 rounded-3xl bg-gray-900 text-white text-body1 font-semibold hover:bg-gray-800 cursor-pointer"
-            >
-              Reconnect
-            </button>
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   )
 }
 
-function EmailMethodSettings() {
-  const {step} = useAuth()
-  const [open, setOpen] = useState(false)
-  const [method, setMethod] = useState<EmailAuthMethod>(() => {
-    if (typeof window === 'undefined') return 'otp'
-    return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-      ? 'magicLink'
-      : 'otp'
-  })
-
-  const handleSave = (next: EmailAuthMethod) => {
-    localStorage.setItem('zd:emailAuthMethod', next)
-    window.location.reload()
-  }
-
-  const handleOpen = () => {
-    // Re-sync from storage on open so a previous Cancel doesn't leave the
-    // radios pointing at an unsaved selection.
-    setMethod(
-      localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-        ? 'magicLink'
-        : 'otp',
-    )
-    setOpen(true)
-  }
-
-  if (step === null || step === 'authenticated') return null
-
+function DemoStep({
+  icon: Icon,
+  title,
+  text,
+}: {
+  icon: typeof Sparkles
+  title: string
+  text: string
+}) {
   return (
-    <div className="flex justify-end pb-2">
-      <button
-        type="button"
-        onClick={handleOpen}
-        aria-label="Email method settings"
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-      >
-        <Settings className="h-6 w-6"/>
-      </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg p-6 w-[320px] flex flex-col gap-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-base font-semibold text-gray-900">
-              Email auth method
-            </h2>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="otp"
-                checked={method === 'otp'}
-                onChange={() => setMethod('otp')}
-              />
-              <span className="text-gray-700">OTP code</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="emailAuthMethod"
-                value="magicLink"
-                checked={method === 'magicLink'}
-                onChange={() => setMethod('magicLink')}
-              />
-              <span className="text-gray-700">Magic link</span>
-            </label>
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave(method)}
-                className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-md hover:bg-gray-800 cursor-pointer"
-              >
-                Save and reload
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="flex gap-4">
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-950 text-white">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div>
+        <h2 className="text-base font-semibold text-gray-950">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-gray-600">{text}</p>
+      </div>
     </div>
   )
 }

@@ -5,15 +5,13 @@ import { ChevronDown, Check } from "lucide-react";
 import { useAccount, useSwitchChain, useChains } from "wagmi";
 import { cn } from "../lib/utils";
 
-export function ChainSelector() {
+export function ChainSelector({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { chain } = useAccount();
-  console.log("chain", chain);
   const { switchChain, isPending } = useSwitchChain();
   const chains = useChains();
-  console.log("chains", chains);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -39,10 +37,11 @@ export function ChainSelector() {
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPending}
         className={cn(
-          "flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200",
+          "flex h-12 items-center gap-2 rounded-lg border border-gray-200 px-3",
           "bg-white hover:bg-gray-50 transition-colors",
           "text-sm font-medium text-gray-700",
-          isPending && "opacity-50 cursor-not-allowed"
+          isPending && "opacity-50 cursor-not-allowed",
+          className,
         )}
       >
         <span className="w-2 h-2 rounded-full bg-green-500" />
