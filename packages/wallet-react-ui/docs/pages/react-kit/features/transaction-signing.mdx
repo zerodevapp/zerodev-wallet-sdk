@@ -10,7 +10,7 @@ before the underlying call proceeds.
 ## Import
 
 ```tsx
-import { SignatureRequest } from '@zerodev/react-wallet-ui'
+import { SignatureRequest } from '@zerodev/wallet-react-ui'
 ```
 
 ## Configure transaction signing
@@ -19,7 +19,7 @@ Signing confirmation is on by default — no config required. Pass a
 `signing` block to the connector if you want to customize the behavior:
 
 ```tsx
-import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 
 zeroDevWallet({
   projectId: '...',
@@ -43,7 +43,7 @@ Mount the component once, anywhere in your tree. When a signing call
 comes in, the confirmation UI appears.
 
 ```tsx
-import { SignatureRequest } from '@zerodev/react-wallet-ui'
+import { SignatureRequest } from '@zerodev/wallet-react-ui'
 import { useSendTransaction } from 'wagmi'
 
 function App() {

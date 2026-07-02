@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { type ReactNode, useState } from 'react'
 import { createConfig, http, WagmiProvider } from 'wagmi'
 import { sepolia } from 'wagmi/chains'

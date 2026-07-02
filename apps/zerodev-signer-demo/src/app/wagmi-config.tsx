@@ -2,7 +2,7 @@
 
 import { Icon } from '@zerodev/react-ui'
 import { type WalletMode } from '@zerodev/wallet-react'
-import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
 

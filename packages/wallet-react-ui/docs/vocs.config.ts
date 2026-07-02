@@ -11,7 +11,7 @@ export default defineConfig({
     ],
     resolve: {
       alias: {
-        '@zerodev/react-wallet-ui': new URL('../src/index.ts', import.meta.url)
+        '@zerodev/wallet-react-ui': new URL('../src/index.ts', import.meta.url)
           .pathname,
       },
     },

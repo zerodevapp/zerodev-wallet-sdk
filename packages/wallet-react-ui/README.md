@@ -1,4 +1,4 @@
-# @zerodev/react-wallet-ui
+# @zerodev/wallet-react-ui
 
 React wallet UI kit for ZeroDev — a drop-in **authentication** flow built on top
 of a standard [wagmi](https://wagmi.sh) setup, plus an enhanced wagmi connector
@@ -11,7 +11,7 @@ screen for passkey / email / Google. UI styling comes from
 ## Installation
 
 ```bash
-pnpm add @zerodev/react-wallet-ui \
+pnpm add @zerodev/wallet-react-ui \
   @zerodev/wallet-core @zerodev/wallet-react \
   wagmi viem @wagmi/core @tanstack/react-query zustand
 ```
@@ -25,7 +25,7 @@ pnpm add @zerodev/react-wallet-ui \
 ### 1. Add the connector to your wagmi config
 
 ```tsx
-import { zeroDevWallet } from '@zerodev/react-wallet-ui'
+import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
 
@@ -49,7 +49,7 @@ export const config = createConfig({
 ### 2. Import the stylesheet once at app entry
 
 ```tsx
-import '@zerodev/react-wallet-ui/styles.css'
+import '@zerodev/wallet-react-ui/styles.css'
 ```
 
 ### 3. Wrap your app in the wagmi + React Query providers
@@ -78,7 +78,7 @@ Mount `<AuthFlow />` to render the active sign-in screen. Connecting via the
 `zeroDevWallet` connector is what opens the auth flow.
 
 ```tsx
-import { AuthFlow } from '@zerodev/react-wallet-ui'
+import { AuthFlow } from '@zerodev/wallet-react-ui'
 import { useAccount, useConnect } from 'wagmi'
 
 function App() {
