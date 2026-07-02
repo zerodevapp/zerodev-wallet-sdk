@@ -23,25 +23,22 @@ function LandingPageInner() {
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
-  // wagmi is still resolving the session (reconnect on mount, or an explicit
-  // connect in flight). Show a spinner instead of the Reconnect button so we
-  // don't flash a misleading CTA before the redirect to /dashboard.
-  const isResolvingSession =
-    accountStatus === 'reconnecting' ||
-    accountStatus === 'connecting' ||
-    connectStatus === 'pending'
   // Auth has succeeded (AuthFlow unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
   // loading screen so the page doesn't sit blank and then jump.
   const isRedirecting = isConnected || authStep === 'authenticated'
-  const showLoading =
-    isRedirecting || (authStep === null && isResolvingSession)
+  // wagmi failed to (re)connect — offer a manual Reconnect instead of a
+  // misleading CTA.
   const showReconnect =
-    !isConnected &&
-    authStep === null &&
-    !isResolvingSession &&
-    connectStatus === 'error'
+    !isConnected && authStep === null && connectStatus === 'error'
+  // AuthFlow renders nothing until it has a `step`, so any time we're not
+  // connected and have no step yet — initial session probe, auto-connect in
+  // flight, or landing back here right after logout — show the loader instead
+  // of a blank column. Keeps the login <-> dashboard transition smooth in
+  // both directions.
+  const showLoading =
+    isRedirecting || (!isConnected && authStep === null && !showReconnect)
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
