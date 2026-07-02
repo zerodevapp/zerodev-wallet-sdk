@@ -138,7 +138,7 @@ function EmailMethodSettings() {
   if (step === null || step === 'authenticated') return null
 
   return (
-    <div className="flex justify-end pb-2">
+    <div className="absolute top-[22px] left-[22px] z-60 sm:static sm:z-auto flex justify-start sm:justify-end pb-2">
       <button
         type="button"
         onClick={handleOpen}
