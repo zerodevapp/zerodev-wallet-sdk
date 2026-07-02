@@ -5,6 +5,7 @@ import { Send, Sparkles, AlertCircle, Loader2, Check, ExternalLink, RefreshCw, P
 import { cn } from "../lib/utils";
 import {
   type Address,
+  encodeFunctionData,
   formatEther,
   formatUnits,
   parseEther,
@@ -15,7 +16,8 @@ import {
   isAddress,
 } from "viem";
 import { sepolia } from "wagmi/chains";
-import { useAccount, useSendTransaction, useWriteContract, usePublicClient } from "wagmi";
+import { useAccount, useConfig, useSendCalls, useWriteContract, usePublicClient } from "wagmi";
+import { waitForCallsStatus } from "@wagmi/core";
 
 type TransactionMode = "send-eth" | "mint-nft";
 type BatchAsset = "ETH" | "USDC";
@@ -85,19 +87,22 @@ export function SendTransactionTest({
   const [nftBalance, setNftBalance] = useState<string>("0");
   const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  // Covers both the sendCalls mutation and the subsequent wait for the bundle
+  // receipt so the submit button stays in its loading state end to end.
+  const [isBatchSubmitting, setIsBatchSubmitting] = useState(false);
 
   // Wagmi hooks
   const { address, isConnected, chain } = useAccount();
   const publicClient = usePublicClient({chainId: chain?.id});
-  const { sendTransactionAsync, isPending: isSendingTx, data: sendTxHash, error: sendError, reset: resetSendTx } = useSendTransaction();
+  const config = useConfig();
+  const { sendCallsAsync, error: sendCallsError, reset: resetSendCalls } = useSendCalls();
   const { writeContract, isPending: isMinting, data: mintTxHash, error: mintError, reset: resetMint } = useWriteContract();
-  const { writeContractAsync: writeTokenTransferAsync, isPending: isSendingToken, error: tokenTransferError, reset: resetTokenTransfer } = useWriteContract();
 
-  const loading = isSendingTx || isMinting || isSendingToken;
+  const loading = isBatchSubmitting || isMinting;
   const nftContractAddress = chain?.id ? NFT_CONTRACTS[chain.id] : undefined;
   const usdcContractAddress = chain?.id ? USDC_CONTRACTS[chain.id] : undefined;
   const countedTxHashes = useRef(new Set<string>());
-  const successTxHash = mode === "send-eth" ? (batchTxHashes[0] ?? sendTxHash) : mintTxHash;
+  const successTxHash = mode === "send-eth" ? batchTxHashes[0] : mintTxHash;
   const explorerUrl = successTxHash
     ? `${chain?.blockExplorers?.default?.url}/tx/${successTxHash}`
     : undefined;
@@ -105,7 +110,7 @@ export function SendTransactionTest({
   const shortTxHash = successTxHash
     ? `${successTxHash.slice(0, 8)}...${successTxHash.slice(-6)}`
     : "";
-  const transactionError = error || (mintError as unknown as { shortMessage?: string })?.shortMessage || (sendError as unknown as { shortMessage?: string })?.shortMessage || (tokenTransferError as unknown as { shortMessage?: string })?.shortMessage || mintError?.message || sendError?.message || tokenTransferError?.message;
+  const transactionError = error || (mintError as unknown as { shortMessage?: string })?.shortMessage || (sendCallsError as unknown as { shortMessage?: string })?.shortMessage || mintError?.message || sendCallsError?.message;
   const totalSplitUnits = (() => {
     try {
       if (!amount || isNaN(Number(amount))) return BigInt(0);
@@ -224,8 +229,7 @@ export function SendTransactionTest({
     setHasEditedAmount(false);
     setBatchTxHashes([]);
     setError("");
-    resetSendTx();
-    resetTokenTransfer();
+    resetSendCalls();
   };
 
   const handleOpenFaucet = async () => {
@@ -299,6 +303,18 @@ export function SendTransactionTest({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, chain, publicClient, usdcContractAddress]);
 
+  // Poll balances so the batch form re-enables on its own as soon as funds
+  // arrive (e.g. from the faucet) — otherwise the amount input stays disabled
+  // until the user manually refreshes, even though the header balance updated.
+  useEffect(() => {
+    if (!isConnected) return;
+    const interval = window.setInterval(() => {
+      void refreshBalances();
+    }, 10_000);
+    return () => window.clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, chain, publicClient, usdcContractAddress]);
+
   useEffect(() => {
     if (mode !== "send-eth" || hasEditedAmount) return;
     setAmount(batchAsset === "ETH" ? formatEther(walletBalance) : formatUnits(usdcBalance, 6));
@@ -306,9 +322,8 @@ export function SendTransactionTest({
 
   const handleSendEth = async () => {
     setError("");
-    resetSendTx();
     resetMint();
-    resetTokenTransfer();
+    resetSendCalls();
     setBatchTxHashes([]);
 
     if (!isConnected || !address) {
@@ -341,30 +356,47 @@ export function SendTransactionTest({
       return;
     }
 
-    try {
-      const hashes: `0x${string}`[] = [];
-      for (const item of batchRecipients) {
-        const value = getSplitValue(item.percent);
-        if (value === BigInt(0)) continue;
+    // Build one call per recipient and send them as a single atomic batch via
+    // EIP-5792 (wallet_sendCalls) instead of firing N separate transactions.
+    const calls = batchRecipients.flatMap((item) => {
+      const value = getSplitValue(item.percent);
+      if (value === BigInt(0)) return [];
+      return [
+        batchAsset === "ETH"
+          ? { to: item.address as Address, value }
+          : {
+              to: usdcContractAddress as Address,
+              data: encodeFunctionData({
+                abi: ERC20_TRANSFER_ABI,
+                functionName: "transfer",
+                args: [item.address as Address, value],
+              }),
+            },
+      ];
+    });
 
-        const hash = batchAsset === "ETH"
-          ? await sendTransactionAsync({
-              to: item.address as Address,
-              value,
-            })
-          : await writeTokenTransferAsync({
-              address: usdcContractAddress as Address,
-              abi: ERC20_TRANSFER_ABI,
-              functionName: "transfer",
-              args: [item.address as Address, value],
-            });
-        hashes.push(hash);
-        if (!countedTxHashes.current.has(hash)) {
-          countedTxHashes.current.add(hash);
+    if (calls.length === 0) {
+      setError("Nothing to send");
+      return;
+    }
+
+    try {
+      setIsBatchSubmitting(true);
+      const { id } = await sendCallsAsync({ calls });
+      // EIP-5792 is async: poll wallet_getCallsStatus until the bundle lands,
+      // then surface the single on-chain transaction hash.
+      const result = await waitForCallsStatus(config, { id });
+      if (result.status === "failure") {
+        setError("Batch transaction failed");
+      }
+      const txHash = result.receipts?.[0]?.transactionHash;
+      if (txHash) {
+        setBatchTxHashes([txHash]);
+        if (!countedTxHashes.current.has(txHash)) {
+          countedTxHashes.current.add(txHash);
           onGaslessTransaction?.();
         }
       }
-      setBatchTxHashes(hashes);
       await refreshBalances();
       window.setTimeout(() => {
         void refreshBalances();
@@ -372,12 +404,14 @@ export function SendTransactionTest({
     } catch (err) {
       console.error("Transaction error:", err);
       setError("Batch transaction failed");
+    } finally {
+      setIsBatchSubmitting(false);
     }
   };
 
   const handleMintNft = async () => {
     setError("");
-    resetSendTx();
+    resetSendCalls();
     resetMint();
     setMintedTokenId(null);
 
@@ -407,16 +441,16 @@ export function SendTransactionTest({
     }
   };
 
-  // Watch for transaction success
+  // Watch for mint success (batch sends count their gasless tx inline in
+  // handleSendEth once the bundle receipt is known).
   useEffect(() => {
-    if (sendTxHash || mintTxHash) {
+    if (mintTxHash) {
       setError("");
     }
-    const txHash = sendTxHash ?? mintTxHash;
-    if (!txHash || countedTxHashes.current.has(txHash)) return;
-    countedTxHashes.current.add(txHash);
+    if (!mintTxHash || countedTxHashes.current.has(mintTxHash)) return;
+    countedTxHashes.current.add(mintTxHash);
     onGaslessTransaction?.();
-  }, [sendTxHash, mintTxHash, onGaslessTransaction]);
+  }, [mintTxHash, onGaslessTransaction]);
 
   useEffect(() => {
     if (!mintTxHash || !publicClient || !address) return;
@@ -472,7 +506,7 @@ export function SendTransactionTest({
       {!fixedMode && (
         <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
           <button
-            onClick={() => { setInternalMode("mint-nft"); setError(""); resetSendTx(); }}
+            onClick={() => { setInternalMode("mint-nft"); setError(""); resetSendCalls(); }}
             className={cn(
               "flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all cursor-pointer",
               mode === "mint-nft" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
@@ -625,7 +659,7 @@ export function SendTransactionTest({
                         <span className="font-mono text-xs font-semibold text-gray-900">
                           {item.percent}%
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-800">
                           {formatSplitValue(item.percent) || "0"} {batchAsset}
                         </span>
                         <button
@@ -754,9 +788,7 @@ export function SendTransactionTest({
                   </a>
                 ))}
                 <span className="font-mono text-xs text-gray-500">
-                  {mode === "send-eth" && batchTxHashes.length > 1
-                    ? `${batchTxHashes[0].slice(0, 8)}...${batchTxHashes[0].slice(-6)}`
-                    : shortTxHash}
+                  {shortTxHash}
                 </span>
               </div>
             </div>
