@@ -543,23 +543,34 @@ export function SendTransactionTest({
             </div>
 
             {showFundingHint && (
-              <div className="flex flex-col gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
                 <span>
                   {showFaucetCopiedHint
-                    ? "Address copied. Select Arbitrum Sepolia in the Circle faucet."
+                    ? "Opening the Circle faucet — pick Arbitrum Sepolia and paste your address."
                     : batchAsset === "USDC"
                       ? "Need testnet USDC for this split?"
                       : "No ETH detected. Transfer ETH on Arbitrum Sepolia, or try USDC for a faucet."}
                 </span>
                 {batchAsset === "USDC" && (
-                  <button
-                    type="button"
-                    onClick={handleOpenFaucet}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 underline-offset-2 hover:text-blue-900 hover:underline"
-                  >
-                    {showFaucetCopiedHint ? "Opening faucet..." : "Open Circle faucet"}
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="relative shrink-0 self-start sm:self-auto">
+                    {showFaucetCopiedHint && (
+                      <div className="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-[var(--ink)] px-2.5 py-1.5 text-xs font-semibold text-white shadow-lg">
+                        <span className="inline-flex items-center gap-1">
+                          <Check className="h-3.5 w-3.5 text-green-400" />
+                          Address copied!
+                        </span>
+                        <span className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-[var(--ink)]" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleOpenFaucet}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 cursor-pointer"
+                    >
+                      {showFaucetCopiedHint ? "Opening faucet…" : "Get testnet USDC"}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </div>
             )}
