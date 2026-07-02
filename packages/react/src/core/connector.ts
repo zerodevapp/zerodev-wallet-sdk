@@ -38,7 +38,7 @@ export type ConnectorCoreParams = {
   projectId: string
   organizationId?: string
   proxyBaseUrl?: string
-  aaUrl?: string // Bundler/paymaster URL
+  aaHost?: string // Bundler/paymaster host origin (default: ZERODEV_AA_HOST)
   chains: readonly Chain[]
   rpId?: string
   sessionStorage?: StorageAdapter
@@ -161,7 +161,7 @@ export function zeroDevWalletCore(
       const kernelClient = createKernelAccountClient({
         account: kernelAccount,
         bundlerTransport: http(
-          getAAUrl(params.projectId, chainId, params.aaUrl),
+          getAAUrl(params.projectId, chainId, params.aaHost),
           httpOpts,
         ),
         chain,
@@ -169,7 +169,7 @@ export function zeroDevWalletCore(
         paymaster: createZeroDevPaymasterClient({
           chain,
           transport: http(
-            getAAUrl(params.projectId, chainId, params.aaUrl),
+            getAAUrl(params.projectId, chainId, params.aaHost),
             httpOpts,
           ),
         }),
