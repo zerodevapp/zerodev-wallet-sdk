@@ -38,7 +38,7 @@ describe('useAuth', () => {
     mockConfig.connectors = []
 
     expect(() => renderHook(() => useAuth())).toThrow(
-      'useAuth must be used with zeroDevWallet connector',
+      'useKitStore must be used with the zeroDevWallet connector',
     )
 
     // Restore
@@ -50,7 +50,7 @@ describe('useAuth', () => {
     mockConfig.connectors = [badConnector as any]
 
     expect(() => renderHook(() => useAuth())).toThrow(
-      'useAuth must be used with zeroDevWallet connector',
+      'useKitStore must be used with the zeroDevWallet connector',
     )
 
     // Restore

@@ -71,9 +71,13 @@ vi.mock('./hooks/useAuth', () => ({
   }),
 }))
 
-// Mock useKitLogo — otherwise it calls wagmi's useConfig which needs a provider
-vi.mock('../shared/hooks/useKitLogo', () => ({
-  useKitLogo: () => null,
+// Mock useKitStore — otherwise it calls wagmi's useConfig which needs a
+// provider. Return a real zustand store so `useStore(store, selector)` works.
+import { create } from 'zustand'
+
+const mockKitStore = create(() => ({ logo: null }))
+vi.mock('../shared/hooks/useKitStore', () => ({
+  useKitStore: () => mockKitStore,
 }))
 
 describe('AuthFlow', () => {
