@@ -1,5 +1,5 @@
 /**
- * @zerodev/react-wallet-ui
+ * @zerodev/wallet-react-ui
  * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 

@@ -168,9 +168,9 @@ importers:
       '@zerodev/ecdsa-validator':
         specifier: ^5.4.9
         version: 5.4.9(@zerodev/sdk@5.5.4(viem@2.38.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(viem@2.38.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
-      '@zerodev/react-wallet-ui':
+      '@zerodev/wallet-react-ui':
         specifier: workspace:*
-        version: link:../../packages/react-wallet-ui
+        version: link:../../packages/wallet-react-ui
       '@zerodev/sdk':
         specifier: ^5.0.0
         version: 5.5.4(viem@2.38.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
@@ -565,7 +565,7 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(rollup@4.54.0)(typescript@5.9.3)(vite@6.4.1(@types/node@20.19.11)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.1)(yaml@2.8.1))
 
-  packages/react-wallet-ui:
+  packages/wallet-react-ui:
     dependencies:
       '@wagmi/core':
         specifier: ^2.22.0

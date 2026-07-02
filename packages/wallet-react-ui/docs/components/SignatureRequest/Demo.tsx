@@ -2,7 +2,7 @@ import {
   AuthFlow,
   SignatureRequest,
   usePendingRequest,
-} from '@zerodev/react-wallet-ui'
+} from '@zerodev/wallet-react-ui'
 import { encodeFunctionData, erc20Abi, parseEther } from 'viem'
 import {
   useAccount,
