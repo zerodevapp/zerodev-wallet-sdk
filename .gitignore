@@ -41,5 +41,3 @@ storybook.requires.ts
 
 # Expo
 .expo
-.vercel
-.env*.local

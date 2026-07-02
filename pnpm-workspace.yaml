@@ -9,9 +9,3 @@ minimumReleaseAge: 1440
 # Exclude trusted packages from age restriction
 minimumReleaseAgeExclude:
   - '@zerodev/*'
-
-# @expo/dom-webview override is in package.json under "pnpm.overrides" —
-# @expo/log-box@56.0.13's `^56.0.5` requirement can't be met (only 56.0.0
-# and 56.0.1 are publicly published), so we force 56.0.1 to avoid pnpm
-# falling back to 55.0.3, whose iOS source references RCTConvert (removed
-# in RN 0.85) and breaks the Pod build.

@@ -56,7 +56,7 @@ export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
     const fromBrowser = WebBrowser.openAuthSessionAsync(
       oauthUrl,
       params.redirectUri,
-      { preferUniversalLinks: true },
+      { preferUniversalLinks: params.redirectUri.startsWith('https:') },
     ).then((r) => {
       if (r.type !== 'success') throw new Error('OAuth cancelled or failed')
       const parsed = new URL(r.url)
