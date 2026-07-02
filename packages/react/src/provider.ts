@@ -276,7 +276,8 @@ export function createProvider({
           const userOpHash = await kernelClient.sendUserOperation({
             calls: request.calls.map((call: WalletCall) => ({
               ...(call.to && { to: call.to }),
-              value: call.value ? BigInt(call.value) : 0n,
+              value:
+                call.value && call.value !== '0x' ? BigInt(call.value) : 0n,
               data: call.data || '0x',
             })),
           })
@@ -295,7 +296,7 @@ export function createProvider({
             : activeChainId
           const kernelClient = store.getState().kernelClients.get(chainId)
           if (!kernelClient) {
-            throw new Error(`No kernel client for chain ${activeChainId}`)
+            throw new Error(`No kernel client for chain ${chainId}`)
           }
 
           const receipt = await kernelClient
@@ -312,7 +313,7 @@ export function createProvider({
           return {
             version: '2.0.0',
             atomic: true,
-            chainId: `0x${activeChainId.toString(16)}`,
+            chainId: `0x${chainId.toString(16)}`,
             status: receipt.success ? 200 : 500,
             receipts: [
               {

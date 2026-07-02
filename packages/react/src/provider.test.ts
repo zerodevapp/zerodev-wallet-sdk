@@ -1,7 +1,7 @@
 import type { KernelAccountClient } from '@zerodev/sdk'
 import type { LocalAccount } from 'viem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { sepolia } from 'wagmi/chains'
+import { mainnet, sepolia } from 'wagmi/chains'
 import type { WalletMode } from './connector.js'
 import { createProvider } from './provider.js'
 import { createZeroDevWalletStore } from './store.js'
@@ -66,6 +66,20 @@ describe('wallet_sendCalls', () => {
         },
         { value: 0n, data: '0xdeadbeef' },
       ],
+    })
+  })
+
+  it('treats value "0x" as 0n (does not throw)', async () => {
+    sendUserOperationMock.mockResolvedValue('0xuserophash')
+    const provider = createTestProvider()
+
+    await provider.request({
+      method: 'wallet_sendCalls',
+      params: [{ from: EOA_ADDRESS, calls: [{ data: '0x', value: '0x' }] }],
+    })
+
+    expect(sendUserOperationMock).toHaveBeenCalledWith({
+      calls: [{ value: 0n, data: '0x' }],
     })
   })
 
@@ -204,6 +218,39 @@ describe('wallet_getCallsStatus', () => {
 
     expect(result.status).toBe(500)
     expect(result.receipts[0].status).toBe('0x0')
+  })
+
+  it("reports the bundle id's chain, not the active chain", async () => {
+    getUserOperationReceiptMock.mockResolvedValue({
+      success: true,
+      logs: [],
+      receipt: {
+        transactionHash: '0xtxhash',
+        blockHash: '0xblockhash',
+        blockNumber: 1n,
+        gasUsed: 1n,
+        status: 'success',
+        logs: [],
+      },
+    })
+    // Active chain is sepolia, but the bundle was submitted on mainnet — the
+    // status response must reflect the bundle's chain, not the active one.
+    const store = createZeroDevWalletStore()
+    store.getState().setActiveChainId(sepolia.id)
+    store.getState().setEoaAccount({ address: EOA_ADDRESS } as LocalAccount)
+    store.getState().setKernelClient(mainnet.id, mockKernelClient)
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia, mainnet] },
+      chains: [sepolia, mainnet],
+    })
+
+    const result = (await provider.request({
+      method: 'wallet_getCallsStatus',
+      params: [`0xuserophash:${mainnet.id}`],
+    })) as { chainId: string }
+
+    expect(result.chainId).toBe(`0x${mainnet.id.toString(16)}`)
   })
 })
 
