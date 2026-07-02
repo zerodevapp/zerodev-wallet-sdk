@@ -7,6 +7,7 @@ import {
   zeroDevWallet as baseZeroDevWallet,
   NotAuthenticatedError,
 } from '@zerodev/wallet-react'
+import type { ReactNode } from 'react'
 import type { AuthConfig } from './auth/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
@@ -21,6 +22,11 @@ const DEFAULT_SIGNING_PROMPT_METHODS: RequestMethod[] = [
 
 export type ZeroDevKitConfig = {
   auth?: AuthConfig
+  /**
+   * Optional brand logo rendered in the auth flow's top nav. When omitted,
+   * no logo is shown. `PoweredBy` always shows the ZeroDev mark independently.
+   */
+  logo?: ReactNode
 }
 
 export type ZeroDevKitConnectorParams = ZeroDevWalletConnectorParams & {
@@ -68,7 +74,7 @@ export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
   const baseFactory = baseZeroDevWallet(params)
-  const store = createStore()
+  const store = createStore({ logo: params.config?.logo })
 
   // Initialize auth config if provided
   if (params.config?.auth) {

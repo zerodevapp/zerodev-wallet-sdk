@@ -71,6 +71,11 @@ vi.mock('./hooks/useAuth', () => ({
   }),
 }))
 
+// Mock useKitLogo — otherwise it calls wagmi's useConfig which needs a provider
+vi.mock('../shared/hooks/useKitLogo', () => ({
+  useKitLogo: () => null,
+}))
+
 describe('AuthFlow', () => {
   it('renders nothing when step is null', () => {
     mockStep = null
