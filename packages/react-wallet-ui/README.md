@@ -1,12 +1,11 @@
 # @zerodev/react-wallet-ui
 
-React wallet UI kit for ZeroDev — drop-in **authentication** and **transaction
-signing** flows built on top of a standard [wagmi](https://wagmi.sh) setup, plus
-an enhanced wagmi connector that drives them.
+React wallet UI kit for ZeroDev — a drop-in **authentication** flow built on top
+of a standard [wagmi](https://wagmi.sh) setup, plus an enhanced wagmi connector
+that drives it.
 
-Mount two components, get a full embedded-wallet experience: a multi-step sign-in
-screen (passkey / email / Google) and a confirmation UI that gates signing on
-explicit user approval. UI styling comes from
+Mount one component, get a full embedded-wallet sign-in experience: a multi-step
+screen for passkey / email / Google. UI styling comes from
 [`@zerodev/react-ui`](../react-ui/README.md).
 
 ## Installation
@@ -75,12 +74,11 @@ function Root() {
 
 ## Usage
 
-Mount `<AuthFlow />` to render the active sign-in screen, and
-`<SignatureRequest />` to gate signing on user confirmation. Connecting via the
+Mount `<AuthFlow />` to render the active sign-in screen. Connecting via the
 `zeroDevWallet` connector is what opens the auth flow.
 
 ```tsx
-import { AuthFlow, SignatureRequest } from '@zerodev/react-wallet-ui'
+import { AuthFlow } from '@zerodev/react-wallet-ui'
 import { useAccount, useConnect } from 'wagmi'
 
 function App() {
@@ -98,37 +96,7 @@ function App() {
     )
   }
 
-  return <SignatureRequest />
-}
-```
-
-### Signing modes
-
-The connector decides whether a request prompts the user. Configure it via
-`config.signing`:
-
-- `{ mode: 'prompt' }` (default) — listed methods raise a `<SignatureRequest />`
-  confirmation. Override which methods with `{ mode: 'prompt', methods: [...] }`.
-- `{ mode: 'background' }` — sign without prompting.
-
-### Custom confirmation UI
-
-Instead of rendering `<SignatureRequest />`, drive your own UI with the pending
-request and its `confirm` / `reject` callbacks:
-
-```tsx
-import { usePendingRequest } from '@zerodev/react-wallet-ui'
-
-function MyPrompt() {
-  const { pendingRequest, confirm, reject } = usePendingRequest()
-  if (!pendingRequest) return null
-  return (
-    <dialog open>
-      <p>Confirm {pendingRequest.method}?</p>
-      <button onClick={confirm}>Approve</button>
-      <button onClick={reject}>Reject</button>
-    </dialog>
-  )
+  return <YourApp />
 }
 ```
 
@@ -136,18 +104,13 @@ function MyPrompt() {
 
 | Export | Description |
 | --- | --- |
-| `zeroDevWallet` | wagmi connector with kit-specific auth + signing extensions. |
+| `zeroDevWallet` | wagmi connector with kit-specific auth extensions. |
 | `<AuthFlow />` | Renders the current auth step (sign-in, OTP, verifying, etc.). |
-| `<SignatureRequest />` | Confirmation UI for pending signing requests. |
 | `useAuth` | Read / drive the auth flow state. |
-| `usePendingRequest` | The head pending request plus `confirm` / `reject` — for custom confirmation UI. |
-| `usePendingRequests` | Read-only subscription to the full pending queue. Safe to call alongside `<SignatureRequest />`. |
 
 ### Types
 
-`SignatureRequestProps`, `AuthMethod`, `AuthStep`, `SigningConfig`,
-`ZeroDevKitConfig`, `ZeroDevKitConnectorParams`, `PendingRequest`, `Request`,
-`RequestMethod`.
+`AuthMethod`, `AuthStep`, `ZeroDevKitConfig`, `ZeroDevKitConnectorParams`.
 
 ## Development
 
