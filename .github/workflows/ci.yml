@@ -159,6 +159,9 @@ jobs:
         env:
           NEXT_PUBLIC_ZERODEV_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           NEXT_PUBLIC_KMS_PROXY_BASE_URL: https://kms.staging.zerodev.app/api/v1
+          # Pin the bundler/paymaster to staging so the AA stack matches the
+          # staging KMS above (the SDK default host is prod).
+          NEXT_PUBLIC_ZERODEV_AA_HOST: https://staging-meta-aa-provider.onrender.com
 
       - name: Wait for demo app
         run: |

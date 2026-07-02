@@ -33,6 +33,11 @@ export const config = createConfig({
       projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID!,
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
       chains: [arbitrumSepolia, sepolia],
+      // Bundler/paymaster host override (defaults to the SDK's prod host).
+      // CI/e2e sets this to staging to match NEXT_PUBLIC_KMS_PROXY_BASE_URL.
+      ...(process.env.NEXT_PUBLIC_ZERODEV_AA_HOST && {
+        aaHost: process.env.NEXT_PUBLIC_ZERODEV_AA_HOST,
+      }),
       // Local testing override: our docker backend's Turnkey base org differs
       // from the SDK's hardcoded prod default, so point the connector at it.
       ...(process.env.NEXT_PUBLIC_ORG_ID && {
