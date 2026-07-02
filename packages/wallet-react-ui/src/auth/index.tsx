@@ -1,7 +1,9 @@
 import { type ReactNode, useEffect } from 'react'
+import { useStore } from 'zustand'
 import { Screen } from '../shared/components/Screen'
 import { StatusScreen } from '../shared/components/StatusScreen'
 import { TopNav } from '../shared/components/TopNav'
+import { useKitStore } from '../shared/hooks/useKitStore'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
 import { ErrorScreen } from './pages/ErrorScreen'
@@ -65,6 +67,7 @@ export function AuthFlow({
   onClose?: (() => void) | undefined
 } = {}) {
   const { step, goToStep, goBack, reset } = useAuth()
+  const logo = useStore(useKitStore(), (s) => s.logo)
 
   useEffect(() => {
     if (step === null && hasMagicLinkCodeInUrl()) {
@@ -93,7 +96,7 @@ export function AuthFlow({
           onClose={handleClose}
           {...(title && { title })}
           {...(step === 'sign-up' && {
-            centerLogo: true,
+            ...(logo && { logo }),
             className: 'zd:px-4',
           })}
         />

@@ -1,4 +1,5 @@
-import { cn, Icon, IconButton, Text } from '@zerodev/react-ui'
+import { cn, IconButton, Text } from '@zerodev/react-ui'
+import type { ReactNode } from 'react'
 
 export const TOP_NAV_HEIGHT = 52
 
@@ -6,13 +7,13 @@ export function TopNav({
   onBack,
   onClose,
   title,
-  centerLogo,
+  logo,
   className,
 }: {
   onBack?: () => void
   onClose: () => void
   title?: string
-  centerLogo?: boolean
+  logo?: ReactNode
   className?: string
 }) {
   return (
@@ -28,9 +29,9 @@ export function TopNav({
       ) : (
         <div className="zd:h-13 zd:w-13" />
       )}
-      {centerLogo && (
+      {logo && (
         <div className="zd:absolute zd:left-0 zd:right-0 zd:flex zd:items-center zd:justify-center zd:pointer-events-none">
-          <Icon name="zerodevLogo" className="zd:h-8 zd:w-auto" />
+          {logo}
         </div>
       )}
       {title && (

@@ -3,7 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { SignatureRequest } from "@zerodev/wallet-react-ui";
+// import { SignatureRequest } from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
@@ -46,17 +46,17 @@ export default function DashboardPage() {
   // Toggle for whether SignatureRequest is mounted. When mounted, the kit
   // gates signing calls on user confirmation; when not, calls go through
   // silently (background mode). Default off; persisted in localStorage.
-  const [confirmationEnabled, setConfirmationEnabled] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("zd:signingConfirmation") === "true";
-  });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "zd:signingConfirmation",
-      String(confirmationEnabled),
-    );
-  }, [confirmationEnabled]);
+  // const [confirmationEnabled, setConfirmationEnabled] = useState<boolean>(() => {
+  //   if (typeof window === "undefined") return false;
+  //   return localStorage.getItem("zd:signingConfirmation") === "true";
+  // });
+  //
+  // useEffect(() => {
+  //   localStorage.setItem(
+  //     "zd:signingConfirmation",
+  //     String(confirmationEnabled),
+  //   );
+  // }, [confirmationEnabled]);
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
@@ -151,9 +151,9 @@ export default function DashboardPage() {
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
       <ExportPrivateKeyModal isOpen={showExportPrivateKeyModal} onClose={() => setShowExportPrivateKeyModal(false)} />
-      {confirmationEnabled && (
-        <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
-      )}
+      {/*{confirmationEnabled && (*/}
+      {/*  <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />*/}
+      {/*)}*/}
       <div className="min-h-screen bg-white">
         {/* Header */}
         <header className="bg-white border-b border-gray-100">
@@ -260,15 +260,15 @@ export default function DashboardPage() {
               <span className="text-lg text-gray-500 font-medium">ETH</span>
             </div>
             <p className="text-sm text-gray-500 mt-1">{chain?.name} Testnet</p>
-            <label className="mt-3 flex items-center gap-2 cursor-pointer text-sm leading-none">
-              <input
-                type="checkbox"
-                checked={confirmationEnabled}
-                onChange={(e) => setConfirmationEnabled(e.target.checked)}
-                className="h-3 w-3 m-0"
-              />
-              <span className="text-gray-700">Show transaction review</span>
-            </label>
+            {/*<label className="mt-3 flex items-center gap-2 cursor-pointer text-sm leading-none">*/}
+            {/*  <input*/}
+            {/*    type="checkbox"*/}
+            {/*    checked={confirmationEnabled}*/}
+            {/*    onChange={(e) => setConfirmationEnabled(e.target.checked)}*/}
+            {/*    className="h-3 w-3 m-0"*/}
+            {/*  />*/}
+            {/*  <span className="text-gray-700">Show transaction review</span>*/}
+            {/*</label>*/}
           </div>
 
           {/* Tabs */}

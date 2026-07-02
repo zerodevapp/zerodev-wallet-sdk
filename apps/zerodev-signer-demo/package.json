@@ -14,6 +14,7 @@
     "@tanstack/react-query": "^5.0.0",
     "@wagmi/core": "^2.22.0",
     "@zerodev/ecdsa-validator": "^5.4.9",
+    "@zerodev/react-ui": "workspace:*",
     "@zerodev/wallet-react-ui": "workspace:*",
     "@zerodev/sdk": "^5.0.0",
     "@zerodev/wallet-core": "workspace:*",
