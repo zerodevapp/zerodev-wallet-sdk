@@ -2,8 +2,8 @@
 
 import {AuthFlow, useAuth} from '@zerodev/wallet-react-kit'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
-import {useRouter, useSearchParams} from 'next/navigation'
-import {Suspense, useEffect, useState} from 'react'
+import {useRouter} from 'next/navigation'
+import {Suspense, useEffect} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
 
@@ -19,17 +19,7 @@ export default function LandingPage() {
 
 function LandingPageInner() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const sessionExpired = searchParams.get('session_expired') === 'true'
 
-  const [loggedOut] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const value = localStorage.getItem('zd:loggedOut') === 'true'
-    if (value) localStorage.removeItem('zd:loggedOut')
-    return value
-  })
-
-  const skipAutoConnect = sessionExpired || loggedOut
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
@@ -46,18 +36,21 @@ function LandingPageInner() {
     !isConnected &&
     authStep === null &&
     !isResolvingSession &&
-    (skipAutoConnect || connectStatus === 'error')
+    connectStatus === 'error'
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
   }
 
   useEffect(() => {
+    localStorage.removeItem('zd:loggedOut')
+  }, [])
+
+  useEffect(() => {
     if (isConnected) {
       router.push('/dashboard')
       return
     }
-    if (skipAutoConnect) return
     if (
       accountStatus === 'disconnected' &&
       connectStatus === 'idle' &&
@@ -72,51 +65,43 @@ function LandingPageInner() {
     router,
     connect,
     connectors,
-    skipAutoConnect,
   ])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <AppHeader/>
       <main
-        className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-6xl items-center gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_400px] lg:px-8 lg:py-12">
-        {sessionExpired && (
-          <div
-            className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-center text-sm text-yellow-700 lg:col-span-2">
-            Your session has expired. Please log in again.
-          </div>
-        )}
-
+        className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-[1040px] items-center gap-x-10 gap-y-4 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-0 lg:py-12">
         <section className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
-          <h1 className="text-4xl font-semibold leading-tight tracking-[-0.02em] text-gray-950 sm:text-5xl">
-            ZeroDev Smart Wallet
+          <h1 className="font-[var(--font-dm-sans)] text-4xl font-bold leading-[1.06] text-[var(--ink)] sm:text-5xl">
+            Embedded Smart Wallets
           </h1>
-          <p className="mt-5 text-lg leading-8 text-gray-600">
-            A pre-built wallet experience for auth, sponsored transactions, message signing, and batch transfers.
+          <p className="mt-5 max-w-[34rem] text-lg leading-8 text-[var(--muted)]">
+            Give users a seamless wallet experience with built-in auth, gas sponsorship, batching, and smart account infrastructure behind one integration.
           </p>
 
           <div className="mt-8 space-y-5 text-left">
             <DemoStep
               icon={Sparkles}
-              title="Mint without gas"
-              text="Try a sponsored NFT mint from a smart wallet without funding native gas first."
+              title="Gas Sponsorship Built In"
+              text="Configure and customize gas policies in a few clicks, with no code changes required."
             />
             <DemoStep
               icon={KeyRound}
-              title="Sign anything"
-              text="Sign messages or typed data from the same embedded wallet session."
+              title="One-click onchain flows"
+              text="Batch multiple onchain actions into a single user approval, from sponsored transactions to app-specific workflows."
             />
             <DemoStep
               icon={Layers}
-              title="Batch transactions"
-              text="Split ETH or USDC across recipients and preview the batch flow."
+              title="Unified developer platform"
+              text="Smart accounts, modules, permissions, policies, tracking, and billing bundled into one integration with less maintenance."
             />
           </div>
         </section>
 
-        <div className="mx-auto flex w-full max-w-[400px] justify-center overflow-hidden lg:mx-0">
-          <div className="h-[630px] w-[400px] overflow-hidden">
-            <div className="origin-top-left scale-[0.78]">
+        <div className="mx-auto flex w-full max-w-[380px] justify-center overflow-hidden lg:mx-0">
+          <div className="h-[585px] w-[380px] overflow-hidden">
+            <div className="origin-top-left scale-[0.74]">
               <div className="flex h-[770px] w-[512px] flex-col">
                 <AuthFlow/>
                 {showLoading && (
@@ -129,7 +114,7 @@ function LandingPageInner() {
                     <button
                       type="button"
                       onClick={handleReconnect}
-                      className="rounded-3xl bg-gray-900 px-8 py-4 text-body1 font-semibold text-white hover:bg-gray-800 cursor-pointer"
+                      className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
                     >
                       Reconnect
                     </button>
@@ -139,6 +124,28 @@ function LandingPageInner() {
             </div>
           </div>
         </div>
+
+        <p className="mx-auto max-w-[380px] text-center text-xs leading-5 text-[var(--muted)] lg:col-start-2 lg:mx-0">
+          By signing up for ZeroDev Wallet Demo, you agree to our{' '}
+          <a
+            href="https://zerodev.app/terms-of-service"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[var(--ink)] underline underline-offset-2"
+          >
+            Terms of Service
+          </a>{' '}
+          and to receive product updates. View our{' '}
+          <a
+            href="https://zerodev.app/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[var(--ink)] underline underline-offset-2"
+          >
+            Privacy Policy
+          </a>
+          .
+        </p>
       </main>
     </div>
   )
@@ -155,12 +162,12 @@ function DemoStep({
 }) {
   return (
     <div className="flex gap-4">
-      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-950 text-white">
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--ink)] text-white">
         <Icon className="h-4 w-4" />
       </span>
       <div>
-        <h2 className="text-base font-semibold text-gray-950">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-gray-600">{text}</p>
+        <h2 className="font-[var(--font-dm-sans)] text-base font-bold text-[var(--ink)]">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{text}</p>
       </div>
     </div>
   )

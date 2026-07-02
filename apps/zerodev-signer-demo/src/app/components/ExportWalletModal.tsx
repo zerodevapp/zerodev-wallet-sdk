@@ -182,12 +182,6 @@ export function ExportWalletModal({ isOpen, onClose }: ExportWalletModalProps) {
                 )}
               </div>
 
-              <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                <p className="text-xs text-yellow-700">
-                  Make sure to save this {secretLabel.toLowerCase()} before closing this window
-                </p>
-              </div>
             </div>
           )}
 

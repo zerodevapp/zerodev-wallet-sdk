@@ -5,16 +5,18 @@ import { useAuthenticators } from "@zerodev/wallet-react";
 import {
   Check,
   Copy,
+  ExternalLink,
   FileSignature,
   Key,
   Loader2,
   LogOut,
+  RefreshCw,
   Send,
   Sparkles,
   Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
 import { useAccount, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
@@ -103,6 +105,7 @@ export default function DashboardPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [gaslessTxCount, setGaslessTxCount] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
@@ -110,11 +113,14 @@ export default function DashboardPage() {
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
   const authMethodLabel = formatAuthMethod(authenticatorData);
+  const walletExplorerUrl =
+    address && chain?.blockExplorers?.default?.url
+      ? `${chain.blockExplorers.default.url}/address/${address}`
+      : undefined;
 
   useEffect(() => {
     if (localStorage.getItem("zd:loggedOut") === "true") {
-      setIsLoggingOut(true);
-      router.replace("/");
+      window.location.replace("/");
     }
   }, [router]);
 
@@ -139,34 +145,42 @@ export default function DashboardPage() {
     }
   )
 
-  useEffect(() => {
-    const loadBalance = async () => {
-      if (address && isAddress(address)) {
-        try {
-          if (!publicClient) return;
-          const balanceWei = await publicClient.getBalance({ address: address as Address });
-          setBalance(formatEther(balanceWei));
-          const usdcContractAddress = chain?.id ? USDC_CONTRACTS[chain.id] : undefined;
-          if (usdcContractAddress) {
-            const tokenBalance = await publicClient.readContract({
-              address: usdcContractAddress,
-              abi: ERC20_BALANCE_ABI,
-              functionName: "balanceOf",
-              args: [address as Address],
-            });
-            setUsdcBalance(formatUnits(tokenBalance, 6));
-          } else {
-            setUsdcBalance("0");
-          }
-        } catch (err) {
-          console.error("Dashboard: Failed to load balance:", err);
-          setBalance("0");
-          setUsdcBalance("0");
-        }
+  const loadBalances = useCallback(async () => {
+    if (!address || !isAddress(address) || !publicClient) return;
+
+    setIsBalanceRefreshing(true);
+    try {
+      const balanceWei = await publicClient.getBalance({ address: address as Address });
+      setBalance(formatEther(balanceWei));
+      const usdcContractAddress = chain?.id ? USDC_CONTRACTS[chain.id] : undefined;
+      if (usdcContractAddress) {
+        const tokenBalance = await publicClient.readContract({
+          address: usdcContractAddress,
+          abi: ERC20_BALANCE_ABI,
+          functionName: "balanceOf",
+          args: [address as Address],
+        });
+        setUsdcBalance(formatUnits(tokenBalance, 6));
+      } else {
+        setUsdcBalance("0");
       }
-    };
-    loadBalance();
+    } catch (err) {
+      console.error("Dashboard: Failed to load balance:", err);
+      setBalance("0");
+      setUsdcBalance("0");
+    } finally {
+      setIsBalanceRefreshing(false);
+    }
   }, [address, chain, publicClient]);
+
+  useEffect(() => {
+    loadBalances();
+    const interval = window.setInterval(() => {
+      loadBalances();
+    }, 10_000);
+
+    return () => window.clearInterval(interval);
+  }, [loadBalances]);
 
   const handleCopy = async () => {
     if (!address) return;
@@ -177,9 +191,12 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    localStorage.setItem("zd:loggedOut", "true");
-    router.replace("/");
-    await logout();
+    try {
+      await logout();
+    } finally {
+      localStorage.setItem("zd:loggedOut", "true");
+      window.location.assign("/");
+    }
   };
 
   const formatAddress = (address: string) => {
@@ -202,17 +219,23 @@ export default function DashboardPage() {
     }
   }, [status, hasConnected, router]);
 
-  // Show loading while connecting or reconnecting
-  if (isLoggingOut || status === 'disconnected') {
-    return null;
-  }
+  useEffect(() => {
+    if (status !== 'disconnected' || isLoggingOut) return;
 
-  if (status === 'connecting' || status === 'reconnecting' || !address) {
+    const timeout = window.setTimeout(() => {
+      const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
+      window.location.replace(loggedOut ? "/" : "/?session_expired=true");
+    }, 750);
+
+    return () => window.clearTimeout(timeout);
+  }, [status, isLoggingOut]);
+
+  if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-          <span className="text-sm text-gray-600">
+          <Loader2 className="h-5 w-5 animate-spin text-[#9c958c]" />
+          <span className="text-sm text-[var(--muted)]">
             {status === 'reconnecting' ? 'Reconnecting...' : 'Loading wallet...'}
           </span>
         </div>
@@ -223,17 +246,17 @@ export default function DashboardPage() {
   return (
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <AppHeader />
 
         {/* Main Content */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Wallet Card */}
-          <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
+          <div className="mb-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-gray-700" />
-                <h1 className="text-lg font-semibold text-gray-900">Your Smart Wallet</h1>
+                <Wallet className="h-5 w-5 text-[var(--ink)]" />
+                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">Your Smart Wallet</h1>
                 <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
                   Created with {authMethodLabel}
                 </span>
@@ -242,7 +265,7 @@ export default function DashboardPage() {
                 <ChainSelector className="h-9 rounded-full px-3 text-xs" />
                 <button
                   onClick={() => setShowExportModal(true)}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 cursor-pointer"
+                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
                   title="Export keys"
                 >
                   <Key className="h-3.5 w-3.5" />
@@ -259,20 +282,29 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-5 border-t border-gray-100 pt-4">
+            <div className="mt-5 border-t border-[var(--border-warm)] pt-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <div className="flex items-center justify-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white shadow-sm">
+                  <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--border-warm)] bg-white shadow-sm">
                     {selectedAsset === "ETH" ? <EthIcon /> : <UsdcIcon />}
                   </span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold leading-none text-gray-900">
+                    <span className="font-[var(--font-dm-sans)] text-3xl font-bold leading-none text-[var(--ink)]">
                       {selectedAsset === "ETH" ? parseFloat(balance).toFixed(4) : parseFloat(usdcBalance).toFixed(2)}
                     </span>
-                    <span className="text-lg text-gray-500 font-medium">{selectedAsset}</span>
+                    <span className="text-lg font-medium text-[var(--muted)]">{selectedAsset}</span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={loadBalances}
+                    disabled={isBalanceRefreshing}
+                    className="grid h-9 w-9 place-items-center rounded-full border border-[var(--border-warm)] bg-white text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Refresh balances"
+                  >
+                    <RefreshCw className={cn("h-4 w-4", isBalanceRefreshing && "animate-spin")} />
+                  </button>
                 </div>
-                <div className="grid grid-cols-2 gap-1 rounded-full border border-gray-200 bg-gray-100 p-1">
+                <div className="grid grid-cols-2 gap-1 rounded-full border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
                   {(["ETH", "USDC"] as const).map((asset) => (
                     <button
                       key={asset}
@@ -281,8 +313,8 @@ export default function DashboardPage() {
                       className={cn(
                         "h-7 rounded-full px-3 text-xs font-semibold transition-colors cursor-pointer",
                         selectedAsset === asset
-                          ? "bg-white text-gray-950 shadow-sm"
-                          : "text-gray-500 hover:text-gray-800"
+                          ? "bg-white text-[var(--ink)] shadow-sm"
+                          : "text-[var(--muted)] hover:text-[var(--ink)]"
                       )}
                     >
                       {asset}
@@ -297,12 +329,12 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-4 flex min-w-0 items-center justify-center gap-2">
-                  <p className="min-w-0 truncate text-center font-mono text-sm font-semibold text-gray-900">
+                  <p className="min-w-0 truncate text-center font-mono text-sm font-semibold text-[var(--ink)]">
                     {address}
                   </p>
                   <button
                     onClick={handleCopy}
-                    className="shrink-0 text-gray-700 transition-colors hover:text-gray-950 cursor-pointer"
+                    className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
                     title="Copy address"
                   >
                     {copied ? (
@@ -311,12 +343,23 @@ export default function DashboardPage() {
                       <Copy className="h-4 w-4" />
                     )}
                   </button>
+                  {walletExplorerUrl && (
+                    <a
+                      href={walletExplorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                      title="View wallet on explorer"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  )}
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="border-b border-gray-200 bg-gray-50">
+          <div className="overflow-hidden rounded-lg border border-[var(--border-warm)] bg-white">
+            <div className="border-b border-[var(--border-warm)] bg-[var(--surface-warm)]">
               <nav className="grid grid-cols-3">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
@@ -328,8 +371,8 @@ export default function DashboardPage() {
                       className={cn(
                         "flex h-14 items-center justify-center gap-1.5 border-b-2 px-2 text-xs font-semibold transition-all duration-200 cursor-pointer sm:gap-2 sm:px-4 sm:text-sm",
                         isActive
-                          ? "border-gray-950 bg-white text-gray-950"
-                          : "border-transparent text-gray-500 hover:bg-white hover:text-gray-800"
+                          ? "border-[var(--ink)] bg-white text-[var(--ink)]"
+                          : "border-transparent text-[var(--muted)] hover:bg-white hover:text-[var(--ink)]"
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" />

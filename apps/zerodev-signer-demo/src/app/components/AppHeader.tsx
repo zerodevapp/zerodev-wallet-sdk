@@ -15,8 +15,8 @@ export function AppHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-[92px] lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:py-0">
+    <header className="sticky top-0 z-40 border-b border-[var(--border-warm)] bg-white/95 font-[var(--font-dm-sans)] backdrop-blur">
+      <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-[88px] lg:flex-row lg:items-center lg:justify-between lg:px-9 lg:py-0">
         <div className="flex items-center justify-between gap-3">
           <a href="/" className="flex w-fit items-center gap-2.5 sm:gap-3">
             <img
@@ -25,10 +25,10 @@ export function AppHeader() {
               className="h-8 w-8 shrink-0 sm:h-10 sm:w-10"
             />
             <div className="flex min-w-0 items-baseline gap-2 sm:gap-3">
-              <span className="text-xl font-semibold leading-none tracking-[-0.01em] text-gray-950 sm:text-2xl">
+              <span className="text-xl font-bold leading-none text-[var(--ink)] sm:text-2xl">
                 ZeroDev
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 sm:text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#9c958c] sm:text-xs">
                 Wallet Demo
               </span>
             </div>
@@ -37,7 +37,7 @@ export function AppHeader() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 sm:hidden"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-[var(--surface-warm)] px-3 text-sm font-bold text-[var(--ink)] sm:hidden"
             aria-expanded={mobileMenuOpen}
           >
             Links
@@ -46,7 +46,7 @@ export function AppHeader() {
         </div>
 
         {mobileMenuOpen && (
-          <nav className="grid gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-sm sm:hidden">
+          <nav className="grid gap-1 rounded-xl border border-[var(--border-warm)] bg-white p-1 shadow-sm sm:hidden">
             {headerLinks.map((link) => {
               const Icon = link.icon;
               return (
@@ -55,7 +55,7 @@ export function AppHeader() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 items-center justify-between rounded-md px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  className="flex h-10 items-center justify-between rounded-lg px-3 text-sm font-bold text-[var(--ink)] hover:bg-[var(--surface-warm)]"
                 >
                   {link.label}
                   <Icon className="h-4 w-4" />
@@ -76,12 +76,18 @@ export function AppHeader() {
                 rel="noopener noreferrer"
                 className={`inline-flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-colors ${
                   link.emphasis
-                    ? "bg-[#140d09] text-white hover:bg-black hover:text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-950"
+                    ? "bg-[var(--ink)] text-white hover:bg-[#2a1c13] hover:text-white"
+                    : "bg-[var(--surface-warm)] text-[#423a32] hover:bg-[#eee9e3] hover:text-[var(--ink)]"
                 }`}
               >
                 <span className="truncate">{link.label}</span>
-                <Icon className="h-4 w-4 shrink-0" />
+                {link.emphasis ? (
+                  <span className="ml-1 grid h-7 w-7 place-items-center rounded-full bg-white text-[var(--ink)]">
+                    <Icon className="h-4 w-4 shrink-0" />
+                  </span>
+                ) : (
+                  <Icon className="h-4 w-4 shrink-0" />
+                )}
               </a>
             );
           })}
