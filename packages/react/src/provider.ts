@@ -280,7 +280,7 @@ export function createProvider({
               data: call.data || '0x',
             })),
           })
-          return { id: userOpHash }
+          return { id: `${userOpHash}:${chainId}` }
         }
 
         case 'wallet_getCallsStatus': {
@@ -288,14 +288,18 @@ export function createProvider({
             throw new Error('Missing call bundle id')
           }
 
-          const [id] = params
-          const kernelClient = store.getState().kernelClients.get(activeChainId)
+          const [rawId] = params
+          const [hash, encodedChainId] = rawId.split(':')
+          const chainId = encodedChainId
+            ? Number(encodedChainId)
+            : activeChainId
+          const kernelClient = store.getState().kernelClients.get(chainId)
           if (!kernelClient) {
             throw new Error(`No kernel client for chain ${activeChainId}`)
           }
 
           const receipt = await kernelClient
-            .getUserOperationReceipt({ hash: id })
+            .getUserOperationReceipt({ hash })
             .catch(() => null)
           if (!receipt) {
             return { version: '2.0.0', atomic: true, status: 100, receipts: [] }
