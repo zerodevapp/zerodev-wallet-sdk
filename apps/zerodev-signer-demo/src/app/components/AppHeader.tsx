@@ -2,6 +2,7 @@
 "use client";
 
 import { ArrowRight, ChevronDown, ExternalLink, Github } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 const headerLinks = [
@@ -18,7 +19,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-[var(--border-warm)] bg-white/95 font-[var(--font-dm-sans)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-[88px] lg:flex-row lg:items-center lg:justify-between lg:px-9 lg:py-0">
         <div className="flex items-center justify-between gap-3">
-          <a href="/" className="flex w-fit items-center gap-2.5 sm:gap-3">
+          <Link href="/" className="flex w-fit items-center gap-2.5 sm:gap-3">
             <img
               src="/images/zerodev-logo.png"
               alt="ZeroDev Logo"
@@ -32,7 +33,7 @@ export function AppHeader() {
                 Wallet Demo
               </span>
             </div>
-          </a>
+          </Link>
 
           <button
             type="button"

@@ -199,11 +199,6 @@ export default function DashboardPage() {
     }
   };
 
-  const formatAddress = (address: string) => {
-    if (!address) return "";
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
   // Redirect to login if disconnected (session expired)
   // Use a delay to avoid redirecting during initial reconnection
   const [hasConnected, setHasConnected] = useState(false);
