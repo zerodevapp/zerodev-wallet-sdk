@@ -99,8 +99,8 @@ function LandingPageInner() {
           </div>
         </section>
 
-        <div className="mx-auto flex w-full max-w-[380px] justify-center overflow-hidden lg:mx-0">
-          <div className="h-[585px] w-[380px] overflow-hidden">
+        <div className="mx-auto flex w-full max-w-[380px] flex-col items-center lg:mx-0">
+          <div className="h-[570px] w-[380px] overflow-hidden">
             <div className="origin-top-left scale-[0.74]">
               <div className="flex h-[770px] w-[512px] flex-col">
                 <AuthFlow/>
@@ -123,29 +123,29 @@ function LandingPageInner() {
               </div>
             </div>
           </div>
-        </div>
 
-        <p className="mx-auto max-w-[380px] text-center text-xs leading-5 text-[var(--muted)] lg:col-start-2 lg:mx-0">
-          By signing up for ZeroDev Wallet Demo, you agree to our{' '}
-          <a
-            href="https://zerodev.app/terms-of-service"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-[var(--ink)] underline underline-offset-2"
-          >
-            Terms of Service
-          </a>{' '}
-          and to receive product updates. View our{' '}
-          <a
-            href="https://zerodev.app/privacy-policy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-[var(--ink)] underline underline-offset-2"
-          >
-            Privacy Policy
-          </a>
-          .
-        </p>
+          <p className="mt-1 max-w-[340px] text-center text-xs leading-5 text-[var(--muted)]">
+            By signing up for ZeroDev Wallet Demo, you agree to our{' '}
+            <a
+              href="https://zerodev.app/terms-of-service"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--ink)] underline underline-offset-2"
+            >
+              Terms of Service
+            </a>{' '}
+            and to receive product updates. View our{' '}
+            <a
+              href="https://zerodev.app/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--ink)] underline underline-offset-2"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
       </main>
     </div>
   )
