@@ -75,7 +75,7 @@ async function registerAndWaitForDashboard(
   await page.getByRole('button', { name: /Create a passkey/i }).click()
 
   await page.waitForURL('**/dashboard', { timeout: 60_000 })
-  await expect(page.getByText('Default Wallet')).toBeVisible({
+  await expect(page.getByText('Your Smart Wallet')).toBeVisible({
     timeout: 60_000,
   })
   await expect(page.getByText(/0x[0-9a-fA-F]{40}/)).toBeVisible()
@@ -93,19 +93,19 @@ test.describe('Passkey Flow', () => {
       // Navigate to Sign Message tab
       await page
         .getByRole('navigation')
-        .getByRole('button', { name: /Sign Message/i })
+        .getByRole('button', { name: /Sign Anything/i })
         .click()
 
-      // Load sample message and sign
-      await page.getByRole('button', { name: /Load Sample/i }).click()
+      // Payload is pre-filled with the sample, so sign directly. ("Load Sample"
+      // only appears once the user edits the payload.)
       await page
-        .getByRole('button', { name: /Sign Message/i })
+        .getByRole('button', { name: /Sign Anything/i })
         .nth(1)
         .click()
 
       // Exact match avoids the kit's "Signature Request" heading; match only
       // the result-panel label.
-      await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+      await expect(page.getByText('Message signed successfully')).toBeVisible({
         timeout: 30_000,
       })
       console.log('Passkey registration + sign message successful')
@@ -123,7 +123,7 @@ test.describe('Passkey Flow', () => {
       // Navigate to Sign Message tab
       await page
         .getByRole('navigation')
-        .getByRole('button', { name: /Sign Message/i })
+        .getByRole('button', { name: /Sign Anything/i })
         .click()
 
       // Switch to Typed Data mode
@@ -135,10 +135,13 @@ test.describe('Passkey Flow', () => {
       const textarea = page.getByPlaceholder('Enter EIP-712 typed data JSON...')
       await textarea.fill(TYPED_DATA_SAMPLE)
 
-      // Click the "Sign Typed Data" action button
-      await page.getByRole('button', { name: /Sign Typed Data/i }).click()
+      // Click the sign action button (nth(1) — nth(0) is the nav tab)
+      await page
+        .getByRole('button', { name: /Sign Anything/i })
+        .nth(1)
+        .click()
 
-      await expect(page.getByText('Signature', { exact: true })).toBeVisible({
+      await expect(page.getByText('Message signed successfully')).toBeVisible({
         timeout: 30_000,
       })
       console.log('Typed data (EIP-712) signing successful')
@@ -153,20 +156,17 @@ test.describe('Passkey Flow', () => {
     virtualAuth = await registerAndWaitForDashboard(page)
 
     try {
-      // Default tab is "Send Transaction" with "Mint NFT" mode selected.
-      // Navigate to Send Transaction tab explicitly to be safe.
+      // "Gas-free Mint" is the default tab; click it explicitly to be safe.
       await page
         .getByRole('navigation')
-        .getByRole('button', { name: /Send Transaction/i })
+        .getByRole('button', { name: /Gas-free Mint/i })
         .click()
 
-      // Click the "Mint NFT" action button (second match — first is the mode selector)
-      await page
-        .getByRole('button', { name: /Mint NFT/i })
-        .nth(1)
-        .click()
+      // Fixed-mode tab hides the mode selector, so there is a single Mint button.
+      // Exact match avoids the "Gas-free Mint" tab.
+      await page.getByRole('button', { name: 'Mint', exact: true }).click()
 
-      await expect(page.getByText('NFT minted successfully!')).toBeVisible({
+      await expect(page.getByText(/NFT minted/i)).toBeVisible({
         timeout: 60_000,
       })
       console.log('Mint NFT (send transaction) successful')
