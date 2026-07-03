@@ -46,9 +46,7 @@
     "storybook": "storybook dev -p 6007",
     "build-storybook": "storybook build",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "docs:dev": "cd docs && vocs dev",
-    "docs:preview": "cd docs && vocs preview"
+    "test:watch": "vitest"
   },
   "keywords": [
     "react",
@@ -90,8 +88,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3",
     "vite": "^6.4.1",
-    "vite-plugin-node-polyfills": "^0.25.0",
-    "vocs": "^1.4.1"
+    "vite-plugin-node-polyfills": "^0.25.0"
   },
   "type": "module"
 }
