@@ -16,11 +16,7 @@ export function PoweredBy({
       )}
     >
       <Text>Powered by</Text>
-      <Icon
-        name="zerodevLogo"
-        className="zd:h-[18px] zd:w-auto"
-        style={style}
-      />
+      <Icon name="zerodevLogo" className="zd:h-4.5 zd:w-auto" style={style} />
     </div>
   )
 }

@@ -22,7 +22,10 @@ export function TopNav({
         'zd:absolute zd:top-4 zd:left-0 zd:right-0 zd:flex zd:flex-row zd:items-center zd:justify-between',
         className,
       )}
-      style={{ height: TOP_NAV_HEIGHT }}
+      // Scale via --zd-spacing (the 4px base) like every spacing utility, so
+      // the nav height tracks the density variants and doesn't eat a
+      // disproportionate share of the shrunken frame at smaller sizes.
+      style={{ height: `calc(${TOP_NAV_HEIGHT / 4} * var(--zd-spacing))` }}
     >
       {onBack ? (
         <IconButton iconName="chevronLeft" onClick={onBack} />

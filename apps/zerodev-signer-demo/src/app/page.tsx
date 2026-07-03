@@ -84,7 +84,7 @@ function LandingPageInner() {
     <div className="min-h-screen">
       <AppHeader/>
       <main
-        className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-[1040px] items-center gap-x-10 gap-y-4 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-0 lg:py-12">
+        className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-[1080px] items-center gap-x-10 gap-y-4 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_400px] lg:px-0 lg:py-12">
         <section className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
           <h1 className="font-[var(--font-dm-sans)] text-4xl font-bold leading-[1.06] text-[var(--ink)] sm:text-5xl">
             Embedded Smart Wallets
@@ -112,7 +112,7 @@ function LandingPageInner() {
           </div>
         </section>
 
-        <div className="mx-auto flex w-full max-w-[360px] flex-col items-center lg:mx-0">
+        <div className="mx-auto flex w-full flex-col items-center lg:mx-0">
           {showReconnect ? (
             <div className="flex h-[729px] w-[360px] items-center justify-center">
               <button
@@ -124,13 +124,9 @@ function LandingPageInner() {
               </button>
             </div>
           ) : (
-            <div className="h-[729px] w-[360px] overflow-hidden">
-              <div className="origin-top-left scale-[0.9]">
-                <div className="w-[400px]">
-                  <AuthFlow/>
-                </div>
-              </div>
-            </div>
+
+              <AuthFlow size="md" />
+
           )}
 
           <p className="mt-3 max-w-[360px] text-center text-xs leading-5 text-[var(--muted)]">

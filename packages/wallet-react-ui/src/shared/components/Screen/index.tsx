@@ -13,21 +13,32 @@ export function Screen({
   children,
   className,
   contentClassName,
+  size = 'lg',
   style,
   topNav,
 }: {
   children: ReactNode
   className?: string | undefined
   contentClassName?: string | undefined
+  size?: 'sm' | 'md' | 'lg' | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
 }) {
   return (
     <div
+      data-zd-size={size}
       className={cn(
-        'zd:flex zd:flex-col zd:overflow-hidden zd:text-left',
-        'zd:fixed zd:inset-0 zd:z-50 zd:w-screen zd:h-[100dvh] zd:rounded-[36px]',
-        'zd:sm:relative zd:sm:z-auto zd:sm:w-100 zd:sm:max-w-full zd:sm:h-[810px] zd:sm:max-h-[100dvh]',
+        // 400×810 by default, but never taller/wider than the parent — a
+        // consumer wrapper with its own size caps the Screen (max-w/h-full =
+        // 100% of the parent). overflow-hidden clips the frame to its rounded
+        // border ring; content scrolls in the inner div below.
+        'zd:relative zd:flex zd:flex-col zd:text-left',
+        // w-100 = 400px, h-202.5 = 810px at density 1; both compile to
+        // calc(var(--zd-spacing) * N), so they scale with the size variants.
+        // rounded-[38px] = inner card radius (32px) + the 6px border-ring gap,
+        // so the ring has a uniform width — equal inner/outer radii would make
+        // the corners read thicker than the sides.
+        'zd:w-100 zd:h-202.5 zd:max-w-full zd:max-h-full zd:overflow-hidden zd:rounded-[38px]',
         className,
       )}
       style={style}
@@ -40,6 +51,9 @@ export function Screen({
           vivid and distinct from the border. */}
       <div
         className={cn(
+          // m-1.5 = calc(var(--zd-spacing) * 1.5) = 6px at density 1, so the
+          // gradient border ring thins with the size variants — matching the
+          // now-scaling corner radius, keeping the whole frame proportional.
           'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:px-4 zd:overflow-hidden zd:rounded-4xl zd:relative',
           contentClassName,
         )}
@@ -54,7 +68,12 @@ export function Screen({
           {topNav}
           <div
             className="zd:flex zd:flex-1 zd:flex-col zd:min-h-0 zd:overflow-y-auto zd:overflow-x-hidden"
-            style={{ paddingTop: `${CONTENT_PADDING_TOP}px` }}
+            // Scale via --zd-spacing (matches TopNav's scaled height) so the
+            // top padding shrinks with the frame — otherwise the fixed 68px
+            // eats a disproportionate share at smaller sizes and overflows.
+            style={{
+              paddingTop: `calc(${CONTENT_PADDING_TOP / 4} * var(--zd-spacing))`,
+            }}
           >
             {children}
           </div>

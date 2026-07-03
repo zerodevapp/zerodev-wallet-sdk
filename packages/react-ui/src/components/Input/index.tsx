@@ -21,7 +21,7 @@ export interface InputProps
 
 function getHeightClass(multiline: boolean | undefined, variant: Variant) {
   if (multiline) return 'zd:h-32 zd:py-3'
-  if (variant === 'listItemStyle') return 'zd:h-[68px]'
+  if (variant === 'listItemStyle') return 'zd:h-17'
   return 'zd:h-11'
 }
 
@@ -51,7 +51,7 @@ function InputIcon({
 // width on mobile browsers (Chrome on Android most visibly), which would
 // squash the leading icon and the trailing chevron-button child.
 const baseInputClass =
-  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-gray-900 zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-gray-900/50 zd:caret-gray-900'
+  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-body1 zd:text-gray-900 zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-gray-900/50 zd:caret-gray-900'
 
 export function Input({
   variant = 'default',
