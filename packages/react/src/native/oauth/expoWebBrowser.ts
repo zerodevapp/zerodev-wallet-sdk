@@ -46,9 +46,17 @@ export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
     // The other path: the auth browser session observes the redirect to
     // redirectUri itself and resolves with the URL. Fires on iOS always,
     // and on Android whenever no verified app-link intent steals it first.
+    //
+    // `preferUniversalLinks: true` is required on iOS 17.4+ to make
+    // ASWebAuthenticationSession intercept HTTPS callbacks via the app's
+    // Associated Domains AASA. Without it, iOS falls back to the legacy
+    // `callbackURLScheme:` API with "https" as the scheme, which intercepts
+    // nothing — the browser sheet stays open and the callback URL loads
+    // as a normal web page. No-op on Android.
     const fromBrowser = WebBrowser.openAuthSessionAsync(
       oauthUrl,
       params.redirectUri,
+      { preferUniversalLinks: params.redirectUri.startsWith('https:') },
     ).then((r) => {
       if (r.type !== 'success') throw new Error('OAuth cancelled or failed')
       const parsed = new URL(r.url)

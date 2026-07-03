@@ -4,7 +4,8 @@
       {
         "appIDs": ["88J4C462WP.com.zerodev.expoexample"],
         "components": [
-          { "/": "/verify-email*" }
+          { "/": "/verify-email*" },
+          { "/": "/oauth-callback*" }
         ]
       }
     ]
