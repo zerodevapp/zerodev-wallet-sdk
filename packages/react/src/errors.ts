@@ -1,7 +1,7 @@
 /**
  * Thrown when an operation requires a signed-in user but no session exists.
  *
- * Consumers (e.g. `@zerodev/react-wallet-ui`) can `instanceof` this to react
+ * Consumers (e.g. `@zerodev/wallet-react-ui`) can `instanceof` this to react
  * with auth UI instead of surfacing the error to the end user.
  */
 export class NotAuthenticatedError extends Error {
