@@ -15,6 +15,7 @@
     "@wagmi/core": "^2.22.0",
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/react-ui": "workspace:*",
+    "@zerodev/smart-routing-address-react-ui": "workspace:*",
     "@zerodev/wallet-react-ui": "workspace:*",
     "@zerodev/sdk": "^5.0.0",
     "@zerodev/wallet-core": "workspace:*",
@@ -27,7 +28,7 @@
     "react-dom": "19.2.0",
     "react-hook-form": "^7.68.0",
     "tailwind-merge": "^3.3.1",
-    "viem": "2.38.6",
+    "viem": "~2.47.18",
     "wagmi": "^2.19.0",
     "zustand": "^5.0.3"
   },

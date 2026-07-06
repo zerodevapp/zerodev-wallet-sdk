@@ -1,20 +1,30 @@
-import { cn, IconButton, Text } from '@zerodev/react-ui'
 import type { ReactNode } from 'react'
+import { cn } from '../../utils/common'
+import { IconButton } from '../IconButton'
+import { Text } from '../Text'
 
 export const TOP_NAV_HEIGHT = 52
 
+/**
+ * The 52px header row used at the top of a `Screen`. Left slot renders (in
+ * priority order) a back button when `onBack` is supplied, a help button when
+ * `onHelp` is supplied, or an empty spacer. Center renders the `logo` node or
+ * the `title` text. Right slot always renders a close button.
+ */
 export function TopNav({
   onBack,
+  onHelp,
   onClose,
   title,
   logo,
   className,
 }: {
-  onBack?: () => void
+  onBack?: (() => void) | undefined
+  onHelp?: (() => void) | undefined
   onClose: () => void
-  title?: string
+  title?: string | undefined
   logo?: ReactNode
-  className?: string
+  className?: string | undefined
 }) {
   return (
     <div
@@ -26,6 +36,8 @@ export function TopNav({
     >
       {onBack ? (
         <IconButton iconName="chevronLeft" onClick={onBack} />
+      ) : onHelp ? (
+        <IconButton iconName="question" onClick={onHelp} aria-label="Help" />
       ) : (
         <div className="zd:h-13 zd:w-13" />
       )}
@@ -39,7 +51,7 @@ export function TopNav({
           <Text className="zd:text-body1">{title}</Text>
         </div>
       )}
-      <IconButton iconName="x" onClick={onClose} />
+      <IconButton iconName="x" onClick={onClose} aria-label="Close" />
     </div>
   )
 }

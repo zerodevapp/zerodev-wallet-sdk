@@ -1,5 +1,7 @@
-import { cn, Icon, Text } from '@zerodev/react-ui'
 import type { CSSProperties } from 'react'
+import { cn } from '../../utils/common'
+import { Icon } from '../Icon'
+import { Text } from '../Text'
 
 export function PoweredBy({
   className,
@@ -10,6 +12,7 @@ export function PoweredBy({
 }) {
   return (
     <div
+      data-testid="powered-by"
       className={cn(
         'zd:gap-1.5 zd:flex zd:flex-row zd:items-center',
         className,

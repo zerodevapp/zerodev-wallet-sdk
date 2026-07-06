@@ -1,5 +1,4 @@
-import { Text } from '@zerodev/react-ui'
-import { PoweredBy } from '../PoweredBy'
+import { PoweredBy, Text } from '@zerodev/react-ui'
 
 export function SignUpFooter({
   termsAndConditionsUrl,

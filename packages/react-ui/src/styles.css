@@ -1,2 +1,22 @@
 @import "tailwindcss" prefix(zd);
 @config "../tailwind.config.ts";
+
+/* ---------------------------------------------------------------------------
+   Density system
+   ---------------------------------------------------------------------------
+   `--zd-density` is the public knob: a unitless multiplier (1 = default). The
+   spacing base derives from it, and every spacing/size utility in the SDK
+   compiles to calc(var(--zd-spacing) * N) so one variable rescales spacing,
+   padding, gaps, control heights, and the frame width together. Font sizes
+   also multiply by --zd-density (see the fontSize tokens in tailwind.config).
+
+   Consumers set the density via a wrapping component's `size` prop, which
+   writes `data-zd-size` on the root; the scale below maps size → density. */
+:root { --zd-density: 1; }
+
+[data-zd-size] {
+  --zd-spacing: calc(0.25rem * var(--zd-density));
+}
+[data-zd-size="sm"] { --zd-density: 0.8; }
+[data-zd-size="md"] { --zd-density: 0.9; }
+[data-zd-size="lg"] { --zd-density: 1; }
