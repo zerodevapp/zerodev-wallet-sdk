@@ -1,2 +1,13 @@
 @import "tailwindcss" prefix(zd);
 @config "../tailwind.config.ts";
+
+/* Density base. --zd-density is a unitless multiplier (1 = default) that the
+   spacing base and the font tokens (see tailwind.config.ts) derive from, so the
+   whole design system scales from one variable. Defined here so react-ui is
+   self-contained — its own tokens read --zd-density, so its Storybook and any
+   standalone consumer get a valid default. Consumers (e.g. @zerodev/wallet-react-ui)
+   override --zd-density per subtree to produce size variants. */
+:root {
+  --zd-density: 1;
+  --zd-spacing: calc(0.25rem * var(--zd-density));
+}

@@ -52,8 +52,9 @@ export function Screen({
       <div
         className={cn(
           // m-1.5 = calc(var(--zd-spacing) * 1.5) = 6px at density 1, so the
-          // gradient border ring thins with the size variants — matching the
-          // now-scaling corner radius, keeping the whole frame proportional.
+          // gradient border ring thins with the size variants. (Corner radii
+          // stay fixed, so at smaller sizes the ring is marginally non-uniform
+          // at the corners — a minor cosmetic trade-off.)
           'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:px-4 zd:overflow-hidden zd:rounded-4xl zd:relative',
           contentClassName,
         )}

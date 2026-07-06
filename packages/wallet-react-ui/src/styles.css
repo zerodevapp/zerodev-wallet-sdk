@@ -14,7 +14,9 @@
    steps (see react-ui/tailwind.config.ts) — so one variable rescales spacing,
    padding, gaps, control heights, and the frame width together. Font sizes also
    multiply by --zd-density (see the fontSize tokens), so type scales too — a
-   true proportional zoom. Corner radii, borders, and icon sizes stay fixed.
+   true proportional zoom. Icons sized with spacing utilities (w-6/h-6, h-4.5)
+   scale with it as well. Corner radii, borders, and any icon pinned to an
+   arbitrary px size (e.g. the signing h-[18px] glyphs) stay fixed.
 
    Consumers set the density via the Screen/AuthFlow `size` prop, which writes
    `data-zd-size` on the Screen root; the scale below maps size → density.
