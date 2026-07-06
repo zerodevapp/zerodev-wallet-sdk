@@ -16,7 +16,7 @@ export function AppHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--border-warm)] bg-white/95 font-[var(--font-dm-sans)] backdrop-blur">
+    <header className="sticky top-0 z-0 border-b border-[var(--border-warm)] bg-white/95 font-[var(--font-dm-sans)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-[88px] lg:flex-row lg:items-center lg:justify-between lg:px-9 lg:py-0">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex w-fit items-center gap-2.5 sm:gap-3">
