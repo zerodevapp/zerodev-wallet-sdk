@@ -1,6 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { Icon } from "@zerodev/react-ui";
 import { ArrowRight, ChevronDown, ExternalLink, Github } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -20,15 +20,8 @@ export function AppHeader() {
       <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-[88px] lg:flex-row lg:items-center lg:justify-between lg:px-9 lg:py-0">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex w-fit items-center gap-2.5 sm:gap-3">
-            <img
-              src="/images/zerodev-logo.png"
-              alt="ZeroDev Logo"
-              className="h-8 w-8 shrink-0 sm:h-10 sm:w-10"
-            />
+            <Icon name="zerodevLogo" className="h-7 w-auto shrink-0 sm:h-9" />
             <div className="flex min-w-0 items-baseline gap-2 sm:gap-3">
-              <span className="text-xl font-bold leading-none text-[var(--ink)] sm:text-2xl">
-                ZeroDev
-              </span>
               <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#9c958c] sm:text-xs">
                 Wallet Demo
               </span>
