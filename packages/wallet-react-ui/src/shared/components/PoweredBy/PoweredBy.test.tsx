@@ -37,7 +37,7 @@ describe('PoweredBy', () => {
     it('renders with default dimensions', () => {
       render(<PoweredBy />)
       const icon = screen.getByTestId('icon-zerodevLogo')
-      expect(icon.className).toContain('h-[18px]')
+      expect(icon.className).toContain('h-4.5')
       expect(icon.className).toContain('w-auto')
     })
   })

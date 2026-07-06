@@ -39,17 +39,30 @@ describe('Screen', () => {
         </Screen>,
       )
       const wrapper = container.firstChild as HTMLElement
-      // Mobile: pinned full-screen (fixed inset-0, h-[100dvh]) so the wallet
-      // fills the viewport from top-0 regardless of sibling chrome. sm+: normal
-      // in-flow 810px block (w-100 = 400px) capped at the viewport height.
-      // Self-contained — no dependency on a definite-height ancestor.
-      expect(wrapper.className).toContain('zd:fixed')
-      expect(wrapper.className).toContain('zd:inset-0')
-      expect(wrapper.className).toContain('zd:h-[100dvh]')
-      expect(wrapper.className).toContain('zd:sm:relative')
-      expect(wrapper.className).toContain('zd:sm:w-100')
-      expect(wrapper.className).toContain('zd:sm:h-[810px]')
-      expect(wrapper.className).toContain('zd:sm:max-h-[100dvh]')
+      // One parent-relative box at every breakpoint: 400×810 at density 1
+      // (w-100 / h-202.5), capped to the parent (max-w/h-full), never viewport-
+      // pinned — a consumer wrapper controls the final size.
+      expect(wrapper.className).toContain('zd:w-100')
+      expect(wrapper.className).toContain('zd:h-202.5')
+      expect(wrapper.className).toContain('zd:max-w-full')
+      expect(wrapper.className).toContain('zd:max-h-full')
+    })
+
+    it('defaults to the lg size, and honors the size prop', () => {
+      const { container, rerender } = render(
+        <Screen>
+          <div>Content</div>
+        </Screen>,
+      )
+      // size drives the density scale via the data attribute (see styles.css).
+      expect((container.firstChild as HTMLElement).dataset.zdSize).toBe('lg')
+
+      rerender(
+        <Screen size="sm">
+          <div>Content</div>
+        </Screen>,
+      )
+      expect((container.firstChild as HTMLElement).dataset.zdSize).toBe('sm')
     })
 
     it('renders MultiRadialBackground', () => {

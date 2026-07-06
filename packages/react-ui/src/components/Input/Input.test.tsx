@@ -75,11 +75,9 @@ describe('Input', () => {
       expect(screen.getByTestId('input-wrapper').className).toContain('h-32')
     })
 
-    it('applies h-[68px] for listItemStyle', () => {
+    it('applies h-17 for listItemStyle', () => {
       render(<Input variant="listItemStyle" placeholder="List" />)
-      expect(screen.getByTestId('input-wrapper').className).toContain(
-        'h-[68px]',
-      )
+      expect(screen.getByTestId('input-wrapper').className).toContain('h-17')
     })
   })
 
