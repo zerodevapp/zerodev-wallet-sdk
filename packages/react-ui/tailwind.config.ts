@@ -4,9 +4,13 @@ const config: Config = {
   content: ['./src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Custom steps derive from the spacing base (var(--zd-spacing), default
+      // 0.25rem) so density variants rescale them like every other spacing
+      // utility. 13 = 52px, 17 = 68px, 4.5 = 18px at the default base.
       spacing: {
-        13: '52px',
-        4.5: '18px',
+        13: 'calc(var(--zd-spacing) * 13)',
+        17: 'calc(var(--zd-spacing) * 17)',
+        4.5: 'calc(var(--zd-spacing) * 4.5)',
       },
       colors: {
         // Design color palette START
@@ -23,24 +27,27 @@ const config: Config = {
         negative: '#FF4221',
       },
       fontSize: {
-        xs: '10px',
-        sm: '12px',
-        base: '14px',
-        lg: '16px',
-        xl: '18px',
-        '2xl': '20px',
-        '3xl': '24px',
-        '4xl': '30px',
-        '5xl': '36px',
-        '6xl': '48px',
+        // Font sizes multiply by --zd-density (default 1) so text scales with
+        // the density variants like spacing does. Line-heights are percentages,
+        // which already track the scaled font-size.
+        xs: 'calc(10px * var(--zd-density))',
+        sm: 'calc(12px * var(--zd-density))',
+        base: 'calc(14px * var(--zd-density))',
+        lg: 'calc(16px * var(--zd-density))',
+        xl: 'calc(18px * var(--zd-density))',
+        '2xl': 'calc(20px * var(--zd-density))',
+        '3xl': 'calc(24px * var(--zd-density))',
+        '4xl': 'calc(30px * var(--zd-density))',
+        '5xl': 'calc(36px * var(--zd-density))',
+        '6xl': 'calc(48px * var(--zd-density))',
         // Design typography START
-        h1: ['42px', '110%'],
-        h2: ['28px', '110%'],
-        h3: ['18px', '130%'],
-        body1: ['16px', '130%'],
-        body2: ['14px', '130%'],
-        body3: ['12px', '130%'],
-        body4: ['10px', '130%'],
+        h1: ['calc(42px * var(--zd-density))', '110%'],
+        h2: ['calc(28px * var(--zd-density))', '110%'],
+        h3: ['calc(18px * var(--zd-density))', '130%'],
+        body1: ['calc(16px * var(--zd-density))', '130%'],
+        body2: ['calc(14px * var(--zd-density))', '130%'],
+        body3: ['calc(12px * var(--zd-density))', '130%'],
+        body4: ['calc(10px * var(--zd-density))', '130%'],
         // Design typography END
       },
       fontFamily: {

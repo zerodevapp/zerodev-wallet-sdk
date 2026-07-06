@@ -3,7 +3,11 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@zerodev/wallet-react', '@zerodev/wallet-core'],
+  transpilePackages: [
+    '@zerodev/wallet-react',
+    '@zerodev/wallet-react-ui',
+    '@zerodev/wallet-core',
+  ],
   // Force a single wagmi / @wagmi/core instance in the bundle. wagmi exposes
   // its config through React Context; if two physical copies end up loaded,
   // `WagmiProvider` and `useConfig` reference different Contexts and hooks

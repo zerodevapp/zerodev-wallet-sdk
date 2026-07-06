@@ -63,8 +63,10 @@ function renderStep(step: AuthStep | null): ReactNode {
 
 export function AuthFlow({
   onClose: userOnClose,
+  size,
 }: {
   onClose?: (() => void) | undefined
+  size?: 'sm' | 'md' | 'lg' | undefined
 } = {}) {
   const { step, goToStep, goBack, reset } = useAuth()
   const logo = useStore(useKitStore(), (s) => s.logo)
@@ -87,6 +89,7 @@ export function AuthFlow({
 
   return (
     <Screen
+      {...(size && { size })}
       // Some elements in SignUp need to go from edge to edge.
       // No vertical padding; we set px-0 so we can fully control this padding.
       contentClassName={step === 'sign-up' ? 'zd:px-0' : undefined}

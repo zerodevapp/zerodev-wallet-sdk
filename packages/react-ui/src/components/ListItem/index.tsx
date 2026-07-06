@@ -14,13 +14,13 @@ export function ListItemSkeleton({ className }: ListItemSkeletonProps) {
   return (
     <div
       className={cn(
-        'zd:w-full zd:h-[68px] zd:rounded-2xl zd:border-offWhite zd:border-[0.3px]',
+        'zd:w-full zd:h-17 zd:rounded-2xl zd:border-offWhite zd:border-[0.3px]',
         className,
       )}
     >
       <div className="zd:flex zd:flex-row zd:justify-between zd:items-center zd:p-2">
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
-          <div className="zd:w-[52px] zd:h-[52px] zd:rounded-2xl zd:bg-offWhite/50 zd:animate-pulse" />
+          <div className="zd:w-13 zd:h-13 zd:rounded-2xl zd:bg-offWhite/50 zd:animate-pulse" />
           <div className="zd:gap-2">
             <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse zd:mb-2" />
             <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
@@ -61,7 +61,7 @@ export function ListItem({
   return (
     <Wrapper
       className={cn(
-        'zd:w-full zd:h-[68px] zd:rounded-2xl',
+        'zd:w-full zd:h-17 zd:rounded-2xl',
         alert && 'zd:border-0',
         className,
       )}
@@ -80,7 +80,7 @@ export function ListItem({
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
           <div
             className={cn(
-              'zd:w-[52px] zd:h-[52px] zd:rounded-2xl zd:flex zd:items-center zd:justify-center zd:shrink-0',
+              'zd:w-13 zd:h-13 zd:rounded-2xl zd:flex zd:items-center zd:justify-center zd:shrink-0',
               alert ? 'zd:bg-offWhite/50' : 'zd:bg-white',
             )}
           >
