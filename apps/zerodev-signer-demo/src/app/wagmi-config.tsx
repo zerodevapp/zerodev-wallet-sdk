@@ -1,6 +1,6 @@
 'use client'
 
-import { Icon } from '@zerodev/react-ui'
+import { ZeroDevLogo } from '@zerodev/react-ui'
 import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
@@ -45,7 +45,7 @@ export const config = createConfig({
       }),
       ...(mode && { mode }),
       config: {
-        logo: <Icon name="zerodevLogo" className="zd:h-8 zd:w-auto" />,
+        logo: <ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />,
         auth: {
           enabledMethods: ['email', 'google', 'passkey'],
           emailAuthMethod: getEmailAuthMethod(),
