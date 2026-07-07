@@ -1,0 +1,13 @@
+{
+  "extends": "../../templates/typescript/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
+}

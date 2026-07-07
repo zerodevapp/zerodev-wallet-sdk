@@ -46,7 +46,7 @@
     "react-native-webview": "13.16.1",
     "tslib": "^2.8.1",
     "uuid": "^13.0.0",
-    "viem": "~2.38.6",
+    "viem": "~2.47.18",
     "wagmi": "^2.19.0"
   },
   "devDependencies": {
