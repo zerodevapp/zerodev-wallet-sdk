@@ -63,6 +63,12 @@ export type ConnectorCoreParams = {
   // Controls whether setup() automatically initializes the connector on mount.
   // When false, the connector still initializes lazily on connect/getProvider/getStore.
   autoInitialize?: boolean | (() => boolean)
+  /**
+   * @internal
+   * Test-only override for the pinned Turnkey signing key used in
+   * `encryptOtpAttempt`. Never set this in production.
+   */
+  dangerouslyOverrideOtpSignerPublicKey?: string
 }
 
 export function zeroDevWalletCore(
@@ -226,6 +232,10 @@ export function zeroDevWalletCore(
         ...(apiKeyStamper && { apiKeyStamper }),
         ...(passkeyStamper && { passkeyStamper }),
         ...(params.fetchOptions && { fetchOptions: params.fetchOptions }),
+        ...(params.dangerouslyOverrideOtpSignerPublicKey && {
+          dangerouslyOverrideOtpSignerPublicKey:
+            params.dangerouslyOverrideOtpSignerPublicKey,
+        }),
       })
 
       // Create store
