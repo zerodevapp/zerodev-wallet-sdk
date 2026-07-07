@@ -23,6 +23,9 @@ jobs:
   preview:
     name: Publish preview packages
     runs-on: ubuntu-latest
+    # Previews are advisory — a hiccup (or the pkg.pr.new app not yet installed)
+    # must never block a PR from merging.
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
