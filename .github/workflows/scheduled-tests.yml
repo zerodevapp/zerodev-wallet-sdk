@@ -1,0 +1,20 @@
+name: Scheduled Tests
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      use_real_email:
+        description: 'Use real email service (mail.tm) for OTP tests'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  scheduled-tests:
+    name: Scheduled Tests (Real Email)
+    uses: ./.github/workflows/test.yml
+    with:
+      use_real_email: ${{ github.event_name == 'workflow_dispatch' && inputs.use_real_email || true }}
+    secrets: inherit
