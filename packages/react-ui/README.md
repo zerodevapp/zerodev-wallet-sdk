@@ -52,6 +52,7 @@ function Example() {
 | `Button` | Labeled call-to-action with `primary` / `secondary` actions and optional leading/trailing icon. |
 | `IconButton` | Square icon-only button. |
 | `Icon` | SVG icon renderer; resolves icons by name from the bundled icon set. |
+| `ZeroDevLogo` | ZeroDev brand logo. `variant` `mark` (icon) or `lockup` (icon + wordmark); `tone` `black` / `offwhite` / `color` / `orange` (`lockup` supports only `black` / `offwhite`). |
 | `Input` | Text / multiline input with `default` / `ghost` / `listItemStyle` variants. |
 | `Switch` | On/off toggle (`role="switch"`). |
 | `Badge` | Pill label with optional leading/trailing icons. |
