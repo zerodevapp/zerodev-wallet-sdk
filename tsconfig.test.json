@@ -3,8 +3,8 @@
   "include": [
     "packages/core/src/**/*.ts",
     "packages/react/src/**/*.ts",
-    "packages/react-kit/src/**/*.ts",
-    "packages/react-kit/src/**/*.tsx"
+    "packages/wallet-react-ui/src/**/*.ts",
+    "packages/wallet-react-ui/src/**/*.tsx"
   ],
   "compilerOptions": {
     "noEmit": true,

@@ -1,25 +1,35 @@
 /**
- * Temporary email service using the mail.tm/mail.gw API.
+ * Temporary email service using the Guerrilla Mail API.
  *
- * Both endpoints serve the same backend; mail.gw has been intermittently
- * unreachable (HTTP 502) so we default to mail.tm. Override via
- * `MAIL_API_BASE` if a different mirror is needed.
+ * The default provider for the OTP / magic-link e2e tests. It replaced mail.tm
+ * (now parked in `temp-email-mailtm.ts`), which reliably created inboxes but
+ * silently dropped a fraction of inbound mail — OTP emails often never arrived
+ * (or took 20+ min), so the tests timed out waiting. Guerrilla delivers the
+ * Turnkey OTP within ~10–20s and needs no account creation (a single GET mints
+ * an address), sidestepping mail.tm's account-creation rate limiting too.
  *
- * Response handling tolerates both shapes the API has shipped:
- *   - bare JSON arrays / objects (newer mail.gw responses)
- *   - `hydra:member`-wrapped collections (older / mail.tm responses)
+ * `authToken` carries Guerrilla's `sid_token` (its session identifier) rather
+ * than a bearer token. Override the base URL via `MAIL_API_BASE` if needed. To
+ * switch back to mail.tm, point the tests' imports at `./temp-email-mailtm.js`.
  */
 
-const MAIL_API_BASE = process.env.MAIL_API_BASE || 'https://api.mail.tm'
+const MAIL_API_BASE = 'https://api.guerrillamail.com/ajax.php'
+
+// Guerrilla keys API sessions to the client; a stable UA avoids being treated
+// as a fresh anonymous client on every call.
+const defaultHeaders = {
+  'User-Agent': 'zerodev-wallet-sdk-e2e',
+}
 
 export type TempEmailAccount = {
   address: string
   authToken: string
 }
 
-const defaultHeaders = {
-  Accept: 'application/json',
-  'Content-Type': 'application/json',
+type GuerrillaMessage = {
+  mail_id: string
+  mail_from: string
+  mail_subject: string
 }
 
 /**
@@ -27,7 +37,9 @@ const defaultHeaders = {
  * @throws If the service is unavailable
  */
 export async function ping(): Promise<void> {
-  const res = await fetch(`${MAIL_API_BASE}/domains`, {
+  // get_email_address is the lightest endpoint that proves the service can mint
+  // an inbox — there is no separate health/domains endpoint.
+  const res = await fetch(`${MAIL_API_BASE}?f=get_email_address`, {
     headers: defaultHeaders,
     signal: AbortSignal.timeout(10_000),
   })
@@ -37,99 +49,43 @@ export async function ping(): Promise<void> {
     )
   }
   const data = await res.json()
-  // API returns a plain array of domain objects
-  const domains = Array.isArray(data) ? data : (data['hydra:member'] ?? [])
-  if (domains.length === 0) {
-    throw new Error('Email service has no domains available')
+  if (!data.email_addr) {
+    throw new Error('Email service returned no address')
   }
 }
 
 /**
  * Creates a new temporary email account.
- * Generates a random email address and returns it with an auth token.
+ * Returns the address and the session token used to read its inbox.
  */
 export async function createNewAccount(): Promise<TempEmailAccount> {
-  // Get available domain
-  const domainsRes = await fetch(`${MAIL_API_BASE}/domains`, {
+  const res = await fetch(`${MAIL_API_BASE}?f=get_email_address`, {
     headers: defaultHeaders,
     signal: AbortSignal.timeout(10_000),
   })
-  if (!domainsRes.ok) {
-    throw new Error(`Failed to get domains: ${domainsRes.status}`)
+  if (!res.ok) {
+    throw new Error(`Failed to create email account: ${res.status}`)
   }
-  const domainsData = await domainsRes.json()
-
-  // Handle both array response and hydra:member wrapped response
-  const domains = Array.isArray(domainsData)
-    ? domainsData
-    : (domainsData['hydra:member'] ?? [])
-  const domain = domains[0]?.domain
-  if (!domain) {
-    throw new Error('No email domains available')
-  }
-
-  // Generate random email
-  const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-  const address = `email_${randomHex}@${domain}`
-  const password = '123456'
-
-  // Create account. mail.tm rate-limits account creation aggressively
-  // (~3–5/min). On 429 we back off and retry; for any other failure we
-  // fail loud immediately.
-  const ACCOUNT_CREATE_ATTEMPTS = 5
-  let createRes: Response | undefined
-  for (let attempt = 0; attempt < ACCOUNT_CREATE_ATTEMPTS; attempt++) {
-    createRes = await fetch(`${MAIL_API_BASE}/accounts`, {
-      method: 'POST',
-      headers: defaultHeaders,
-      body: JSON.stringify({ address, password }),
-    })
-    if (createRes.ok) break
-    if (createRes.status !== 429) {
-      const text = await createRes.text()
-      throw new Error(
-        `Failed to create email account: ${createRes.status} ${text}`,
-      )
-    }
-    // Exponential backoff: 5s, 10s, 20s, 40s. mail.tm's window is short
-    // enough that this almost always recovers within two retries.
-    const delayMs = 5_000 * 2 ** attempt
-    await new Promise((r) => setTimeout(r, delayMs))
-  }
-  if (!createRes || !createRes.ok) {
-    throw new Error(
-      `Failed to create email account after ${ACCOUNT_CREATE_ATTEMPTS} attempts: ${createRes?.status ?? 'no response'}`,
-    )
-  }
-
-  // Get auth token
-  const tokenRes = await fetch(`${MAIL_API_BASE}/token`, {
-    method: 'POST',
-    headers: defaultHeaders,
-    body: JSON.stringify({ address, password }),
-  })
-  if (!tokenRes.ok) {
-    const text = await tokenRes.text()
-    throw new Error(`Failed to get email token: ${tokenRes.status} ${text}`)
-  }
-  const tokenData = await tokenRes.json()
-  const authToken = tokenData.token
-  if (!authToken) {
-    throw new Error('No token in response')
+  const data = await res.json()
+  const address = data.email_addr
+  const authToken = data.sid_token
+  if (!address || !authToken) {
+    throw new Error('No address or session token in response')
   }
 
   return { address, authToken }
 }
 
 /**
- * Polls for a new email and returns its text content.
+ * Polls for a new email and returns its subject + text content.
  *
- * @param authToken - The auth token from createNewAccount
+ * The OTP code lands in the email subject (and body); returning both lets the
+ * extractor find it regardless of which the template uses.
+ *
+ * @param authToken - The session token from createNewAccount
  * @param intervalMs - Poll interval in milliseconds
  * @param timeoutMs - Maximum time to wait in milliseconds
- * @returns The email text content
+ * @returns The email subject and text content
  * @throws If no email arrives within the timeout
  */
 export async function searchForNewEmail(
@@ -138,50 +94,44 @@ export async function searchForNewEmail(
   timeoutMs: number,
 ): Promise<string> {
   const deadline = Date.now() + timeoutMs
+  const listUrl = `${MAIL_API_BASE}?f=get_email_list&offset=0&sid_token=${encodeURIComponent(authToken)}`
 
   while (Date.now() < deadline) {
     await sleep(intervalMs)
 
     try {
-      const messagesRes = await fetch(`${MAIL_API_BASE}/messages`, {
-        headers: {
-          ...defaultHeaders,
-          Authorization: `Bearer ${authToken}`,
-        },
+      const listRes = await fetch(listUrl, {
+        headers: defaultHeaders,
         signal: AbortSignal.timeout(10_000),
       })
-
-      if (!messagesRes.ok) {
-        // 401 or 500 may mean the inbox isn't ready yet, keep polling
-        if (messagesRes.status >= 500 || messagesRes.status === 401) continue
-        throw new Error(`Failed to list messages: ${messagesRes.status}`)
+      if (!listRes.ok) {
+        // Transient server error — the session may not be ready yet, keep polling.
+        if (listRes.status >= 500) continue
+        throw new Error(`Failed to list messages: ${listRes.status}`)
       }
 
-      const messagesData = await messagesRes.json()
+      const listData = await listRes.json()
+      const messages: GuerrillaMessage[] = listData.list ?? []
+      // Guerrilla seeds every new inbox with its own welcome email; ignore it
+      // so we wait for the actual OTP rather than extracting from the greeting.
+      const message = messages.find(
+        (m) => !/guerrillamail\.com/i.test(m.mail_from),
+      )
+      if (!message) continue
 
-      // Handle both array response and hydra:member wrapped response
-      const messages = Array.isArray(messagesData)
-        ? messagesData
-        : (messagesData['hydra:member'] ?? [])
-      if (messages.length === 0) continue
-
-      // Get full message content
-      const messageId = messages[0].id
-      const messageRes = await fetch(`${MAIL_API_BASE}/messages/${messageId}`, {
-        headers: {
-          ...defaultHeaders,
-          Authorization: `Bearer ${authToken}`,
-        },
+      const fetchUrl = `${MAIL_API_BASE}?f=fetch_email&email_id=${encodeURIComponent(message.mail_id)}&sid_token=${encodeURIComponent(authToken)}`
+      const emailRes = await fetch(fetchUrl, {
+        headers: defaultHeaders,
         signal: AbortSignal.timeout(10_000),
       })
-
-      if (!messageRes.ok) {
-        throw new Error(`Failed to get message: ${messageRes.status}`)
+      if (!emailRes.ok) {
+        throw new Error(`Failed to get message: ${emailRes.status}`)
       }
 
-      const messageData = await messageRes.json()
-      const text = messageData.text
-      if (text) return text
+      const emailData = await emailRes.json()
+      const subject = emailData.mail_subject ?? ''
+      const body = emailData.mail_body ?? ''
+      if (subject || body) return `${subject}\n\n${body}`
     } catch (err) {
       // Network errors during polling — keep trying
       if (Date.now() >= deadline) throw err
