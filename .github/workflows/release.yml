@@ -1,0 +1,56 @@
+name: Release
+
+# Changesets-driven release. On every push to `main`:
+#   - if there are pending changesets → opens/updates the "Version Packages" PR
+#     (bumps versions, writes CHANGELOGs, deletes changesets)
+#   - once that PR is merged (versions bumped, no changesets left) → publishes the
+#     changed packages to npm `latest`, tags them, and cuts GitHub Releases.
+#
+# SECURITY: runs only on push to `main` (trusted, post-merge code). NPM_TOKEN is
+# used exclusively here and never in any pull_request context.
+
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write # push the Version Packages PR branch + git tags
+  pull-requests: write # open/update the Version Packages PR
+  id-token: write # npm provenance
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Version PR or publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset:version
+          publish: pnpm changeset:release:ci
+        env:
+          # RELEASE_PAT (optional) lets the Version Packages PR trigger CI checks
+          # and push past branch protection; falls back to the default token.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

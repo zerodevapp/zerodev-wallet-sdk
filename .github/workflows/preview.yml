@@ -1,0 +1,52 @@
+name: Preview
+
+# Publishes throwaway preview packages for each PR via pkg.pr.new, installable
+# from its CDN (e.g. `npm i https://pkg.pr.new/@zerodev/wallet-react@<sha>`).
+#
+# SECURITY (public repo): uses `pull_request` — NOT `pull_request_target` — and
+# NO secrets. Fork PRs run with a read-only token and cannot access anything
+# sensitive. pkg.pr.new publishes to its own CDN (never npm) using the Actions
+# OIDC identity; its GitHub App posts the PR comment. No NPM_TOKEN is involved.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Publish preview packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      # Only the four publishable packages (skips react-kit / native-kit / apps).
+      - name: Publish previews
+        run: >
+          pnpm dlx pkg-pr-new publish --pnpm
+          './packages/core'
+          './packages/react'
+          './packages/react-ui'
+          './packages/wallet-react-ui'
