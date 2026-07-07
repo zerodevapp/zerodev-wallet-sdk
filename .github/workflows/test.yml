@@ -73,6 +73,9 @@ jobs:
       - name: Build and start demo app
         working-directory: apps/zerodev-signer-demo
         run: |
+          if [ "$USE_REAL_EMAIL" = "false" ]; then
+            export NEXT_PUBLIC_DANGEROUS_OTP_SIGNER_KEY=$(cat ../../e2e/fixtures/test-signer-public-key.txt)
+          fi
           pnpm build
           pnpm start &
         env:
@@ -81,6 +84,7 @@ jobs:
           # Pin the bundler/paymaster to staging so the AA stack matches the
           # staging KMS above (the SDK default host is prod).
           NEXT_PUBLIC_ZERODEV_AA_HOST: https://staging-meta-aa-provider.onrender.com
+          USE_REAL_EMAIL: ${{ inputs.use_real_email }}
 
       - name: Wait for demo app
         run: |
