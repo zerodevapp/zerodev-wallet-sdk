@@ -30,4 +30,10 @@ export {
   type WrapperProps,
   type WrapperVariant,
 } from './components/Wrapper'
+export {
+  type LockupTone,
+  type MarkTone,
+  ZeroDevLogo,
+  type ZeroDevLogoProps,
+} from './components/ZeroDevLogo'
 export { cn } from './utils/common'
