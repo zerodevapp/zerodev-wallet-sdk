@@ -106,13 +106,9 @@ async function loginWithOtp(page: Page, session: OtpSession) {
 test.describe('Post-Auth Operations', () => {
   test('should sign a message after login', async ({
     page,
-    otpSession,
-  }, testInfo) => {
-    testInfo.skip(
-      !isRealEmail(),
-      'Signing requires real Turnkey (wired up in Phase 7)',
-    )
-    await loginWithOtp(page, otpSession)
+    authenticatedSession,
+  }) => {
+    await loginWithOtp(page, authenticatedSession)
 
     // Click the "Sign Message" tab (in the navigation area)
     await page
@@ -138,13 +134,9 @@ test.describe('Post-Auth Operations', () => {
 
   test('should sign typed data (EIP-712) after login', async ({
     page,
-    otpSession,
-  }, testInfo) => {
-    testInfo.skip(
-      !isRealEmail(),
-      'Signing requires real Turnkey (wired up in Phase 7)',
-    )
-    await loginWithOtp(page, otpSession)
+    authenticatedSession,
+  }) => {
+    await loginWithOtp(page, authenticatedSession)
 
     // Click the "Sign Message" tab
     await page

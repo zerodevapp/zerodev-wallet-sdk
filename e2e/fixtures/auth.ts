@@ -11,7 +11,7 @@
 
 import { test as base, expect } from '@playwright/test'
 import { isRealEmail } from '../helpers/env-utils.js'
-import { setupOtpMocks } from '../helpers/mock-backend.js'
+import { setupOtpMocks, setupSigningMocks } from '../helpers/mock-backend.js'
 import { createNewAccount, ping } from '../helpers/temp-email.js'
 
 export type OtpSession = {
@@ -25,6 +25,7 @@ export type OtpSession = {
 type AuthFixtures = {
   otpSession: OtpSession
   magicLinkSession: OtpSession
+  authenticatedSession: OtpSession // OTP + signing mocks combined
 }
 
 export const test = base.extend<AuthFixtures>({
@@ -68,6 +69,31 @@ export const test = base.extend<AuthFixtures>({
       })
     } else {
       const { otpCode } = await setupOtpMocks(page)
+      await use({
+        email: `mock-${Date.now()}@test.example.com`,
+        otpCode,
+        authToken: null,
+      })
+    }
+  },
+
+  authenticatedSession: async ({ page }, use, testInfo) => {
+    if (isRealEmail()) {
+      try {
+        await ping()
+      } catch {
+        testInfo.skip(true, 'Email service unavailable')
+        return
+      }
+      const account = await createNewAccount()
+      await use({
+        email: account.address,
+        otpCode: null,
+        authToken: account.authToken,
+      })
+    } else {
+      const { otpCode } = await setupOtpMocks(page)
+      await setupSigningMocks(page)
       await use({
         email: `mock-${Date.now()}@test.example.com`,
         otpCode,
