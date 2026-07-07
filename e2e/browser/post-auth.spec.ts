@@ -6,18 +6,23 @@
  * 2. Send a transaction via the "Send Transaction" tab
  * 3. Copy wallet address
  * 4. Logout and verify redirect to login page
+ *
+ * The `otpSession` fixture handles USE_REAL_EMAIL branching; no if/else here.
+ * Signing and minting tests are skipped in mock mode (require real Turnkey).
  */
 
-import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { expect, type OtpSession, test } from '../fixtures/auth.js'
 import {
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
 } from '../helpers/constants.js'
+import { isRealEmail } from '../helpers/env-utils.js'
+import { extractOtpCode } from '../helpers/otp-utils.js'
+import { searchForNewEmail } from '../helpers/temp-email.js'
 
 // Demo app uses 6-digit OTP codes (configured in zerodev-signer-demo)
 const DEMO_APP_OTP_LENGTH = 6
-
-import { extractOtpCode } from '../helpers/otp-utils.js'
 
 /**
  * Sample EIP-712 typed data using Arbitrum Sepolia chainId (421614).
@@ -59,36 +64,34 @@ const TYPED_DATA_SAMPLE = JSON.stringify(
   2,
 )
 
-import {
-  createNewAccount,
-  ping,
-  searchForNewEmail,
-} from '../helpers/temp-email.js'
-
-/** Helper to complete OTP login through the UI */
-async function loginWithOtp(
-  page: import('@playwright/test').Page,
-  email: string,
-  authToken: string,
-) {
+/** Helper to complete OTP login through the UI using a session fixture. */
+async function loginWithOtp(page: Page, session: OtpSession) {
   await page.addInitScript(() => {
     localStorage.setItem('zd:emailAuthMethod', 'otp')
   })
   await page.goto('/')
-  await page.getByPlaceholder('Enter your email').fill(email)
+  await page.getByPlaceholder('Enter your email').fill(session.email)
   await page.getByPlaceholder('Enter your email').press('Enter')
   await expect(
-    page.getByText(`Enter the code from the email we sent to ${email}`, {
-      exact: false,
-    }),
+    page.getByText(
+      `Enter the code from the email we sent to ${session.email}`,
+      {
+        exact: false,
+      },
+    ),
   ).toBeVisible({ timeout: 30_000 })
 
-  const emailContent = await searchForNewEmail(
-    authToken,
-    EMAIL_POLL_INTERVAL_MS,
-    EMAIL_POLL_TIMEOUT_MS,
-  )
-  const otpCode = extractOtpCode(emailContent, DEMO_APP_OTP_LENGTH, true)
+  const otpCode =
+    session.otpCode ??
+    extractOtpCode(
+      await searchForNewEmail(
+        session.authToken!,
+        EMAIL_POLL_INTERVAL_MS,
+        EMAIL_POLL_TIMEOUT_MS,
+      ),
+      DEMO_APP_OTP_LENGTH,
+      true,
+    )
   expect(otpCode).toBeTruthy()
 
   await page.getByLabel('Verification code').fill(otpCode!)
@@ -101,17 +104,15 @@ async function loginWithOtp(
 }
 
 test.describe('Post-Auth Operations', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
-  test('should sign a message after login', async ({ page }) => {
-    const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+  test('should sign a message after login', async ({
+    page,
+    otpSession,
+  }, testInfo) => {
+    testInfo.skip(
+      !isRealEmail(),
+      'Signing requires real Turnkey (wired up in Phase 7)',
+    )
+    await loginWithOtp(page, otpSession)
 
     // Click the "Sign Message" tab (in the navigation area)
     await page
@@ -135,9 +136,15 @@ test.describe('Post-Auth Operations', () => {
     console.log('Message signed successfully')
   })
 
-  test('should sign typed data (EIP-712) after login', async ({ page }) => {
-    const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+  test('should sign typed data (EIP-712) after login', async ({
+    page,
+    otpSession,
+  }, testInfo) => {
+    testInfo.skip(
+      !isRealEmail(),
+      'Signing requires real Turnkey (wired up in Phase 7)',
+    )
+    await loginWithOtp(page, otpSession)
 
     // Click the "Sign Message" tab
     await page
@@ -166,9 +173,15 @@ test.describe('Post-Auth Operations', () => {
     console.log('Typed data (EIP-712) signed successfully')
   })
 
-  test('should mint NFT (send transaction) after login', async ({ page }) => {
-    const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+  test('should mint NFT (send transaction) after login', async ({
+    page,
+    otpSession,
+  }, testInfo) => {
+    testInfo.skip(
+      !isRealEmail(),
+      'Mint requires real Turnkey + chain (Anvil planned)',
+    )
+    await loginWithOtp(page, otpSession)
 
     // Navigate to the "Gas-free Mint" tab
     await page
@@ -187,9 +200,11 @@ test.describe('Post-Auth Operations', () => {
     console.log('Mint NFT (send transaction) successful')
   })
 
-  test('should logout and redirect to login page', async ({ page }) => {
-    const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+  test('should logout and redirect to login page', async ({
+    page,
+    otpSession,
+  }) => {
+    await loginWithOtp(page, otpSession)
 
     // Click logout
     await page.getByRole('button', { name: /Logout/i }).click()
