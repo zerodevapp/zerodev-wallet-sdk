@@ -24,6 +24,14 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     steps:
+      - name: Annotate email mode
+        run: |
+          if [ "${{ inputs.use_real_email }}" = "true" ]; then
+            echo "::notice::Email mode: real (Guerrilla Mail + Turnkey)"
+          else
+            echo "::notice::Email mode: mock (no external dependencies)"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -49,6 +57,14 @@ jobs:
     name: Browser E2E Tests
     runs-on: ubuntu-latest
     steps:
+      - name: Annotate email mode
+        run: |
+          if [ "${{ inputs.use_real_email }}" = "true" ]; then
+            echo "::notice::Email mode: real (Guerrilla Mail + Turnkey)"
+          else
+            echo "::notice::Email mode: mock (no external dependencies)"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
