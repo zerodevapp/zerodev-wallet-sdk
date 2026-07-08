@@ -47,6 +47,9 @@ export default function DepositPage() {
           <SmartRoutingAddress
             recipient={address}
             onClose={() => router.push('/dashboard')}
+            onHelp={() => {
+              /* help — deferred */
+            }}
           />
         </SmartRoutingAddressProvider>
       </main>

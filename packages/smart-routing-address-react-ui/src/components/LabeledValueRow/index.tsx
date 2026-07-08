@@ -31,6 +31,9 @@ export function LabeledValueRow({
 }: LabeledValueRowProps) {
   const isWarning = variant === 'warning'
   const textColorClass = isWarning ? 'zd:text-solarOrange' : undefined
+  const infoColorClass = isWarning
+    ? 'zd:text-solarOrange'
+    : 'zd:text-greyScale/50'
 
   return (
     <div
@@ -66,14 +69,14 @@ export function LabeledValueRow({
           >
             <Icon
               name="info"
-              className="zd:size-3.5 zd:text-greyScale/50"
+              className={cn('zd:size-3.5', infoColorClass)}
               aria-hidden
             />
           </button>
         ) : (
           <Icon
             name="info"
-            className="zd:size-3.5 zd:text-greyScale/50"
+            className={cn('zd:size-3.5', infoColorClass)}
             data-testid="labeled-value-row-info"
             aria-hidden
           />

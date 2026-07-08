@@ -8,12 +8,14 @@ export const TOP_NAV_HEIGHT = 52
 export function TopNav({
   onBack,
   onClose,
+  onHelp,
   title,
   logo,
   className,
 }: {
   onBack?: () => void
   onClose: () => void
+  onHelp?: () => void
   title?: string
   logo?: ReactNode
   className?: string
@@ -31,6 +33,8 @@ export function TopNav({
     >
       {onBack ? (
         <IconButton iconName="chevronLeft" onClick={onBack} />
+      ) : onHelp ? (
+        <IconButton iconName="question" onClick={onHelp} />
       ) : (
         <div className="zd:h-13 zd:w-13" />
       )}
