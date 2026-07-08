@@ -1,8 +1,11 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@zerodev/react-ui', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@zerodev/react-ui')>()
+// The real Icon component uses `import.meta.glob` to eagerly load SVGs from
+// disk, which vitest can't resolve. Stub it with a minimal mock that emits
+// `data-testid="icon-<name>"` for query-by-testid.
+vi.mock('../Icon', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../Icon')>()
   const React = await import('react')
 
   const MockIcon = ({
