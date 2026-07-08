@@ -306,6 +306,12 @@ pnpm install
 pnpm build
 ```
 
+### Contributing & releases
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the changesets-based release flow
+(add a changeset → merge → merge the auto-generated "Version Packages" PR to
+publish).
+
 ### Project Structure
 
 ```
