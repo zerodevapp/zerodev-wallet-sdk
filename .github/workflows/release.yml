@@ -27,10 +27,21 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      # Mint a short-lived token from the org-owned GitHub App so the "Version
+      # Packages" PR is opened by the App — that makes the required CI checks run
+      # on it (a default-GITHUB_TOKEN PR wouldn't trigger workflows). No user PAT.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -55,7 +66,7 @@ jobs:
           version: pnpm changeset:version
           publish: pnpm changeset:release:ci
         env:
-          # RELEASE_PAT (optional) lets the Version Packages PR trigger CI checks
-          # and push past branch protection; falls back to the default token.
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          # App token → the Version PR is opened by the App, so the required CI
+          # checks run on it and it can push past branch protection.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           # No NPM_TOKEN: publish auth is npm Trusted Publishing via `id-token`.
