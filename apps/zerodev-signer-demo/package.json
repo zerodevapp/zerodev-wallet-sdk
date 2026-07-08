@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
-    "@wagmi/core": "^2.22.0",
+    "@wagmi/core": "^3.0.0",
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/react-ui": "workspace:*",
     "@zerodev/wallet-react-ui": "workspace:*",
@@ -28,7 +28,7 @@
     "react-hook-form": "^7.68.0",
     "tailwind-merge": "^3.3.1",
     "viem": "2.38.6",
-    "wagmi": "^2.19.0",
+    "wagmi": "^3.0.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
