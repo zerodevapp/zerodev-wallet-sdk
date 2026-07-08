@@ -20,7 +20,12 @@ const DEFAULT_SIGNING_PROMPT_METHODS: RequestMethod[] = [
   'eth_signTypedData_v4',
 ]
 
+export type SigningConfig =
+  | { mode: 'background' }
+  | { mode: 'prompt'; methods?: RequestMethod[] }
+
 export type ZeroDevKitConfig = {
+  signing?: SigningConfig
   auth?: AuthConfig
   /**
    * Optional brand logo rendered in the auth flow's top nav. When omitted,
@@ -132,16 +137,11 @@ export function zeroDevWallet(
         // `window` for EIP-6963 discovery and would crash on the server.
         if (typeof window === 'undefined') return
 
-        // Signing is pinned to background mode: the prompt-mode confirmation UI
-        // is not part of this package's public surface, so requests always pass
-        // through without gating. The wrapping logic below is retained but
-        // unreachable.
-        // const signing = params.config?.signing
-        const signing = { mode: 'background' } as const
-        if (signing.mode === 'background') return
+        const signing = params.config?.signing
+        if (signing?.mode === 'background') return
 
         const methods =
-          // (signing?.mode === 'prompt' && signing.methods) ||
+          (signing?.mode === 'prompt' && signing.methods) ||
           DEFAULT_SIGNING_PROMPT_METHODS
 
         const provider = (await connector.getProvider()) as ZeroDevProvider
