@@ -6,8 +6,10 @@ name: Release
 #   - once that PR is merged (versions bumped, no changesets left) → publishes the
 #     changed packages to npm `latest`, tags them, and cuts GitHub Releases.
 #
-# SECURITY: runs only on push to `main` (trusted, post-merge code). NPM_TOKEN is
-# used exclusively here and never in any pull_request context.
+# SECURITY: runs only on push to `main` (trusted, post-merge code). Publishing
+# uses npm Trusted Publishing (OIDC) — no long-lived NPM_TOKEN and no 2FA bypass;
+# npm verifies this repo + workflow via GitHub's id-token. Each published package
+# must have this repo + `release.yml` configured as a Trusted Publisher on npm.
 
 on:
   push:
@@ -18,7 +20,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   contents: write # push the Version Packages PR branch + git tags
   pull-requests: write # open/update the Version Packages PR
-  id-token: write # npm provenance
+  id-token: write # OIDC for npm Trusted Publishing (+ provenance)
 
 jobs:
   release:
@@ -43,6 +45,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # npm Trusted Publishing (OIDC) needs npm >= 11.5.1; node 20 ships npm 10.
+      - name: Upgrade npm for OIDC publishing
+        run: npm install -g npm@latest
+
       - name: Create Version PR or publish
         uses: changesets/action@v1
         with:
@@ -52,5 +58,4 @@ jobs:
           # RELEASE_PAT (optional) lets the Version Packages PR trigger CI checks
           # and push past branch protection; falls back to the default token.
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # No NPM_TOKEN: publish auth is npm Trusted Publishing via `id-token`.
