@@ -1,5 +1,7 @@
-import { cn, Icon, Wrapper } from '@zerodev/react-ui'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { cn } from '../../utils/common'
+import { Icon } from '../Icon'
+import { Wrapper } from '../Wrapper'
 
 const ARROW_INNER = 44
 const PADDING = 4

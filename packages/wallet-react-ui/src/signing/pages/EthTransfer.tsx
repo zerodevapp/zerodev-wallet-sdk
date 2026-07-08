@@ -1,7 +1,6 @@
-import { Text } from '@zerodev/react-ui'
+import { ArrowCardPair, Text } from '@zerodev/react-ui'
 import { type Address, formatEther, type Hex } from 'viem'
 import { shortenHex } from '../../shared/utils/common'
-import { ArrowCardPair } from '../components/ArrowCardPair'
 import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
 import { Section } from '../components/Section'
