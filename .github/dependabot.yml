@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Keep SHA-pinned GitHub Actions current. Dependabot bumps the pinned commit
+  # and updates the trailing `# vX.Y.Z` comment. Grouped into a single weekly PR.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
