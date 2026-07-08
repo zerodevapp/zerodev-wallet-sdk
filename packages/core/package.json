@@ -2,6 +2,11 @@
   "name": "@zerodev/wallet-core",
   "version": "0.0.1",
   "description": "ZeroDev Wallet SDK built on Turnkey",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zerodevapp/zerodev-wallet-sdk.git",
+    "directory": "packages/core"
+  },
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",

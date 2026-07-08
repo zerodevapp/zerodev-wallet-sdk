@@ -2,6 +2,11 @@
   "name": "@zerodev/wallet-react",
   "version": "0.0.2",
   "description": "React hooks for ZeroDev Wallet SDK",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zerodevapp/zerodev-wallet-sdk.git",
+    "directory": "packages/react"
+  },
   "sideEffects": false,
   "main": "./dist/_cjs/index.js",
   "module": "./dist/_esm/index.js",
