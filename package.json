@@ -23,6 +23,7 @@
     "test:integration": "vitest run --config e2e/vitest.integration.config.ts",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
+    "check:publishable": "node scripts/check-publishable.mjs",
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install --lockfile-only",
