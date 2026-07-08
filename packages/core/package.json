@@ -163,7 +163,7 @@
     "@types/node": "^20.0.0",
     "expo-secure-store": "55.0.9",
     "typescript": "5.9.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.2"
   },
   "type": "module"
 }

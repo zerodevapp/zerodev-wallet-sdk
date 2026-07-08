@@ -68,13 +68,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.7.0",
-    "postcss": "^8.5.10",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "postcss": "^8.5.16",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "storybook": "^10.3.3",
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3",
-    "vite": "^6.4.1",
+    "vite": "^6.4.3",
     "vite-plugin-svgr": "5.0.0"
   },
   "dependencies": {
