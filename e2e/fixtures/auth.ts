@@ -13,6 +13,7 @@ import { test as base, expect } from '@playwright/test'
 import { isRealEmail } from '../helpers/env-utils.js'
 import { setupOtpMocks, setupSigningMocks } from '../helpers/mock-backend.js'
 import { createNewAccount, ping } from '../helpers/temp-email.js'
+import { setupPageTracing } from '../helpers/tracing.js'
 
 export type OtpSession = {
   email: string
@@ -23,12 +24,22 @@ export type OtpSession = {
 }
 
 type AuthFixtures = {
+  _tracing: void
   otpSession: OtpSession
   magicLinkSession: OtpSession
   authenticatedSession: OtpSession // OTP + signing mocks combined
 }
 
 export const test = base.extend<AuthFixtures>({
+  // Auto fixture: runs for every test that imports from this module.
+  _tracing: [
+    async ({ page }, use) => {
+      await setupPageTracing(page)
+      await use()
+    },
+    { auto: true },
+  ],
+
   otpSession: async ({ page }, use, testInfo) => {
     if (isRealEmail()) {
       try {

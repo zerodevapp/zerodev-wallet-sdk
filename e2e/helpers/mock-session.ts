@@ -11,6 +11,20 @@
  * character substitution.
  */
 
+/**
+ * Creates a minimal verification token JWT for use in the Turnkey otp_verify_v2 mock.
+ * The payload must contain an `id` field, which `buildClientSignature` uses as tokenId.
+ */
+export function createMockVerificationToken(
+  id: string = 'mock-token-id-123',
+): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'ES256' })).toString(
+    'base64url',
+  )
+  const payload = Buffer.from(JSON.stringify({ id })).toString('base64url')
+  return `${header}.${payload}.fakesig`
+}
+
 type MockSessionOverrides = {
   userId?: string
   organizationId?: string

@@ -14,7 +14,10 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Page } from '@playwright/test'
-import { createMockSessionJwt } from './mock-session.js'
+import {
+  createMockSessionJwt,
+  createMockVerificationToken,
+} from './mock-session.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -53,11 +56,22 @@ export async function setupOtpMocks(page: Page): Promise<{ otpCode: string }> {
   )
 
   await page.route('https://authproxy.turnkey.com/v1/otp_verify_v2', (route) =>
-    route.fulfill({ json: { verificationToken: 'mock-verification-token' } }),
+    route.fulfill({
+      json: { verificationToken: createMockVerificationToken() },
+    }),
   )
 
   await page.route('**/auth/login/otp', (route) =>
     route.fulfill({ json: { session: mockSession } }),
+  )
+
+  // `toViemAccount` calls this to resolve the wallet address after auth.
+  // Without the mock it would hit the real backend with a fake token and hang
+  // until the request times out (causing the post-auth redirect to stall).
+  await page.route('**/user-wallet', (route) =>
+    route.fulfill({
+      json: { walletAddresses: ['0x000000000000000000000000000000000000dEaD'] },
+    }),
   )
 
   return { otpCode: TEST_OTP_CODE }

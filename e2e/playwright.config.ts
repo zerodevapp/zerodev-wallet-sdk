@@ -1,9 +1,21 @@
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const demoAppDir = path.resolve(__dirname, '../apps/zerodev-signer-demo')
+
+// In mock mode, inject the test signer key so the Next.js dev server bakes it
+// into the client bundle at startup (NEXT_PUBLIC_* are compile-time constants).
+// This must happen before the webServer subprocess is spawned.
+if (process.env.USE_REAL_EMAIL !== 'true') {
+  const keyPath = path.resolve(__dirname, 'fixtures/test-signer-public-key.txt')
+  process.env.NEXT_PUBLIC_DANGEROUS_OTP_SIGNER_KEY = readFileSync(
+    keyPath,
+    'utf-8',
+  ).trim()
+}
 
 export default defineConfig({
   testDir: './browser',

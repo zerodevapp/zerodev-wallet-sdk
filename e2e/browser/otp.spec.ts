@@ -66,7 +66,9 @@ test.describe('OTP Flow', () => {
     expect(otpCode).toBeTruthy()
 
     // Step 7: Enter OTP code
-    await page.getByLabel('Verification code').fill(otpCode!)
+    // CodeInput uses a hidden input (opacity:0) with autoFocus. Type via keyboard
+    // so React's synthetic onChange fires correctly on each character.
+    await page.keyboard.type(otpCode!)
 
     // Step 8: Click verify
     await page.getByRole('button', { name: /Confirm code/i }).click()
