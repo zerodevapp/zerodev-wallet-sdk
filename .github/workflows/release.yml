@@ -1,0 +1,72 @@
+name: Release
+
+# Changesets-driven release. On every push to `main`:
+#   - if there are pending changesets → opens/updates the "Version Packages" PR
+#     (bumps versions, writes CHANGELOGs, deletes changesets)
+#   - once that PR is merged (versions bumped, no changesets left) → publishes the
+#     changed packages to npm `latest`, tags them, and cuts GitHub Releases.
+#
+# SECURITY: runs only on push to `main` (trusted, post-merge code). Publishing
+# uses npm Trusted Publishing (OIDC) — no long-lived NPM_TOKEN and no 2FA bypass;
+# npm verifies this repo + workflow via GitHub's id-token. Each published package
+# must have this repo + `release.yml` configured as a Trusted Publisher on npm.
+
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write # push the Version Packages PR branch + git tags
+  pull-requests: write # open/update the Version Packages PR
+  id-token: write # OIDC for npm Trusted Publishing (+ provenance)
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      # Mint a short-lived token from the org-owned GitHub App so the "Version
+      # Packages" PR is opened by the App — that makes the required CI checks run
+      # on it (a default-GITHUB_TOKEN PR wouldn't trigger workflows). No user PAT.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # npm Trusted Publishing (OIDC) needs npm >= 11.5.1; node 20 ships npm 10.
+      - name: Upgrade npm for OIDC publishing
+        run: npm install -g npm@latest
+
+      - name: Create Version PR or publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset:version
+          publish: pnpm changeset:release:ci
+        env:
+          # App token → the Version PR is opened by the App, so the required CI
+          # checks run on it and it can push past branch protection.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          # No NPM_TOKEN: publish auth is npm Trusted Publishing via `id-token`.
