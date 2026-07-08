@@ -1,9 +1,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../PoweredBy', () => ({
-  PoweredBy: () => <div data-testid="powered-by">Powered by</div>,
-}))
+vi.mock('@zerodev/react-ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@zerodev/react-ui')>()
+  return {
+    ...actual,
+    PoweredBy: () => <div data-testid="powered-by">Powered by</div>,
+  }
+})
 
 import { SignUpFooter } from './index'
 

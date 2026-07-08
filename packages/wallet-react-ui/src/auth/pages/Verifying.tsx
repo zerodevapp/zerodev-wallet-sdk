@@ -1,7 +1,6 @@
-import { Button } from '@zerodev/react-ui'
+import { Button, PoweredBy } from '@zerodev/react-ui'
 import { useVerifyMagicLink } from '@zerodev/wallet-react'
 import { useEffect, useRef, useState } from 'react'
-import { PoweredBy } from '../../shared/components/PoweredBy'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useAuth } from '../hooks/useAuth'
 import { stripMagicLinkCodeFromUrl } from '../utils/url'
