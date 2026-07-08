@@ -1,12 +1,13 @@
 import { cn, Icon, Text, Wrapper } from '@zerodev/react-ui'
+import { LoadingCard } from '../LoadingCard'
 
 /**
  * The card that renders the deposit address in the SRA "Deposit funds" screen.
  *
  * Two visual states, each mapped 1:1 to a Figma node:
- *   - Loading (Figma 17634:104343, "Smart Funding" card): 16px radius, 20%
- *     white surface, centered loading icon + `loadingText`. Rendered when
- *     `address` is omitted.
+ *   - Loading (Figma 17634:104343, "Smart Funding" card): delegates to
+ *     `LoadingCard`, which is the shared spinner+text pill used elsewhere in
+ *     the SRA flow (e.g., SmartFunding's "Watching for deposit" state).
  *   - Ready (Figma 17762:78875, address+QR row): 14px radius, 40% offWhite
  *     surface, left-aligned address text + a 52×52 white QR button on the
  *     right. Rendered when `address` is supplied.
@@ -35,23 +36,11 @@ export function AddressDisplay({
 }: AddressDisplayProps) {
   if (address === undefined) {
     return (
-      <Wrapper
-        variant="ghost"
-        className={cn(
-          // Figma: rounded-2xl (16px), p-16, centered content, gap 8px, 20%
-          // white surface from Wrapper's ghost variant. Height pinned to
-          // 68px so it matches the ready variant.
-          'zd:relative zd:flex zd:h-[68px] zd:w-full zd:items-center zd:justify-center zd:gap-2 zd:overflow-hidden zd:rounded-2xl zd:px-4',
-          'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
-          className,
-        )}
+      <LoadingCard
+        text={loadingText}
+        className={className}
         data-testid="address-display-loading"
-      >
-        <Icon name="lineLoading" className="zd:size-4 zd:text-greyScale/50" />
-        <Text className="zd:text-body1 zd:text-greyScale/50">
-          {loadingText}
-        </Text>
-      </Wrapper>
+      />
     )
   }
 
