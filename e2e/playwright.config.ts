@@ -47,7 +47,11 @@ export default defineConfig({
     : {
         command: `cd ${demoAppDir} && pnpm dev`,
         url: 'http://localhost:3000',
-        reuseExistingServer: true,
+        // In real-email mode, always start a fresh server so it is built
+        // without NEXT_PUBLIC_DANGEROUS_OTP_SIGNER_KEY baked in. Reusing a
+        // mock-mode server would activate dangerouslyOverrideOtpSignerPublicKey
+        // and change how Turnkey constructs the auth email.
+        reuseExistingServer: process.env.USE_REAL_EMAIL !== 'true',
         timeout: 30_000,
       },
 })
