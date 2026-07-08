@@ -29,6 +29,11 @@ jobs:
       - name: Run Biome CI
         run: pnpm run ci
 
+      # Fail fast if a publishable package lacks a repository field — npm's
+      # provenance check would otherwise reject the publish with E422.
+      - name: Check publishable packages
+        run: node scripts/check-publishable.mjs
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
@@ -75,6 +80,16 @@ jobs:
 
       - name: Build packages
         run: pnpm build
+
+      # Packaging smoke test: confirm each publishable package can be packed
+      # (catches missing dist / bad `files` / `exports` before release).
+      - name: Verify packaging (npm pack --dry-run)
+        run: |
+          for d in $(node scripts/check-publishable.mjs --list); do
+            echo "::group::npm pack $d"
+            ( cd "$d" && npm pack --dry-run --ignore-scripts )
+            echo "::endgroup::"
+          done
 
   test:
     name: Test
