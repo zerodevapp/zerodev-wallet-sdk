@@ -1,25 +1,16 @@
 /**
  * E2E integration test for the Magic Link authentication flow.
  *
- * Magic link is built on top of the OTP flow. Instead of sending a plain
- * OTP code, Turnkey embeds the code into a clickable URL in the email.
- * Whether a magic link (vs a plain code) is sent — and the link's URL
- * template — is configured per-project on the backend
- * (`wallet.otp_configs.magic_link_template`); the SDK just calls
- * registerWithOTP. This test extracts the code from the magic-link URL when
- * present and otherwise falls back to plain-code extraction.
+ * Magic link is built on top of the OTP flow. Turnkey embeds the OTP code
+ * into a clickable URL in the email; the URL template is configured per-project
+ * on the backend (`wallet.otp_configs.magic_link_template`).
  *
- * Flow:
- * 1. Create temp email account
- * 2. Register with OTP
- * 3. Extract OTP code from the magic link URL in the email (or plain code)
- * 4. Verify OTP with Auth Proxy
- * 5. Build client signature
- * 6. Login with OTP via backend
- * 7. Verify session works (whoami)
+ * In real-email mode the magic link URL is extracted from the received email.
+ * In mock mode all network calls are intercepted by `setupNodeMocks()` and the
+ * known test OTP code is used directly.
  */
 
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
@@ -32,12 +23,16 @@ import {
   BACKEND_URL,
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
-  OTP_CODE_LENGTH,
 } from '../helpers/constants.js'
+import { isRealEmail } from '../helpers/env-utils.js'
 import {
-  extractOtpCode,
-  extractOtpCodeFromMagicLinkUrl,
-} from '../helpers/otp-utils.js'
+  MOCK_AUTH_PROXY_CONFIG_ID,
+  MOCK_OTP_CODE,
+  MOCK_OTP_SIGNER_PUBLIC_KEY,
+  MOCK_PROJECT_ID,
+  setupNodeMocks,
+} from '../helpers/mock-backend-node.js'
+import { extractOtpCodeFromMagicLinkUrl } from '../helpers/otp-utils.js'
 import {
   createNewAccount,
   ping,
@@ -50,8 +45,16 @@ describe('Magic Link Authentication Flow', () => {
   let projectId: string
   let authProxyConfigId: string
   let skipReason = ''
+  let teardownMocks: (() => void) | undefined
 
   beforeAll(async () => {
+    if (!isRealEmail()) {
+      teardownMocks = setupNodeMocks()
+      projectId = MOCK_PROJECT_ID
+      authProxyConfigId = MOCK_AUTH_PROXY_CONFIG_ID
+      return
+    }
+
     try {
       await waitForBackend(BACKEND_URL)
     } catch {
@@ -75,14 +78,23 @@ describe('Magic Link Authentication Flow', () => {
     }
   })
 
+  afterAll(() => teardownMocks?.())
+
   it('should complete the full magic link register + login flow', async (context) => {
-    console.log(`Skipping magic link flow test: ${skipReason}`)
     context.skip(!!skipReason, skipReason)
 
-    // Step 1: Create temp email account
-    const emailAccount = await createNewAccount()
-    const email = emailAccount.address
-    console.log(`Created temp email: ${email}`)
+    // Step 1: Create email account (real) or use a placeholder (mock)
+    let email: string
+    let authToken: string | undefined
+
+    if (isRealEmail()) {
+      const emailAccount = await createNewAccount()
+      email = emailAccount.address
+      authToken = emailAccount.authToken
+    } else {
+      email = `mock-${Date.now()}@test.example.com`
+    }
+    console.log(`Using email: ${email}`)
 
     // Step 2: Create test stamper
     const stamper = createTestStamper()
@@ -92,10 +104,8 @@ describe('Magic Link Authentication Flow', () => {
     // Step 3: Create SDK client
     const client = createTestClient(stamper)
 
-    // Step 4: Register with OTP. Whether the email carries a magic link or a
-    // plain code (and the link template) is configured per-project on the
-    // backend (`wallet.otp_configs.magic_link_template`); the client no longer
-    // supplies a template.
+    // Step 4: Register with OTP — whether the email carries a magic link or a
+    // plain code is configured per-project on the backend
     const registerResult = await client.registerWithOTP({
       email,
       contact: { type: 'email', contact: email },
@@ -105,31 +115,33 @@ describe('Magic Link Authentication Flow', () => {
     expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()
     console.log(`OTP initiated with magic link, otpId: ${registerResult.otpId}`)
 
-    // Step 5: Poll for email and extract OTP code from magic link URL
-    console.log('Waiting for magic link email...')
-    const emailContent = await searchForNewEmail(
-      emailAccount.authToken,
-      EMAIL_POLL_INTERVAL_MS,
-      EMAIL_POLL_TIMEOUT_MS,
-    )
-    console.log(`Email content preview: ${emailContent.substring(0, 200)}...`)
-
-    // Try extracting from URL first, fall back to plain OTP extraction
-    let otpCode = extractOtpCodeFromMagicLinkUrl(emailContent)
-    if (!otpCode) {
-      console.log(
-        'No magic link URL found in email, falling back to plain OTP extraction',
+    // Step 5: Resolve OTP code — extract from magic link URL in real mode;
+    // use the known mock code in mock mode
+    let otpCode: string
+    if (isRealEmail()) {
+      console.log('Waiting for magic link email...')
+      const emailContent = await searchForNewEmail(
+        authToken!,
+        EMAIL_POLL_INTERVAL_MS,
+        EMAIL_POLL_TIMEOUT_MS,
       )
-      otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)
+      console.log(`Email content preview: ${emailContent.substring(0, 200)}...`)
+      const extracted = extractOtpCodeFromMagicLinkUrl(emailContent)
+      expect(extracted).toBeTruthy()
+      otpCode = extracted!
+    } else {
+      otpCode = MOCK_OTP_CODE
     }
-    expect(otpCode).toBeTruthy()
-    console.log(`Extracted OTP code: ${otpCode}`)
+    console.log(`Extracted magic link code: ${otpCode}`)
 
-    // Step 6: HPKE-seal the OTP attempt and verify with Auth Proxy.
+    // Step 6: HPKE-seal the OTP attempt and verify with Auth Proxy
     const encryptedOtpBundle = await encryptOtpAttempt({
-      otpCode: otpCode!,
+      otpCode,
       publicKey: publicKey!,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+      dangerouslyOverrideSignerPublicKey: isRealEmail()
+        ? undefined
+        : MOCK_OTP_SIGNER_PUBLIC_KEY,
     })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })
     const verifyResult = await authProxyClient.verifyOtp({

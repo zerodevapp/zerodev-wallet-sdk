@@ -59,6 +59,7 @@ vi.mock('@zerodev/wallet-core', () => ({
   }),
 }))
 
+import { createZeroDevWallet } from '@zerodev/wallet-core'
 import { zeroDevWalletCore } from './core/connector.js'
 
 type ConnectorInstance = ReturnType<ReturnType<typeof zeroDevWalletCore>>
@@ -166,5 +167,50 @@ describe('zeroDevWallet connector — mode branching', () => {
       const accounts = await connector.getAccounts()
       expect(accounts).toEqual([])
     })
+  })
+})
+
+describe('dangerouslyOverrideOtpSignerPublicKey security guard', () => {
+  const mockedCreateZeroDevWallet = vi.mocked(createZeroDevWallet)
+
+  beforeEach(() => {
+    mockedCreateZeroDevWallet.mockClear()
+  })
+
+  it('never forwards dangerouslyOverrideOtpSignerPublicKey when not set by the integrator', async () => {
+    // A connector configured without the override — the common case for any
+    // real integrator. createZeroDevWallet must not receive the option at all,
+    // meaning encryptOtpAttempt will use the production pinned signing key.
+    const connector = createConnector()
+    await seedEoa(connector) // triggers doInitialize() → createZeroDevWallet()
+
+    expect(mockedCreateZeroDevWallet).toHaveBeenCalledOnce()
+    const callArgs = mockedCreateZeroDevWallet.mock.calls[0]![0]
+    expect(callArgs).not.toHaveProperty('dangerouslyOverrideOtpSignerPublicKey')
+  })
+
+  it('forwards dangerouslyOverrideOtpSignerPublicKey only when explicitly set', async () => {
+    // Verify the positive case: the override IS forwarded when the connector
+    // is explicitly configured with it (e.g. in test environments).
+    const factory = zeroDevWalletCore({
+      projectId: 'proj-test',
+      chains: [sepolia],
+      dangerouslyOverrideOtpSignerPublicKey: 'test-signer-key',
+    })
+    const wagmiConfig = {
+      transports: {},
+      emitter: { emit: vi.fn() },
+      storage: null,
+    } as unknown as import('@wagmi/core').Config
+    const connector = factory(wagmiConfig as never) as ConnectorInstance
+
+    await seedEoa(connector)
+
+    expect(mockedCreateZeroDevWallet).toHaveBeenCalledOnce()
+    const callArgs = mockedCreateZeroDevWallet.mock.calls[0]![0]
+    expect(callArgs).toHaveProperty(
+      'dangerouslyOverrideOtpSignerPublicKey',
+      'test-signer-key',
+    )
   })
 })

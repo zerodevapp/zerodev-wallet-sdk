@@ -12,16 +12,13 @@
 import { test as base, expect } from '@playwright/test'
 import { isRealEmail } from '../helpers/env-utils.js'
 import { setupOtpMocks, setupSigningMocks } from '../helpers/mock-backend.js'
-import { createNewAccount, ping } from '../helpers/temp-email.js'
+import {
+  createRealEmailOtpSession,
+  type OtpSession,
+} from '../helpers/otp-session.js'
 import { setupPageTracing } from '../helpers/tracing.js'
 
-export type OtpSession = {
-  email: string
-  /** Known OTP code in mock mode; null in real-email mode (polled after UI submit). */
-  otpCode: string | null
-  /** mail.tm auth token; only set in real-email mode. */
-  authToken: string | null
-}
+export type { OtpSession }
 
 type AuthFixtures = {
   _tracing: void
@@ -42,18 +39,14 @@ export const test = base.extend<AuthFixtures>({
 
   otpSession: async ({ page }, use, testInfo) => {
     if (isRealEmail()) {
+      let session: OtpSession
       try {
-        await ping()
+        session = await createRealEmailOtpSession()
       } catch {
         testInfo.skip(true, 'Email service unavailable')
         return
       }
-      const account = await createNewAccount()
-      await use({
-        email: account.address,
-        otpCode: null,
-        authToken: account.authToken,
-      })
+      await use(session)
     } else {
       const { otpCode } = await setupOtpMocks(page)
       await use({
@@ -66,18 +59,14 @@ export const test = base.extend<AuthFixtures>({
 
   magicLinkSession: async ({ page }, use, testInfo) => {
     if (isRealEmail()) {
+      let session: OtpSession
       try {
-        await ping()
+        session = await createRealEmailOtpSession()
       } catch {
         testInfo.skip(true, 'Email service unavailable')
         return
       }
-      const account = await createNewAccount()
-      await use({
-        email: account.address,
-        otpCode: null,
-        authToken: account.authToken,
-      })
+      await use(session)
     } else {
       const { otpCode } = await setupOtpMocks(page)
       await use({
@@ -90,18 +79,14 @@ export const test = base.extend<AuthFixtures>({
 
   authenticatedSession: async ({ page }, use, testInfo) => {
     if (isRealEmail()) {
+      let session: OtpSession
       try {
-        await ping()
+        session = await createRealEmailOtpSession()
       } catch {
         testInfo.skip(true, 'Email service unavailable')
         return
       }
-      const account = await createNewAccount()
-      await use({
-        email: account.address,
-        otpCode: null,
-        authToken: account.authToken,
-      })
+      await use(session)
     } else {
       const { otpCode } = await setupOtpMocks(page)
       await setupSigningMocks(page)

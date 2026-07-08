@@ -198,4 +198,25 @@ describe('encryptOtpAttempt', () => {
       }),
     ).rejects.toThrow(/failed to parse encryption target bundle/)
   })
+
+  it('enforces the production pinned key when dangerouslyOverrideSignerPublicKey is not provided', async () => {
+    // Build a bundle signed by a fresh, ephemeral test key — NOT the real
+    // TURNKEY_TLS_FETCHER_SIGN_PUBLIC_KEY. Without the override, the function
+    // must reject any bundle whose enclaveQuorumPublic doesn't match the
+    // production pinned key, protecting integrators who omit the option.
+    const { secretKey: signerSk } = p256.keygen()
+    const signerPubHex = bytesToHex(p256.getPublicKey(signerSk, false))
+    const targetPublicHex = await generateTargetPubHex()
+    const bundle = buildBundle({ signerSk, signerPubHex, targetPublicHex })
+
+    await expect(
+      encryptOtpAttempt({
+        otpCode: '123456',
+        publicKey:
+          '02aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899',
+        encryptionTargetBundle: bundle,
+        // dangerouslyOverrideSignerPublicKey intentionally omitted
+      }),
+    ).rejects.toThrow(/does not match pinned signing key/)
+  })
 })
