@@ -95,7 +95,7 @@ export function Deposit({ onQrClick }: DepositProps) {
   const readyInText = fillTime.replace('~', '≈ ')
 
   return (
-    <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:items-center zd:gap-4">
+    <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
       <Text className="zd:w-full zd:text-center">{SUBTITLE}</Text>
 
       <div className="zd:relative zd:flex zd:w-full zd:flex-1 zd:flex-col zd:gap-2">
@@ -193,7 +193,7 @@ export function Deposit({ onQrClick }: DepositProps) {
         />
       </div>
 
-      <PoweredBy className="zd:justify-center zd:pt-3" />
+      <PoweredBy className="zd:justify-center" />
     </div>
   )
 }
