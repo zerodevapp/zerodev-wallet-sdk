@@ -1,22 +1,6 @@
 import { cn, Icon, Text } from '@zerodev/react-ui'
 import type { ReactNode } from 'react'
 
-/**
- * A label + value row used throughout the SRA "Deposit funds" screen.
- *
- * Three visual variants, each mapped 1:1 to a Figma node:
- *   - Default (Figma 17634:104295, "Max slippage — 0.50%"): plain inline row
- *     with `py-1` vertical padding. Body2 text, greyScale color.
- *   - Default + `trailing` (Figma 17634:104304, "Estimated fee — 0.74% ⌄"):
- *     same as default, plus an inline element next to the value (typically
- *     a chevron for expandable rows).
- *   - Warning (Figma 18210:75228, "Minimum deposit — 27.88 USDC"): card-
- *     shaped with orange text, 10% orange tint, 14px radius, border, backdrop
- *     blur, and inner shadow.
- *
- * The info icon is opt-in via `info`, and becomes a keyboard-accessible
- * button when `onInfoClick` is supplied.
- */
 export interface LabeledValueRowProps {
   /** Label rendered on the left (e.g., "Max slippage"). */
   label: string
