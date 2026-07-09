@@ -49,18 +49,20 @@ describe('StatusScreen', () => {
       expect(img.tagName).toBe('IMG')
     })
 
-    it.each(['error', 'loading', 'send', 'success'] as const)(
-      'renders %s image with correct alt text',
-      (imageName) => {
-        render(
-          <StatusScreen imageName={imageName} title="Test">
-            Content
-          </StatusScreen>,
-        )
-        const img = screen.getByAltText(imageName)
-        expect(img).toBeDefined()
-      },
-    )
+    it.each([
+      'error',
+      'loading',
+      'send',
+      'success',
+    ] as const)('renders %s image with correct alt text', (imageName) => {
+      render(
+        <StatusScreen imageName={imageName} title="Test">
+          Content
+        </StatusScreen>,
+      )
+      const img = screen.getByAltText(imageName)
+      expect(img).toBeDefined()
+    })
 
     it('applies fixed dimensions class to image', () => {
       render(

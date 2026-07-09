@@ -236,6 +236,13 @@ function getErc20Addresses(calls: BatchCall[]): Address[] {
 }
 
 export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
+  // Pair each call with a stable id so <CallItem> keys don't fall back to the
+  // array index — the list has no reorder/splice, but biome's noArrayIndexKey
+  // rule doesn't distinguish, and there's no natural id on BatchCall.
+  const keyedCalls = useMemo(
+    () => calls.map((call) => ({ call, id: crypto.randomUUID() })),
+    [calls],
+  )
   const erc20Addresses = useMemo(() => getErc20Addresses(calls), [calls])
 
   const erc20Reads = useMemo(
@@ -308,9 +315,9 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
         </div>
         <Section title="Transaction Details" iconName="arrowSwapHorizontal">
           <div className="zd:flex zd:flex-col zd:gap-1">
-            {calls.map((call, i) => (
+            {keyedCalls.map(({ call, id }, i) => (
               <CallItem
-                key={`${call.to ?? 'unknown'}-${i}`}
+                key={id}
                 call={call}
                 index={i + 1}
                 tokenInfoMap={tokenInfoMap}
