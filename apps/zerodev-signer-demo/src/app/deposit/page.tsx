@@ -7,7 +7,6 @@ import {
 } from '@zerodev/smart-routing-address-react'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { AppHeader } from '../components/AppHeader'
 
@@ -22,11 +21,7 @@ const CONFIG: SmartRoutingAddressConfig = {
 
 export default function DepositPage() {
   const router = useRouter()
-  const { address, status } = useAccount()
-
-  // useEffect(() => {
-  //   if (status === 'disconnected') router.replace('/')
-  // }, [status, router])
+  const { address } = useAccount()
 
   if (!address) {
     return (
