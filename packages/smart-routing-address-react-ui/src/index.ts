@@ -1,5 +1,5 @@
 /**
- * @zerodev/smart-routing-address-react
+ * @zerodev/smart-routing-address-react-ui
  * React hooks + provider for ZeroDev Smart Routing Address deposits.
  */
 
