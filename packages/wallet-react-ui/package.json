@@ -68,7 +68,7 @@
     "@zerodev/wallet-react": "workspace:*",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",
-    "viem": "^2.38.0",
+    "viem": "^2.47.18",
     "wagmi": "^2.19.0 || ^3.0.0",
     "zustand": "^5.0.3"
   },
