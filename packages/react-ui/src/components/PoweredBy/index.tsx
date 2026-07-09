@@ -1,5 +1,7 @@
-import { cn, Text, ZeroDevLogo } from '@zerodev/react-ui'
 import type { CSSProperties } from 'react'
+import { cn } from '../../utils/common'
+import { Text } from '../Text'
+import { ZeroDevLogo } from '../ZeroDevLogo'
 
 export function PoweredBy({
   className,
