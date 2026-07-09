@@ -18,7 +18,7 @@
     "@turnkey/api-key-stamper": "0.6.4",
     "@turnkey/crypto": "2.8.13",
     "@turnkey/react-native-passkey-stamper": "1.2.16",
-    "@wagmi/core": "^2.22.0",
+    "@wagmi/core": "^3.0.0",
     "@zerodev/wallet-core": "workspace:^",
     "@zerodev/wallet-react": "workspace:^",
     "babel-preset-expo": "~56.0.0",
@@ -47,7 +47,7 @@
     "tslib": "^2.8.1",
     "uuid": "^13.0.2",
     "viem": "~2.54.6",
-    "wagmi": "^2.19.0"
+    "wagmi": "^3.0.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.14",
