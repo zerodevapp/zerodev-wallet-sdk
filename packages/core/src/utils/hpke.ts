@@ -58,9 +58,10 @@ function concat(...parts: Uint8Array[]): Uint8Array {
 
 function i2osp(n: number, len: number): Uint8Array {
   const out = new Uint8Array(len)
+  let value = n
   for (let i = len - 1; i >= 0; i--) {
-    out[i] = n & 0xff
-    n >>>= 8
+    out[i] = value & 0xff
+    value >>>= 8
   }
   return out
 }

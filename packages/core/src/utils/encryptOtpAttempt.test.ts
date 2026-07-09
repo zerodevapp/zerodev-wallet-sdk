@@ -71,9 +71,8 @@ async function generateTargetPubHex(): Promise<string> {
 
 describe('encryptOtpAttempt', () => {
   it('produces a valid clientSendMsg for a well-formed bundle', async () => {
-    const { secretKey: signerSk, publicKey: signerPub } = p256.keygen()
+    const { secretKey: signerSk } = p256.keygen()
     const signerPubHex = bytesToHex(p256.getPublicKey(signerSk, false))
-    void signerPub // consumed via signerPubHex
 
     const targetPublicHex = await generateTargetPubHex()
     const bundle = buildBundle({

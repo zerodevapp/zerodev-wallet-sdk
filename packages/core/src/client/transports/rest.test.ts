@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ApiKeyStamper, PasskeyStamper } from '../../stampers/types.js'
+import type { ApiKeyStamper } from '../../stampers/types.js'
 import { rest } from './rest.js'
 
 function makeStamper(headerName: string) {

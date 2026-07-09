@@ -120,5 +120,4 @@ pnpm dev         # watch mode (types)
 pnpm typecheck
 pnpm test        # vitest
 pnpm storybook   # component catalog
-pnpm docs:dev    # local docs site (vocs)
 ```
