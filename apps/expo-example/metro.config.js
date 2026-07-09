@@ -53,7 +53,7 @@ const globalSingletons = new Set([
 // e.g. "react-dom/client" matches "react-dom"
 function matchesSingleton(moduleName, singletonSet) {
   for (const pkg of singletonSet) {
-    if (moduleName === pkg || moduleName.startsWith(pkg + '/')) return true
+    if (moduleName === pkg || moduleName.startsWith(`${pkg}/`)) return true
   }
   return false
 }

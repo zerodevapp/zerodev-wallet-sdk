@@ -257,7 +257,7 @@ export function SignUp() {
                 containerClassName="zd:rounded-3xl"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && emailInput && !anyPending) {
-                    void handleEmailSubmit()
+                    handleEmailSubmit()
                   }
                 }}
               >

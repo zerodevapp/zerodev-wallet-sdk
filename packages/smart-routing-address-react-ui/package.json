@@ -1,0 +1,70 @@
+{
+  "name": "@zerodev/smart-routing-address-react-ui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "React hooks + provider for ZeroDev Smart Routing Address deposits",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zerodevapp/zerodev-wallet-sdk.git",
+    "directory": "packages/smart-routing-address-react-ui"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/_types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/_types/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "!dist/**/*.tsbuildinfo",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx"
+  ],
+  "scripts": {
+    "build": "pnpm run clean && pnpm run build:js && pnpm run build:types",
+    "build:js": "vite build",
+    "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "react",
+    "hooks",
+    "smart-routing",
+    "deposit",
+    "zerodev",
+    "web3"
+  ],
+  "peerDependencies": {
+    "@zerodev/smart-routing-address": "^0.2.5",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "viem": "^2.47.18"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "~19.2.14",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@zerodev/smart-routing-address": "^0.2.5",
+    "happy-dom": "^20.6.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "typescript": "5.9.3",
+    "viem": "^2.47.18",
+    "vite": "^6.4.1",
+    "vitest": "^4.0.18"
+  },
+  "type": "module"
+}
