@@ -8,6 +8,7 @@
  * Mirrors the Go E2E test at doorway-kms/testing/e2e/e2e_otp_test.go
  */
 
+import { HttpResponse, http } from 'msw'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
@@ -29,6 +30,7 @@ import {
   MOCK_OTP_CODE,
   MOCK_OTP_SIGNER_PUBLIC_KEY,
   MOCK_PROJECT_ID,
+  server,
   setupNodeMocks,
 } from '../helpers/mock-backend-node.js'
 import { extractOtpCode } from '../helpers/otp-utils.js'
@@ -214,11 +216,18 @@ describe('OTP Authentication Flow', () => {
         : MOCK_OTP_SIGNER_PUBLIC_KEY,
     })
 
-    // In mock mode, stack a rejecting interceptor on top of the success one
-    // for the duration of this assertion only.
-    const teardownRejectMock = isRealEmail()
-      ? undefined
-      : setupNodeMocks({ rejectOtpVerify: true })
+    // In mock mode, override the verify handler to return HTTP 400 for the
+    // duration of this assertion only, then restore the default handlers.
+    if (!isRealEmail()) {
+      server.use(
+        http.post('https://authproxy.turnkey.com/v1/otp_verify_v2', () =>
+          HttpResponse.json(
+            { error: 'OTP verification failed', code: 'INVALID_OTP' },
+            { status: 400 },
+          ),
+        ),
+      )
+    }
 
     try {
       const authProxyClient = createAuthProxyClient({ authProxyConfigId })
@@ -229,7 +238,7 @@ describe('OTP Authentication Flow', () => {
         }),
       ).rejects.toThrow()
     } finally {
-      teardownRejectMock?.()
+      if (!isRealEmail()) server.resetHandlers()
     }
   })
 })

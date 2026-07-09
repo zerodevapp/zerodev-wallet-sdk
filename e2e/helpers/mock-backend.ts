@@ -5,28 +5,18 @@
  * the real email service or backend. All routes are intercepted via
  * `page.route()` glob patterns and fulfilled with deterministic fixture data.
  *
+ * Response payloads are imported from mock-responses.ts — the same module used
+ * by mock-backend-node.ts — so both environments always return identical data.
+ *
  * Route patterns use `**` which Playwright resolves across path separators, so
  * "**\/auth\/init\/otp" matches
  * "https://kms.staging.zerodev.app/api/v1/{projectId}/auth/init/otp".
  */
 
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { Page } from '@playwright/test'
-import {
-  createMockSessionJwt,
-  createMockVerificationToken,
-} from './mock-session.js'
+import { MOCK_OTP_CODE, mockResponses } from './mock-responses.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-const TEST_OTP_CODE = '000000'
-
-function getTestOtpBundle(): string {
-  const fixturesDir = path.join(__dirname, '..', 'fixtures')
-  return readFileSync(path.join(fixturesDir, 'test-otp-bundle.json'), 'utf-8')
-}
+export { MOCK_OTP_CODE }
 
 /**
  * Registers Playwright route mocks for the full OTP login flow.
@@ -40,41 +30,30 @@ function getTestOtpBundle(): string {
  * @returns The fixed OTP code the mock expects the test to submit
  */
 export async function setupOtpMocks(page: Page): Promise<{ otpCode: string }> {
-  const mockSession = createMockSessionJwt()
-
   await page.route('**/server-info/auth-proxy-id', (route) =>
-    route.fulfill({ json: { authProxyConfigId: 'mock-auth-proxy-config-id' } }),
+    route.fulfill({ json: mockResponses.authProxyId() }),
   )
 
   await page.route('**/auth/init/otp', (route) =>
-    route.fulfill({
-      json: {
-        otpId: 'mock-otp-id-abc123',
-        otpEncryptionTargetBundle: getTestOtpBundle(),
-      },
-    }),
+    route.fulfill({ json: mockResponses.otpInit() }),
   )
 
   await page.route('https://authproxy.turnkey.com/v1/otp_verify_v2', (route) =>
-    route.fulfill({
-      json: { verificationToken: createMockVerificationToken() },
-    }),
+    route.fulfill({ json: mockResponses.otpVerify() }),
   )
 
   await page.route('**/auth/login/otp', (route) =>
-    route.fulfill({ json: { session: mockSession } }),
+    route.fulfill({ json: mockResponses.otpLogin() }),
   )
 
   // `toViemAccount` calls this to resolve the wallet address after auth.
   // Without the mock it would hit the real backend with a fake token and hang
   // until the request times out (causing the post-auth redirect to stall).
   await page.route('**/user-wallet', (route) =>
-    route.fulfill({
-      json: { walletAddresses: ['0x000000000000000000000000000000000000dEaD'] },
-    }),
+    route.fulfill({ json: mockResponses.userWallet() }),
   )
 
-  return { otpCode: TEST_OTP_CODE }
+  return { otpCode: MOCK_OTP_CODE }
 }
 
 /**
@@ -104,13 +83,11 @@ export async function setupOtpMocks(page: Page): Promise<{ otpCode: string }> {
  * on-chain signatures, and project configuration enforcement.
  */
 export async function setupSigningMocks(page: Page): Promise<void> {
-  const fakeSignature = '0x' + 'ab'.repeat(32) + 'cd'.repeat(32) + '01'
-
   await page.route('**/sign/message', (route) =>
-    route.fulfill({ json: { signature: fakeSignature } }),
+    route.fulfill({ json: mockResponses.signMessage() }),
   )
 
   await page.route('**/sign/typed-data-v4', (route) =>
-    route.fulfill({ json: { signature: fakeSignature } }),
+    route.fulfill({ json: mockResponses.signTypedData() }),
   )
 }
