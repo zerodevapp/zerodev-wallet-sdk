@@ -70,6 +70,7 @@ const targetPubKeyHex = bytesToHex(targetPubKeyBytes)
 const signedDataJson = JSON.stringify({
   targetPublic: targetPubKeyHex,
   organizationId: 'test-org-id',
+  userId: 'test-user-id',
 })
 const dataBytes = new TextEncoder().encode(signedDataJson)
 const dataHex = bytesToHex(dataBytes)
