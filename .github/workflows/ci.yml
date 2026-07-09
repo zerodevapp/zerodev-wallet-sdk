@@ -120,3 +120,23 @@ jobs:
     with:
       use_real_email: false
     secrets: inherit
+
+  all-checks-pass:
+    name: All Checks Pass
+    if: always()
+    needs:
+      - lint-and-format
+      - typecheck
+      - build
+      - test
+      - call-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required checks
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required checks failed or were cancelled."
+            echo "Results: ${{ toJSON(needs.*.result) }}"
+            exit 1
+          fi
+          echo "All required checks passed."
