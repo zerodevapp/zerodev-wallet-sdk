@@ -4,7 +4,7 @@ import {
   SmartRoutingAddress,
   SmartRoutingAddressProvider,
   type SmartRoutingAddressConfig,
-} from '@zerodev/smart-routing-address-react'
+} from '@zerodev/smart-routing-address-react-ui'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'

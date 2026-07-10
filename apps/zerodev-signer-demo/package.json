@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-ui exec vite build --watch & pnpm --filter @zerodev/smart-routing-address-react exec vite build --watch & (sleep 2 && open http://localhost:3000) & pnpm --filter @zerodev/signer-demo dev",
+    "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-ui exec vite build --watch & pnpm --filter @zerodev/smart-routing-address-react-ui exec vite build --watch & (sleep 2 && open http://localhost:3000) & pnpm --filter @zerodev/signer-demo dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -16,7 +16,7 @@
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/react-ui": "workspace:*",
     "@zerodev/smart-routing-address": "^0.2.5",
-    "@zerodev/smart-routing-address-react": "workspace:*",
+    "@zerodev/smart-routing-address-react-ui": "workspace:*",
     "@zerodev/wallet-react-ui": "workspace:*",
     "@zerodev/sdk": "^5.0.0",
     "@zerodev/wallet-core": "workspace:*",
