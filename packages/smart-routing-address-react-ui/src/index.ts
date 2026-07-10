@@ -3,10 +3,6 @@
  * React hooks, provider, and UI for ZeroDev Smart Routing Address deposits.
  */
 
-// Components
-export type { TokenChainPillProps } from './components/TokenChainPill'
-export { TokenChainPill } from './components/TokenChainPill'
-
 // Provider
 export type { SmartRoutingAddressProviderProps } from './context/SmartRoutingAddressProvider'
 export { SmartRoutingAddressProvider } from './context/SmartRoutingAddressProvider'

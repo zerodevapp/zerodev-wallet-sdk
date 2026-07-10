@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { TokenChainPill } from './index'
+import { PillItem } from './index'
 
-const meta: Meta<typeof TokenChainPill> = {
-  title: 'SmartRoutingAddress/TokenChainPill',
-  component: TokenChainPill,
+const meta: Meta<typeof PillItem> = {
+  title: 'PillItem',
+  component: PillItem,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -21,8 +21,9 @@ const meta: Meta<typeof TokenChainPill> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Interactive source-token pill — the default variant shown in Figma. */
-export const InteractiveToken: Story = {
+/** Interactive variant — the default. Renders a chevron and is
+ * keyboard-accessible (Enter/Space trigger `onClick`). */
+export const Interactive: Story = {
   args: {
     label: 'USDC',
     logoBg: '#2775CA',
@@ -30,7 +31,7 @@ export const InteractiveToken: Story = {
   },
 }
 
-/** Interactive source-chain pill. */
+/** Second interactive example with a different label/logo. */
 export const InteractiveChain: Story = {
   args: {
     label: 'Base',
@@ -40,10 +41,9 @@ export const InteractiveChain: Story = {
 }
 
 /**
- * Display variant — the destination pill from the "Arrives as" card
- * (Figma 17777:81278). Renders on a 5% white surface with no chevron.
- * Achieved by omitting `onClick`; setting `disabled: true` alongside an
- * `onClick` handler produces the same visual.
+ * Display variant — renders on a 5% white surface with no chevron. Achieved
+ * by omitting `onClick`; setting `disabled: true` alongside an `onClick`
+ * handler produces the same visual.
  */
 export const Display: Story = {
   args: {

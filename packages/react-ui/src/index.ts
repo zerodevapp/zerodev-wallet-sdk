@@ -30,8 +30,17 @@ export {
   type ListItemProps,
   ListItemSkeleton,
 } from './components/ListItem'
+export {
+  PillItem,
+  type PillItemProps,
+} from './components/PillItem'
 export { PoweredBy } from './components/PoweredBy'
 export { Screen } from './components/Screen'
+export {
+  SelectDropdown,
+  type SelectDropdownItem,
+  type SelectDropdownProps,
+} from './components/SelectDropdown'
 export { Switch, type SwitchProps } from './components/Switch'
 export { Text, type TextProps } from './components/Text'
 export { TopNav, type TopNavProps } from './components/TopNav'
