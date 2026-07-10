@@ -21,5 +21,12 @@ export { useNewDeposits } from './hooks/useNewDeposits'
 export type { UseSmartRoutingAddressResult } from './hooks/useSmartRoutingAddress'
 export { useSmartRoutingAddress } from './hooks/useSmartRoutingAddress'
 
+// Pages
+export type {
+  SmartRoutingAddressProps,
+  SmartRoutingAddressStep,
+} from './pages'
+export { SmartRoutingAddress } from './pages'
+
 // Types
 export type { SmartRoutingAddressConfig } from './types'
