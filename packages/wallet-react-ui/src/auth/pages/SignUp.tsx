@@ -283,6 +283,16 @@ export function SignUp() {
                 )}
               </Input>
             )}
+            {enabledMethods.includes('external-wallet') && (
+              <ListItem
+                iconName="walletOutline"
+                title="Continue with a wallet"
+                chevron
+                className="zd:rounded-3xl"
+                disabled={anyPending}
+                onClick={() => goToStep('wallet-selection')}
+              />
+            )}
           </div>
         </div>
       </div>

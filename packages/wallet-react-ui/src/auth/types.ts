@@ -1,4 +1,4 @@
-export type AuthMethod = 'email' | 'google' | 'passkey'
+export type AuthMethod = 'email' | 'google' | 'passkey' | 'external-wallet'
 
 export type AuthStep =
   | 'sign-up'
@@ -8,6 +8,7 @@ export type AuthStep =
   | 'passkey-prompt'
   | 'oauth-in-progress'
   | 'wallet-selection'
+  | 'wallet-connect'
   | 'authenticated'
   | 'error'
 

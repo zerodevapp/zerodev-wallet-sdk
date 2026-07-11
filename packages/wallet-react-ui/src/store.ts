@@ -11,6 +11,7 @@ export type State = {
   pendingRequests: PendingRequest[]
   userConfirmationListenerActive: boolean
   logo: ReactNode | null
+  walletConnectProjectId: string | null
   addPendingRequest: (request: PendingRequest) => void
   removePendingRequest: (id: string) => void
   clearPendingRequests: () => void
@@ -19,6 +20,7 @@ export type State = {
 
 export type CreateStoreOptions = {
   logo?: ReactNode
+  walletConnectProjectId?: string
 }
 
 export const createStore = (options: CreateStoreOptions = {}) =>
@@ -27,6 +29,7 @@ export const createStore = (options: CreateStoreOptions = {}) =>
       pendingRequests: [],
       userConfirmationListenerActive: false,
       logo: options.logo ?? null,
+      walletConnectProjectId: options.walletConnectProjectId ?? null,
       addPendingRequest: (request) =>
         set((state) => ({
           pendingRequests: [...state.pendingRequests, request],
