@@ -27,6 +27,12 @@ export type ZeroDevKitConfig = {
    * no logo is shown. `PoweredBy` always shows the ZeroDev mark independently.
    */
   logo?: ReactNode
+  /**
+   * Reown (WalletConnect) Cloud project id. When set, the auth flow offers a
+   * WalletConnect option and creates the wagmi `walletConnect` connector
+   * internally — the consumer doesn't add it to their config themselves.
+   */
+  walletConnectProjectId?: string
 }
 
 export type ZeroDevKitConnectorParams = ZeroDevWalletConnectorParams & {
@@ -74,7 +80,12 @@ export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
   const baseFactory = baseZeroDevWallet(params)
-  const store = createStore({ logo: params.config?.logo })
+  const store = createStore({
+    logo: params.config?.logo,
+    ...(params.config?.walletConnectProjectId && {
+      walletConnectProjectId: params.config.walletConnectProjectId,
+    }),
+  })
 
   // Initialize auth config if provided
   if (params.config?.auth) {
