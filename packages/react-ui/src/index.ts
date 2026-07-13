@@ -35,6 +35,7 @@ export {
   type PillProps,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
+export { QrModal, type QrModalProps } from './components/QrModal'
 export { Screen } from './components/Screen'
 export {
   Select,
