@@ -82,11 +82,6 @@ export function Screen({
           </div>
         </div>
       </div>
-      {/* Overlay is a sibling of the inner card, not a child — so it escapes
-          the card's clip-path + horizontal padding, and its own absolute
-          `inset-0` fills the outer 400×810 frame. That lets the backdrop dim
-          the TopNav band too and lets a bottom sheet anchor to the outer
-          frame's bottom, not the padded inner card. */}
       {overlay}
     </div>
   )
