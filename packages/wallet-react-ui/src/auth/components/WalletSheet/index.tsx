@@ -1,14 +1,9 @@
 import { Button, Text, walletConnectLogo } from '@zerodev/react-ui'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import type { Connector } from 'wagmi'
-import { useScreenOverlayTarget } from '../../../shared/components/Screen'
-import {
-  CardGlow,
-  MultiRadialBackground,
-} from '../../../shared/components/Screen/MultiRadialBackground'
 import { matchesWallet, type WalletGuideEntry } from '../../walletGuide'
 import { QrCode } from '../QrCode'
+import { SheetShell } from './SheetShell'
 
 // Reown's dual check (pointer:coarse OR UA) — CoreHelperUtil.isMobile.
 function isMobile() {
@@ -27,11 +22,8 @@ export type WalletSheetTarget = {
 }
 
 /**
- * Bottom sheet with connection details, slid in over the wallet list —
- * selection stays local state, no step navigation. Rendered through the
- * Screen's overlay portal so it spans the inner card edge-to-edge (the card's
- * clip-path rounds the bottom corners). Always mounted so the translate
- * transition animates both directions.
+ * Bottom sheet with connection details for one wallet (or the generic
+ * WalletConnect pairing) — selection stays local state, no step navigation.
  */
 export function WalletSheet({
   target,
@@ -50,7 +42,6 @@ export function WalletSheet({
   onRetry: () => void
   onClose: () => void
 }) {
-  const overlayTarget = useScreenOverlayTarget()
   const wallet = target?.wallet
   const [tab, setTab] = useState<'mobile' | 'browser'>('mobile')
   const [copied, setCopied] = useState(false)
@@ -91,123 +82,93 @@ export function WalletSheet({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  if (!overlayTarget) return null
-
-  const open = target !== null
-
-  return createPortal(
-    <>
-      {/* backdrop — z-20 to paint above the card's z-10 content column */}
-      <button
-        type="button"
-        aria-label="Close"
-        onClick={onClose}
-        className={`zd:absolute zd:inset-0 zd:z-20 zd:bg-black/30 zd:transition-opacity zd:duration-300 ${
-          open ? 'zd:opacity-100' : 'zd:opacity-0 zd:pointer-events-none'
-        }`}
-      />
-
-      {/* sheet — same gradient treatment as the Screen card: base fill +
-          CardGlow layers behind a z-10 content wrapper (positioned z-0 layers
-          would otherwise paint over in-flow content). rounded-t-4xl matches
-          the card's 32px radius AND the layers' own rounding, so the base
-          fill never peeks out at the corners. */}
-      <div
-        className={`zd:absolute zd:inset-x-0 zd:bottom-0 zd:z-20 zd:rounded-t-4xl zd:overflow-hidden zd:bg-[#FBF7F2] zd:p-4 zd:transition-transform zd:duration-300 ${
-          open ? 'zd:translate-y-0' : 'zd:translate-y-full'
-        }`}
-      >
-        <MultiRadialBackground />
-        <CardGlow />
-        <div className="zd:relative zd:z-10 zd:flex zd:flex-col zd:gap-3 zd:items-center">
-          <div className="zd:flex zd:w-full zd:items-center zd:gap-2">
-            <img
-              src={wallet ? wallet.icon : walletConnectLogo}
-              alt=""
-              className="zd:w-8 zd:h-8 zd:rounded-xl"
-            />
-            <Text className="zd:text-h3 zd:flex-1">
-              {wallet ? wallet.name : 'WalletConnect'}
-            </Text>
-            <button
-              type="button"
-              onClick={onClose}
-              className="zd:cursor-pointer zd:px-2 zd:text-greyScale/60"
-            >
-              ✕
-            </button>
-          </div>
-
-          {wallet && (
-            <div className="zd:flex zd:w-full zd:gap-2">
-              {(['mobile', 'browser'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTab(t)}
-                  className={`zd:flex-1 zd:rounded-2xl zd:py-1.5 zd:text-body3 zd:cursor-pointer ${
-                    tab === t
-                      ? 'zd:bg-greyScale/10 zd:font-semibold'
-                      : 'zd:text-greyScale/60'
-                  }`}
-                >
-                  {t === 'mobile' ? 'Mobile' : 'Browser'}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!wallet || tab === 'mobile' ? (
-            error ? (
-              <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-                <Text className="zd:text-center zd:text-red-500">{error}</Text>
-                <Button action="secondary" text="Try again" onClick={onRetry} />
-              </div>
-            ) : qrValue ? (
-              <>
-                <div className="zd:bg-white zd:rounded-2xl zd:p-2 zd:text-black zd:border zd:border-greyScale/10">
-                  <QrCode value={qrValue} className="zd:w-44 zd:h-44" />
-                </div>
-                {wallet?.mobileLink && (
-                  <a
-                    href={qrValue}
-                    className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
-                  >
-                    Open in {wallet.name}
-                  </a>
-                )}
-                <Button
-                  action="secondary"
-                  text={copied ? 'Copied' : 'Copy link'}
-                  onClick={copyUri}
-                />
-              </>
-            ) : (
-              <Text className="zd:text-center zd:text-greyScale/50">
-                Generating connection link…
-              </Text>
-            )
-          ) : installedConnector ? (
-            <button
-              type="button"
-              onClick={() => onSelectConnector(installedConnector)}
-              className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
-            >
-              Open in {wallet.name}
-            </button>
-          ) : (
-            <a
-              href={wallet.downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
-            >
-              Get {wallet.name}
-            </a>
-          )}
-        </div>
+  return (
+    <SheetShell open={target !== null} onClose={onClose}>
+      <div className="zd:flex zd:w-full zd:items-center zd:gap-2">
+        <img
+          src={wallet ? wallet.icon : walletConnectLogo}
+          alt=""
+          className="zd:w-8 zd:h-8 zd:rounded-xl"
+        />
+        <Text className="zd:text-h3 zd:flex-1">
+          {wallet ? wallet.name : 'WalletConnect'}
+        </Text>
+        <button
+          type="button"
+          onClick={onClose}
+          className="zd:cursor-pointer zd:px-2 zd:text-greyScale/60"
+        >
+          ✕
+        </button>
       </div>
-    </>,
-    overlayTarget,
+
+      {wallet && (
+        <div className="zd:flex zd:w-full zd:gap-2">
+          {(['mobile', 'browser'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`zd:flex-1 zd:rounded-2xl zd:py-1.5 zd:text-body3 zd:cursor-pointer ${
+                tab === t
+                  ? 'zd:bg-greyScale/10 zd:font-semibold'
+                  : 'zd:text-greyScale/60'
+              }`}
+            >
+              {t === 'mobile' ? 'Mobile' : 'Browser'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!wallet || tab === 'mobile' ? (
+        error ? (
+          <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
+            <Text className="zd:text-center zd:text-red-500">{error}</Text>
+            <Button action="secondary" text="Try again" onClick={onRetry} />
+          </div>
+        ) : qrValue ? (
+          <>
+            <div className="zd:bg-white zd:rounded-2xl zd:p-2 zd:text-black zd:border zd:border-greyScale/10">
+              <QrCode value={qrValue} className="zd:w-44 zd:h-44" />
+            </div>
+            {wallet?.mobileLink && (
+              <a
+                href={qrValue}
+                className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
+              >
+                Open in {wallet.name}
+              </a>
+            )}
+            <Button
+              action="secondary"
+              text={copied ? 'Copied' : 'Copy link'}
+              onClick={copyUri}
+            />
+          </>
+        ) : (
+          <Text className="zd:text-center zd:text-greyScale/50">
+            Generating connection link…
+          </Text>
+        )
+      ) : installedConnector ? (
+        <button
+          type="button"
+          onClick={() => onSelectConnector(installedConnector)}
+          className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
+        >
+          Open in {wallet.name}
+        </button>
+      ) : (
+        <a
+          href={wallet.downloadUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
+        >
+          Get {wallet.name}
+        </a>
+      )}
+    </SheetShell>
   )
 }

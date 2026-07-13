@@ -1,16 +1,26 @@
 import { ListItem, Text, walletConnectLogo } from '@zerodev/react-ui'
 import { useState } from 'react'
 import { useConnect } from 'wagmi'
+import { WalletGridSheet } from '../components/WalletGridSheet'
 import { WalletSheet, type WalletSheetTarget } from '../components/WalletSheet'
 import { useAuth } from '../hooks/useAuth'
 import { useWalletConnectPairing } from '../hooks/useWalletConnectPairing'
-import { matchesWallet, WALLET_GUIDE } from '../walletGuide'
+import {
+  matchesWallet,
+  WALLET_GUIDE,
+  type WalletGuideEntry,
+} from '../walletGuide'
+
+// The short list shown on the page; everything else lives behind
+// "Browse more wallets". WalletConnect slots in after MetaMask.
+const CURATED_WALLET_IDS = ['metaMask', 'trust', 'coinbase', 'rainbow', 'rabby']
 
 export function WalletSelection() {
   const { goToStep } = useAuth()
   const { connect, connectors, isPending } = useConnect()
   const pairing = useWalletConnectPairing()
   const [sheet, setSheet] = useState<WalletSheetTarget | null>(null)
+  const [gridOpen, setGridOpen] = useState(false)
 
   // Exclude our own connector and the walletConnect one (kit-created or
   // dev-added) — the dedicated WalletConnect row covers that path; once the
@@ -20,17 +30,9 @@ export function WalletSelection() {
     (c) => c.id !== 'zerodev-wallet' && c.type !== 'walletConnect',
   )
 
-  // Dedupe: guide wallets claimed by a live connector sort first (keeping
-  // their sheet with both connect paths); connectors we have no guide entry
-  // for stay as plain direct-connect rows.
-  const claimedWallets = WALLET_GUIDE.filter((wallet) =>
-    walletConnectors.some((c) => matchesWallet(c, wallet)),
-  )
+  // Live connectors we have no guide entry for — reachable via the grid.
   const unmatchedConnectors = walletConnectors.filter(
     (c) => !WALLET_GUIDE.some((wallet) => matchesWallet(c, wallet)),
-  )
-  const unclaimedWallets = WALLET_GUIDE.filter(
-    (wallet) => !claimedWallets.includes(wallet),
   )
 
   // A 6963 announcement (connector id === rdns) proves a live extension; a
@@ -50,40 +52,39 @@ export function WalletSelection() {
     )
   }
 
+  const openWalletSheet = (wallet: WalletGuideEntry) => {
+    setGridOpen(false)
+    setSheet({ wallet })
+  }
+
+  const curatedWallets = CURATED_WALLET_IDS.flatMap((id) => {
+    const wallet = WALLET_GUIDE.find((w) => w.id === id)
+    return wallet ? [wallet] : []
+  })
+  const [metaMask, ...restCurated] = curatedWallets
+
+  const walletRow = (wallet: WalletGuideEntry) => (
+    <ListItem
+      key={wallet.id}
+      title={wallet.name}
+      imageUri={wallet.icon}
+      chevron
+      disabled={isPending}
+      {...(isAnnounced(wallet.rdns) && {
+        badgeProps: { text: 'INSTALLED' },
+      })}
+      onClick={() => openWalletSheet(wallet)}
+      className="zd:rounded-3xl"
+    />
+  )
+
   return (
     <div className="zd:flex-1 zd:flex zd:flex-col">
       <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:justify-center">
         <Text className="zd:text-h2 zd:text-center">Select your wallet</Text>
 
         <div className="zd:flex zd:flex-col zd:gap-2">
-          {claimedWallets.map((wallet) => (
-            <ListItem
-              key={wallet.id}
-              title={wallet.name}
-              imageUri={wallet.icon}
-              chevron
-              disabled={isPending}
-              {...(isAnnounced(wallet.rdns) && {
-                badgeProps: { text: 'INSTALLED' },
-              })}
-              onClick={() => setSheet({ wallet })}
-              className="zd:rounded-3xl"
-            />
-          ))}
-          {unmatchedConnectors.map((connector) => (
-            <ListItem
-              key={connector.uid}
-              title={connector.name}
-              iconName="walletOutline"
-              {...(connector.icon ? { imageUri: connector.icon } : {})}
-              {...(connector.type === 'injected' && {
-                badgeProps: { text: 'INSTALLED' },
-              })}
-              disabled={isPending}
-              onClick={() => handleSelect(connector)}
-              className="zd:rounded-3xl"
-            />
-          ))}
+          {metaMask && walletRow(metaMask)}
           {pairing.enabled && (
             <ListItem
               title="WalletConnect"
@@ -95,19 +96,29 @@ export function WalletSelection() {
               className="zd:rounded-3xl"
             />
           )}
-          {unclaimedWallets.map((wallet) => (
-            <ListItem
-              key={wallet.id}
-              title={wallet.name}
-              imageUri={wallet.icon}
-              chevron
-              disabled={isPending}
-              onClick={() => setSheet({ wallet })}
-              className="zd:rounded-3xl"
-            />
-          ))}
+          {restCurated.map(walletRow)}
+
+          <ListItem
+            title="Browse more wallets"
+            iconName="walletOutline"
+            chevron
+            disabled={isPending}
+            onClick={() => setGridOpen(true)}
+            className="zd:rounded-3xl"
+          />
         </div>
       </div>
+
+      <WalletGridSheet
+        open={gridOpen}
+        connectors={unmatchedConnectors}
+        onSelectWallet={openWalletSheet}
+        onSelectConnector={(connector) => {
+          setGridOpen(false)
+          handleSelect(connector)
+        }}
+        onClose={() => setGridOpen(false)}
+      />
 
       <WalletSheet
         target={sheet}
