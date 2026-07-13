@@ -130,7 +130,11 @@ export function WalletSheet({
         ) : qrValue ? (
           <>
             <div className="zd:bg-white zd:rounded-2xl zd:p-2 zd:text-black zd:border zd:border-greyScale/10">
-              <QrCode value={qrValue} className="zd:w-44 zd:h-44" />
+              <QrCode
+                value={qrValue}
+                logo={wallet ? wallet.icon : walletConnectLogo}
+                className="zd:w-44 zd:h-44"
+              />
             </div>
             {wallet?.mobileLink && (
               <a
