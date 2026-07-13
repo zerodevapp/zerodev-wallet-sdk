@@ -13,3 +13,10 @@ declare module '*.svg?react' {
   const ReactComponent: FC<SVGProps<SVGSVGElement>>
   export default ReactComponent
 }
+
+// Raster assets resolve to a URL (or inlined data URI under vite's
+// assetsInlineLimit).
+declare module '*.webp' {
+  const url: string
+  export default url
+}

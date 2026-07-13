@@ -51,7 +51,7 @@ export const config = createConfig({
         // PoC Reown Cloud project id (public client identifier).
         walletConnectProjectId: 'a6b5206ed2bb5ffce9937671b0f8f187',
         auth: {
-          enabledMethods: ['email', 'google', 'passkey', 'external-wallet'],
+          enabledMethods: ['email', 'passkey', 'external-wallet'],
           emailAuthMethod: getEmailAuthMethod(),
         },
       },

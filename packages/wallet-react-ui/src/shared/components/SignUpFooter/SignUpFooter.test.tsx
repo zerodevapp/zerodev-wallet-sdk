@@ -1,10 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../PoweredBy', () => ({
-  PoweredBy: () => <div data-testid="powered-by">Powered by</div>,
-}))
-
 import { SignUpFooter } from './index'
 
 const TERMS_URL = 'https://example.com/terms'
@@ -16,12 +12,13 @@ afterEach(() => {
 
 describe('SignUpFooter', () => {
   describe('without legal URLs', () => {
-    it('renders only the PoweredBy badge when neither URL is provided', () => {
-      render(<SignUpFooter agreedToTerms={false} setAgreedToTerms={vi.fn()} />)
+    it('renders nothing when neither URL is provided', () => {
+      const { container } = render(
+        <SignUpFooter agreedToTerms={false} setAgreedToTerms={vi.fn()} />,
+      )
 
-      expect(screen.getByTestId('powered-by')).toBeDefined()
+      expect(container.firstChild).toBeNull()
       expect(screen.queryByRole('checkbox')).toBeNull()
-      expect(screen.queryByText(/I agree to the/i)).toBeNull()
     })
   })
 

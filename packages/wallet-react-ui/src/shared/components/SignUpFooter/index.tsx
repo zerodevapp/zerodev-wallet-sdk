@@ -1,5 +1,4 @@
 import { Text } from '@zerodev/react-ui'
-import { PoweredBy } from '../PoweredBy'
 
 export function SignUpFooter({
   termsAndConditionsUrl,
@@ -15,6 +14,10 @@ export function SignUpFooter({
   highlight?: boolean
 }) {
   const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
+
+  // PoweredBy moved to the Screen's fixed footer zone — without an agreement
+  // block there is nothing left to render.
+  if (!showAgreement) return null
 
   return (
     <div className="zd:flex zd:flex-col zd:items-center zd:gap-5">
@@ -60,7 +63,6 @@ export function SignUpFooter({
           </Text>
         </div>
       )}
-      <PoweredBy />
     </div>
   )
 }
