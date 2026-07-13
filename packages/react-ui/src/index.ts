@@ -35,6 +35,7 @@ export {
   type PillItemProps,
 } from './components/PillItem'
 export { PoweredBy } from './components/PoweredBy'
+export { QrModal, type QrModalProps } from './components/QrModal'
 export { Screen } from './components/Screen'
 export {
   SelectDropdown,
