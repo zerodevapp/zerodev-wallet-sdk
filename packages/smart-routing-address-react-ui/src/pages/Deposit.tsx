@@ -1,6 +1,7 @@
 import {
   ArrowCardPair,
   cn,
+  DataRow,
   Icon,
   PoweredBy,
   Text,
@@ -8,7 +9,6 @@ import {
 } from '@zerodev/react-ui'
 import { useMemo } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
-import { LabeledValueRow } from '../components/LabeledValueRow'
 import { LoadingCard } from '../components/LoadingCard'
 import { TokenChainPill } from '../components/TokenChainPill'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
@@ -129,8 +129,8 @@ export function Deposit({ onQrClick }: DepositProps) {
                 }
               />
               <div className="zd:flex zd:w-full zd:flex-col zd:items-start zd:gap-2 zd:px-2 zd:py-4">
-                <LabeledValueRow label="Max slippage" value={slippage} info />
-                <LabeledValueRow
+                <DataRow label="Max slippage" value={slippage} info />
+                <DataRow
                   label="Estimated fee"
                   value={estimatedFee}
                   info
@@ -169,7 +169,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                 }
               />
               <div className="zd:flex zd:w-full zd:flex-col zd:items-start zd:px-2">
-                <LabeledValueRow label="Ready in" value={readyInText} info />
+                <DataRow label="Ready in" value={readyInText} info />
               </div>
               {renderAddressSlot({
                 status: addressState.status,
@@ -177,7 +177,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                 ...(onQrClick && { onQrClick }),
               })}
               {minDepositAmount && (
-                <LabeledValueRow
+                <DataRow
                   label="Minimum deposit"
                   value={minDepositAmount}
                   info
