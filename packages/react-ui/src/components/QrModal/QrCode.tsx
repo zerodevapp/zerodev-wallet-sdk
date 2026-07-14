@@ -1,4 +1,4 @@
-import * as QRCode from 'qrcode'
+import { encode } from 'uqr'
 
 interface QrCodeProps {
   /** Data to encode. */
@@ -30,9 +30,12 @@ export function QrCode({
   bgColor = '#fff',
   eyeRadius = 2,
 }: QrCodeProps) {
-  const qr = QRCode.create(value, { errorCorrectionLevel })
-  const matrix = qr.modules.data
-  const moduleCount = qr.modules.size
+  // `uqr` returns a 2D boolean matrix (`data[row][col]`) and the module count
+  // per side. Same information as `qrcode`, just shaped differently — the
+  // pill/finder rendering below is unchanged.
+  const qr = encode(value, { ecc: errorCorrectionLevel })
+  const matrix = qr.data
+  const moduleCount = qr.size
   const cellSize = size / moduleCount
   const eyeRadiusPx = eyeRadius * cellSize
 
@@ -60,12 +63,12 @@ export function QrCode({
         col++
         continue
       }
-      if (matrix[row * moduleCount + col]) {
+      if (matrix[row]?.[col]) {
         let length = 1
         while (
           col + length < moduleCount &&
           !inFinder(row, col + length) &&
-          matrix[row * moduleCount + (col + length)]
+          matrix[row]?.[col + length]
         ) {
           length++
         }
