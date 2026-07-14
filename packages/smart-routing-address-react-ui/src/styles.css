@@ -1,0 +1,6 @@
+@import "tailwindcss" prefix(zd);
+/* Tokens are single-sourced in @zerodev/react-ui. */
+@config "../../react-ui/tailwind.config.ts";
+/* Scan both packages' sources so the built CSS serves apps with one stylesheet. */
+@source "./";
+@source "../../react-ui/src";
