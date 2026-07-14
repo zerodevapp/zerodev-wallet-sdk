@@ -1,0 +1,79 @@
+import type { Meta, StoryObj } from '@storybook/react-vite'
+import { TokenChainPill } from './index'
+
+const meta: Meta<typeof TokenChainPill> = {
+  title: 'SmartRoutingAddress/TokenChainPill',
+  component: TokenChainPill,
+  parameters: { layout: 'centered' },
+  decorators: [
+    (Story) => (
+      <div style={{ width: 162 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  argTypes: {
+    logoBg: { control: 'color' },
+    onClick: { action: 'clicked' },
+  },
+}
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+/** Interactive source-token pill — the default variant shown in Figma. */
+export const InteractiveToken: Story = {
+  args: {
+    label: 'USDC',
+    logoBg: '#2775CA',
+    logoInitial: 'U',
+    onClick: () => {},
+  },
+}
+
+/** Interactive source-chain pill. */
+export const InteractiveChain: Story = {
+  args: {
+    label: 'Base',
+    logoBg: '#0052FF',
+    logoInitial: 'B',
+    onClick: () => {},
+  },
+}
+
+/**
+ * Display variant — the destination pill from the "Arrives as" card
+ * (Figma 17777:81278). Renders on a 5% white surface with no chevron.
+ * Achieved by omitting `onClick`; setting `disabled: true` alongside an
+ * `onClick` handler produces the same visual.
+ */
+export const Display: Story = {
+  args: {
+    label: 'Arbitrum One',
+    logoBg: '#28A0F0',
+    logoInitial: 'A',
+  },
+}
+
+/** Same display variant, but with `disabled: true` forcing a passed
+ * `onClick` handler to be ignored — useful for "temporarily unavailable"
+ * states without unmounting/remounting props. */
+export const DisplayForcedDisabled: Story = {
+  args: {
+    label: 'Arbitrum One',
+    logoBg: '#28A0F0',
+    logoInitial: 'A',
+    onClick: () => {},
+    disabled: true,
+  },
+}
+
+/** With an external logo image supplied. */
+export const WithLogoImage: Story = {
+  args: {
+    label: 'USDC',
+    logoUri:
+      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
+    onClick: () => {},
+  },
+}
