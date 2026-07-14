@@ -1,34 +1,43 @@
-import { cn, Icon, Text } from '@zerodev/react-ui'
 import type { ReactNode } from 'react'
 
-export interface LabeledValueRowProps {
+import { cn } from '../../utils/common'
+import { Icon } from '../Icon'
+import { Text } from '../Text'
+
+export interface DataRowProps {
   /** Label rendered on the left (e.g., "Max slippage"). */
   label: string
-  /** Value rendered on the right. Accepts a string or arbitrary ReactNode. */
+  /** Value rendered on the right. Accepts a string (wrapped in `Text`) or an
+   * arbitrary ReactNode (rendered verbatim). */
   value: ReactNode
-  /** Renders a 14×14 info icon at 50% opacity between the label and value. */
+  /** Renders a small info icon (14×14, greyScale/50) between the label and
+   * the value. */
   info?: boolean
-  /** Handler for the info icon; makes it a keyboard-accessible button. */
+  /** Handler for the info icon; when supplied, the icon becomes a keyboard-
+   * accessible button. Requires `info` to be true. */
   onInfoClick?: () => void
-  /**
-   * Extra element rendered inline with the value (e.g., a chevron for
-   * expandable rows — Figma 17634:104304).
-   */
+  /** Content rendered inside the value group, before the value. Typically a
+   * small decorative or status icon (e.g. warning). */
+  leading?: ReactNode
+  /** Content rendered inside the value group, after the value. Typically a
+   * chevron or trailing icon. */
   trailing?: ReactNode
-  /** `'default'` for plain rows; `'warning'` for the orange-tinted card. */
+  /** `'default'` for a plain inline row; `'warning'` for the orange-tinted
+   * card treatment (Figma "Minimum deposit"). */
   variant?: 'default' | 'warning'
   className?: string
 }
 
-export function LabeledValueRow({
+export function DataRow({
   label,
   value,
   info,
   onInfoClick,
+  leading,
   trailing,
   variant = 'default',
   className,
-}: LabeledValueRowProps) {
+}: DataRowProps) {
   const isWarning = variant === 'warning'
   const textColorClass = isWarning ? 'zd:text-solarOrange' : undefined
 
@@ -62,29 +71,36 @@ export function LabeledValueRow({
             onClick={onInfoClick}
             aria-label={`${label} — more info`}
             className="zd:flex zd:items-center zd:justify-center zd:cursor-pointer"
-            data-testid="labeled-value-row-info"
+            data-testid="data-row-info"
           >
             <Icon
               name="info"
-              className="zd:size-3.5 zd:text-greyScale/50"
+              className={cn(
+                'zd:w-3.5 zd:h-3.5',
+                isWarning ? 'zd:text-solarOrange' : 'zd:text-greyScale/50',
+              )}
               aria-hidden
             />
           </button>
         ) : (
           <Icon
             name="info"
-            className="zd:size-3.5 zd:text-greyScale/50"
-            data-testid="labeled-value-row-info"
+            className={cn(
+              'zd:w-3.5 zd:h-3.5',
+              isWarning ? 'zd:text-solarOrange' : 'zd:text-greyScale/50',
+            )}
+            data-testid="data-row-info"
             aria-hidden
           />
         ))}
-      {/* Spacer pushes the value to the right end. min-w-0 so the label
-          and value can shrink independently if the container is narrow. */}
+      {/* Spacer pushes the value to the right end. min-w-0 so the label and
+          value can shrink independently if the container is narrow. */}
       <div className="zd:min-w-0 zd:flex-1" />
       <div
         className="zd:flex zd:items-center zd:gap-[5px]"
-        data-testid="labeled-value-row-value"
+        data-testid="data-row-value"
       >
+        {leading}
         {typeof value === 'string' ? (
           <Text className={cn('zd:whitespace-nowrap', textColorClass)}>
             {value}
@@ -94,6 +110,31 @@ export function LabeledValueRow({
         )}
         {trailing}
       </div>
+    </div>
+  )
+}
+
+export interface DataRowSkeletonProps {
+  /** Optional label to render as-is on the left; when omitted a pulse
+   * placeholder is drawn in its place. */
+  label?: string
+  className?: string
+}
+
+export function DataRowSkeleton({ label, className }: DataRowSkeletonProps) {
+  return (
+    <div
+      className={cn(
+        'zd:flex zd:flex-row zd:items-center zd:justify-between zd:py-1',
+        className,
+      )}
+    >
+      {label ? (
+        <Text>{label}</Text>
+      ) : (
+        <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
+      )}
+      <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-offWhite/50 zd:animate-pulse" />
     </div>
   )
 }

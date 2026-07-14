@@ -1,5 +1,4 @@
-import { cn, Wrapper } from '@zerodev/react-ui'
-import { DataRowSkeleton } from '../DataRow'
+import { cn, DataRowSkeleton, Wrapper } from '@zerodev/react-ui'
 
 function SkeletonBar({ className }: { className?: string }) {
   return (

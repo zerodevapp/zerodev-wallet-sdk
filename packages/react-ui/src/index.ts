@@ -7,6 +7,12 @@ export { Badge, type BadgeProps } from './components/Badge'
 export { Button, type ButtonProps } from './components/Button'
 export { Callout, type CalloutProps } from './components/Callout'
 export {
+  DataRow,
+  type DataRowProps,
+  DataRowSkeleton,
+  type DataRowSkeletonProps,
+} from './components/DataRow'
+export {
   Icon,
   type IconName,
   type IconProps,

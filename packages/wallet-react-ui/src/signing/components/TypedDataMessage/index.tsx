@@ -1,5 +1,5 @@
+import { DataRow } from '@zerodev/react-ui'
 import { shortenHex } from '../../../shared/utils/common'
-import { DataRow } from '../DataRow'
 import type { TypedDataField, TypedDataV4 } from './types'
 
 const INDENT_CLASS = ['', 'zd:pl-2', 'zd:pl-4', 'zd:pl-6', 'zd:pl-8'] as const

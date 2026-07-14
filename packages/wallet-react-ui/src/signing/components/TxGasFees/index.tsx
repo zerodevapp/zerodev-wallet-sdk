@@ -1,5 +1,6 @@
 import {
   cn,
+  DataRow,
   Icon,
   type IconName,
   ListItem,
@@ -9,7 +10,6 @@ import {
   Wrapper,
 } from '@zerodev/react-ui'
 import { capitalizeFirst } from '../../../shared/utils/common'
-import { DataRow } from '../DataRow'
 
 export type GasTier = 'low' | 'market' | 'fast'
 
@@ -112,14 +112,29 @@ export function TxGasFees({
         <DataRow
           label="Fee"
           value={`${selectedGasFee?.fee} (${selectedGasFee?.feeUsd})`}
-          iconName="gasStation"
-          leadingIconName="warning"
+          leading={
+            <Icon
+              name="warning"
+              className="zd:h-3 zd:w-3 zd:text-solarOrange"
+            />
+          }
+          trailing={
+            <Icon
+              name="gasStation"
+              className="zd:w-4 zd:h-4 zd:text-solarOrange"
+            />
+          }
         />
         {typeof slippage === 'number' && (
           <DataRow
             label="Slippage"
             value={`${slippage}%`}
-            iconName="settings"
+            trailing={
+              <Icon
+                name="settings"
+                className="zd:w-4 zd:h-4 zd:text-solarOrange"
+              />
+            }
           />
         )}
       </div>
