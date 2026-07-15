@@ -10,12 +10,14 @@ import { ErrorScreen } from './pages/ErrorScreen'
 import { OtpInput } from './pages/OtpInput'
 import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
+import { WalletConnectQr } from './pages/WalletConnectQr'
 import { WalletSelection } from './pages/WalletSelection'
 import type { AuthStep } from './types'
 import { hasMagicLinkCodeInUrl, stripMagicLinkCodeFromUrl } from './utils/url'
 
 const TITLE_BY_STEP: Partial<Record<AuthStep, string>> = {
   'wallet-selection': 'Choose your wallet',
+  'wallet-connect': 'WalletConnect',
 }
 
 function OAuthCallback() {
@@ -54,6 +56,8 @@ function renderStep(step: AuthStep | null): ReactNode {
       return <PasskeyPrompt />
     case 'wallet-selection':
       return <WalletSelection />
+    case 'wallet-connect':
+      return <WalletConnectQr />
     case 'error':
       return <ErrorScreen />
     default:

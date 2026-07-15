@@ -4,11 +4,13 @@ import { ZeroDevLogo } from '@zerodev/react-ui'
 import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
-import { arbitrumSepolia, sepolia } from 'wagmi/chains'
+import { arbitrumSepolia, sepolia, arbitrum, mainnet } from 'wagmi/chains'
 
 const rpcUrls: Record<number, string | undefined> = {
   [arbitrumSepolia.id]: process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL,
   [sepolia.id]: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL,
+  [mainnet.id]: process.env.NEXT_PUBLIC_MAINNET_RPC_URL,
+  [arbitrum.id]: process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL,
 }
 
 // Local testing toggle for the connector's account mode.
@@ -27,12 +29,12 @@ function getEmailAuthMethod(): 'otp' | 'magicLink' {
 }
 
 export const config = createConfig({
-  chains: [arbitrumSepolia, sepolia],
+  chains: [arbitrumSepolia, sepolia, mainnet, arbitrum],
   connectors: [
     zeroDevWallet({
       projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID!,
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
-      chains: [arbitrumSepolia, sepolia],
+      chains: [arbitrumSepolia, sepolia, mainnet, arbitrum],
       // Bundler/paymaster host override (defaults to the SDK's prod host).
       // CI/e2e sets this to staging to match NEXT_PUBLIC_KMS_PROXY_BASE_URL.
       ...(process.env.NEXT_PUBLIC_ZERODEV_AA_HOST && {
@@ -46,8 +48,10 @@ export const config = createConfig({
       ...(mode && { mode }),
       config: {
         logo: <ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />,
+        // PoC Reown Cloud project id (public client identifier).
+        walletConnectProjectId: 'a6b5206ed2bb5ffce9937671b0f8f187',
         auth: {
-          enabledMethods: ['email', 'google', 'passkey'],
+          enabledMethods: ['email', 'google', 'passkey', 'external-wallet'],
           emailAuthMethod: getEmailAuthMethod(),
         },
       },
@@ -57,5 +61,7 @@ export const config = createConfig({
   transports: {
     [arbitrumSepolia.id]: http(rpcUrls[arbitrumSepolia.id]),
     [sepolia.id]: http(rpcUrls[sepolia.id]),
+    [mainnet.id]: http(rpcUrls[mainnet.id]),
+    [arbitrum.id]: http(rpcUrls[arbitrum.id]),
   },
 })

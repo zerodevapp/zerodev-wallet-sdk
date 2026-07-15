@@ -1,11 +1,18 @@
 import { ListItem, Text } from '@zerodev/react-ui'
 import { useConnect } from 'wagmi'
+import { useStore } from 'zustand'
 import { PoweredBy } from '../../shared/components/PoweredBy'
+import { useKitStore } from '../../shared/hooks/useKitStore'
 import { useAuth } from '../hooks/useAuth'
+import { WALLET_GUIDE } from '../walletGuide'
 
 export function WalletSelection() {
   const { goToStep } = useAuth()
   const { connect, connectors, isPending } = useConnect()
+  const walletConnectProjectId = useStore(
+    useKitStore(),
+    (s) => s.walletConnectProjectId,
+  )
 
   const externalConnectors = connectors.filter((c) => c.id !== 'zerodev-wallet')
 
@@ -44,6 +51,34 @@ export function WalletSelection() {
               />
             ))
           )}
+        </div>
+
+        <div className="zd:flex zd:flex-col zd:gap-2">
+          {walletConnectProjectId && (
+            <ListItem
+              title="WalletConnect"
+              iconName="walletOutline"
+              chevron
+              disabled={isPending}
+              onClick={() => goToStep('wallet-connect')}
+              className="zd:rounded-3xl"
+            />
+          )}
+          <Text className="zd:text-body3 zd:text-greyScale/50">
+            More wallets
+          </Text>
+          {WALLET_GUIDE.map((wallet) => (
+            <ListItem
+              key={wallet.id}
+              title={wallet.name}
+              imageUri={wallet.icon}
+              disabled={isPending}
+              onClick={() =>
+                window.open(wallet.downloadUrl, '_blank', 'noopener')
+              }
+              className="zd:rounded-3xl"
+            />
+          ))}
         </div>
       </div>
 
