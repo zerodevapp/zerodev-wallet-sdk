@@ -3,6 +3,11 @@
  * React UI primitives for ZeroDev
  */
 
+export {
+  ArrowCardPair,
+  type ArrowCardPairProps,
+  ArrowView,
+} from './components/ArrowCardPair'
 export { Badge, type BadgeProps } from './components/Badge'
 export { Button, type ButtonProps } from './components/Button'
 export { Callout, type CalloutProps } from './components/Callout'
