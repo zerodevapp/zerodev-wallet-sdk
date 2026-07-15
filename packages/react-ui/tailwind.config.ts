@@ -57,15 +57,17 @@ const config: Config = {
         mono: undefined,
         roboto: ['Roboto', 'sans-serif'],
       },
-      // Sheet / overlay animations bound to Radix's `data-state=open|closed`
-      // attributes. Defined here (not in the CSS) so downstream packages that
-      // `@config` this file inherit them without duplication.
+      // Modal slide-up / slide-down animations. Defined in the config (not
+      // the CSS) so consumers who @config this file (e.g.
+      // smart-routing-address-react-ui) inherit them automatically. CSS
+      // animations restart deterministically when animation-name changes,
+      // which is what Modal relies on for open→close→open interrupts.
       keyframes: {
-        'sheet-in': {
+        'modal-in': {
           from: { transform: 'translateY(100%)' },
           to: { transform: 'translateY(0)' },
         },
-        'sheet-out': {
+        'modal-out': {
           from: { transform: 'translateY(0)' },
           to: { transform: 'translateY(100%)' },
         },
@@ -79,8 +81,8 @@ const config: Config = {
         },
       },
       animation: {
-        'sheet-in': 'sheet-in 300ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
-        'sheet-out': 'sheet-out 250ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
+        'modal-in': 'modal-in 300ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
+        'modal-out': 'modal-out 250ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
         'backdrop-in': 'backdrop-in 200ms ease-out forwards',
         'backdrop-out': 'backdrop-out 200ms ease-out forwards',
       },

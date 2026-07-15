@@ -30,6 +30,7 @@ export {
   type ListItemProps,
   ListItemSkeleton,
 } from './components/ListItem'
+export { Modal, type ModalProps } from './components/Modal'
 export {
   PillItem,
   type PillItemProps,
