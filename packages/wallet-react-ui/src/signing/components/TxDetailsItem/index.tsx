@@ -1,6 +1,6 @@
-import { Icon, Text, Wrapper } from '@zerodev/react-ui'
+import { DataRow, Icon, Text, Wrapper } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { DataRow } from '../DataRow'
+import { camelCaseToTitle } from '../../../shared/utils/common'
 
 export interface TxDetailsItemProps {
   title: string
@@ -41,7 +41,13 @@ export function TxDetailsItem({ title, index, data }: TxDetailsItemProps) {
       {expanded && (
         <div className="zd:flex zd:flex-col zd:px-5 zd:pb-2 zd:gap-2">
           {Object.entries(data).map(([label, value]) => (
-            <DataRow key={label} label={label} value={value} />
+            // Object keys are raw camelCase (e.g. "gasFee"); the primitive
+            // DataRow renders labels verbatim, so title-case them here.
+            <DataRow
+              key={label}
+              label={camelCaseToTitle(label)}
+              value={value}
+            />
           ))}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { Text } from '@zerodev/react-ui'
+import { DataRow, DataRowSkeleton, Icon, Text } from '@zerodev/react-ui'
 import { useMemo } from 'react'
 import {
   type Address,
@@ -12,7 +12,6 @@ import {
 import { useReadContracts } from 'wagmi'
 import { shortenHex } from '../../shared/utils/common'
 import type { BatchCall } from '../../types.js'
-import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
 import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
@@ -331,7 +330,12 @@ export function BatchCalls({ calls, confirm, reject }: BatchCallsProps) {
               <DataRow
                 label="Fee"
                 value={formatGasFee(gasEstimate)}
-                iconName="gasStation"
+                trailing={
+                  <Icon
+                    name="gasStation"
+                    className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                  />
+                }
               />
             ) : (
               <DataRowSkeleton label="Fee" />

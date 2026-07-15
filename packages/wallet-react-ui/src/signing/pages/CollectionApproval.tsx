@@ -1,9 +1,8 @@
-import { Text } from '@zerodev/react-ui'
+import { DataRow, DataRowSkeleton, Icon, Text } from '@zerodev/react-ui'
 import type { Address, Hex } from 'viem'
 import { useReadContract } from 'wagmi'
 import { shortenHex } from '../../shared/utils/common'
 import { ArrowCardPair } from '../components/ArrowCardPair'
-import { DataRow, DataRowSkeleton } from '../components/DataRow'
 import { InfoCard } from '../components/InfoCard'
 import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
@@ -117,7 +116,12 @@ export function CollectionApproval({
                 <DataRow
                   label="Fee"
                   value={formatGasFee(gasEstimate)}
-                  iconName="gasStation"
+                  trailing={
+                    <Icon
+                      name="gasStation"
+                      className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                    />
+                  }
                 />
               ) : (
                 <DataRowSkeleton label="Fee" />

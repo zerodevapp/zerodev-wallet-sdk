@@ -1,6 +1,5 @@
-import { Callout, Icon, Text, Wrapper } from '@zerodev/react-ui'
+import { Callout, DataRow, Icon, Text, Wrapper } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { DataRow } from '../DataRow'
 import { type GasRoute, RouteItem } from '../RouteItem'
 
 interface ProviderFee {
@@ -58,12 +57,22 @@ export function SmartFundingGasDetails({
             <DataRow
               label="Total execution time"
               value={formattedExecutionTime}
-              iconName="clock"
+              trailing={
+                <Icon
+                  name="clock"
+                  className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                />
+              }
             />
             <DataRow
               label="Slippage:"
               value={`${slippage}%`}
-              iconName="settings"
+              trailing={
+                <Icon
+                  name="settings"
+                  className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                />
+              }
             />
           </div>
 
@@ -102,7 +111,12 @@ export function SmartFundingGasDetails({
                 key={`fee${key.toString()}`}
                 label={`${item.provider} Fee (${item.percentage}%)`}
                 value={item.fee}
-                iconName="gasStation"
+                trailing={
+                  <Icon
+                    name="gasStation"
+                    className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                  />
+                }
               />
             ))}
           </div>
