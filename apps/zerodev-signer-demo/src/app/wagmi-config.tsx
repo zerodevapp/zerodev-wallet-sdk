@@ -30,6 +30,7 @@ export const config = createConfig({
   chains: [arbitrumSepolia, sepolia],
   connectors: [
     zeroDevWallet({
+      mode: 'EOA',
       projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID!,
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
       chains: [arbitrumSepolia, sepolia],
@@ -52,11 +53,6 @@ export const config = createConfig({
         },
         signing: {
            mode:'prompt',
-           methods: [
-            'wallet_sendTransaction',
-            'eth_sendTransaction',
-            'wallet_sendCalls'
-           ]
         }
         // signing: {
         //    mode:'background',

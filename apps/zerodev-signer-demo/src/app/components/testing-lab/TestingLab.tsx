@@ -1,24 +1,27 @@
 "use client";
 
-import { Code2, FileSignature, FlaskConical, Send } from "lucide-react";
+import { Code2, FileSignature, FlaskConical, Network, Send } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { ContractBalances } from "./ContractBalances";
 import { Erc20ContractTest } from "./Erc20ContractTest";
 import { Erc721ContractTest } from "./Erc721ContractTest";
 import { HelloWorldContractTest } from "./HelloWorldContractTest";
+import { RpcReadTests } from "./RpcReadTests";
 import { SendEthTest } from "./SendEthTest";
 import { SendHighAmountTest } from "./SendHighAmountTest";
 import { SendInvalidAddressTest } from "./SendInvalidAddressTest";
 import { SignMessageCounterTest } from "./SignMessageCounterTest";
 import { SignMessagePresetTest } from "./SignMessagePresetTest";
+import { SignTypedDataInvalidTest } from "./SignTypedDataInvalidTest";
 
-type LabTab = "signing" | "transactions" | "contracts";
+type LabTab = "signing" | "transactions" | "contracts" | "rpc";
 
 const tabs = [
   { id: "signing" as const, name: "Signing", icon: FileSignature },
   { id: "transactions" as const, name: "Transactions", icon: Send },
   { id: "contracts" as const, name: "Contracts", icon: Code2 },
+  { id: "rpc" as const, name: "RPC", icon: Network },
 ];
 
 /**
@@ -71,6 +74,7 @@ export function TestingLab() {
           <div className="space-y-4">
             <SignMessageCounterTest />
             <SignMessagePresetTest />
+            <SignTypedDataInvalidTest />
           </div>
         )}
         {activeTab === "transactions" && (
@@ -86,6 +90,11 @@ export function TestingLab() {
             <Erc20ContractTest />
             <Erc721ContractTest />
             <HelloWorldContractTest />
+          </div>
+        )}
+        {activeTab === "rpc" && (
+          <div className="space-y-4">
+            <RpcReadTests />
           </div>
         )}
       </div>
