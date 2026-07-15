@@ -1,0 +1,28 @@
+{
+  "name": "@zerodev/sra-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 8004",
+    "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/react-ui exec vite build --watch & pnpm --filter @zerodev/smart-routing-address-react-ui exec vite build --watch & (sleep 2 && open http://localhost:8004) & pnpm --filter @zerodev/sra-demo dev",
+    "build": "next build",
+    "start": "next start -p 8004",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@zerodev/react-ui": "workspace:*",
+    "@zerodev/smart-routing-address": "^0.2.5",
+    "@zerodev/smart-routing-address-react-ui": "workspace:*",
+    "next": "15.3.8",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "viem": "^2.47.18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "~5.9.2"
+  }
+}

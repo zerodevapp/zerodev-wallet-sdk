@@ -3,7 +3,6 @@ import { DM_Sans, Geist, Geist_Mono } from "next/font/google";
 import { Providers } from './providers';
 
 import "@zerodev/wallet-react-ui/styles.css";
-import "@zerodev/smart-routing-address-react-ui/styles.css";
 import "./globals.css";
 
 const geistSans = Geist({
