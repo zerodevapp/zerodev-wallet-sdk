@@ -50,6 +50,17 @@ export const config = createConfig({
           enabledMethods: ['email', 'google', 'passkey'],
           emailAuthMethod: getEmailAuthMethod(),
         },
+        signing: {
+           mode:'prompt',
+           methods: [
+            'wallet_sendTransaction',
+            'eth_sendTransaction',
+            'wallet_sendCalls'
+           ]
+        }
+        // signing: {
+        //    mode:'background',
+        // }
       },
     }),
   ],

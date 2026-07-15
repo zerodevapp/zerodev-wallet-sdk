@@ -25,6 +25,7 @@ import { AppHeader } from "../components/AppHeader";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
+import { TestingLab } from "../components/testing-lab/TestingLab";
 import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
@@ -258,7 +259,7 @@ export default function DashboardPage() {
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
       {confirmationEnabled && (
-        <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
+        <SignatureRequest className='fixed inset-0 z-50 sm:fixed sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
       )}
       <div className="min-h-screen">
         <AppHeader />
@@ -444,6 +445,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Testing Lab */}
+          <TestingLab />
         </div>
       </div>
     </>
