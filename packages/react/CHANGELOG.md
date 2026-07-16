@@ -1,5 +1,11 @@
 # @zerodev/wallet-react
 
+## 0.0.3
+
+### Patch Changes
+
+- 107915a: feat: default the AA bundler/paymaster URL to ?provider=ULTRA_RELAY
+
 ## 0.0.2
 
 ### Patch Changes
