@@ -1,7 +1,6 @@
-import { Button, Text } from '@zerodev/react-ui'
+import { Button, PoweredBy, Text } from '@zerodev/react-ui'
 import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
-import { PoweredBy } from '../../shared/components/PoweredBy'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 

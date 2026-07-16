@@ -166,6 +166,43 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
 
+  apps/sra-demo:
+    dependencies:
+      '@zerodev/react-ui':
+        specifier: workspace:*
+        version: link:../../packages/react-ui
+      '@zerodev/smart-routing-address':
+        specifier: ^0.2.5
+        version: 0.2.5(typescript@5.9.3)(viem@2.47.19(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.1.12))
+      '@zerodev/smart-routing-address-react-ui':
+        specifier: workspace:*
+        version: link:../../packages/smart-routing-address-react-ui
+      next:
+        specifier: 15.3.8
+        version: 15.3.8(@babel/core@7.29.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: 19.2.0
+        version: 19.2.0(react@19.2.0)
+      viem:
+        specifier: ^2.47.18
+        version: 2.47.19(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.1.12)
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.11
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
   apps/zerodev-signer-demo:
     dependencies:
       '@tanstack/react-query':

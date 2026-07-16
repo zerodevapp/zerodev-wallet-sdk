@@ -1,6 +1,5 @@
-import { ListItem, Text } from '@zerodev/react-ui'
+import { ListItem, PoweredBy, Text } from '@zerodev/react-ui'
 import { useConnect } from 'wagmi'
-import { PoweredBy } from '../../shared/components/PoweredBy'
 import { useAuth } from '../hooks/useAuth'
 
 export function WalletSelection() {

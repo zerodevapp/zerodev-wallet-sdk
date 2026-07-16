@@ -1,5 +1,5 @@
 import type { Decorator, Preview } from '@storybook/react-vite'
-import { Screen } from '../src/shared/components/Screen'
+import { Screen } from '@zerodev/react-ui'
 import '../src/styles.css'
 
 const withScreen: Decorator = (Story, context) => {

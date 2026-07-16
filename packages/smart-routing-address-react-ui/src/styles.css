@@ -4,3 +4,12 @@
 /* Scan both packages' sources so the built CSS serves apps with one stylesheet. */
 @source "./";
 @source "../../react-ui/src";
+
+:root { --zd-density: 1; }
+
+[data-zd-size] {
+  --zd-spacing: calc(0.25rem * var(--zd-density));
+}
+[data-zd-size="sm"] { --zd-density: 0.8; }  /* compact */
+[data-zd-size="md"] { --zd-density: 0.9; }  /* in between */
+[data-zd-size="lg"] { --zd-density: 1; }    /* default / comfortable */

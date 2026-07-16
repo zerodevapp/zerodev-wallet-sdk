@@ -1,8 +1,7 @@
+import { Screen, TopNav } from '@zerodev/react-ui'
 import { type ReactNode, useEffect } from 'react'
 import { useStore } from 'zustand'
-import { Screen } from '../shared/components/Screen'
 import { StatusScreen } from '../shared/components/StatusScreen'
-import { TopNav } from '../shared/components/TopNav'
 import { useKitStore } from '../shared/hooks/useKitStore'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
@@ -95,8 +94,8 @@ export function AuthFlow({
       contentClassName={step === 'sign-up' ? 'zd:px-0' : undefined}
       topNav={
         <TopNav
-          {...(goBack !== null && { onBack: goBack })}
-          onClose={handleClose}
+          {...(goBack !== null && { onLeftButtonClick: goBack })}
+          onRightButtonClick={handleClose}
           {...(title && { title })}
           {...(step === 'sign-up' && {
             ...(logo && { logo }),
