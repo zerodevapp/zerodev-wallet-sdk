@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { ZERODEV_AA_HOST, ZERODEV_AA_VERSION } from '../constants.js'
+import {
+  ZERODEV_AA_HOST,
+  ZERODEV_AA_PROVIDER,
+  ZERODEV_AA_VERSION,
+} from '../constants.js'
 import { getAAUrl } from './aaUtils.js'
 
 describe('getAAUrl', () => {
-  it('builds the default per-chain URL (SDK-owned host + version)', () => {
+  it('builds the default per-chain URL (SDK-owned host + version + provider)', () => {
     expect(getAAUrl('proj', 421614)).toBe(
-      `${ZERODEV_AA_HOST}/api/${ZERODEV_AA_VERSION}/proj/chain/421614`,
+      `${ZERODEV_AA_HOST}/api/${ZERODEV_AA_VERSION}/proj/chain/421614?provider=${ZERODEV_AA_PROVIDER}`,
     )
   })
 
@@ -14,15 +18,19 @@ describe('getAAUrl', () => {
     expect(getAAUrl('proj', 8453)).toContain('/chain/8453')
   })
 
-  it('overrides only the host via aaHost; version + path stay SDK-owned', () => {
+  it('requests the default provider', () => {
+    expect(getAAUrl('proj', 1)).toContain('?provider=ULTRA_RELAY')
+  })
+
+  it('overrides only the host via aaHost; version + path + provider stay SDK-owned', () => {
     expect(getAAUrl('proj', 1, 'https://rpc.zerodev.app')).toBe(
-      `https://rpc.zerodev.app/api/${ZERODEV_AA_VERSION}/proj/chain/1`,
+      `https://rpc.zerodev.app/api/${ZERODEV_AA_VERSION}/proj/chain/1?provider=${ZERODEV_AA_PROVIDER}`,
     )
   })
 
   it('trims a trailing slash on aaHost', () => {
     expect(getAAUrl('proj', 1, 'https://rpc.zerodev.app/')).toBe(
-      `https://rpc.zerodev.app/api/${ZERODEV_AA_VERSION}/proj/chain/1`,
+      `https://rpc.zerodev.app/api/${ZERODEV_AA_VERSION}/proj/chain/1?provider=${ZERODEV_AA_PROVIDER}`,
     )
   })
 })
