@@ -1,10 +1,13 @@
 /**
- * Shared helper: completes an end-to-end OTP login against a real backend.
+ * Shared helper: completes an end-to-end OTP login.
  *
  * Used by integration tests that need an authenticated session as a setup
  * step (`session-management`, `wallet-operations`). Handles the full
- * register → email → encrypted-verify → login flow and returns the
- * authenticated client + session.
+ * register → (email) → encrypted-verify → login flow.
+ *
+ * In mock mode (USE_REAL_EMAIL !== 'true') the email steps are skipped and the
+ * known test OTP code is used instead. Network calls hit the `globalThis.fetch`
+ * interceptor set up by `setupNodeMocks()`.
  */
 
 import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
@@ -16,6 +19,11 @@ import {
   EMAIL_POLL_TIMEOUT_MS,
   OTP_CODE_LENGTH,
 } from './constants.js'
+import { isRealEmail } from './env-utils.js'
+import {
+  MOCK_OTP_CODE,
+  MOCK_OTP_SIGNER_PUBLIC_KEY,
+} from './mock-backend-node.js'
 import { extractOtpCode } from './otp-utils.js'
 import { createNewAccount, searchForNewEmail } from './temp-email.js'
 import { createTestClient } from './test-client.js'
@@ -25,29 +33,46 @@ export async function completeOtpLogin(
   projectId: string,
   authProxyConfigId: string,
 ) {
-  const emailAccount = await createNewAccount()
   const stamper = createTestStamper()
   const publicKey = (await stamper.getPublicKey())!
-
   const client = createTestClient(stamper)
 
+  let email: string
+  let authToken: string | undefined
+
+  if (isRealEmail()) {
+    const account = await createNewAccount()
+    email = account.address
+    authToken = account.authToken
+  } else {
+    email = `mock-${Date.now()}@test.example.com`
+  }
+
   const registerResult = await client.registerWithOTP({
-    email: emailAccount.address,
-    contact: { type: 'email', contact: emailAccount.address },
+    email,
+    contact: { type: 'email', contact: email },
     projectId,
   })
 
-  const emailContent = await searchForNewEmail(
-    emailAccount.authToken,
-    EMAIL_POLL_INTERVAL_MS,
-    EMAIL_POLL_TIMEOUT_MS,
-  )
-  const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)!
+  let otpCode: string
+  if (isRealEmail()) {
+    const emailContent = await searchForNewEmail(
+      authToken!,
+      EMAIL_POLL_INTERVAL_MS,
+      EMAIL_POLL_TIMEOUT_MS,
+    )
+    otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)!
+  } else {
+    otpCode = MOCK_OTP_CODE
+  }
 
   const encryptedOtpBundle = await encryptOtpAttempt({
     otpCode,
     publicKey,
     encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+    dangerouslyOverrideSignerPublicKey: isRealEmail()
+      ? undefined
+      : MOCK_OTP_SIGNER_PUBLIC_KEY,
   })
 
   const authProxyClient = createAuthProxyClient({ authProxyConfigId })

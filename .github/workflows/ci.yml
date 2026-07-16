@@ -92,7 +92,7 @@ jobs:
           done
 
   test:
-    name: Test
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -113,93 +113,30 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-  integration-test:
-    name: Integration Tests
-    runs-on: ubuntu-latest
+  call-tests:
+    name: Tests
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    needs: [build]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    uses: ./.github/workflows/test.yml
+    with:
+      use_real_email: false
+    secrets: inherit
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run integration tests
-        run: pnpm test:integration
-        env:
-          ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
-
-  e2e-test:
-    name: Browser E2E Tests
+  all-checks-pass:
+    name: All Checks Pass
+    if: always()
+    needs:
+      - lint-and-format
+      - typecheck
+      - build
+      - test
+      - call-tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    needs: [build]
     steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build SDK
-        run: pnpm build
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Build and start demo app
-        working-directory: apps/zerodev-signer-demo
+      - name: Verify required checks
         run: |
-          pnpm build
-          pnpm start &
-        env:
-          NEXT_PUBLIC_ZERODEV_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
-          NEXT_PUBLIC_KMS_PROXY_BASE_URL: https://kms.staging.zerodev.app/api/v1
-          # Pin the bundler/paymaster to staging so the AA stack matches the
-          # staging KMS above (the SDK default host is prod).
-          NEXT_PUBLIC_ZERODEV_AA_HOST: https://staging-meta-aa-provider.onrender.com
-
-      - name: Wait for demo app
-        run: |
-          for i in $(seq 1 15); do
-            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
-              echo "Demo app is ready"
-              exit 0
-            fi
-            echo "Waiting for demo app... ($i/15)"
-            sleep 2
-          done
-          echo "Demo app failed to start"
-          exit 1
-
-      - name: Run E2E tests
-        run: pnpm test:e2e
-        env:
-          DEMO_APP_URL: http://localhost:3000
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 14
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required checks failed or were cancelled."
+            echo "Results: ${{ toJSON(needs.*.result) }}"
+            exit 1
+          fi
+          echo "All required checks passed."

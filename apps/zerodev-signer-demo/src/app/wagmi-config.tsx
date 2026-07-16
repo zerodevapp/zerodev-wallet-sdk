@@ -44,6 +44,9 @@ export const config = createConfig({
         organizationId: process.env.NEXT_PUBLIC_ORG_ID,
       }),
       ...(mode && { mode }),
+      ...(process.env.NEXT_PUBLIC_DANGEROUS_OTP_SIGNER_KEY && {
+        dangerouslyOverrideOtpSignerPublicKey: process.env.NEXT_PUBLIC_DANGEROUS_OTP_SIGNER_KEY,
+      }),
       config: {
         logo: <ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />,
         auth: {

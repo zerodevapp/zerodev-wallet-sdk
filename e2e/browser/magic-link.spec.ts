@@ -2,40 +2,31 @@
  * Browser E2E test for the Magic Link authentication flow.
  *
  * Tests the magic link flow through the demo app UI:
- * 1. Create temp email
+ * 1. Create temp email (or use mock)
  * 2. Navigate to login page
  * 3. Enter email and click "Continue with email magic link"
  * 4. Wait for "Magic link sent" confirmation
- * 5. Poll for email, extract OTP code from the magic link URL
+ * 5. Resolve OTP code (mock: fixture constant; real: poll inbox and extract from URL)
  * 6. Navigate to the magic link URL (simulating email click)
  * 7. Verify auto-verification succeeds and redirects to /dashboard
+ *
+ * The `magicLinkSession` fixture handles USE_REAL_EMAIL branching; no if/else here.
  */
 
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../fixtures/auth.js'
 import {
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
 } from '../helpers/constants.js'
 import { extractOtpCodeFromMagicLinkUrl } from '../helpers/otp-utils.js'
-import {
-  createNewAccount,
-  ping,
-  searchForNewEmail,
-} from '../helpers/temp-email.js'
+import { searchForNewEmail } from '../helpers/temp-email.js'
 
 test.describe('Magic Link Flow', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
-  test('should complete magic link login through the UI', async ({ page }) => {
-    // Step 1: Create temp email
-    const emailAccount = await createNewAccount()
-    const email = emailAccount.address
+  test('should complete magic link login through the UI', async ({
+    page,
+    magicLinkSession,
+  }) => {
+    const email = magicLinkSession.email
 
     // Step 2: Seed the demo's email-method choice so wagmi-config picks
     // magic-link on first paint. Then navigate.
@@ -55,13 +46,16 @@ test.describe('Magic Link Flow', () => {
       timeout: 30_000,
     })
 
-    // Step 6: Poll for email and extract OTP code from the magic link URL
-    const emailContent = await searchForNewEmail(
-      emailAccount.authToken,
-      EMAIL_POLL_INTERVAL_MS,
-      EMAIL_POLL_TIMEOUT_MS,
-    )
-    const otpCode = extractOtpCodeFromMagicLinkUrl(emailContent)
+    // Step 6: Resolve OTP code — use fixture value in mock mode, poll inbox in real mode
+    const otpCode =
+      magicLinkSession.otpCode ??
+      extractOtpCodeFromMagicLinkUrl(
+        await searchForNewEmail(
+          magicLinkSession.authToken!,
+          EMAIL_POLL_INTERVAL_MS,
+          EMAIL_POLL_TIMEOUT_MS,
+        ),
+      )
     expect(otpCode).toBeTruthy()
     console.log(`Extracted magic link code: ${otpCode}`)
 

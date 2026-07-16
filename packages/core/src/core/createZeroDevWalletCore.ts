@@ -32,6 +32,12 @@ export interface ZeroDevWalletConfigCore {
   apiKeyStamper: ApiKeyStamper
   passkeyStamper?: PasskeyStamper
   fetchOptions?: CreateTransportOptions['fetchOptions']
+  /**
+   * @internal
+   * Test-only override for the pinned Turnkey signing key used in
+   * `encryptOtpAttempt`. Never set this in production.
+   */
+  dangerouslyOverrideOtpSignerPublicKey?: string
 }
 
 export type { StorageAdapter, StorageManager } from '../storage/manager.js'
@@ -385,6 +391,10 @@ export async function createZeroDevWalletCore(
               otpCode,
               publicKey: targetPublicKey,
               encryptionTargetBundle: otpEncryptionTargetBundle,
+              ...(config.dangerouslyOverrideOtpSignerPublicKey && {
+                dangerouslyOverrideSignerPublicKey:
+                  config.dangerouslyOverrideOtpSignerPublicKey,
+              }),
             })
 
             // Step 2b: Verify OTP via Auth Proxy

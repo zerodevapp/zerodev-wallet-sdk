@@ -1,0 +1,130 @@
+name: Tests
+
+on:
+  workflow_call:
+    inputs:
+      use_real_email:
+        description: 'Use real email service (mail.tm) for OTP tests'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      ZD_PROJECT_ID:
+        required: true
+  workflow_dispatch:
+    inputs:
+      use_real_email:
+        description: 'Use real email service (mail.tm) for OTP tests'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Annotate email mode
+        run: |
+          if [ "${{ inputs.use_real_email }}" = "true" ]; then
+            echo "::notice::Email mode: real (Guerrilla Mail + Turnkey)"
+          else
+            echo "::notice::Email mode: mock (no external dependencies)"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests
+        run: pnpm test:integration
+        env:
+          ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+          USE_REAL_EMAIL: ${{ inputs.use_real_email }}
+
+  e2e-test:
+    name: Browser E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Annotate email mode
+        run: |
+          if [ "${{ inputs.use_real_email }}" = "true" ]; then
+            echo "::notice::Email mode: real (Guerrilla Mail + Turnkey)"
+          else
+            echo "::notice::Email mode: mock (no external dependencies)"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build SDK
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build and start demo app
+        working-directory: apps/zerodev-signer-demo
+        run: |
+          if [ "$USE_REAL_EMAIL" = "false" ]; then
+            export NEXT_PUBLIC_DANGEROUS_OTP_SIGNER_KEY=$(cat ../../e2e/fixtures/test-signer-public-key.txt)
+          fi
+          pnpm build
+          pnpm start &
+        env:
+          NEXT_PUBLIC_ZERODEV_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+          NEXT_PUBLIC_KMS_PROXY_BASE_URL: https://kms.staging.zerodev.app/api/v1
+          # Pin the bundler/paymaster to staging so the AA stack matches the
+          # staging KMS above (the SDK default host is prod).
+          NEXT_PUBLIC_ZERODEV_AA_HOST: https://staging-meta-aa-provider.onrender.com
+          USE_REAL_EMAIL: ${{ inputs.use_real_email }}
+
+      - name: Wait for demo app
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Demo app is ready"
+              exit 0
+            fi
+            echo "Waiting for demo app... ($i/15)"
+            sleep 2
+          done
+          echo "Demo app failed to start"
+          exit 1
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          DEMO_APP_URL: http://localhost:3000
+          USE_REAL_EMAIL: ${{ inputs.use_real_email }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

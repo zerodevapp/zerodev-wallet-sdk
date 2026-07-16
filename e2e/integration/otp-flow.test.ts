@@ -1,19 +1,15 @@
 /**
  * E2E integration test for the OTP authentication flow.
  *
- * Tests the complete OTP flow against a real KMS backend + Turnkey:
- * 1. Create temp email account
- * 2. Register with OTP (sends email)
- * 3. Extract OTP code from email
- * 4. Verify OTP with Auth Proxy
- * 5. Build client signature
- * 6. Login with OTP via backend
- * 7. Verify session works (whoami)
+ * In real-email mode (USE_REAL_EMAIL=true) tests the complete OTP flow against
+ * a real KMS backend + Turnkey. In mock mode all network calls are intercepted
+ * by `setupNodeMocks()` and the known test OTP code is used instead.
  *
  * Mirrors the Go E2E test at doorway-kms/testing/e2e/e2e_otp_test.go
  */
 
-import { beforeAll, describe, expect, it } from 'vitest'
+import { HttpResponse, http } from 'msw'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
@@ -28,6 +24,15 @@ import {
   EMAIL_POLL_TIMEOUT_MS,
   OTP_CODE_LENGTH,
 } from '../helpers/constants.js'
+import { isRealEmail } from '../helpers/env-utils.js'
+import {
+  MOCK_AUTH_PROXY_CONFIG_ID,
+  MOCK_OTP_CODE,
+  MOCK_OTP_SIGNER_PUBLIC_KEY,
+  MOCK_PROJECT_ID,
+  server,
+  setupNodeMocks,
+} from '../helpers/mock-backend-node.js'
 import { extractOtpCode } from '../helpers/otp-utils.js'
 import {
   createNewAccount,
@@ -41,9 +46,16 @@ describe('OTP Authentication Flow', () => {
   let projectId: string
   let authProxyConfigId: string
   let skipReason = ''
+  let teardownMocks: (() => void) | undefined
 
   beforeAll(async () => {
-    // Check backend availability first (fast fail)
+    if (!isRealEmail()) {
+      teardownMocks = setupNodeMocks()
+      projectId = MOCK_PROJECT_ID
+      authProxyConfigId = MOCK_AUTH_PROXY_CONFIG_ID
+      return
+    }
+
     try {
       await waitForBackend(BACKEND_URL)
     } catch {
@@ -51,7 +63,6 @@ describe('OTP Authentication Flow', () => {
       return
     }
 
-    // Check email service availability
     try {
       await ping()
     } catch {
@@ -59,10 +70,8 @@ describe('OTP Authentication Flow', () => {
       return
     }
 
-    // Get auth proxy config ID from backend
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
 
-    // Get project ID from env
     projectId = process.env.ZD_PROJECT_ID || ''
     if (!projectId) {
       skipReason = 'ZD_PROJECT_ID not set'
@@ -70,13 +79,23 @@ describe('OTP Authentication Flow', () => {
     }
   })
 
+  afterAll(() => teardownMocks?.())
+
   it('should complete the full OTP register + login flow', async (context) => {
     context.skip(!!skipReason, skipReason)
 
-    // Step 1: Create temp email account
-    const emailAccount = await createNewAccount()
-    const email = emailAccount.address
-    console.log(`Created temp email: ${email}`)
+    // Step 1: Create email account (real) or use a placeholder (mock)
+    let email: string
+    let authToken: string | undefined
+
+    if (isRealEmail()) {
+      const emailAccount = await createNewAccount()
+      email = emailAccount.address
+      authToken = emailAccount.authToken
+    } else {
+      email = `mock-${Date.now()}@test.example.com`
+    }
+    console.log(`Using email: ${email}`)
 
     // Step 2: Create test stamper (Node.js ECDSA P-256 implementation)
     const stamper = createTestStamper()
@@ -87,7 +106,7 @@ describe('OTP Authentication Flow', () => {
     // Step 3: Create SDK client with test transport (includes Origin header)
     const client = createTestClient(stamper)
 
-    // Step 4: Register with OTP (triggers email send)
+    // Step 4: Register with OTP (triggers email send in real mode; mocked in mock mode)
     const registerResult = await client.registerWithOTP({
       email,
       contact: { type: 'email', contact: email },
@@ -97,23 +116,30 @@ describe('OTP Authentication Flow', () => {
     expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()
     console.log(`OTP initiated, otpId: ${registerResult.otpId}`)
 
-    // Step 5: Poll for email and extract OTP code
-    console.log('Waiting for OTP email...')
-    const emailContent = await searchForNewEmail(
-      emailAccount.authToken,
-      EMAIL_POLL_INTERVAL_MS,
-      EMAIL_POLL_TIMEOUT_MS,
-    )
-    const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)
+    // Step 5: Resolve OTP code — poll email in real mode, use known code in mock mode
+    let otpCode: string
+    if (isRealEmail()) {
+      console.log('Waiting for OTP email...')
+      const emailContent = await searchForNewEmail(
+        authToken!,
+        EMAIL_POLL_INTERVAL_MS,
+        EMAIL_POLL_TIMEOUT_MS,
+      )
+      otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)!
+    } else {
+      otpCode = MOCK_OTP_CODE
+    }
     expect(otpCode).toBeTruthy()
-    console.log(`Extracted OTP code: ${otpCode}`)
+    console.log(`OTP code: ${otpCode}`)
 
-    // Step 6: HPKE-seal the OTP attempt to the enclave's per-session target
-    // key, then verify with Auth Proxy.
+    // Step 6: HPKE-seal the OTP attempt and verify with Auth Proxy
     const encryptedOtpBundle = await encryptOtpAttempt({
-      otpCode: otpCode!,
+      otpCode,
       publicKey: publicKey!,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+      dangerouslyOverrideSignerPublicKey: isRealEmail()
+        ? undefined
+        : MOCK_OTP_SIGNER_PUBLIC_KEY,
     })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })
     const verifyResult = await authProxyClient.verifyOtp({
@@ -167,34 +193,52 @@ describe('OTP Authentication Flow', () => {
   it('should reject an invalid OTP code', async (context) => {
     context.skip(!!skipReason, skipReason)
 
-    // Create temp email
-    const emailAccount = await createNewAccount()
-    const email = emailAccount.address
+    const email = isRealEmail()
+      ? (await createNewAccount()).address
+      : `mock-${Date.now()}@test.example.com`
 
-    // Create stamper and client
     const stamper = createTestStamper()
     const publicKey = await stamper.getPublicKey()
     const client = createTestClient(stamper)
 
-    // Register with OTP
     const registerResult = await client.registerWithOTP({
       email,
       contact: { type: 'email', contact: email },
       projectId,
     })
 
-    // Try to verify with a wrong code
     const wrongEncryptedBundle = await encryptOtpAttempt({
       otpCode: 'WRONG12',
       publicKey: publicKey!,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
+      dangerouslyOverrideSignerPublicKey: isRealEmail()
+        ? undefined
+        : MOCK_OTP_SIGNER_PUBLIC_KEY,
     })
-    const authProxyClient = createAuthProxyClient({ authProxyConfigId })
-    await expect(
-      authProxyClient.verifyOtp({
-        otpId: registerResult.otpId,
-        encryptedOtpBundle: wrongEncryptedBundle,
-      }),
-    ).rejects.toThrow()
+
+    // In mock mode, override the verify handler to return HTTP 400 for the
+    // duration of this assertion only, then restore the default handlers.
+    if (!isRealEmail()) {
+      server.use(
+        http.post('https://authproxy.turnkey.com/v1/otp_verify_v2', () =>
+          HttpResponse.json(
+            { error: 'OTP verification failed', code: 'INVALID_OTP' },
+            { status: 400 },
+          ),
+        ),
+      )
+    }
+
+    try {
+      const authProxyClient = createAuthProxyClient({ authProxyConfigId })
+      await expect(
+        authProxyClient.verifyOtp({
+          otpId: registerResult.otpId,
+          encryptedOtpBundle: wrongEncryptedBundle,
+        }),
+      ).rejects.toThrow()
+    } finally {
+      if (!isRealEmail()) server.resetHandlers()
+    }
   })
 })

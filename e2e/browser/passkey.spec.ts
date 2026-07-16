@@ -14,11 +14,19 @@
 
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { isRealEmail } from '../helpers/env-utils.js'
 import {
   setupVirtualAuthenticator,
   teardownVirtualAuthenticator,
   type VirtualAuthenticator,
 } from '../helpers/virtual-authenticator.js'
+
+// Passkey tests register real passkeys against Turnkey and create on-chain
+// accounts — they require the full backend stack, not just email mocking.
+test.skip(
+  !isRealEmail(),
+  'Passkey tests require real Turnkey + backend (USE_REAL_EMAIL=true)',
+)
 
 /**
  * Sample EIP-712 typed data using Arbitrum Sepolia chainId (421614).

@@ -11,12 +11,20 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { waitForBackend } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
+import { isRealEmail } from '../helpers/env-utils.js'
 
 describe('OTP init wire shape', () => {
   let projectId: string
   let skipReason = ''
 
   beforeAll(async () => {
+    // This test verifies the real backend response shape and the production
+    // TLS Fetcher key — mocking defeats its purpose entirely.
+    if (!isRealEmail()) {
+      skipReason = 'Mock mode: this test requires a real backend response'
+      return
+    }
+
     try {
       await waitForBackend(BACKEND_URL)
     } catch {
