@@ -1,7 +1,10 @@
-import { cn, Icon, Text, Wrapper } from '@zerodev/react-ui'
 import type { KeyboardEvent } from 'react'
+import { cn } from '../../utils/common'
+import { Icon } from '../Icon'
+import { Text } from '../Text'
+import { Wrapper } from '../Wrapper'
 
-export interface TokenChainPillProps {
+export interface PillItemProps {
   /** Text label rendered next to the logo (e.g., "USDC", "Base"). */
   label: string
   /** URL of the logo image; when omitted, a `logoBg` + first letter of `label` placeholder is drawn. */
@@ -15,14 +18,14 @@ export interface TokenChainPillProps {
   className?: string
 }
 
-export function TokenChainPill({
+export function PillItem({
   label,
   logoUri,
   logoBg = '#E6EFFB',
   onClick,
   disabled,
   className,
-}: TokenChainPillProps) {
+}: PillItemProps) {
   const logoInitial = label.charAt(0).toUpperCase()
 
   const interactive = Boolean(onClick) && !disabled

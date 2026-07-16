@@ -12,7 +12,6 @@ const ITEMS: SelectDropdownItem[] = [
     symbol: 'USDC',
     subtitle: '13 networks',
     logoBg: '#2775CA',
-    logoInitial: 'U',
     badge: 'Recommended',
   },
   {
@@ -20,14 +19,12 @@ const ITEMS: SelectDropdownItem[] = [
     symbol: 'WETH',
     subtitle: '11 networks',
     logoBg: '#627EEA',
-    logoInitial: 'W',
   },
   {
     id: 'USDT',
     symbol: 'USDT',
     subtitle: '9 networks',
     logoBg: '#26A17B',
-    logoInitial: 'T',
   },
 ]
 
@@ -119,10 +116,22 @@ describe('SelectDropdown', () => {
     expect(screen.queryByRole('listbox')).toBeNull()
   })
 
-  it('returns null when the items list is empty', () => {
-    const { container } = render(
-      <SelectDropdown items={[]} value="USDC" onChange={() => {}} />,
+  it('renders a disabled placeholder pill when the items list is empty', () => {
+    render(<SelectDropdown items={[]} value="USDC" onChange={() => {}} />)
+    // Both the label and the initial-letter fallback render '—'.
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('uses the placeholderLabel prop when supplied', () => {
+    render(
+      <SelectDropdown
+        items={[]}
+        value=""
+        onChange={() => {}}
+        placeholderLabel="Loading"
+      />,
     )
-    expect(container.firstChild).toBeNull()
+    expect(screen.getByText('Loading')).toBeDefined()
   })
 })

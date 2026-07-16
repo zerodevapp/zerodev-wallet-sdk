@@ -34,8 +34,6 @@ export interface SelectDropdownItem {
   logoUri?: string
   /** Fallback bg color for the PillItem trigger's placeholder circle. */
   logoBg?: string
-  /** Fallback initial for the PillItem trigger's placeholder circle. */
-  logoInitial?: string
   /** Optional badge (e.g. "Recommended") pinned to the right of the row. */
   badge?: string
 }
@@ -50,6 +48,9 @@ export interface SelectDropdownProps {
   /** When true, the trigger renders as a non-interactive display pill and
    * the dropdown never opens. */
   disabled?: boolean
+  /** Label shown on the trigger when `items` is empty (e.g. while the
+   * routable set is loading). Defaults to `'—'`. */
+  placeholderLabel?: string
   className?: string
   /** Extra classes applied to the dropdown panel — e.g. a max-height override
    * or a background tweak. Width/position come from the anchor, not from
@@ -66,6 +67,7 @@ export function SelectDropdown({
   value,
   onChange,
   disabled,
+  placeholderLabel = '—',
   className,
   panelClassName,
   anchorRef,
@@ -143,7 +145,16 @@ export function SelectDropdown({
     if (disabled) setOpen(false)
   }, [disabled])
 
-  if (!selected) return null
+  // No items yet (e.g. the routable set is still loading). Render a
+  // non-interactive placeholder pill so the row keeps its layout instead of
+  // collapsing.
+  if (!selected) {
+    return (
+      <div className={cn('zd:relative', className)}>
+        <PillItem label={placeholderLabel} disabled />
+      </div>
+    )
+  }
 
   const panel = open ? (
     // The extra wrapping div carries the ref (Wrapper doesn't forward refs)
@@ -205,7 +216,6 @@ export function SelectDropdown({
         label={selected.symbol}
         {...(selected.logoUri && { logoUri: selected.logoUri })}
         {...(selected.logoBg && { logoBg: selected.logoBg })}
-        {...(selected.logoInitial && { logoInitial: selected.logoInitial })}
         {...(disabled
           ? { disabled: true }
           : { onClick: () => setOpen((v) => !v) })}

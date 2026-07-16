@@ -3,16 +3,21 @@ import {
   cn,
   DataRow,
   Icon,
+  PillItem,
   PoweredBy,
+  SelectDropdown,
+  type SelectDropdownItem,
   Text,
   Wrapper,
 } from '@zerodev/react-ui'
+import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
 import { LoadingCard } from '../components/LoadingCard'
-import { TokenChainPill } from '../components/TokenChainPill'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { useDepositStatus } from '../hooks/useDepositStatus'
 import { useNewDeposits } from '../hooks/useNewDeposits'
+import type { SourceToken } from '../types'
 import {
   getDestTokenSymbol,
   getSourceTokenSymbol,
@@ -36,6 +41,12 @@ export interface DepositProps {
 const SUBTITLE =
   "Send any supported token from any network. We'll swap & bridge it directly to your account, ready to use."
 
+// Placeholder colors for the pill logos until we wire real token/chain logos
+// in. Kept here so both the trigger and the dropdown rows agree.
+const TOKEN_LOGO_BG = '#2775CA'
+const CHAIN_LOGO_BG = '#0052FF'
+const DEST_CHAIN_LOGO_BG = '#28A0F0'
+
 export function Deposit({ onQrClick }: DepositProps) {
   const { config, addressState } = useSmartRoutingAddressContext()
 
@@ -45,9 +56,50 @@ export function Deposit({ onQrClick }: DepositProps) {
 
   // allowPartialRoutes lets the server drop source tokens it can't route, so
   // the routable set is exactly the tokens the fee estimates came back with.
-  const srcTokens = sourceTokensFromFees(estimatedFees)
-  // First-available fallback until the interactive picker Figma is wired.
-  const source = srcTokens[0] ?? null
+  const srcTokens = useMemo(
+    () => sourceTokensFromFees(estimatedFees),
+    [estimatedFees],
+  )
+
+  // Track the user's picker selection. `null` means "no explicit choice yet" —
+  // an effect below seeds it to the first routable option once srcTokens land.
+  const [selectedTokenType, setSelectedTokenType] = useState<TOKEN_TYPE | null>(
+    null,
+  )
+  const [selectedChainId, setSelectedChainId] = useState<number | null>(null)
+
+  // Seed picker state from the first routable option as soon as srcTokens
+  // arrive. Also re-seeds if a stale selection becomes unroutable.
+  useEffect(() => {
+    if (srcTokens.length === 0) return
+    const currentValid = srcTokens.some(
+      (t) =>
+        t.tokenType === selectedTokenType && t.chain.id === selectedChainId,
+    )
+    if (currentValid) return
+    // Prefer to keep the token, swap the chain to one that's available for it.
+    const forSameToken = srcTokens.find(
+      (t) => t.tokenType === selectedTokenType,
+    )
+    const fallback = forSameToken ?? srcTokens[0]
+    if (!fallback) return
+    setSelectedTokenType(fallback.tokenType)
+    setSelectedChainId(fallback.chain.id)
+  }, [srcTokens, selectedTokenType, selectedChainId])
+
+  const source: SourceToken | null = useMemo(() => {
+    if (!selectedTokenType || selectedChainId === null) {
+      return srcTokens[0] ?? null
+    }
+    return (
+      srcTokens.find(
+        (t) =>
+          t.tokenType === selectedTokenType && t.chain.id === selectedChainId,
+      ) ??
+      srcTokens[0] ??
+      null
+    )
+  }, [srcTokens, selectedTokenType, selectedChainId])
 
   const { deposits, hasLoaded } = useDepositStatus({
     address,
@@ -66,22 +118,69 @@ export function Deposit({ onQrClick }: DepositProps) {
     resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
   )
 
+  // Token dropdown items — one row per distinct routable token type. The row
+  // subtitle reports how many chains carry that token; the first item is the
+  // "recommended" default (matches Figma's green Recommended badge on USDC).
+  const tokenItems = useMemo<SelectDropdownItem[]>(() => {
+    const seen = new Set<TOKEN_TYPE>()
+    const uniqueTokens: SourceToken[] = []
+    for (const token of srcTokens) {
+      if (seen.has(token.tokenType)) continue
+      seen.add(token.tokenType)
+      uniqueTokens.push(token)
+    }
+    return uniqueTokens.map((token, i) => {
+      const symbol = getSourceTokenSymbol(token)
+      const chainCount = srcTokens.filter(
+        (t) => t.tokenType === token.tokenType,
+      ).length
+      return {
+        id: token.tokenType,
+        symbol,
+        subtitle: `${chainCount} network${chainCount === 1 ? '' : 's'}`,
+        logoBg: TOKEN_LOGO_BG,
+        ...(i === 0 && { badge: 'Recommended' }),
+      }
+    })
+  }, [srcTokens])
+
+  // Chain dropdown items — chains that carry the currently-selected token.
+  const chainItems = useMemo<SelectDropdownItem[]>(() => {
+    if (!selectedTokenType) return []
+    const seen = new Set<number>()
+    const chains: SourceToken[] = []
+    for (const token of srcTokens) {
+      if (token.tokenType !== selectedTokenType) continue
+      if (seen.has(token.chain.id)) continue
+      seen.add(token.chain.id)
+      chains.push(token)
+    }
+    return chains.map((token) => ({
+      id: String(token.chain.id),
+      symbol: token.chain.name,
+      logoBg: CHAIN_LOGO_BG,
+    }))
+  }, [srcTokens, selectedTokenType])
+
   const slippage =
     typeof config.slippage === 'number' ? formatSlippage(config.slippage) : '—'
 
-  const estimatedFee = feeData
-    ? `${formatDisplayAmount(feeData.fee, feeData.decimal, 'up')} ${sourceSymbol}`
-    : '—'
+  const estimatedFee =
+    feeData && sourceSymbol
+      ? `${formatDisplayAmount(feeData.fee, feeData.decimal, 'up')} ${sourceSymbol}`
+      : '—'
 
   const minDepositAmount =
     feeData && sourceSymbol
       ? `${formatDisplayAmount(feeData.minDeposit, feeData.decimal, 'up')} ${sourceSymbol}`
       : null
 
-  // Undefined until fee estimates arrive — the pill and loading card fall
-  // back to placeholders rather than mislabelling the source slot with the
-  // destination chain's name.
-  const sourceChainName = source?.chain.name
+  const pickerDisabled = tokenItems.length === 0
+
+  // Both dropdowns anchor to this row so the panel spans the full width of
+  // the two pills together (Figma's "Send" row layout), not just the trigger
+  // cell each SelectDropdown lives in.
+  const pickerRowRef = useRef<HTMLDivElement>(null)
 
   return (
     <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
@@ -96,22 +195,25 @@ export function Deposit({ onQrClick }: DepositProps) {
             >
               <CardTitle>Send</CardTitle>
               <PillRow
+                ref={pickerRowRef}
                 left={
-                  <TokenChainPill
-                    label={sourceSymbol ?? '—'}
-                    logoBg="#2775CA"
-                    onClick={() => {
-                      /* picker — deferred */
-                    }}
+                  <SelectDropdown
+                    items={tokenItems}
+                    value={selectedTokenType ?? ''}
+                    onChange={(id) => setSelectedTokenType(id as TOKEN_TYPE)}
+                    disabled={pickerDisabled}
+                    anchorRef={pickerRowRef}
                   />
                 }
                 right={
-                  <TokenChainPill
-                    label={sourceChainName ?? '—'}
-                    logoBg="#0052FF"
-                    onClick={() => {
-                      /* picker — deferred */
-                    }}
+                  <SelectDropdown
+                    items={chainItems}
+                    value={
+                      selectedChainId !== null ? String(selectedChainId) : ''
+                    }
+                    onChange={(id) => setSelectedChainId(Number(id))}
+                    disabled={pickerDisabled}
+                    anchorRef={pickerRowRef}
                   />
                 }
               />
@@ -139,16 +241,16 @@ export function Deposit({ onQrClick }: DepositProps) {
               <CardTitle>Arrives as</CardTitle>
               <PillRow
                 left={
-                  <TokenChainPill
+                  <PillItem
                     label={destSymbol ?? '—'}
-                    logoBg="#2775CA"
+                    logoBg={TOKEN_LOGO_BG}
                     disabled
                   />
                 }
                 right={
-                  <TokenChainPill
+                  <PillItem
                     label={destChain.name}
-                    logoBg="#28A0F0"
+                    logoBg={DEST_CHAIN_LOGO_BG}
                     disabled
                   />
                 }
@@ -175,8 +277,8 @@ export function Deposit({ onQrClick }: DepositProps) {
 
         <LoadingCard
           text={
-            sourceChainName
-              ? `Watching for your deposit on ${sourceChainName}…`
+            source
+              ? `Watching for your deposit on ${source.chain.name}…`
               : 'Watching for your deposit…'
           }
         />
@@ -196,16 +298,18 @@ function CardTitle({ children }: { children: string }) {
 }
 
 function PillRow({
+  ref,
   left,
   right,
 }: {
+  ref?: React.Ref<HTMLDivElement>
   left: React.ReactNode
   right: React.ReactNode
 }) {
   return (
-    <div className="zd:flex zd:w-full zd:items-start zd:gap-1">
-      <div className="zd:flex-1">{left}</div>
-      <div className="zd:flex-1">{right}</div>
+    <div ref={ref} className="zd:flex zd:w-full zd:items-start zd:gap-1">
+      <div className="zd:min-w-0 zd:flex-1">{left}</div>
+      <div className="zd:min-w-0 zd:flex-1">{right}</div>
     </div>
   )
 }

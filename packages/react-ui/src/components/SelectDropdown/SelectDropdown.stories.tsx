@@ -13,7 +13,6 @@ const TOKENS: SelectDropdownItem[] = [
     symbol: 'USDC',
     subtitle: '13 networks',
     logoBg: '#2775CA',
-    logoInitial: 'U',
     badge: 'Recommended',
   },
   {
@@ -21,28 +20,24 @@ const TOKENS: SelectDropdownItem[] = [
     symbol: 'WETH',
     subtitle: '11 networks',
     logoBg: '#627EEA',
-    logoInitial: 'W',
   },
   {
     id: 'USDT',
     symbol: 'USDT',
     subtitle: '9 networks',
     logoBg: '#26A17B',
-    logoInitial: 'T',
   },
   {
     id: 'DAI',
     symbol: 'DAI',
     subtitle: '1 network',
     logoBg: '#F4B731',
-    logoInitial: 'D',
   },
   {
     id: 'WBTC',
     symbol: 'WBTC',
     subtitle: '6 networks',
     logoBg: '#F09242',
-    logoInitial: 'W',
   },
 ]
 
