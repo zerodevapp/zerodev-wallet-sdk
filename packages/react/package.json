@@ -132,7 +132,7 @@
     "react-native": "0.83.4",
     "react-native-webview": "13.16.0",
     "typescript": "5.9.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.2"
   },
   "type": "module"
 }

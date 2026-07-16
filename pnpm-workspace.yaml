@@ -9,3 +9,29 @@ minimumReleaseAge: 1440
 # Exclude trusted packages from age restriction
 minimumReleaseAgeExclude:
   - '@zerodev/*'
+
+# Acknowledged audit findings we cannot fix by bumping (verified 2026-07-08).
+# All are pinned by upstream packages or have no patched release. Re-check when
+# the named upstream moves; remove the entry once the finding no longer applies.
+auditConfig:
+  ignoreGhsas:
+    # ws 8.18.0 memory-exhaustion DoS (high). Reached only via wagmi 2.x ->
+    # @wagmi/connectors@6.2.0 -> @walletconnect/ethereum-provider@2.21.1 (exact pin)
+    # -> @walletconnect/utils@2.21.1, which hard-pins viem@2.23.2 -> isows -> ws.
+    # wagmi 2.x is EOL; @walletconnect/utils >=2.23 drops viem entirely.
+    # Real fix: migrate apps to wagmi 3 — remove this entry then.
+    - GHSA-96hv-2xvq-fx4p
+    # ws 8.18.0 uninitialized-memory disclosure (moderate). Same pinned chain as above.
+    - GHSA-58qx-3vcg-4xpx
+    # uuid v3/v5/v6 buffer bounds check (moderate), patched only in >=11.1.1.
+    # Old majors pinned by xcode@3 (uuid ^7, via expo config tooling) and
+    # @metamask/utils (uuid ^9) — even their latest releases still pin them.
+    # Not exploitable here: requires the caller to pass `buf`, these parents don't.
+    - GHSA-w5hq-g745-h8pq
+    # postcss <8.5.10 XSS via unescaped </style> (moderate). next hard-pins
+    # postcss@8.4.31 in every 15.5.x release; build-time only, processes our own CSS.
+    - GHSA-qx2v-qp2m-jg93
+    # elliptic risky crypto primitive (low). No patched release exists (advisory has
+    # no fix version). Dev-only path: wallet-react-ui docs/build via
+    # vite-plugin-node-polyfills -> crypto-browserify.
+    - GHSA-848j-6mx2-7j84
