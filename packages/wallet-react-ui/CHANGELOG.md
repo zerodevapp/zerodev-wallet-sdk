@@ -1,5 +1,16 @@
 # @zerodev/wallet-react-ui
 
+## 0.0.4
+
+### Patch Changes
+
+- dba45ee: Widened wagmi and @wagmi/core peer dependency ranges to ^2.19.0 || ^3.0.0 and ^2.22.0 || ^3.0.0 respectively.
+- Updated dependencies [fbab121]
+- Updated dependencies [107915a]
+- Updated dependencies [7e6a682]
+  - @zerodev/react-ui@0.0.3
+  - @zerodev/wallet-react@0.0.3
+
 ## 0.0.3
 
 ### Patch Changes

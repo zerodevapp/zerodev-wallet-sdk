@@ -1,5 +1,12 @@
 # @zerodev/react-ui
 
+## 0.0.3
+
+### Patch Changes
+
+- fbab121: feat: promote `ArrowCardPair` (and `ArrowView`) to `@zerodev/react-ui`. Previously local to wallet-react-ui's signing pages; now a shared primitive available to other consumers (e.g. smart-routing-address-react-ui's Deposit flow).
+- 7e6a682: feat: add DataRow primitive with `leading` / `trailing` / `info` slots and a `warning` variant. Unifies wallet-react-ui's internal DataRow and smart-routing-address-react-ui's LabeledValueRow; wallet-react-ui now consumes it from `@zerodev/react-ui`.
+
 ## 0.0.2
 
 ### Patch Changes
