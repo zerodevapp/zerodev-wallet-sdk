@@ -22,7 +22,7 @@ describe('TokenChainPill', () => {
   })
 
   it('renders the initial placeholder when logoUri is absent', () => {
-    render(<TokenChainPill label="Base" logoInitial="B" />)
+    render(<TokenChainPill label="base" />)
     expect(screen.getByText('B')).toBeDefined()
   })
 
