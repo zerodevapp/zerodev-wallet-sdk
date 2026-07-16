@@ -1,25 +1,36 @@
 import type { ReactNode } from 'react'
 import { cn } from '../../utils/common'
+import type { IconName } from '../Icon'
 import { IconButton } from '../IconButton'
 import { Text } from '../Text'
 
 export const TOP_NAV_HEIGHT = 52
 
-export function TopNav({
-  onBack,
-  onClose,
-  onHelp,
-  title,
-  logo,
-  className,
-}: {
-  onBack?: () => void
-  onClose: () => void
-  onHelp?: () => void
+export interface TopNavProps {
+  /** Handler for the left icon button. When omitted, the left slot renders
+   * an empty spacer so the title/logo stays centred. */
+  onLeftButtonClick?: () => void
+  /** Handler for the right icon button. When omitted, the right slot
+   * renders an empty spacer. */
+  onRightButtonClick?: () => void
+  /** Icon rendered in the left slot. Defaults to `'chevronLeft'` (back). */
+  leftButtonIcon?: IconName
+  /** Icon rendered in the right slot. Defaults to `'x'` (close). */
+  rightButtonIcon?: IconName
   title?: string
   logo?: ReactNode
   className?: string
-}) {
+}
+
+export function TopNav({
+  onLeftButtonClick,
+  onRightButtonClick,
+  leftButtonIcon = 'chevronLeft',
+  rightButtonIcon = 'x',
+  title,
+  logo,
+  className,
+}: TopNavProps) {
   return (
     <div
       className={cn(
@@ -31,10 +42,8 @@ export function TopNav({
       // disproportionate share of the shrunken frame at smaller sizes.
       style={{ height: `calc(${TOP_NAV_HEIGHT / 4} * var(--zd-spacing))` }}
     >
-      {onBack ? (
-        <IconButton iconName="chevronLeft" onClick={onBack} />
-      ) : onHelp ? (
-        <IconButton iconName="question" onClick={onHelp} />
+      {onLeftButtonClick ? (
+        <IconButton iconName={leftButtonIcon} onClick={onLeftButtonClick} />
       ) : (
         <div className="zd:h-13 zd:w-13" />
       )}
@@ -48,7 +57,11 @@ export function TopNav({
           <Text className="zd:text-body1">{title}</Text>
         </div>
       )}
-      <IconButton iconName="x" onClick={onClose} />
+      {onRightButtonClick ? (
+        <IconButton iconName={rightButtonIcon} onClick={onRightButtonClick} />
+      ) : (
+        <div className="zd:h-13 zd:w-13" />
+      )}
     </div>
   )
 }

@@ -27,6 +27,9 @@ export default function Home() {
           onClose={() => {
             /* no-op — the demo has nowhere to navigate to */
           }}
+          onHelp={() => {
+            /* no-op — surfaces the `?` icon in the TopNav's left slot */
+          }}
         />
       </SmartRoutingAddressProvider>
     </main>

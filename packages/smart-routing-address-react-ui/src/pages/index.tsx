@@ -46,7 +46,7 @@ export interface SmartRoutingAddressProps {
   /** Called when the QR icon inside `AddressDisplay` is clicked. Optional. */
   onQrClick?: () => void
   className?: string
-  size?: 'sm' | 'md' | 'lg' | undefined
+  size?: 'sm' | 'md' | 'lg'
 }
 
 export function SmartRoutingAddress({
@@ -75,7 +75,14 @@ export function SmartRoutingAddress({
       className={className}
       {...(size && { size })}
       topNav={
-        <TopNav title={title} {...(onHelp && { onHelp })} onClose={onClose} />
+        <TopNav
+          title={title}
+          {...(onHelp && {
+            onLeftButtonClick: onHelp,
+            leftButtonIcon: 'question',
+          })}
+          onRightButtonClick={onClose}
+        />
       }
     >
       {renderStep(step, { onQrClick })}

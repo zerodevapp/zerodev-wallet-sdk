@@ -8,7 +8,10 @@ export interface TokenChainPillProps {
   logoUri?: string
   /** Fallback background color when no `logoUri` is supplied. */
   logoBg?: string
-  /** Fallback initial letter shown inside the placeholder circle. */
+  /** Fallback initial letter shown inside the placeholder circle. Defaults
+   * to the first character of `label` (uppercased) — so most callers can
+   * omit this and let the pill derive it. Pass explicitly to override
+   * (e.g. `label="Arbitrum One"` but you want `"A"` regardless of casing). */
   logoInitial?: string
   /** Click handler; when supplied and not `disabled`, the pill becomes a keyboard-accessible button. */
   onClick?: () => void
@@ -21,7 +24,7 @@ export function TokenChainPill({
   label,
   logoUri,
   logoBg = '#E6EFFB',
-  logoInitial,
+  logoInitial = label.charAt(0).toUpperCase(),
   onClick,
   disabled,
   className,

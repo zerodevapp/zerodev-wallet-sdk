@@ -94,8 +94,8 @@ export function AuthFlow({
       contentClassName={step === 'sign-up' ? 'zd:px-0' : undefined}
       topNav={
         <TopNav
-          {...(goBack !== null && { onBack: goBack })}
-          onClose={handleClose}
+          {...(goBack !== null && { onLeftButtonClick: goBack })}
+          onRightButtonClick={handleClose}
           {...(title && { title })}
           {...(step === 'sign-up' && {
             ...(logo && { logo }),

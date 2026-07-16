@@ -31,12 +31,12 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   args: {
     topCard: (
-      <Wrapper variant="ghost" className="zd:rounded-2xl zd:p-4">
+      <Wrapper variant="ghost" className="zd:rounded-2xl zd:p-4 zd:bg-red-600">
         <Text className="zd:text-h3">Top card</Text>
       </Wrapper>
     ),
     bottomCard: (
-      <Wrapper variant="ghost" className="zd:rounded-2xl zd:p-4">
+      <Wrapper variant="ghost" className="zd:rounded-2xl zd:p-4 zd:bg-red-950">
         <Text className="zd:text-h3">Bottom card</Text>
       </Wrapper>
     ),

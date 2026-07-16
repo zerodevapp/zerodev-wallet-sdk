@@ -89,10 +89,10 @@ export function Deposit({ onQrClick }: DepositProps) {
       ? `${formatDisplayAmount(feeData.minDeposit, feeData.decimal, 'up')} ${sourceSymbol}`
       : null
 
-  const sourceChainName = source?.chain.name ?? destChain.name
-
-  // formatDuration returns "~3 min" — Figma spec is "≈ 3 min".
-  const readyInText = fillTime.replace('~', '≈ ')
+  // Undefined until fee estimates arrive — the pill and loading card fall
+  // back to placeholders rather than mislabelling the source slot with the
+  // destination chain's name.
+  const sourceChainName = source?.chain.name
 
   return (
     <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
@@ -111,7 +111,6 @@ export function Deposit({ onQrClick }: DepositProps) {
                   <TokenChainPill
                     label={sourceSymbol ?? '—'}
                     logoBg="#2775CA"
-                    logoInitial={(sourceSymbol ?? '?').charAt(0)}
                     onClick={() => {
                       /* picker — deferred */
                     }}
@@ -119,9 +118,8 @@ export function Deposit({ onQrClick }: DepositProps) {
                 }
                 right={
                   <TokenChainPill
-                    label={sourceChainName}
+                    label={sourceChainName ?? '—'}
                     logoBg="#0052FF"
-                    logoInitial={sourceChainName.charAt(0)}
                     onClick={() => {
                       /* picker — deferred */
                     }}
@@ -155,7 +153,6 @@ export function Deposit({ onQrClick }: DepositProps) {
                   <TokenChainPill
                     label={destSymbol}
                     logoBg="#2775CA"
-                    logoInitial={destSymbol.charAt(0)}
                     disabled
                   />
                 }
@@ -163,19 +160,18 @@ export function Deposit({ onQrClick }: DepositProps) {
                   <TokenChainPill
                     label={destChain.name}
                     logoBg="#28A0F0"
-                    logoInitial={destChain.name.charAt(0)}
                     disabled
                   />
                 }
               />
               <div className="zd:flex zd:w-full zd:flex-col zd:items-start zd:px-2">
-                <DataRow label="Ready in" value={readyInText} info />
+                <DataRow label="Ready in" value={fillTime} info />
               </div>
-              {renderAddressSlot({
-                status: addressState.status,
-                ...(address !== undefined && { address }),
-                ...(onQrClick && { onQrClick }),
-              })}
+              <AddressDisplay
+                status={addressState.status}
+                address={address}
+                onQrClick={onQrClick}
+              />
               {minDepositAmount && (
                 <DataRow
                   label="Minimum deposit"
@@ -189,7 +185,11 @@ export function Deposit({ onQrClick }: DepositProps) {
         />
 
         <LoadingCard
-          text={`Watching for your deposit on ${sourceChainName}…`}
+          text={
+            sourceChainName
+              ? `Watching for your deposit on ${sourceChainName}…`
+              : 'Watching for your deposit…'
+          }
         />
       </div>
 
@@ -198,14 +198,10 @@ export function Deposit({ onQrClick }: DepositProps) {
   )
 }
 
-/** Card title text (18px, VC Cardinal Wide feel). Extracted to keep the
- * Send/Arrives-as headers visually identical. */
 function CardTitle({ children }: { children: string }) {
   return (
     <div className={cn('zd:flex zd:items-center zd:px-2 zd:py-3')}>
-      <Text className="zd:whitespace-nowrap" style={{ fontSize: 18 }}>
-        {children}
-      </Text>
+      <Text className="zd:whitespace-nowrap zd:text-h3">{children}</Text>
     </div>
   )
 }
@@ -224,27 +220,4 @@ function PillRow({
       <div className="zd:min-w-px zd:flex-1">{right}</div>
     </div>
   )
-}
-
-/** Renders the address slot inside the "Arrives as" card based on the
- * address-generation state. */
-function renderAddressSlot({
-  status,
-  address,
-  onQrClick,
-}: {
-  status: 'idle' | 'loading' | 'success' | 'error'
-  address?: string
-  onQrClick?: () => void
-}) {
-  if (status === 'idle') return null
-  if (status === 'error') {
-    return <AddressDisplay loadingText="Failed to generate address" />
-  }
-  if (status === 'success' && address !== undefined) {
-    return (
-      <AddressDisplay address={address} {...(onQrClick && { onQrClick })} />
-    )
-  }
-  return <AddressDisplay loadingText="Generating deposit address…" />
 }
