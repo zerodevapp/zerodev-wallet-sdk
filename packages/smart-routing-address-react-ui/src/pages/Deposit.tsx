@@ -7,7 +7,6 @@ import {
   Text,
   Wrapper,
 } from '@zerodev/react-ui'
-import { useMemo } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
 import { LoadingCard } from '../components/LoadingCard'
 import { TokenChainPill } from '../components/TokenChainPill'
@@ -46,10 +45,7 @@ export function Deposit({ onQrClick }: DepositProps) {
 
   // allowPartialRoutes lets the server drop source tokens it can't route, so
   // the routable set is exactly the tokens the fee estimates came back with.
-  const srcTokens = useMemo(
-    () => sourceTokensFromFees(estimatedFees),
-    [estimatedFees],
-  )
+  const srcTokens = sourceTokensFromFees(estimatedFees)
   // First-available fallback until the interactive picker Figma is wired.
   const source = srcTokens[0] ?? null
 
@@ -60,22 +56,15 @@ export function Deposit({ onQrClick }: DepositProps) {
   })
   useNewDeposits(deposits, hasLoaded)
 
-  const { destChain, destSymbol, sourceSymbol, feeData, fillTime } =
-    useMemo(() => {
-      const destChain = resolveDestChain(config)
-      const destSymbol = getDestTokenSymbol(config, source)
-      return {
-        destChain,
-        destSymbol,
-        sourceSymbol: source ? getSourceTokenSymbol(source) : destSymbol,
-        feeData: source
-          ? findFeeData(estimatedFees, source.chain.id, source.tokenType)
-          : null,
-        fillTime: formatDuration(
-          resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
-        ),
-      }
-    }, [config, source, estimatedFees])
+  const destChain = resolveDestChain(config)
+  const destSymbol = source ? getDestTokenSymbol(config, source) : undefined
+  const sourceSymbol = source ? getSourceTokenSymbol(source) : undefined
+  const feeData = source
+    ? findFeeData(estimatedFees, source.chain.id, source.tokenType)
+    : null
+  const fillTime = formatDuration(
+    resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
+  )
 
   const slippage =
     typeof config.slippage === 'number' ? formatSlippage(config.slippage) : '—'
@@ -151,7 +140,7 @@ export function Deposit({ onQrClick }: DepositProps) {
               <PillRow
                 left={
                   <TokenChainPill
-                    label={destSymbol}
+                    label={destSymbol ?? '—'}
                     logoBg="#2775CA"
                     disabled
                   />
@@ -206,7 +195,6 @@ function CardTitle({ children }: { children: string }) {
   )
 }
 
-/** Two token/chain pills side by side, matching Figma's 162px + flex layout. */
 function PillRow({
   left,
   right,
@@ -216,8 +204,8 @@ function PillRow({
 }) {
   return (
     <div className="zd:flex zd:w-full zd:items-start zd:gap-1">
-      <div style={{ width: 162, flexShrink: 0 }}>{left}</div>
-      <div className="zd:min-w-px zd:flex-1">{right}</div>
+      <div className="zd:flex-1">{left}</div>
+      <div className="zd:flex-1">{right}</div>
     </div>
   )
 }
