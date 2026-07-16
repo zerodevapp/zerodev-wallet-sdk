@@ -26,7 +26,6 @@ export const InteractiveToken: Story = {
   args: {
     label: 'USDC',
     logoBg: '#2775CA',
-    logoInitial: 'U',
     onClick: () => {},
   },
 }
@@ -36,7 +35,6 @@ export const InteractiveChain: Story = {
   args: {
     label: 'Base',
     logoBg: '#0052FF',
-    logoInitial: 'B',
     onClick: () => {},
   },
 }
@@ -51,7 +49,6 @@ export const Display: Story = {
   args: {
     label: 'Arbitrum One',
     logoBg: '#28A0F0',
-    logoInitial: 'A',
   },
 }
 
@@ -62,7 +59,6 @@ export const DisplayForcedDisabled: Story = {
   args: {
     label: 'Arbitrum One',
     logoBg: '#28A0F0',
-    logoInitial: 'A',
     onClick: () => {},
     disabled: true,
   },

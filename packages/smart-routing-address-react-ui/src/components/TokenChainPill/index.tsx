@@ -4,15 +4,10 @@ import type { KeyboardEvent } from 'react'
 export interface TokenChainPillProps {
   /** Text label rendered next to the logo (e.g., "USDC", "Base"). */
   label: string
-  /** URL of the logo image; when omitted, a `logoBg` + `logoInitial` placeholder is drawn. */
+  /** URL of the logo image; when omitted, a `logoBg` + first letter of `label` placeholder is drawn. */
   logoUri?: string
   /** Fallback background color when no `logoUri` is supplied. */
   logoBg?: string
-  /** Fallback initial letter shown inside the placeholder circle. Defaults
-   * to the first character of `label` (uppercased) — so most callers can
-   * omit this and let the pill derive it. Pass explicitly to override
-   * (e.g. `label="Arbitrum One"` but you want `"A"` regardless of casing). */
-  logoInitial?: string
   /** Click handler; when supplied and not `disabled`, the pill becomes a keyboard-accessible button. */
   onClick?: () => void
   /** When true, renders as a dimmed, non-interactive pill (no chevron). */
@@ -24,11 +19,12 @@ export function TokenChainPill({
   label,
   logoUri,
   logoBg = '#E6EFFB',
-  logoInitial = label.charAt(0).toUpperCase(),
   onClick,
   disabled,
   className,
 }: TokenChainPillProps) {
+  const logoInitial = label.charAt(0).toUpperCase()
+
   const interactive = Boolean(onClick) && !disabled
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
