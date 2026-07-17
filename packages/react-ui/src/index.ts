@@ -36,12 +36,13 @@ export {
 } from './components/PillItem'
 export { PoweredBy } from './components/PoweredBy'
 export { QrModal, type QrModalProps } from './components/QrModal'
-export { Screen } from './components/Screen'
+export { Screen, useScreenOverlayContainer } from './components/Screen'
 export {
   SelectDropdown,
   type SelectDropdownItem,
   type SelectDropdownProps,
 } from './components/SelectDropdown'
+export { SheetShell, type SheetShellProps } from './components/SheetShell'
 export { Switch, type SwitchProps } from './components/Switch'
 export { Text, type TextProps } from './components/Text'
 export { TopNav, type TopNavProps } from './components/TopNav'

@@ -86,15 +86,6 @@ export function SmartRoutingAddress({
     setQrOpen(false)
   }
 
-  const overlay =
-    qrOpen && address ? (
-      <QrModal
-        address={address}
-        onCopy={handleCopy}
-        onClose={() => setQrOpen(false)}
-      />
-    ) : undefined
-
   return (
     <Screen
       className={className}
@@ -109,9 +100,20 @@ export function SmartRoutingAddress({
           onRightButtonClick={onClose}
         />
       }
-      {...(overlay && { overlay })}
     >
       {renderStep(step, { onQrClick: handleQrClick })}
+      {/* QrModal renders itself via `useScreenOverlayContainer()` + portal, so
+        it stays inside the card frame while composing at this level rather
+        than being hoisted into `Screen`'s API. Mounted whenever an address
+        exists so Radix Dialog owns the open/close animation lifecycle. */}
+      {address && (
+        <QrModal
+          open={qrOpen}
+          onOpenChange={setQrOpen}
+          address={address}
+          onCopy={handleCopy}
+        />
+      )}
     </Screen>
   )
 }
