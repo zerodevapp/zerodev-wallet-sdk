@@ -11,7 +11,7 @@ import {
   Wrapper,
 } from '@zerodev/react-ui'
 import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
 import { LoadingCard } from '../components/LoadingCard'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
@@ -177,10 +177,11 @@ export function Deposit({ onQrClick }: DepositProps) {
 
   const pickerDisabled = tokenItems.length === 0
 
-  // Both dropdowns anchor to this row so the panel spans the full width of
-  // the two pills together (Figma's "Send" row layout), not just the trigger
-  // cell each SelectDropdown lives in.
-  const pickerRowRef = useRef<HTMLDivElement>(null)
+  // Both dropdown panels span the full width of the two pills together
+  // (Figma's "Send" row layout), not just the trigger cell each SelectDropdown
+  // lives in. Each pill trigger is half the row minus half the 4px gap, so
+  // the panel width = trigger*2 + 4px.
+  const fullRowPanelWidth = 'calc(var(--radix-popover-trigger-width) * 2 + 4px)'
 
   return (
     <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
@@ -195,14 +196,14 @@ export function Deposit({ onQrClick }: DepositProps) {
             >
               <CardTitle>Send</CardTitle>
               <PillRow
-                ref={pickerRowRef}
                 left={
                   <SelectDropdown
                     items={tokenItems}
                     value={selectedTokenType ?? ''}
                     onChange={(id) => setSelectedTokenType(id as TOKEN_TYPE)}
                     disabled={pickerDisabled}
-                    anchorRef={pickerRowRef}
+                    align="start"
+                    panelWidth={fullRowPanelWidth}
                   />
                 }
                 right={
@@ -213,7 +214,8 @@ export function Deposit({ onQrClick }: DepositProps) {
                     }
                     onChange={(id) => setSelectedChainId(Number(id))}
                     disabled={pickerDisabled}
-                    anchorRef={pickerRowRef}
+                    align="end"
+                    panelWidth={fullRowPanelWidth}
                   />
                 }
               />
@@ -298,16 +300,14 @@ function CardTitle({ children }: { children: string }) {
 }
 
 function PillRow({
-  ref,
   left,
   right,
 }: {
-  ref?: React.Ref<HTMLDivElement>
   left: React.ReactNode
   right: React.ReactNode
 }) {
   return (
-    <div ref={ref} className="zd:flex zd:w-full zd:items-start zd:gap-1">
+    <div className="zd:flex zd:w-full zd:items-start zd:gap-1">
       <div className="zd:min-w-0 zd:flex-1">{left}</div>
       <div className="zd:min-w-0 zd:flex-1">{right}</div>
     </div>

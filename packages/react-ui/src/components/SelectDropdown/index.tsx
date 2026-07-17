@@ -1,13 +1,4 @@
-import {
-  type CSSProperties,
-  type RefObject,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react'
-import { createPortal } from 'react-dom'
+import * as Popover from '@radix-ui/react-popover'
 
 import { cn } from '../../utils/common'
 import type { IconName } from '../Icon'
@@ -51,15 +42,20 @@ export interface SelectDropdownProps {
   /** Label shown on the trigger when `items` is empty (e.g. while the
    * routable set is loading). Defaults to `'—'`. */
   placeholderLabel?: string
+  /** Horizontal alignment of the panel relative to the trigger. `start`
+   * aligns panel-left to trigger-left; `end` aligns panel-right to
+   * trigger-right. Useful when a wider panel needs to hug either side
+   * of a narrow trigger. Defaults to `start`. */
+  align?: 'start' | 'center' | 'end'
   className?: string
-  /** Extra classes applied to the dropdown panel — e.g. a max-height override
-   * or a background tweak. Width/position come from the anchor, not from
-   * classes. */
+  /** Extra classes applied to the dropdown panel. Does NOT set width —
+   * see `panelWidth` for that. */
   panelClassName?: string
-  /** Element the panel's width and left edge are pinned to. Defaults to the
-   * SelectDropdown's own root (the trigger). Point at a wider ancestor
-   * (e.g. a row containing multiple pickers) to make the panel span it. */
-  anchorRef?: RefObject<HTMLElement | null>
+  /** CSS `width` value for the panel. Defaults to
+   * `var(--radix-popover-trigger-width)` (matches the trigger). Set to e.g.
+   * `'calc(var(--radix-popover-trigger-width) * 2 + 4px)'` to span two pills
+   * in a row. Applied inline so it wins over any class-based width. */
+  panelWidth?: string
 }
 
 export function SelectDropdown({
@@ -68,82 +64,12 @@ export function SelectDropdown({
   onChange,
   disabled,
   placeholderLabel = '—',
+  align = 'start',
   className,
   panelClassName,
-  anchorRef,
+  panelWidth = 'var(--radix-popover-trigger-width)',
 }: SelectDropdownProps) {
-  const [open, setOpen] = useState(false)
-  // `mounted` gates the portal so we don't touch `document` during SSR.
-  const [mounted, setMounted] = useState(false)
-  const [panelStyle, setPanelStyle] = useState<CSSProperties>()
-  const rootRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   const selected = items.find((item) => item.id === value) ?? items[0]
-
-  // Measure the anchor (defaults to the trigger) and pin the panel just below
-  // it. Position: fixed + portal-to-body escapes any clipping ancestor (e.g.
-  // ArrowCardPair's clip-path on the top card), which absolute positioning
-  // cannot. Width matches the anchor exactly — the caller widens the panel by
-  // pointing `anchorRef` at a wider ancestor, not by adding a width class.
-  const positionPanel = useCallback(() => {
-    const anchor = anchorRef?.current ?? rootRef.current
-    if (!anchor) return
-    const rect = anchor.getBoundingClientRect()
-    setPanelStyle({
-      position: 'fixed',
-      top: rect.bottom + 8,
-      left: rect.left,
-      width: rect.width,
-    })
-  }, [anchorRef])
-
-  useLayoutEffect(() => {
-    if (!open) return
-    positionPanel()
-  }, [open, positionPanel])
-
-  // Reposition on scroll / resize so the panel tracks the trigger.
-  useEffect(() => {
-    if (!open) return
-    const handle = () => positionPanel()
-    window.addEventListener('resize', handle)
-    window.addEventListener('scroll', handle, true)
-    return () => {
-      window.removeEventListener('resize', handle)
-      window.removeEventListener('scroll', handle, true)
-    }
-  }, [open, positionPanel])
-
-  // Close on outside click + Escape while the panel is open. Because the panel
-  // is portaled, "outside" means outside both the trigger AND the panel.
-  useEffect(() => {
-    if (!open) return
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
-      if (rootRef.current?.contains(target)) return
-      if (panelRef.current?.contains(target)) return
-      setOpen(false)
-    }
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [open])
-
-  // If the caller flips `disabled` on while the panel is open, force-close it.
-  useEffect(() => {
-    if (disabled) setOpen(false)
-  }, [disabled])
 
   // No items yet (e.g. the routable set is still loading). Render a
   // non-interactive placeholder pill so the row keeps its layout instead of
@@ -156,71 +82,80 @@ export function SelectDropdown({
     )
   }
 
-  const panel = open ? (
-    // The extra wrapping div carries the ref (Wrapper doesn't forward refs)
-    // and the panel's fixed positioning. Wrapper handles the surface styling
-    // — gradient/border/blur — while width/height/scroll live on the outer.
-    <div ref={panelRef} style={panelStyle} className="zd:z-50">
-      <Wrapper
-        variant="solid"
-        role="listbox"
-        className={cn(
-          'zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden',
-          'zd:max-h-80 zd:overflow-y-auto',
-          panelClassName,
-        )}
-      >
-        {items.map((item) => {
-          const isSelected = item.id === value
-          return (
-            <div key={item.id} className="zd:relative">
-              <TokenListItem
-                symbol={item.symbol}
-                {...(item.subtitle && { subtitle: item.subtitle })}
-                {...(item.iconName && { iconName: item.iconName })}
-                {...(item.imageSource && { imageSource: item.imageSource })}
-                {...(item.iconVariant && { iconVariant: item.iconVariant })}
-                className={cn(isSelected && 'zd:bg-offWhite/60')}
-                onClick={() => {
-                  onChange(item.id)
-                  setOpen(false)
-                }}
-                role="option"
-                aria-selected={isSelected}
-              />
-              {item.badge && (
-                // Absolute + pointer-events-none so the whole row is still
-                // clickable through the badge. The row itself supplies the
-                // hover state — the badge just floats on top.
-                <span
-                  className={cn(
-                    'zd:absolute zd:top-1/2 zd:right-3 zd:-translate-y-1/2',
-                    'zd:inline-flex zd:items-center zd:rounded-full',
-                    'zd:bg-positive/15 zd:px-2 zd:py-1',
-                    'zd:text-body3 zd:text-positive zd:pointer-events-none',
-                  )}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </div>
-          )
-        })}
-      </Wrapper>
-    </div>
-  ) : null
+  const trigger = (
+    <PillItem
+      label={selected.symbol}
+      {...(selected.logoUri && { logoUri: selected.logoUri })}
+      {...(selected.logoBg && { logoBg: selected.logoBg })}
+      {...(disabled && { disabled: true })}
+    />
+  )
 
   return (
-    <div ref={rootRef} className={cn('zd:relative', className)}>
-      <PillItem
-        label={selected.symbol}
-        {...(selected.logoUri && { logoUri: selected.logoUri })}
-        {...(selected.logoBg && { logoBg: selected.logoBg })}
-        {...(disabled
-          ? { disabled: true }
-          : { onClick: () => setOpen((v) => !v) })}
-      />
-      {mounted && panel && createPortal(panel, document.body)}
-    </div>
+    <Popover.Root>
+      <Popover.Trigger asChild disabled={disabled} className={className}>
+        {trigger}
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          side="bottom"
+          align={align}
+          sideOffset={8}
+          className={cn('zd:z-50 zd:outline-none', panelClassName)}
+          // Inline style — beats any class-based width, so callers control
+          // panel width via `panelWidth` prop without fighting CSS cascade.
+          style={{ width: panelWidth }}
+        >
+          <Wrapper
+            variant="solid"
+            role="listbox"
+            className={cn(
+              'zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden',
+              'zd:max-h-80 zd:overflow-y-auto',
+            )}
+          >
+            {items.map((item) => {
+              const isSelected = item.id === value
+              return (
+                <div key={item.id} className="zd:relative">
+                  <Popover.Close asChild>
+                    <TokenListItem
+                      symbol={item.symbol}
+                      {...(item.subtitle && { subtitle: item.subtitle })}
+                      {...(item.iconName && { iconName: item.iconName })}
+                      {...(item.imageSource && {
+                        imageSource: item.imageSource,
+                      })}
+                      {...(item.iconVariant && {
+                        iconVariant: item.iconVariant,
+                      })}
+                      className={cn(isSelected && 'zd:bg-offWhite/60')}
+                      onClick={() => onChange(item.id)}
+                      role="option"
+                      aria-selected={isSelected}
+                    />
+                  </Popover.Close>
+                  {item.badge && (
+                    // Absolute + pointer-events-none so the whole row is still
+                    // clickable through the badge. The row itself supplies the
+                    // hover state — the badge just floats on top.
+                    <span
+                      className={cn(
+                        'zd:absolute zd:top-1/2 zd:right-3 zd:-translate-y-1/2',
+                        'zd:inline-flex zd:items-center zd:rounded-full',
+                        'zd:bg-positive/15 zd:px-2 zd:py-1',
+                        'zd:text-body3 zd:text-positive zd:pointer-events-none',
+                      )}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </Wrapper>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }

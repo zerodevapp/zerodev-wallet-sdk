@@ -24,9 +24,12 @@ describe('PillItem', () => {
     expect(screen.getByText('B')).toBeDefined()
   })
 
-  it('is not interactive by default (no chevron, no button role)', () => {
+  it('renders the chevron but no button role without onClick', () => {
     render(<PillItem label="USDC" />)
-    expect(screen.queryByTestId('token-chain-pill-chevron')).toBeNull()
+    // Chevron shows whenever the pill is not disabled — this lets the pill be
+    // wrapped in an external interactive parent (e.g. a Popover.Trigger)
+    // without losing the affordance.
+    expect(screen.getByTestId('token-chain-pill-chevron')).toBeDefined()
     expect(screen.queryByRole('button')).toBeNull()
   })
 

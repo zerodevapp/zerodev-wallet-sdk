@@ -70,10 +70,16 @@ export const Default: Story = {
   render: () => <Controlled items={TOKENS} />,
 }
 
-/** Wider panel, useful when the SelectDropdown sits next to another pill and
- * the caller wants the list to span the whole row. */
+/** Wider panel via `panelWidth`. Defaults to trigger width; overriding
+ * widens it — here to twice the trigger plus a 4px gap, which is the pattern
+ * used when two pills share a row. */
 export const WidePanel: Story = {
-  render: () => <Controlled items={TOKENS} panelClassName="zd:w-80" />,
+  render: () => (
+    <Controlled
+      items={TOKENS}
+      panelWidth="calc(var(--radix-popover-trigger-width) * 2 + 4px)"
+    />
+  ),
 }
 
 /** Disabled trigger — no chevron, no click handler. */
