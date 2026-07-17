@@ -7,15 +7,13 @@ interface QrCodeProps {
   size: number
   /** Error correction level. Defaults to `'M'`. */
   errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H'
-  /** Module color. Defaults to black. */
-  color?: string
-  /** Background color. Defaults to white. */
-  bgColor?: string
   /** Corner radius (in modules, scaled to px internally) for finder patterns. */
   eyeRadius?: number
 }
 
 const FINDER_SIZE = 7 // every QR has three 7×7 finder patterns
+const MODULE_COLOR = '#000'
+const BG_COLOR = '#fff'
 
 /**
  * Custom QR renderer that draws runs of horizontally-adjacent modules as a
@@ -26,8 +24,6 @@ export function QrCode({
   value,
   size,
   errorCorrectionLevel = 'M',
-  color = '#000',
-  bgColor = '#fff',
   eyeRadius = 2,
 }: QrCodeProps) {
   // `uqr` returns a 2D boolean matrix (`data[row][col]`) and the module count
@@ -89,7 +85,7 @@ export function QrCode({
       role="img"
       aria-label={`QR code for ${value}`}
     >
-      <rect width={size} height={size} fill={bgColor} />
+      <rect width={size} height={size} fill={BG_COLOR} />
       {runs.map(({ row, col, length }) => {
         // Shrink each pill vertically so rows have a visible gap between
         // them. For a single isolated module (length === 1) also shrink
@@ -106,7 +102,7 @@ export function QrCode({
             height={pillHeight}
             rx={pillHeight / 2}
             ry={pillHeight / 2}
-            fill={color}
+            fill={MODULE_COLOR}
           />
         )
       })}
@@ -124,7 +120,7 @@ export function QrCode({
               height={outerSize}
               rx={eyeRadiusPx}
               ry={eyeRadiusPx}
-              fill={color}
+              fill={MODULE_COLOR}
             />
             <rect
               x={x + cellSize}
@@ -133,7 +129,7 @@ export function QrCode({
               height={outerSize - 2 * cellSize}
               rx={Math.max(eyeRadiusPx - cellSize, 0)}
               ry={Math.max(eyeRadiusPx - cellSize, 0)}
-              fill={bgColor}
+              fill={BG_COLOR}
             />
             <rect
               x={x + 2 * cellSize}
@@ -142,7 +138,7 @@ export function QrCode({
               height={innerSize}
               rx={Math.max(eyeRadiusPx - 2 * cellSize, 0)}
               ry={Math.max(eyeRadiusPx - 2 * cellSize, 0)}
-              fill={color}
+              fill={MODULE_COLOR}
             />
           </g>
         )
