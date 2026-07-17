@@ -47,10 +47,10 @@ const meta: Meta<typeof SelectDropdown> = {
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
-      // Trigger width mirrors Figma's 162px pill; the caller normally sits
-      // the SelectDropdown inside a wider parent when it needs the panel to
-      // span more than the pill.
-      <div style={{ width: 162 }}>
+      // Wider than a single pill so the panel has room to breathe in
+      // Storybook. Real callers embed the SelectDropdown inside their own
+      // layout and can size the trigger however they like.
+      <div style={{ width: 260 }}>
         <Story />
       </div>
     ),
