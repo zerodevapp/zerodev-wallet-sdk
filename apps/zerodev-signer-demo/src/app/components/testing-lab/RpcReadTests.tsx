@@ -14,8 +14,20 @@ type Source = "wallet" | "rpc";
 type RunState =
   | { status: "idle" }
   | { status: "pending" }
-  | { status: "done"; source: Source; text: string }
-  | { status: "error"; text: string };
+  | { status: "done"; source: Source; text: string; raw: string }
+  | { status: "error"; text: string; raw: string };
+
+const rawStringify = (value: unknown): string => {
+  try {
+    return JSON.stringify(
+      value,
+      (_key, val) => (typeof val === "bigint" ? val.toString() : val),
+      2,
+    );
+  } catch {
+    return String(value);
+  }
+};
 
 interface RpcCall {
   key: string;
@@ -101,6 +113,7 @@ export function RpcReadTests() {
             status: "done",
             source: "wallet",
             text: call.format(result),
+            raw: rawStringify(result),
           });
           return;
         } catch (err) {
@@ -119,11 +132,15 @@ export function RpcReadTests() {
         status: "done",
         source: "rpc",
         text: call.format(result),
+        raw: rawStringify(result),
       });
     } catch (err) {
       setRun(call.key, {
         status: "error",
         text: err instanceof Error ? err.message : "Call failed",
+        raw: rawStringify(
+          err instanceof Error ? { name: err.name, message: err.message } : err,
+        ),
       });
     }
   };
@@ -182,37 +199,47 @@ export function RpcReadTests() {
               </div>
 
               {(run.status === "done" || run.status === "error") && (
-                <div className="mt-2 flex items-start gap-2 border-t border-gray-200 pt-2">
-                  {run.status === "done" ? (
-                    <>
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                      <span className="min-w-0 flex-1 break-all font-mono text-xs text-gray-700">
-                        {run.text}
-                      </span>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                          run.source === "wallet"
-                            ? "bg-blue-50 text-blue-700"
-                            : "bg-amber-100 text-amber-800",
-                        )}
-                        title={
-                          run.source === "wallet"
-                            ? "Answered by the wallet provider"
-                            : "Wallet provider did not support this method — answered by the public RPC fallback"
-                        }
-                      >
-                        {run.source === "wallet" ? "wallet provider" : "RPC fallback"}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
-                      <span className="min-w-0 flex-1 break-words text-xs text-red-700">
-                        {run.text}
-                      </span>
-                    </>
-                  )}
+                <div className="mt-2 border-t border-gray-200 pt-2">
+                  <div className="flex items-start gap-2">
+                    {run.status === "done" ? (
+                      <>
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                        <span className="min-w-0 flex-1 break-all font-mono text-xs text-gray-700">
+                          {run.text}
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                            run.source === "wallet"
+                              ? "bg-blue-50 text-blue-700"
+                              : "bg-amber-100 text-amber-800",
+                          )}
+                          title={
+                            run.source === "wallet"
+                              ? "Answered by the wallet provider"
+                              : "Wallet provider did not support this method — answered by the public RPC fallback"
+                          }
+                        >
+                          {run.source === "wallet" ? "wallet provider" : "RPC fallback"}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                        <span className="min-w-0 flex-1 break-words text-xs text-red-700">
+                          {run.text}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] font-medium text-gray-400 hover:text-gray-600">
+                      raw response
+                    </summary>
+                    <pre className="mt-1 max-h-48 overflow-auto rounded-md bg-gray-100 p-2 font-mono text-[11px] text-gray-700">
+                      {run.raw}
+                    </pre>
+                  </details>
                 </div>
               )}
             </li>

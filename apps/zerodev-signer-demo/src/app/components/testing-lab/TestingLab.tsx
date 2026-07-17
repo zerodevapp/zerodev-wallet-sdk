@@ -1,13 +1,23 @@
 "use client";
 
-import { Code2, FileSignature, FlaskConical, Network, Send } from "lucide-react";
+import {
+  Clock,
+  Code2,
+  FileSignature,
+  FlaskConical,
+  Network,
+  Send,
+} from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { ContractBalances } from "./ContractBalances";
 import { Erc20ContractTest } from "./Erc20ContractTest";
 import { Erc721ContractTest } from "./Erc721ContractTest";
+import { ChainMethodsTest } from "./ChainMethodsTest";
 import { HelloWorldContractTest } from "./HelloWorldContractTest";
 import { RpcReadTests } from "./RpcReadTests";
+import { SessionExpiryTest } from "./SessionExpiryTest";
+import { WatchAssetTest } from "./WatchAssetTest";
 import { SendEthTest } from "./SendEthTest";
 import { SendHighAmountTest } from "./SendHighAmountTest";
 import { SendInvalidAddressTest } from "./SendInvalidAddressTest";
@@ -15,13 +25,14 @@ import { SignMessageCounterTest } from "./SignMessageCounterTest";
 import { SignMessagePresetTest } from "./SignMessagePresetTest";
 import { SignTypedDataInvalidTest } from "./SignTypedDataInvalidTest";
 
-type LabTab = "signing" | "transactions" | "contracts" | "rpc";
+type LabTab = "signing" | "transactions" | "contracts" | "rpc" | "session";
 
 const tabs = [
   { id: "signing" as const, name: "Signing", icon: FileSignature },
   { id: "transactions" as const, name: "Transactions", icon: Send },
   { id: "contracts" as const, name: "Contracts", icon: Code2 },
   { id: "rpc" as const, name: "RPC", icon: Network },
+  { id: "session" as const, name: "Session", icon: Clock },
 ];
 
 /**
@@ -95,6 +106,13 @@ export function TestingLab() {
         {activeTab === "rpc" && (
           <div className="space-y-4">
             <RpcReadTests />
+            <WatchAssetTest />
+            <ChainMethodsTest />
+          </div>
+        )}
+        {activeTab === "session" && (
+          <div className="space-y-4">
+            <SessionExpiryTest />
           </div>
         )}
       </div>
