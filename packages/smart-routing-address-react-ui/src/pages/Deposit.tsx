@@ -5,8 +5,10 @@ import {
   Icon,
   PillItem,
   PoweredBy,
-  SelectDropdown,
-  type SelectDropdownItem,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
   Text,
   Wrapper,
 } from '@zerodev/react-ui'
@@ -46,6 +48,13 @@ const SUBTITLE =
 const TOKEN_LOGO_BG = '#2775CA'
 const CHAIN_LOGO_BG = '#0052FF'
 const DEST_CHAIN_LOGO_BG = '#28A0F0'
+
+// The two picker panels span the full pill row (Figma "Send" layout), not
+// just the trigger cell each Select lives in. Trigger width = half the row
+// minus half the 4px gap, so full-row width = trigger * 2 + 4px.
+const FULL_ROW_PANEL_STYLE = {
+  width: 'calc(var(--radix-select-trigger-width) * 2 + 4px)',
+}
 
 export function Deposit({ onQrClick }: DepositProps) {
   const { config, addressState } = useSmartRoutingAddressContext()
@@ -118,48 +127,33 @@ export function Deposit({ onQrClick }: DepositProps) {
     resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
   )
 
-  // Token dropdown items — one row per distinct routable token type. The row
-  // subtitle reports how many chains carry that token; the first item is the
-  // "recommended" default (matches Figma's green Recommended badge on USDC).
-  const tokenItems = useMemo<SelectDropdownItem[]>(() => {
+  // Deduped list of routable token types — the token picker's rows. Chain
+  // count per token drives the subtitle. Kept as SourceToken (not a bespoke
+  // dropdown-item shape) so the render below can call the same helpers used
+  // for the trigger.
+  const uniqueTokens = useMemo(() => {
     const seen = new Set<TOKEN_TYPE>()
-    const uniqueTokens: SourceToken[] = []
+    const out: SourceToken[] = []
     for (const token of srcTokens) {
       if (seen.has(token.tokenType)) continue
       seen.add(token.tokenType)
-      uniqueTokens.push(token)
+      out.push(token)
     }
-    return uniqueTokens.map((token, i) => {
-      const symbol = getSourceTokenSymbol(token)
-      const chainCount = srcTokens.filter(
-        (t) => t.tokenType === token.tokenType,
-      ).length
-      return {
-        id: token.tokenType,
-        symbol,
-        subtitle: `${chainCount} network${chainCount === 1 ? '' : 's'}`,
-        logoBg: TOKEN_LOGO_BG,
-        ...(i === 0 && { badge: 'Recommended' }),
-      }
-    })
+    return out
   }, [srcTokens])
 
-  // Chain dropdown items — chains that carry the currently-selected token.
-  const chainItems = useMemo<SelectDropdownItem[]>(() => {
+  // Chains that carry the currently-selected token — the chain picker's rows.
+  const availableChains = useMemo(() => {
     if (!selectedTokenType) return []
     const seen = new Set<number>()
-    const chains: SourceToken[] = []
+    const out: SourceToken[] = []
     for (const token of srcTokens) {
       if (token.tokenType !== selectedTokenType) continue
       if (seen.has(token.chain.id)) continue
       seen.add(token.chain.id)
-      chains.push(token)
+      out.push(token)
     }
-    return chains.map((token) => ({
-      id: String(token.chain.id),
-      symbol: token.chain.name,
-      logoBg: CHAIN_LOGO_BG,
-    }))
+    return out
   }, [srcTokens, selectedTokenType])
 
   const slippage =
@@ -175,13 +169,8 @@ export function Deposit({ onQrClick }: DepositProps) {
       ? `${formatDisplayAmount(feeData.minDeposit, feeData.decimal, 'up')} ${sourceSymbol}`
       : null
 
-  const pickerDisabled = tokenItems.length === 0
-
-  // Both dropdown panels span the full width of the two pills together
-  // (Figma's "Send" row layout), not just the trigger cell each SelectDropdown
-  // lives in. Each pill trigger is half the row minus half the 4px gap, so
-  // the panel width = trigger*2 + 4px.
-  const fullRowPanelWidth = 'calc(var(--radix-popover-trigger-width) * 2 + 4px)'
+  const pickerDisabled = uniqueTokens.length === 0
+  const sourceChainName = source?.chain.name
 
   return (
     <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
@@ -197,26 +186,70 @@ export function Deposit({ onQrClick }: DepositProps) {
               <CardTitle>Send</CardTitle>
               <PillRow
                 left={
-                  <SelectDropdown
-                    items={tokenItems}
+                  <Select
                     value={selectedTokenType ?? ''}
-                    onChange={(id) => setSelectedTokenType(id as TOKEN_TYPE)}
+                    onValueChange={(id) =>
+                      setSelectedTokenType(id as TOKEN_TYPE)
+                    }
                     disabled={pickerDisabled}
-                    align="start"
-                    panelWidth={fullRowPanelWidth}
-                  />
+                  >
+                    <SelectTrigger asChild>
+                      <PillItem
+                        label={sourceSymbol ?? '—'}
+                        logoBg={TOKEN_LOGO_BG}
+                        disabled={pickerDisabled}
+                      />
+                    </SelectTrigger>
+                    <SelectContent align="start" style={FULL_ROW_PANEL_STYLE}>
+                      {uniqueTokens.map((token, i) => {
+                        const symbol = getSourceTokenSymbol(token)
+                        const chainCount = srcTokens.filter(
+                          (t) => t.tokenType === token.tokenType,
+                        ).length
+                        return (
+                          <SelectItem
+                            key={token.tokenType}
+                            value={token.tokenType}
+                            textValue={symbol}
+                          >
+                            <TokenPickerRow
+                              symbol={symbol}
+                              subtitle={`${chainCount} network${chainCount === 1 ? '' : 's'}`}
+                              {...(i === 0 && { badge: 'Recommended' })}
+                            />
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
                 }
                 right={
-                  <SelectDropdown
-                    items={chainItems}
+                  <Select
                     value={
                       selectedChainId !== null ? String(selectedChainId) : ''
                     }
-                    onChange={(id) => setSelectedChainId(Number(id))}
+                    onValueChange={(id) => setSelectedChainId(Number(id))}
                     disabled={pickerDisabled}
-                    align="end"
-                    panelWidth={fullRowPanelWidth}
-                  />
+                  >
+                    <SelectTrigger asChild>
+                      <PillItem
+                        label={sourceChainName ?? '—'}
+                        logoBg={CHAIN_LOGO_BG}
+                        disabled={pickerDisabled}
+                      />
+                    </SelectTrigger>
+                    <SelectContent align="end" style={FULL_ROW_PANEL_STYLE}>
+                      {availableChains.map((token) => (
+                        <SelectItem
+                          key={token.chain.id}
+                          value={String(token.chain.id)}
+                          textValue={token.chain.name}
+                        >
+                          <TokenPickerRow symbol={token.chain.name} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 }
               />
               <div className="zd:flex zd:w-full zd:flex-col zd:items-start zd:gap-2 zd:px-2 zd:py-4">
@@ -287,6 +320,40 @@ export function Deposit({ onQrClick }: DepositProps) {
       </div>
 
       <PoweredBy className="zd:justify-center" />
+    </div>
+  )
+}
+
+/** SRA-specific row visual used inside token/chain SelectItems. Kept local
+ * because it's shaped for this flow; unlike the primitives in `@zerodev/react-ui`,
+ * it isn't reused elsewhere. */
+function TokenPickerRow({
+  symbol,
+  subtitle,
+  badge,
+}: {
+  symbol: string
+  subtitle?: string
+  badge?: string
+}) {
+  return (
+    <div className="zd:relative zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-2 zd:py-2">
+      <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-2xl zd:bg-offWhite/50">
+        <Text className="zd:text-body1 zd:font-medium">
+          {symbol.charAt(0).toUpperCase()}
+        </Text>
+      </div>
+      <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col">
+        <Text className="zd:text-body1 zd:font-medium">{symbol}</Text>
+        {subtitle && (
+          <Text className="zd:text-body3 zd:text-greyScale/50">{subtitle}</Text>
+        )}
+      </div>
+      {badge && (
+        <span className="zd:inline-flex zd:items-center zd:rounded-full zd:bg-positive/15 zd:px-2 zd:py-1 zd:text-body3 zd:text-positive">
+          {badge}
+        </span>
+      )}
     </div>
   )
 }
