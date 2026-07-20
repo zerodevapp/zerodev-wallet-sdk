@@ -60,6 +60,15 @@ export type ConnectorCoreParams = {
    * EOA without account abstraction.
    */
   mode?: WalletMode
+  /**
+   * Per-chain overrides for local / self-hosted AA infrastructure. When an
+   * entry exists for a chain, the kernel client uses `bundlerUrl` directly as
+   * its bundler transport (bypassing the hosted ZeroDev AA URL), and — when
+   * `selfFunded` is set — omits the paymaster so the account pays its own gas.
+   * Intended for local dev against Anvil + a locally-run bundler (e.g. Ultra
+   * Relay), where there is no hosted bundler/paymaster.
+   */
+  aaOverrides?: Record<number, { bundlerUrl: string; selfFunded?: boolean }>
   // Controls whether setup() automatically initializes the connector on mount.
   // When false, the connector still initializes lazily on connect/getProvider/getStore.
   autoInitialize?: boolean | (() => boolean)
@@ -158,21 +167,30 @@ export function zeroDevWalletCore(
       })
       store.getState().setKernelAccount(chainId, kernelAccount)
 
+      // Local/self-hosted override: use a bare bundler URL and (optionally)
+      // skip the paymaster so the account self-funds. Falls back to the hosted
+      // ZeroDev AA URL + paymaster when no override is configured for the chain.
+      const aaOverride = params.aaOverrides?.[chainId]
+      const bundlerUrl =
+        aaOverride?.bundlerUrl ??
+        getAAUrl(params.projectId, chainId, params.aaHost)
+
       const kernelClient = createKernelAccountClient({
         account: kernelAccount,
-        bundlerTransport: http(
-          getAAUrl(params.projectId, chainId, params.aaHost),
-          httpOpts,
-        ),
+        bundlerTransport: http(bundlerUrl, httpOpts),
         chain,
         client: publicClient,
-        paymaster: createZeroDevPaymasterClient({
-          chain,
-          transport: http(
-            getAAUrl(params.projectId, chainId, params.aaHost),
-            httpOpts,
-          ),
-        }),
+        ...(aaOverride?.selfFunded
+          ? {}
+          : {
+              paymaster: createZeroDevPaymasterClient({
+                chain,
+                transport: http(
+                  getAAUrl(params.projectId, chainId, params.aaHost),
+                  httpOpts,
+                ),
+              }),
+            }),
       })
       store.getState().setKernelClient(chainId, kernelClient)
     }

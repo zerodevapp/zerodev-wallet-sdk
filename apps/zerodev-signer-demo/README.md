@@ -40,3 +40,16 @@ pnpm run dev
 ```
 
 2. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Running against a local Anvil node
+
+To develop/QA against a **local Anvil** node (chain 31337) with the full ERC-4337 /
+EIP-7702 account-abstraction path — no live testnets, no hosted bundler — see
+[`local-aa/README.md`](../../local-aa/README.md) at the repo root. It covers the
+`zerodev-stack` docker backend, the required Kernel v3.3 contracts, the `aaOverrides` +
+same-origin bundler proxy wiring, funding, and the 7702/4337 modes.
+
+Quick version: start the `zerodev-stack` docker backend, rebuild `@zerodev/wallet-react`
+(its `dist` is gitignored), set `NEXT_PUBLIC_WALLET_MODE` + `NEXT_PUBLIC_ANVIL_RPC_URL`
+in `.env.local`, run the app, switch the network to "Anvil (local)", and fund the account
+with `anvil_setBalance`.
