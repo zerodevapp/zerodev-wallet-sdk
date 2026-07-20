@@ -84,14 +84,12 @@ const config: Config = {
           '50%': { opacity: '1' },
         },
         // Popper (dropdown) open — subtle scale + translate from the trigger
-        // plus a quick fade-in. Fully opaque at the end.
+        // plus a quick fade-in. Fully opaque at the end. No exit animation:
+        // Radix unmounts on close and Presence-detection of the closing
+        // animation was flaky enough that the panel effectively vanished.
         'popper-in': {
           from: { opacity: '0', transform: 'scale(0.97) translateY(-3px)' },
           to: { opacity: '1', transform: 'scale(1) translateY(0)' },
-        },
-        'popper-out': {
-          from: { opacity: '1', transform: 'scale(1) translateY(0)' },
-          to: { opacity: '0', transform: 'scale(0.97) translateY(-3px)' },
         },
       },
       animation: {
@@ -100,8 +98,7 @@ const config: Config = {
         'backdrop-in': 'backdrop-in 200ms ease-out forwards',
         'backdrop-out': 'backdrop-out 200ms ease-out forwards',
         'skel-pulse': 'skel-pulse 1.1s ease-in-out infinite',
-        'popper-in': 'popper-in 140ms ease both',
-        'popper-out': 'popper-out 140ms ease both',
+        'popper-in': 'popper-in 160ms ease-out both',
       },
     },
   },

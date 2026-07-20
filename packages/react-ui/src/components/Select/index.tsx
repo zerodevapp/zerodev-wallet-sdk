@@ -80,7 +80,6 @@ export function SelectContent({
         className={cn(
           'zd:z-50 zd:max-h-80 zd:outline-none',
           'zd:data-[state=open]:animate-popper-in',
-          'zd:data-[state=closed]:animate-popper-out',
           className,
         )}
         {...props}
