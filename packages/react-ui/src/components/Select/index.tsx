@@ -25,6 +25,12 @@ export function SelectTrigger({
       className={cn(
         'zd:inline-flex zd:items-center zd:justify-between zd:gap-2',
         'zd:outline-none zd:cursor-pointer',
+        // Radix Select sets `pointer-events: none` on the body while the
+        // panel is open (part of its scroll-lock/dismiss-layer behavior),
+        // which falls back the cursor to `default` even over the trigger.
+        // Re-enable pointer events + cursor when the trigger is open so
+        // the hover cue stays consistent.
+        'zd:data-[state=open]:pointer-events-auto zd:data-[state=open]:cursor-pointer',
         'zd:disabled:cursor-not-allowed zd:disabled:opacity-50',
         className,
       )}
@@ -76,15 +82,30 @@ export function SelectContent({
         ref={ref}
         position={position}
         sideOffset={sideOffset}
-        className={cn('zd:z-50 zd:max-h-80 zd:outline-none', className)}
+        className={cn(
+          'zd:z-50 zd:max-h-80 zd:outline-none',
+          // Subtle scale + translate on open/close (see `popper-in` /
+          // `popper-out`). Radix keeps Content mounted through the exit
+          // animation via `data-state="closed"`. Radix provides
+          // `--radix-select-content-transform-origin` which anchors the
+          // scale to the trigger's corner based on `align` (top-left for
+          // `align="start"`, top-right for `align="end"`).
+          'zd:data-[state=open]:animate-popper-in',
+          'zd:data-[state=closed]:animate-popper-out',
+          className,
+        )}
         {...props}
         style={{
           width: 'var(--radix-select-trigger-width)',
+          transformOrigin: 'var(--radix-select-content-transform-origin)',
           ...style,
         }}
       >
         <Wrapper
           variant="solid"
+          // Override Wrapper's 80% white translucency — a dropdown over
+          // content shouldn't let the content bleed through.
+          style={{ backgroundColor: '#fff' }}
           className="zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden"
         >
           <SelectPrimitive.Viewport className="zd:overflow-y-auto zd:max-h-80">

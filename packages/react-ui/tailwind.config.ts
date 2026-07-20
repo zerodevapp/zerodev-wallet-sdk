@@ -83,6 +83,16 @@ const config: Config = {
           '0%, 100%': { opacity: '0.65' },
           '50%': { opacity: '1' },
         },
+        // Popper (dropdown) open — subtle scale + translate from the trigger
+        // plus a quick fade-in. Fully opaque at the end.
+        'popper-in': {
+          from: { opacity: '0', transform: 'scale(0.97) translateY(-3px)' },
+          to: { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'popper-out': {
+          from: { opacity: '1', transform: 'scale(1) translateY(0)' },
+          to: { opacity: '0', transform: 'scale(0.97) translateY(-3px)' },
+        },
       },
       animation: {
         'sheet-in': 'sheet-in 300ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
@@ -90,6 +100,8 @@ const config: Config = {
         'backdrop-in': 'backdrop-in 200ms ease-out forwards',
         'backdrop-out': 'backdrop-out 200ms ease-out forwards',
         'skel-pulse': 'skel-pulse 1.1s ease-in-out infinite',
+        'popper-in': 'popper-in 140ms ease both',
+        'popper-out': 'popper-out 120ms ease both',
       },
     },
   },
