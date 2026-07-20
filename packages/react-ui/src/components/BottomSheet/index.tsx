@@ -4,11 +4,11 @@ import type { ComponentProps, ReactNode } from 'react'
 import { cn } from '../../utils/common'
 import { useScreenOverlayContainer } from '../Screen'
 
-export const Sheet = Dialog.Root
+export const BottomSheet = Dialog.Root
 export const SheetClose = Dialog.Close
 
 /** Accessible label for the sheet. `sr-only` by default — consumers who want
- * a visible title render their own heading inside `<BottomSheet>` and keep
+ * a visible title render their own heading inside `<SheetContent>` and keep
  * `<SheetTitle>` as the screen-reader label. */
 export function SheetTitle({
   className,
@@ -19,9 +19,9 @@ export function SheetTitle({
 
 /** Bottom-anchored sheet chrome. Portals into the nearest `Screen`, renders
  * the backdrop + panel, and drives open/close animations from Radix's
- * `data-state` attribute. Wrap in `<Sheet open onOpenChange>` and compose
- * children freely (title, body, `<SheetClose>` action). */
-export function BottomSheet({
+ * `data-state` attribute. Wrap in `<BottomSheet open onOpenChange>` and
+ * compose children freely (title, body, `<SheetClose>` action). */
+export function SheetContent({
   children,
   className,
 }: {

@@ -11,8 +11,8 @@ export {
 export { Badge, type BadgeProps } from './components/Badge'
 export {
   BottomSheet,
-  Sheet,
   SheetClose,
+  SheetContent,
   SheetTitle,
 } from './components/BottomSheet'
 export { Button, type ButtonProps } from './components/Button'

@@ -1,4 +1,9 @@
-import { BottomSheet, Sheet, SheetClose, SheetTitle } from '../BottomSheet'
+import {
+  BottomSheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+} from '../BottomSheet'
 import { Button } from '../Button'
 import { Text } from '../Text'
 import { QrCode } from './QrCode'
@@ -16,12 +21,12 @@ export interface QrModalProps {
 }
 
 /** Bottom-anchored modal showing the deposit address as a QR code. Composes
- * `<Sheet>` + `<BottomSheet>` for state + chrome; this file owns the QR /
- * address / copy-cancel layout inside it. */
+ * `<BottomSheet>` (state) + `<SheetContent>` (chrome); this file owns the
+ * QR / address / copy-cancel layout inside it. */
 export function QrModal({ open, onOpenChange, address, onCopy }: QrModalProps) {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <BottomSheet>
+    <BottomSheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
         <SheetTitle>Your deposit address</SheetTitle>
         {/* Bottom-half gradient — light blue at bottom-left fading into
             peach/orange at bottom-right — mirrors the "amorphic" image used
@@ -66,7 +71,7 @@ export function QrModal({ open, onOpenChange, address, onCopy }: QrModalProps) {
             </SheetClose>
           </div>
         </div>
-      </BottomSheet>
-    </Sheet>
+      </SheetContent>
+    </BottomSheet>
   )
 }
