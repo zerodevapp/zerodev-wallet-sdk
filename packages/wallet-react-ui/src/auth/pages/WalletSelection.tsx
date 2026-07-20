@@ -12,7 +12,8 @@ import {
 } from '../walletGuide'
 
 // The short list shown on the page; everything else lives behind
-// "Browse more wallets". WalletConnect slots in after MetaMask.
+// "Browse more wallets". Installed wallets float to the top; WalletConnect
+// slots in after the top wallet.
 const CURATED_WALLET_IDS = ['metaMask', 'trust', 'coinbase', 'rainbow', 'rabby']
 
 export function WalletSelection() {
@@ -52,8 +53,16 @@ export function WalletSelection() {
     )
   }
 
+  // Without WalletConnect the sheet has nothing to pair — skip it: connect
+  // the installed extension directly, or send the user to the download page.
   const openWalletSheet = (wallet: WalletGuideEntry) => {
     setGridOpen(false)
+    if (!pairing.enabled) {
+      const installed = walletConnectors.find((c) => matchesWallet(c, wallet))
+      if (installed) handleSelect(installed)
+      else window.open(wallet.downloadUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
     setSheet({ wallet })
   }
 
@@ -61,7 +70,11 @@ export function WalletSelection() {
     const wallet = WALLET_GUIDE.find((w) => w.id === id)
     return wallet ? [wallet] : []
   })
-  const [metaMask, ...restCurated] = curatedWallets
+  const sortedWallets = [
+    ...curatedWallets.filter((w) => isAnnounced(w.rdns)),
+    ...curatedWallets.filter((w) => !isAnnounced(w.rdns)),
+  ]
+  const [topWallet, ...restWallets] = sortedWallets
 
   const walletRow = (wallet: WalletGuideEntry) => (
     <ListItem
@@ -84,7 +97,7 @@ export function WalletSelection() {
         <Text className="zd:text-h2 zd:text-center">Select your wallet</Text>
 
         <div className="zd:flex zd:flex-col zd:gap-2">
-          {metaMask && walletRow(metaMask)}
+          {topWallet && walletRow(topWallet)}
           {pairing.enabled && (
             <ListItem
               title="WalletConnect"
@@ -96,7 +109,7 @@ export function WalletSelection() {
               className="zd:rounded-3xl"
             />
           )}
-          {restCurated.map(walletRow)}
+          {restWallets.map(walletRow)}
 
           <ListItem
             title="Browse more wallets"
