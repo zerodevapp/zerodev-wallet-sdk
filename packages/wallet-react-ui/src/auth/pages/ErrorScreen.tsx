@@ -1,5 +1,4 @@
 import { Button } from '@zerodev/react-ui'
-import { PoweredBy } from '../../shared/components/PoweredBy'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useAuth } from '../hooks/useAuth'
 import { stripMagicLinkCodeFromUrl } from '../utils/url'
@@ -46,8 +45,6 @@ export function ErrorScreen({
           )}
         </div>
       </div>
-
-      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
     </>
   )
 }

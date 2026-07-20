@@ -29,6 +29,24 @@ export type WalletGuideEntry = {
   downloadUrl: string
 }
 
+/**
+ * A live connector "claims" a guide wallet by rdns: announced (6963)
+ * connectors carry `id === rdns`, explicit ones (e.g. `metaMask()`) declare
+ * `rdns` as a string or array.
+ */
+export function matchesWallet(
+  connector: { id: string; rdns?: string | readonly string[] | undefined },
+  wallet: WalletGuideEntry,
+): boolean {
+  return (
+    !!wallet.rdns &&
+    (connector.id === wallet.rdns ||
+      (Array.isArray(connector.rdns)
+        ? connector.rdns.includes(wallet.rdns)
+        : connector.rdns === wallet.rdns))
+  )
+}
+
 export const WALLET_GUIDE: WalletGuideEntry[] = [
   {
     id: 'metaMask',

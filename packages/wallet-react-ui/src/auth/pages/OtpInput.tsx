@@ -1,7 +1,6 @@
 import { Button, Text } from '@zerodev/react-ui'
 import { useSendOTP, useVerifyOTP } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
-import { PoweredBy } from '../../shared/components/PoweredBy'
 import { CodeInput } from '../components/CodeInput'
 import { useAuth } from '../hooks/useAuth'
 
@@ -117,8 +116,6 @@ export function OtpInput() {
           </Text>
         </div>
       </div>
-
-      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
     </>
   )
 }

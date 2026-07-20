@@ -98,38 +98,42 @@ export function ListItem({
               />
             ) : null}
           </div>
-          <div
-            className={cn(
-              'zd:flex zd:flex-col zd:justify-center zd:text-left',
-              badgeProps ? 'zd:gap-2' : 'zd:gap-1',
-            )}
-          >
+          <div className="zd:flex zd:flex-col zd:justify-center zd:text-left zd:gap-1">
             <Text className="zd:text-body1">{title}</Text>
             {subtitle && (
               <Text className="zd:text-body3 zd:text-greyScale/50">
                 {subtitle}
               </Text>
             )}
-            {badgeProps && <Badge {...badgeProps} />}
           </div>
         </div>
-        {details ? (
-          <div className="zd:flex zd:flex-col zd:pr-1">
-            <Text className="zd:text-body1">{details.text}</Text>
-            {details.subtext && (
-              <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
-                {details.subtext}
-              </Text>
-            )}
-          </div>
-        ) : chevron ? (
-          <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
-            <Icon
-              name="chevronRight"
-              className="zd:h-6 zd:w-6 zd:text-greyScale"
+        <div className="zd:flex zd:flex-row zd:items-center">
+          {badgeProps && (
+            // Badge defaults to self-start (stretch guard for column layouts);
+            // inside this row it must follow the row's vertical centering.
+            <Badge
+              {...badgeProps}
+              className={cn('zd:self-center', badgeProps.className)}
             />
-          </div>
-        ) : null}
+          )}
+          {details ? (
+            <div className="zd:flex zd:flex-col zd:pr-1">
+              <Text className="zd:text-body1">{details.text}</Text>
+              {details.subtext && (
+                <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
+                  {details.subtext}
+                </Text>
+              )}
+            </div>
+          ) : chevron ? (
+            <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
+              <Icon
+                name="chevronRight"
+                className="zd:h-6 zd:w-6 zd:text-greyScale"
+              />
+            </div>
+          ) : null}
+        </div>
       </button>
     </Wrapper>
   )

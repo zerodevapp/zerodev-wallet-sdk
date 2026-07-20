@@ -1,20 +1,46 @@
-import { ListItem, Text } from '@zerodev/react-ui'
+import { ListItem, Text, walletConnectLogo } from '@zerodev/react-ui'
+import { useState } from 'react'
 import { useConnect } from 'wagmi'
-import { useStore } from 'zustand'
-import { PoweredBy } from '../../shared/components/PoweredBy'
-import { useKitStore } from '../../shared/hooks/useKitStore'
+import { WalletGridSheet } from '../components/WalletGridSheet'
+import { WalletSheet, type WalletSheetTarget } from '../components/WalletSheet'
 import { useAuth } from '../hooks/useAuth'
-import { WALLET_GUIDE } from '../walletGuide'
+import { useWalletConnectPairing } from '../hooks/useWalletConnectPairing'
+import {
+  matchesWallet,
+  WALLET_GUIDE,
+  type WalletGuideEntry,
+} from '../walletGuide'
+
+// The short list shown on the page; everything else lives behind
+// "Browse more wallets". Installed wallets float to the top; WalletConnect
+// slots in after the top wallet.
+const CURATED_WALLET_IDS = ['metaMask', 'trust', 'coinbase', 'rainbow', 'rabby']
 
 export function WalletSelection() {
   const { goToStep } = useAuth()
   const { connect, connectors, isPending } = useConnect()
-  const walletConnectProjectId = useStore(
-    useKitStore(),
-    (s) => s.walletConnectProjectId,
+  const pairing = useWalletConnectPairing()
+  const [sheet, setSheet] = useState<WalletSheetTarget | null>(null)
+  const [gridOpen, setGridOpen] = useState(false)
+
+  // Exclude our own connector and the walletConnect one (kit-created or
+  // dev-added) — the dedicated WalletConnect row covers that path; once the
+  // pairing hook registers the connector it would otherwise show up as a
+  // duplicate row here.
+  const walletConnectors = connectors.filter(
+    (c) => c.id !== 'zerodev-wallet' && c.type !== 'walletConnect',
   )
 
-  const externalConnectors = connectors.filter((c) => c.id !== 'zerodev-wallet')
+  // Live connectors we have no guide entry for — reachable via the grid.
+  const unmatchedConnectors = walletConnectors.filter(
+    (c) => !WALLET_GUIDE.some((wallet) => matchesWallet(c, wallet)),
+  )
+
+  // A 6963 announcement (connector id === rdns) proves a live extension; a
+  // configured SDK connector merely claims the rdns and exists regardless of
+  // installation — only announcements earn the INSTALLED badge.
+  const isAnnounced = (rdns: string | undefined) =>
+    !!rdns && walletConnectors.some((c) => c.id === rdns)
 
   const handleSelect = (connector: (typeof connectors)[number]) => {
     connect(
@@ -27,62 +53,95 @@ export function WalletSelection() {
     )
   }
 
+  // Without WalletConnect the sheet has nothing to pair — skip it: connect
+  // the installed extension directly, or send the user to the download page.
+  const openWalletSheet = (wallet: WalletGuideEntry) => {
+    setGridOpen(false)
+    if (!pairing.enabled) {
+      const installed = walletConnectors.find((c) => matchesWallet(c, wallet))
+      if (installed) handleSelect(installed)
+      else window.open(wallet.downloadUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+    setSheet({ wallet })
+  }
+
+  const curatedWallets = CURATED_WALLET_IDS.flatMap((id) => {
+    const wallet = WALLET_GUIDE.find((w) => w.id === id)
+    return wallet ? [wallet] : []
+  })
+  const sortedWallets = [
+    ...curatedWallets.filter((w) => isAnnounced(w.rdns)),
+    ...curatedWallets.filter((w) => !isAnnounced(w.rdns)),
+  ]
+  const [topWallet, ...restWallets] = sortedWallets
+
+  const walletRow = (wallet: WalletGuideEntry) => (
+    <ListItem
+      key={wallet.id}
+      title={wallet.name}
+      imageUri={wallet.icon}
+      chevron
+      disabled={isPending}
+      {...(isAnnounced(wallet.rdns) && {
+        badgeProps: { text: 'INSTALLED' },
+      })}
+      onClick={() => openWalletSheet(wallet)}
+      className="zd:rounded-3xl"
+    />
+  )
+
   return (
-    <>
+    <div className="zd:flex-1 zd:flex zd:flex-col">
       <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:justify-center">
         <Text className="zd:text-h2 zd:text-center">Select your wallet</Text>
 
         <div className="zd:flex zd:flex-col zd:gap-2">
-          {externalConnectors.length === 0 ? (
-            <Text className="zd:text-center">
-              No wallets detected. Install a browser wallet extension to
-              continue.
-            </Text>
-          ) : (
-            externalConnectors.map((connector) => (
-              <ListItem
-                key={connector.uid}
-                title={connector.name}
-                iconName="walletOutline"
-                {...(connector.icon ? { imageUri: connector.icon } : {})}
-                disabled={isPending}
-                onClick={() => handleSelect(connector)}
-                className="zd:rounded-3xl"
-              />
-            ))
-          )}
-        </div>
-
-        <div className="zd:flex zd:flex-col zd:gap-2">
-          {walletConnectProjectId && (
+          {topWallet && walletRow(topWallet)}
+          {pairing.enabled && (
             <ListItem
               title="WalletConnect"
-              iconName="walletOutline"
+              imageUri={walletConnectLogo}
+              badgeProps={{ text: 'QR CODE' }}
               chevron
               disabled={isPending}
-              onClick={() => goToStep('wallet-connect')}
+              onClick={() => setSheet({})}
               className="zd:rounded-3xl"
             />
           )}
-          <Text className="zd:text-body3 zd:text-greyScale/50">
-            More wallets
-          </Text>
-          {WALLET_GUIDE.map((wallet) => (
-            <ListItem
-              key={wallet.id}
-              title={wallet.name}
-              imageUri={wallet.icon}
-              disabled={isPending}
-              onClick={() =>
-                window.open(wallet.downloadUrl, '_blank', 'noopener')
-              }
-              className="zd:rounded-3xl"
-            />
-          ))}
+          {restWallets.map(walletRow)}
+
+          <ListItem
+            title="Browse more wallets"
+            iconName="walletOutline"
+            chevron
+            disabled={isPending}
+            onClick={() => setGridOpen(true)}
+            className="zd:rounded-3xl"
+          />
         </div>
       </div>
 
-      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
-    </>
+      <WalletGridSheet
+        open={gridOpen}
+        connectors={unmatchedConnectors}
+        onSelectWallet={openWalletSheet}
+        onSelectConnector={(connector) => {
+          setGridOpen(false)
+          handleSelect(connector)
+        }}
+        onClose={() => setGridOpen(false)}
+      />
+
+      <WalletSheet
+        target={sheet}
+        uri={pairing.uri}
+        error={pairing.error}
+        connectors={walletConnectors}
+        onSelectConnector={handleSelect}
+        onRetry={pairing.retry}
+        onClose={() => setSheet(null)}
+      />
+    </div>
   )
 }

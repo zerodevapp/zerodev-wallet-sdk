@@ -8,7 +8,6 @@ export type AuthStep =
   | 'passkey-prompt'
   | 'oauth-in-progress'
   | 'wallet-selection'
-  | 'wallet-connect'
   | 'authenticated'
   | 'error'
 

@@ -48,10 +48,14 @@ export const config = createConfig({
       ...(mode && { mode }),
       config: {
         logo: <ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />,
-        // PoC Reown Cloud project id (public client identifier).
-        walletConnectProjectId: 'a6b5206ed2bb5ffce9937671b0f8f187',
+        // Reown Cloud project id (public client identifier). Unset → the kit
+        // hides all WalletConnect flows; injected/browser paths remain.
+        ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID && {
+          walletConnectProjectId:
+            process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+        }),
         auth: {
-          enabledMethods: ['email', 'google', 'passkey', 'external-wallet'],
+          enabledMethods: ['email', 'passkey', 'external-wallet'],
           emailAuthMethod: getEmailAuthMethod(),
         },
       },

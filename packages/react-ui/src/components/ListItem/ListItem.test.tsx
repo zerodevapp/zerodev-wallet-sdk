@@ -53,14 +53,6 @@ describe('ListItem', () => {
     expect(screen.getByText('New')).toBeDefined()
   })
 
-  it('applies correct gap when badge is present', () => {
-    const { container } = render(
-      <ListItem title="Test Title" badgeProps={{ text: 'Badge' }} />,
-    )
-    const contentDiv = container.querySelector('.zd\\:gap-2')
-    expect(contentDiv).not.toBeNull()
-  })
-
   it('renders details when provided', () => {
     render(
       <ListItem

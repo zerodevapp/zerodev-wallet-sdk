@@ -1,5 +1,11 @@
 import { cn } from '@zerodev/react-ui'
-import type { CSSProperties, ReactNode } from 'react'
+import {
+  type CSSProperties,
+  createContext,
+  type ReactNode,
+  useContext,
+  useState,
+} from 'react'
 import { TOP_NAV_HEIGHT } from '../TopNav'
 import {
   CardGlow,
@@ -8,11 +14,28 @@ import {
 } from './MultiRadialBackground'
 
 const CONTENT_PADDING_TOP = TOP_NAV_HEIGHT + 16
+// Fixed footer zone (PoweredBy). Content scrolls behind neither the nav nor
+// this — the scroll viewport is inset by margins on both ends.
+const FOOTER_HEIGHT = 56
+
+/**
+ * Portal target for overlays (sheets, dialogs) that must span the Screen's
+ * inner card edge-to-edge — the card is `relative`, unpadded, and its
+ * clip-path rounds anything reaching the corners. Children of Screen read it
+ * via `useScreenOverlayTarget()` and `createPortal` into it; `null` until the
+ * card has mounted (and during SSR).
+ */
+const ScreenOverlayContext = createContext<HTMLDivElement | null>(null)
+
+export function useScreenOverlayTarget() {
+  return useContext(ScreenOverlayContext)
+}
 
 export function Screen({
   children,
   className,
   contentClassName,
+  footer,
   size = 'lg',
   style,
   topNav,
@@ -20,10 +43,16 @@ export function Screen({
   children: ReactNode
   className?: string | undefined
   contentClassName?: string | undefined
+  footer?: ReactNode
   size?: 'sm' | 'md' | 'lg' | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
 }) {
+  // State (not a ref) so consumers re-render once the target exists.
+  const [overlayTarget, setOverlayTarget] = useState<HTMLDivElement | null>(
+    null,
+  )
+
   return (
     <div
       data-zd-size={size}
@@ -50,6 +79,7 @@ export function Screen({
           Its own gradient (base + CardGlow) fills the card so the colour stays
           vivid and distinct from the border. */}
       <div
+        ref={setOverlayTarget}
         className={cn(
           // m-1.5 = calc(var(--zd-spacing) * 1.5) = 6px at density 1, so the
           // gradient border ring thins with the size variants. (Corner radii
@@ -69,15 +99,32 @@ export function Screen({
           {topNav}
           <div
             className="zd:flex zd:flex-1 zd:flex-col zd:min-h-0 zd:overflow-y-auto zd:overflow-x-hidden"
-            // Scale via --zd-spacing (matches TopNav's scaled height) so the
-            // top padding shrinks with the frame — otherwise the fixed 68px
-            // eats a disproportionate share at smaller sizes and overflows.
+            // Margin (not padding) so the scroll viewport itself starts below
+            // the absolutely-positioned TopNav: scrolled content clips at the
+            // nav's bottom edge instead of sliding beneath the transparent
+            // nav. Scaled via --zd-spacing (matches TopNav's scaled height)
+            // so the offset shrinks with the size variants.
             style={{
-              paddingTop: `calc(${CONTENT_PADDING_TOP / 4} * var(--zd-spacing))`,
+              marginTop: `calc(${CONTENT_PADDING_TOP / 4} * var(--zd-spacing))`,
+              ...(footer && {
+                marginBottom: `calc(${FOOTER_HEIGHT / 4} * var(--zd-spacing))`,
+              }),
             }}
           >
-            {children}
+            <ScreenOverlayContext.Provider value={overlayTarget}>
+              {children}
+            </ScreenOverlayContext.Provider>
           </div>
+          {footer && (
+            <div
+              className="zd:absolute zd:inset-x-0 zd:bottom-0 zd:flex zd:items-center zd:justify-center"
+              style={{
+                height: `calc(${FOOTER_HEIGHT / 4} * var(--zd-spacing))`,
+              }}
+            >
+              {footer}
+            </div>
+          )}
         </div>
       </div>
     </div>
