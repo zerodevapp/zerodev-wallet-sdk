@@ -3,18 +3,24 @@
  * @tailwindcss/postcss plugin across every CSS the Next build ingests —
  * including the pre-built @zerodev/smart-routing-address-react-ui/styles.css —
  * and tree-shake any utility the plugin doesn't see referenced by files inside
- * this app. The SRA components use classes like `zd:w-8.5`, `zd:animate-modal-in`,
- * `zd:max-h-80` that live only inside the react-ui / SRA source; the plugin
- * strips them from the served bundle and the UI renders unstyled.
+ * this app. The SRA components use classes like `zd:w-8.5`, `zd:animate-*`
+ * that live only inside the react-ui / SRA source; the plugin strips them
+ * from the served bundle and the UI renders unstyled.
  *
  * The demo consumes the design system's precompiled stylesheet as-is and uses
- * plain CSS for its own tiny layout below.
+ * plain CSS below for its own landing-page chrome.
  */
 
 :root {
   --background: #faf7f4;
-  --foreground: #19110b;
+  --ink: #19110b;
   --muted: #6b6359;
+  --border: rgba(19, 17, 11, 0.1);
+  --primary: #f26c1a;
+  --danger: #d94040;
+  --font-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 *,
@@ -31,21 +37,440 @@ body {
     var(--background) 0,
     #ffffff 60%
   );
-  color: var(--foreground);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  color: var(--ink);
+  font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
 }
 
-.sra-demo-main {
+/* ---------- Layout ---------- */
+.pg {
+  padding: 0;
+}
+
+/* Two-column grid: config on the left (flex, capped width), widget on the
+   right (fixed 400px to match the SRA card). At narrow widths the grid
+   collapses to a single column and the widget centers below the copy. */
+.pg__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 32px 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 64px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pg__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    justify-items: center;
+  }
+}
+
+.pg__config {
+  max-width: 480px;
   display: flex;
-  min-height: 100vh;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.pg__widget {
+  justify-self: end;
+}
+
+@media (max-width: 900px) {
+  .pg__widget {
+    justify-self: center;
+  }
+}
+
+/* ---------- Intro copy ---------- */
+.pg__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pg__eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9c958c;
+}
+
+.pg__title {
+  margin: 0;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pg__lede {
+  margin: 0;
+  max-width: 48ch;
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ---------- Steps guide ---------- */
+.pg__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pg__step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.pg__step-num {
+  flex: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pg__step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.pg__step-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pg__step-text {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ---------- Advanced settings ---------- */
+.pg__advanced {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+
+.pg__advanced-summary {
+  padding: 16px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pg__advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.pg__advanced-summary::after {
+  content: '›';
+  font-size: 18px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.pg__advanced[open] .pg__advanced-summary::after {
+  transform: rotate(90deg);
+}
+
+.pg__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 4px 22px 22px;
+}
+
+.pg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pg__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pg__label-aside {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.pg__input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline-color: var(--primary);
+}
+
+.pg__input--mono {
+  font-family: var(--font-mono);
+}
+
+.pg__input[data-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.pg__range {
+  width: 100%;
+  accent-color: var(--ink);
+}
+
+.pg__hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pg__input[data-invalid='true'] ~ .pg__hint {
+  color: var(--danger);
+}
+
+.pg__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(231, 226, 221, 0.35);
+}
+
+.pg__summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pg__summary-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.pg__summary-text code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.pg__summary-text--muted {
+  color: var(--muted);
+}
+
+.pg__save-btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
+}
+
+.pg__save-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pg__save-btn:not(:disabled):hover {
+  background: #000;
+}
+
+/* ---------- Simulated wallet (step 2) ---------- */
+.pg__wallet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.pg__wallet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pg__wallet-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pg__wallet-tag {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef1e6;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pg__wallet-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f7f4ef;
+}
+
+.pg__wallet-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pg__wallet-symbol {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pg__wallet-net {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pg__wallet-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pg__wallet-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pg__wallet-input {
+  padding: 10px 32px 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline-color: var(--primary);
+}
+
+.pg__wallet-field[data-ok='true'] .pg__wallet-input {
+  border-color: #6bb04f;
+}
+
+.pg__wallet-ok {
+  position: absolute;
+  right: 10px;
+  top: 30px;
+  color: #6bb04f;
+  font-weight: 700;
+}
+
+.pg__wallet-send {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
+}
+
+.pg__wallet-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pg__wallet-send:not(:disabled):hover {
+  background: #000;
+}
+
+.pg__mock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pg__mock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--muted);
+  flex: none;
+}
+
+.pg__mock-status[data-stage='pending'] .pg__mock-dot,
+.pg__mock-status[data-stage='bridging'] .pg__mock-dot {
+  background: var(--primary);
+  animation: pg-pulse 1.1s ease-in-out infinite alternate;
+}
+
+.pg__mock-status[data-stage='completed'] .pg__mock-dot {
+  background: #6bb04f;
+}
+
+@keyframes pg-pulse {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
 }
