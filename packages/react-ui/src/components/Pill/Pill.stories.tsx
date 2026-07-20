@@ -78,3 +78,12 @@ export const WithLogoImage: Story = {
     ),
   },
 }
+
+/** Loading skeleton — renders when `loading` is true, mirroring the pill's
+ * footprint with a pulsing disc + label bar. */
+export const Loading: Story = {
+  args: {
+    label: '',
+    loading: true,
+  },
+}
