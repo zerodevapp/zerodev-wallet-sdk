@@ -83,10 +83,6 @@ const config: Config = {
           '0%, 100%': { opacity: '0.65' },
           '50%': { opacity: '1' },
         },
-        // Popper (dropdown) open — subtle scale + translate from the trigger
-        // plus a quick fade-in. Fully opaque at the end. No exit animation:
-        // Radix unmounts on close and Presence-detection of the closing
-        // animation was flaky enough that the panel effectively vanished.
         'popper-in': {
           from: { opacity: '0', transform: 'scale(0.97) translateY(-3px)' },
           to: { opacity: '1', transform: 'scale(1) translateY(0)' },
