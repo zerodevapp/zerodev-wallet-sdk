@@ -10,6 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   Text,
+  TokenListItem,
   Wrapper,
 } from '@zerodev/react-ui'
 import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
@@ -212,11 +213,15 @@ export function Deposit({ onQrClick }: DepositProps) {
                             value={token.tokenType}
                             textValue={symbol}
                           >
-                            <TokenPickerRow
+                            <TokenListItem
                               symbol={symbol}
                               subtitle={`${chainCount} network${chainCount === 1 ? '' : 's'}`}
-                              {...(i === 0 && { badge: 'Recommended' })}
                             />
+                            {i === 0 && (
+                              <span className="zd:absolute zd:top-1/2 zd:right-3 zd:-translate-y-1/2 zd:inline-flex zd:items-center zd:rounded-full zd:bg-positive/15 zd:px-2 zd:py-1 zd:text-body3 zd:text-positive zd:pointer-events-none">
+                                Recommended
+                              </span>
+                            )}
                           </SelectItem>
                         )
                       })}
@@ -245,7 +250,10 @@ export function Deposit({ onQrClick }: DepositProps) {
                           value={String(token.chain.id)}
                           textValue={token.chain.name}
                         >
-                          <TokenPickerRow symbol={token.chain.name} />
+                          <TokenListItem
+                            symbol={token.chain.name}
+                            iconVariant="network"
+                          />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -320,40 +328,6 @@ export function Deposit({ onQrClick }: DepositProps) {
       </div>
 
       <PoweredBy className="zd:justify-center" />
-    </div>
-  )
-}
-
-/** SRA-specific row visual used inside token/chain SelectItems. Kept local
- * because it's shaped for this flow; unlike the primitives in `@zerodev/react-ui`,
- * it isn't reused elsewhere. */
-function TokenPickerRow({
-  symbol,
-  subtitle,
-  badge,
-}: {
-  symbol: string
-  subtitle?: string
-  badge?: string
-}) {
-  return (
-    <div className="zd:relative zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-2 zd:py-2">
-      <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-2xl zd:bg-offWhite/50">
-        <Text className="zd:text-body1 zd:font-medium">
-          {symbol.charAt(0).toUpperCase()}
-        </Text>
-      </div>
-      <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col">
-        <Text className="zd:text-body1 zd:font-medium">{symbol}</Text>
-        {subtitle && (
-          <Text className="zd:text-body3 zd:text-greyScale/50">{subtitle}</Text>
-        )}
-      </div>
-      {badge && (
-        <span className="zd:inline-flex zd:items-center zd:rounded-full zd:bg-positive/15 zd:px-2 zd:py-1 zd:text-body3 zd:text-positive">
-          {badge}
-        </span>
-      )}
     </div>
   )
 }
