@@ -81,7 +81,11 @@ export function Pill({
           <div
             className={cn(
               'zd:absolute zd:top-1/2 zd:left-1/2 zd:-translate-x-1/2 zd:-translate-y-1/2',
-              'zd:flex zd:size-8.5 zd:items-center zd:justify-center zd:overflow-hidden zd:rounded-full',
+              'zd:flex zd:size-8.5 zd:items-center zd:justify-center',
+              // Only round + clip when we're showing the letter fallback disc.
+              // Real logo SVGs bring their own shape (round, diamond, etc.) —
+              // clipping them to a circle chops off tips like Polygon's.
+              !logoUri && 'zd:overflow-hidden zd:rounded-full',
             )}
             style={logoUri ? undefined : { backgroundColor: logoBg }}
           >
@@ -89,7 +93,7 @@ export function Pill({
               <img
                 alt=""
                 src={logoUri}
-                className="zd:size-full zd:object-cover"
+                className="zd:size-full zd:object-contain"
                 data-testid="token-chain-pill-logo"
               />
             ) : logoInitial ? (
