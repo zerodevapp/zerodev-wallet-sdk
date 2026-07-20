@@ -9,6 +9,12 @@ export {
   ArrowView,
 } from './components/ArrowCardPair'
 export { Badge, type BadgeProps } from './components/Badge'
+export {
+  BottomSheet,
+  Sheet,
+  SheetClose,
+  SheetTitle,
+} from './components/BottomSheet'
 export { Button, type ButtonProps } from './components/Button'
 export { Callout, type CalloutProps } from './components/Callout'
 export {
@@ -36,7 +42,7 @@ export {
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
 export { QrModal, type QrModalProps } from './components/QrModal'
-export { Screen } from './components/Screen'
+export { Screen, useScreenOverlayContainer } from './components/Screen'
 export {
   Select,
   SelectContent,
