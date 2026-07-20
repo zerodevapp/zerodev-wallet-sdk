@@ -1,4 +1,4 @@
-import * as SelectPrimitive from '@radix-ui/react-select'
+import { Select as SelectPrimitive } from 'radix-ui'
 import type { ComponentProps, Ref } from 'react'
 
 import { cn } from '../../utils/common'
