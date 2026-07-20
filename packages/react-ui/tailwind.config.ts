@@ -101,7 +101,7 @@ const config: Config = {
         'backdrop-out': 'backdrop-out 200ms ease-out forwards',
         'skel-pulse': 'skel-pulse 1.1s ease-in-out infinite',
         'popper-in': 'popper-in 140ms ease both',
-        'popper-out': 'popper-out 140s ease both',
+        'popper-out': 'popper-out 140ms ease both',
       },
     },
   },
