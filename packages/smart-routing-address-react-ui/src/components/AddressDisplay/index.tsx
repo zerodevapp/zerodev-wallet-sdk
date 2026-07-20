@@ -106,8 +106,5 @@ export function AddressDisplay({
   if (status === 'success' && address !== undefined) {
     return <AddressDisplayUI address={address} onQrClick={onQrClick} />
   }
-  // `idle` (before the provider's `ensureAddress` effect fires) and `loading`
-  // both render the "Generating…" state — otherwise the row briefly vanishes
-  // on the first paint before the effect runs.
   return <AddressDisplayUI loadingText="Generating deposit address…" />
 }
