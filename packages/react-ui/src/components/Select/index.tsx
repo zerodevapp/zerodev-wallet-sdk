@@ -65,6 +65,7 @@ export function SelectContent({
   children,
   position = 'popper',
   sideOffset = 8,
+  style,
   ...props
 }: ComponentProps<typeof SelectPrimitive.Content> & {
   ref?: Ref<HTMLDivElement>
@@ -76,11 +77,11 @@ export function SelectContent({
         position={position}
         sideOffset={sideOffset}
         className={cn('zd:z-50 zd:max-h-80 zd:outline-none', className)}
+        {...props}
         style={{
           width: 'var(--radix-select-trigger-width)',
-          ...props.style,
+          ...style,
         }}
-        {...props}
       >
         <Wrapper
           variant="solid"
