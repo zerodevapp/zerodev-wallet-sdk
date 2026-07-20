@@ -25,11 +25,6 @@ export function SelectTrigger({
       className={cn(
         'zd:inline-flex zd:items-center zd:justify-between zd:gap-2',
         'zd:outline-none zd:cursor-pointer',
-        // Radix Select sets `pointer-events: none` on the body while the
-        // panel is open (part of its scroll-lock/dismiss-layer behavior),
-        // which falls back the cursor to `default` even over the trigger.
-        // Re-enable pointer events + cursor when the trigger is open so
-        // the hover cue stays consistent.
         'zd:data-[state=open]:pointer-events-auto zd:data-[state=open]:cursor-pointer',
         'zd:disabled:cursor-not-allowed zd:disabled:opacity-50',
         className,
@@ -84,12 +79,6 @@ export function SelectContent({
         sideOffset={sideOffset}
         className={cn(
           'zd:z-50 zd:max-h-80 zd:outline-none',
-          // Subtle scale + translate on open/close (see `popper-in` /
-          // `popper-out`). Radix keeps Content mounted through the exit
-          // animation via `data-state="closed"`. Radix provides
-          // `--radix-select-content-transform-origin` which anchors the
-          // scale to the trigger's corner based on `align` (top-left for
-          // `align="start"`, top-right for `align="end"`).
           'zd:data-[state=open]:animate-popper-in',
           'zd:data-[state=closed]:animate-popper-out',
           className,
