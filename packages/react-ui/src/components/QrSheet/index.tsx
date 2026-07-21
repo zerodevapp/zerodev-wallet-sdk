@@ -8,7 +8,7 @@ import { Button } from '../Button'
 import { Text } from '../Text'
 import { QrCode } from './QrCode'
 
-export interface QrModalProps {
+export interface QrSheetProps {
   /** Whether the modal is open. Controlled. */
   open: boolean
   /** Called when the modal requests to close (backdrop click, ESC,
@@ -23,7 +23,7 @@ export interface QrModalProps {
 /** Bottom-anchored modal showing the deposit address as a QR code. Composes
  * `<BottomSheet>` (state) + `<SheetContent>` (chrome); this file owns the
  * QR / address / copy-cancel layout inside it. */
-export function QrModal({ open, onOpenChange, address, onCopy }: QrModalProps) {
+export function QrSheet({ open, onOpenChange, address, onCopy }: QrSheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>

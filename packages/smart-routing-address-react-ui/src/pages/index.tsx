@@ -1,4 +1,4 @@
-import { QrModal, Screen, TopNav } from '@zerodev/react-ui'
+import { QrSheet, Screen, TopNav } from '@zerodev/react-ui'
 import { type ReactNode, useEffect, useState } from 'react'
 import type { Address } from 'viem'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
@@ -72,7 +72,7 @@ export function SmartRoutingAddress({
     addressState.status === 'success' ? addressState.address : undefined
 
   // The QR button in AddressDisplay only exists once the address has resolved,
-  // but guard here too so we don't render an empty QrModal.
+  // but guard here too so we don't render an empty QrSheet.
   const handleQrClick = address ? () => setQrOpen(true) : undefined
 
   const handleCopy = async () => {
@@ -102,12 +102,12 @@ export function SmartRoutingAddress({
       }
     >
       {renderStep(step, { onQrClick: handleQrClick })}
-      {/* QrModal renders itself via `useScreenOverlayContainer()` + portal, so
+      {/* QrSheet renders itself via `useScreenOverlayContainer()` + portal, so
         it stays inside the card frame while composing at this level rather
         than being hoisted into `Screen`'s API. Mounted whenever an address
         exists so Radix Dialog owns the open/close animation lifecycle. */}
       {address && (
-        <QrModal
+        <QrSheet
           open={qrOpen}
           onOpenChange={setQrOpen}
           address={address}

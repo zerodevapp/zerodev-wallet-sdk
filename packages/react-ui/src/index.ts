@@ -41,7 +41,7 @@ export {
   type PillProps,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
-export { QrModal, type QrModalProps } from './components/QrModal'
+export { QrSheet, type QrSheetProps } from './components/QrSheet'
 export { Screen, useScreenOverlayContainer } from './components/Screen'
 export {
   Select,
