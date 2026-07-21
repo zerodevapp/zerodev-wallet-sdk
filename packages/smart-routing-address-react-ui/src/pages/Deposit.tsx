@@ -7,6 +7,7 @@ import {
   PoweredBy,
   Select,
   SelectContent,
+  SelectIcon,
   SelectItem,
   SelectTrigger,
   Text,
@@ -199,6 +200,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                         label={sourceSymbol ?? '—'}
                         logoBg={TOKEN_LOGO_BG}
                         disabled={pickerDisabled}
+                        trailingIcon={!pickerDisabled && <SelectIcon />}
                       />
                     </SelectTrigger>
                     <SelectContent align="start" style={FULL_ROW_PANEL_STYLE}>
@@ -242,6 +244,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                         label={sourceChainName ?? '—'}
                         logoBg={CHAIN_LOGO_BG}
                         disabled={pickerDisabled}
+                        trailingIcon={!pickerDisabled && <SelectIcon />}
                       />
                     </SelectTrigger>
                     <SelectContent align="end" style={FULL_ROW_PANEL_STYLE}>

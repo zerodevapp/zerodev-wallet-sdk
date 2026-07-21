@@ -24,13 +24,18 @@ describe('Pill', () => {
     expect(screen.getByText('B')).toBeDefined()
   })
 
-  it('renders the chevron but no button role without onClick', () => {
+  it('renders no trailing icon by default and no button role without onClick', () => {
     render(<Pill label="USDC" />)
-    // Chevron shows whenever the pill is not disabled — this lets the pill be
-    // wrapped in an external interactive parent (e.g. a Popover.Trigger)
-    // without losing the affordance.
-    expect(screen.getByTestId('token-chain-pill-chevron')).toBeDefined()
+    expect(screen.queryByTestId('pill-trailing-icon')).toBeNull()
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('renders the trailing icon slot when trailingIcon is supplied', () => {
+    render(
+      <Pill label="USDC" trailingIcon={<span data-testid="stub-icon" />} />,
+    )
+    expect(screen.getByTestId('pill-trailing-icon')).toBeDefined()
+    expect(screen.getByTestId('stub-icon')).toBeDefined()
   })
 
   it('becomes an interactive button when onClick is supplied', () => {
@@ -38,7 +43,6 @@ describe('Pill', () => {
     render(<Pill label="USDC" onClick={onClick} />)
     const button = screen.getByRole('button')
     expect(button).toBeDefined()
-    expect(screen.getByTestId('token-chain-pill-chevron')).toBeDefined()
     fireEvent.click(button)
     expect(onClick).toHaveBeenCalledTimes(1)
   })
@@ -63,6 +67,5 @@ describe('Pill', () => {
     const onClick = vi.fn()
     render(<Pill label="Arbitrum One" onClick={onClick} disabled />)
     expect(screen.queryByRole('button')).toBeNull()
-    expect(screen.queryByTestId('token-chain-pill-chevron')).toBeNull()
   })
 })

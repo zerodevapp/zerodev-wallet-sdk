@@ -1,6 +1,5 @@
-import type { HTMLAttributes, KeyboardEvent, Ref } from 'react'
+import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 'react'
 import { cn } from '../../utils/common'
-import { Icon } from '../Icon'
 import { Text } from '../Text'
 import { Wrapper } from '../Wrapper'
 
@@ -14,8 +13,10 @@ export interface PillProps
   logoBg?: string
   /** Click handler; when supplied and not `disabled`, the pill becomes a keyboard-accessible button. */
   onClick?: () => void
-  /** When true, renders as a dimmed, non-interactive pill (no chevron). */
+  /** When true, renders as a dimmed, non-interactive pill. */
   disabled?: boolean
+  /** Optional trailing affordance (e.g., `<SelectIcon />`). Rendered in a padded slot on the right. */
+  trailingIcon?: ReactNode
   ref?: Ref<HTMLDivElement>
 }
 
@@ -25,6 +26,7 @@ export function Pill({
   logoBg = '#E6EFFB',
   onClick,
   disabled,
+  trailingIcon,
   className,
   ref,
   ...rest
@@ -99,13 +101,12 @@ export function Pill({
         </div>
         <Text className="zd:whitespace-nowrap zd:text-body1">{label}</Text>
       </div>
-      {!disabled && (
-        <div className="zd:flex zd:shrink-0 zd:items-center zd:rounded-full zd:p-2">
-          <Icon
-            name="chevronDown"
-            className="zd:size-4 zd:text-greyScale"
-            data-testid="token-chain-pill-chevron"
-          />
+      {trailingIcon && (
+        <div
+          className="zd:flex zd:shrink-0 zd:items-center zd:rounded-full zd:p-2"
+          data-testid="pill-trailing-icon"
+        >
+          {trailingIcon}
         </div>
       )}
     </Wrapper>
