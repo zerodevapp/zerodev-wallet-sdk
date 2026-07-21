@@ -1,5 +1,6 @@
-import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 'react'
+import type { HTMLAttributes, KeyboardEvent, Ref } from 'react'
 import { cn } from '../../utils/common'
+import { Icon } from '../Icon'
 import { Text } from '../Text'
 import { Wrapper } from '../Wrapper'
 
@@ -12,10 +13,10 @@ export interface PillProps
   logoUri?: string
   /** Click handler; when supplied and not `disabled`, the pill becomes a keyboard-accessible button. */
   onClick?: () => void
-  /** When true, renders as a dimmed, non-interactive pill. */
+  /** When true, renders as a dimmed, non-interactive pill (no chevron). */
   disabled?: boolean
-  /** Optional trailing affordance (e.g., `<SelectIcon />`). Rendered in a padded slot on the right. */
-  trailingIcon?: ReactNode
+  /** Render a pulsing skeleton placeholder instead of the content. */
+  loading?: boolean
   ref?: Ref<HTMLDivElement>
 }
 
@@ -24,11 +25,13 @@ export function Pill({
   logoUri,
   onClick,
   disabled,
-  trailingIcon,
+  loading,
   className,
   ref,
   ...rest
 }: PillProps) {
+  if (loading) return <PillSkeleton className={className} disabled={disabled} />
+
   const logoInitial = label.charAt(0).toUpperCase()
 
   const interactive = Boolean(onClick) && !disabled
@@ -106,14 +109,49 @@ export function Pill({
         </div>
         <Text className="zd:whitespace-nowrap zd:text-body1">{label}</Text>
       </div>
-      {trailingIcon && (
-        <div
-          className="zd:flex zd:shrink-0 zd:items-center zd:rounded-full zd:p-2"
-          data-testid="pill-trailing-icon"
-        >
-          {trailingIcon}
+      {!disabled && (
+        <div className="zd:flex zd:shrink-0 zd:items-center zd:rounded-full zd:p-2">
+          <Icon
+            name="chevronDown"
+            className="zd:size-4 zd:text-greyScale"
+            data-testid="token-chain-pill-chevron"
+          />
         </div>
       )}
+    </Wrapper>
+  )
+}
+
+export function PillSkeleton({
+  className,
+  disabled,
+}: {
+  className?: string | undefined
+  /** Match `Pill`'s dimmed display-variant background so the skeleton on a
+   * destination (disabled) pill doesn't look like an interactive pill. */
+  disabled?: boolean | undefined
+}) {
+  return (
+    <Wrapper
+      variant="solid"
+      style={
+        disabled ? { backgroundColor: 'rgba(255, 255, 255, 0.05)' } : undefined
+      }
+      className={cn(
+        // Match Pill's outer chrome so the placeholder occupies the same
+        // footprint (52px tall = 44px logo well + 4px vertical padding).
+        'zd:relative zd:flex zd:w-full zd:items-center zd:overflow-hidden zd:rounded-2xl zd:pl-1 zd:pr-2 zd:py-1',
+        'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
+        className,
+      )}
+    >
+      <div className="zd:flex zd:items-center zd:gap-1.5 zd:animate-skel-pulse">
+        {/* Logo well mirrors Pill's 44×44 → inner 34×34 (size-8.5). */}
+        <div className="zd:relative zd:size-11 zd:shrink-0">
+          <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:rounded-full zd:bg-greyScale/15" />
+        </div>
+        <div className="zd:h-3.5 zd:w-14 zd:rounded-md zd:bg-greyScale/15" />
+      </div>
     </Wrapper>
   )
 }
