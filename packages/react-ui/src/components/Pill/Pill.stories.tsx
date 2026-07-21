@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { PillItem } from './index'
+import { Pill } from './index'
 
-const meta: Meta<typeof PillItem> = {
-  title: 'PillItem',
-  component: PillItem,
+const meta: Meta<typeof Pill> = {
+  title: 'Pill',
+  component: Pill,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (

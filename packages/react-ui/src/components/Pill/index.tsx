@@ -4,7 +4,7 @@ import { Icon } from '../Icon'
 import { Text } from '../Text'
 import { Wrapper } from '../Wrapper'
 
-export interface PillItemProps
+export interface PillProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Text label rendered next to the logo (e.g., "USDC", "Base"). */
   label: string
@@ -19,7 +19,7 @@ export interface PillItemProps
   ref?: Ref<HTMLDivElement>
 }
 
-export function PillItem({
+export function Pill({
   label,
   logoUri,
   logoBg = '#E6EFFB',
@@ -28,7 +28,7 @@ export function PillItem({
   className,
   ref,
   ...rest
-}: PillItemProps) {
+}: PillProps) {
   const logoInitial = label.charAt(0).toUpperCase()
 
   const interactive = Boolean(onClick) && !disabled

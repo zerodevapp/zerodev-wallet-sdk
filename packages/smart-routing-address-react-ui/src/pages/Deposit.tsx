@@ -3,7 +3,7 @@ import {
   cn,
   DataRow,
   Icon,
-  PillItem,
+  Pill,
   PoweredBy,
   Select,
   SelectContent,
@@ -195,7 +195,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                     disabled={pickerDisabled}
                   >
                     <SelectTrigger asChild>
-                      <PillItem
+                      <Pill
                         label={sourceSymbol ?? '—'}
                         logoBg={TOKEN_LOGO_BG}
                         disabled={pickerDisabled}
@@ -212,6 +212,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                             key={token.tokenType}
                             value={token.tokenType}
                             textValue={symbol}
+                            className="zd:p-0"
                           >
                             <TokenListItem
                               symbol={symbol}
@@ -237,7 +238,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                     disabled={pickerDisabled}
                   >
                     <SelectTrigger asChild>
-                      <PillItem
+                      <Pill
                         label={sourceChainName ?? '—'}
                         logoBg={CHAIN_LOGO_BG}
                         disabled={pickerDisabled}
@@ -249,6 +250,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                           key={token.chain.id}
                           value={String(token.chain.id)}
                           textValue={token.chain.name}
+                          className="zd:p-0"
                         >
                           <TokenListItem
                             symbol={token.chain.name}
@@ -284,14 +286,14 @@ export function Deposit({ onQrClick }: DepositProps) {
               <CardTitle>Arrives as</CardTitle>
               <PillRow
                 left={
-                  <PillItem
+                  <Pill
                     label={destSymbol ?? '—'}
                     logoBg={TOKEN_LOGO_BG}
                     disabled
                   />
                 }
                 right={
-                  <PillItem
+                  <Pill
                     label={destChain.name}
                     logoBg={DEST_CHAIN_LOGO_BG}
                     disabled

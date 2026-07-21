@@ -31,9 +31,9 @@ export {
   ListItemSkeleton,
 } from './components/ListItem'
 export {
-  PillItem,
-  type PillItemProps,
-} from './components/PillItem'
+  Pill,
+  type PillProps,
+} from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
 export { Screen } from './components/Screen'
 export {

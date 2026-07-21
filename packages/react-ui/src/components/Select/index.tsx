@@ -10,7 +10,7 @@ export const SelectGroup = SelectPrimitive.Group
 export const SelectValue = SelectPrimitive.Value
 export const SelectItemText = SelectPrimitive.ItemText
 
-/** Bare styled trigger. Use `asChild` to wrap a custom trigger like `PillItem`. */
+/** Bare styled trigger. Use `asChild` to wrap a custom trigger like `Pill`. */
 export function SelectTrigger({
   ref,
   className,
@@ -110,7 +110,9 @@ export function SelectItem({
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        'zd:relative zd:outline-none zd:cursor-pointer',
+        // Default padding for plain-text items. Complex children with their
+        // own padding (e.g. `<TokenListItem>`) opt out via `className="zd:p-0"`.
+        'zd:relative zd:outline-none zd:cursor-pointer zd:px-3 zd:py-2',
         'zd:data-[highlighted]:bg-offWhite/40',
         'zd:data-[state=checked]:bg-offWhite/60',
         className,

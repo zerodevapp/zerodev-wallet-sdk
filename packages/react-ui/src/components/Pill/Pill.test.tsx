@@ -3,29 +3,29 @@
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PillItem } from './index'
+import { Pill } from './index'
 
 afterEach(cleanup)
 
-describe('PillItem', () => {
+describe('Pill', () => {
   it('renders the label', () => {
-    render(<PillItem label="USDC" />)
+    render(<Pill label="USDC" />)
     expect(screen.getByText('USDC')).toBeDefined()
   })
 
   it('renders the logo image when logoUri is provided', () => {
-    render(<PillItem label="USDC" logoUri="https://example.com/usdc.png" />)
+    render(<Pill label="USDC" logoUri="https://example.com/usdc.png" />)
     const img = screen.getByTestId('token-chain-pill-logo')
     expect(img.getAttribute('src')).toBe('https://example.com/usdc.png')
   })
 
   it('renders the initial placeholder when logoUri is absent', () => {
-    render(<PillItem label="base" />)
+    render(<Pill label="base" />)
     expect(screen.getByText('B')).toBeDefined()
   })
 
   it('renders the chevron but no button role without onClick', () => {
-    render(<PillItem label="USDC" />)
+    render(<Pill label="USDC" />)
     // Chevron shows whenever the pill is not disabled — this lets the pill be
     // wrapped in an external interactive parent (e.g. a Popover.Trigger)
     // without losing the affordance.
@@ -35,7 +35,7 @@ describe('PillItem', () => {
 
   it('becomes an interactive button when onClick is supplied', () => {
     const onClick = vi.fn()
-    render(<PillItem label="USDC" onClick={onClick} />)
+    render(<Pill label="USDC" onClick={onClick} />)
     const button = screen.getByRole('button')
     expect(button).toBeDefined()
     expect(screen.getByTestId('token-chain-pill-chevron')).toBeDefined()
@@ -45,7 +45,7 @@ describe('PillItem', () => {
 
   it('triggers onClick on Enter and Space keys', () => {
     const onClick = vi.fn()
-    render(<PillItem label="USDC" onClick={onClick} />)
+    render(<Pill label="USDC" onClick={onClick} />)
     const button = screen.getByRole('button')
     fireEvent.keyDown(button, { key: 'Enter' })
     fireEvent.keyDown(button, { key: ' ' })
@@ -54,14 +54,14 @@ describe('PillItem', () => {
 
   it('ignores unrelated keys', () => {
     const onClick = vi.fn()
-    render(<PillItem label="USDC" onClick={onClick} />)
+    render(<Pill label="USDC" onClick={onClick} />)
     fireEvent.keyDown(screen.getByRole('button'), { key: 'a' })
     expect(onClick).not.toHaveBeenCalled()
   })
 
   it('renders as non-interactive when disabled, even with onClick', () => {
     const onClick = vi.fn()
-    render(<PillItem label="Arbitrum One" onClick={onClick} disabled />)
+    render(<Pill label="Arbitrum One" onClick={onClick} disabled />)
     expect(screen.queryByRole('button')).toBeNull()
     expect(screen.queryByTestId('token-chain-pill-chevron')).toBeNull()
   })

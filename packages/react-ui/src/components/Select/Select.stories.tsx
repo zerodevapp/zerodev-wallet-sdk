@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 
-import { PillItem } from '../PillItem'
+import { Pill } from '../Pill'
 import {
   Select,
   SelectContent,
@@ -34,7 +34,7 @@ const meta: Meta = {
 export default meta
 type Story = StoryObj
 
-/** Default composition: `PillItem` trigger via `asChild`, styled panel with
+/** Default composition: `Pill` trigger via `asChild`, styled panel with
  * plain-text items. Selection state lives on the caller. */
 export const Default: Story = {
   render: () => {
@@ -44,14 +44,12 @@ export const Default: Story = {
       return (
         <Select value={value} onValueChange={setValue}>
           <SelectTrigger asChild>
-            <PillItem label={selected.symbol} logoBg={selected.logoBg} />
+            <Pill label={selected.symbol} logoBg={selected.logoBg} />
           </SelectTrigger>
           <SelectContent align="start">
             {TOKENS.map((t) => (
               <SelectItem key={t.id} value={t.id}>
-                <div className="zd:px-3 zd:py-2">
-                  <SelectItemText>{t.symbol}</SelectItemText>
-                </div>
+                <SelectItemText>{t.symbol}</SelectItemText>
               </SelectItem>
             ))}
           </SelectContent>
@@ -72,7 +70,7 @@ export const WidePanel: Story = {
       return (
         <Select value={value} onValueChange={setValue}>
           <SelectTrigger asChild>
-            <PillItem label={selected.symbol} logoBg={selected.logoBg} />
+            <Pill label={selected.symbol} logoBg={selected.logoBg} />
           </SelectTrigger>
           <SelectContent
             align="start"
@@ -82,9 +80,7 @@ export const WidePanel: Story = {
           >
             {TOKENS.map((t) => (
               <SelectItem key={t.id} value={t.id}>
-                <div className="zd:px-3 zd:py-2">
-                  <SelectItemText>{t.symbol}</SelectItemText>
-                </div>
+                <SelectItemText>{t.symbol}</SelectItemText>
               </SelectItem>
             ))}
           </SelectContent>
@@ -104,22 +100,18 @@ export const Grouped: Story = {
       return (
         <Select value={value} onValueChange={setValue}>
           <SelectTrigger asChild>
-            <PillItem label={selected.symbol} logoBg={selected.logoBg} />
+            <Pill label={selected.symbol} logoBg={selected.logoBg} />
           </SelectTrigger>
           <SelectContent align="start">
             {TOKENS.slice(0, 2).map((t) => (
               <SelectItem key={t.id} value={t.id}>
-                <div className="zd:px-3 zd:py-2">
-                  <SelectItemText>{t.symbol}</SelectItemText>
-                </div>
+                <SelectItemText>{t.symbol}</SelectItemText>
               </SelectItem>
             ))}
             <SelectSeparator />
             {TOKENS.slice(2).map((t) => (
               <SelectItem key={t.id} value={t.id}>
-                <div className="zd:px-3 zd:py-2">
-                  <SelectItemText>{t.symbol}</SelectItemText>
-                </div>
+                <SelectItemText>{t.symbol}</SelectItemText>
               </SelectItem>
             ))}
           </SelectContent>
@@ -135,7 +127,7 @@ export const Disabled: Story = {
   render: () => (
     <Select value="USDC" disabled>
       <SelectTrigger asChild>
-        <PillItem label="USDC" logoBg="#2775CA" disabled />
+        <Pill label="USDC" logoBg="#2775CA" disabled />
       </SelectTrigger>
       <SelectContent align="start">
         {TOKENS.map((t) => (
