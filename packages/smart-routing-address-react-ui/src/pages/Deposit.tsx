@@ -21,6 +21,7 @@ import { LoadingCard } from '../components/LoadingCard'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { useDepositStatus } from '../hooks/useDepositStatus'
 import { useNewDeposits } from '../hooks/useNewDeposits'
+import { CHAIN_ICONS, TOKEN_ICONS } from '../iconAssets'
 import type { SourceToken } from '../types'
 import {
   getDestTokenSymbol,
@@ -122,6 +123,14 @@ export function Deposit({ onQrClick }: DepositProps) {
   const destChain = resolveDestChain(config)
   const destSymbol = source ? getDestTokenSymbol(config, source) : undefined
   const sourceSymbol = source ? getSourceTokenSymbol(source) : undefined
+  const sourceTokenLogo = sourceSymbol
+    ? TOKEN_ICONS[sourceSymbol.toUpperCase()]
+    : undefined
+  const sourceChainLogo = source ? CHAIN_ICONS[source.chain.id] : undefined
+  const destTokenLogo = destSymbol
+    ? TOKEN_ICONS[destSymbol.toUpperCase()]
+    : undefined
+  const destChainLogo = CHAIN_ICONS[destChain.id]
   const feeData = source
     ? findFeeData(estimatedFees, source.chain.id, source.tokenType)
     : null
@@ -199,6 +208,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                       <Pill
                         label={sourceSymbol ?? '—'}
                         logoBg={TOKEN_LOGO_BG}
+                        {...(sourceTokenLogo && { logoUri: sourceTokenLogo })}
                         disabled={pickerDisabled}
                         trailingIcon={!pickerDisabled && <SelectIcon />}
                       />
@@ -209,6 +219,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                         const chainCount = srcTokens.filter(
                           (t) => t.tokenType === token.tokenType,
                         ).length
+                        const logo = TOKEN_ICONS[symbol.toUpperCase()]
                         return (
                           <SelectItem
                             key={token.tokenType}
@@ -219,6 +230,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                             <TokenListItem
                               symbol={symbol}
                               subtitle={`${chainCount} network${chainCount === 1 ? '' : 's'}`}
+                              {...(logo && { imageSource: logo })}
                             />
                             {i === 0 && (
                               <span className="zd:absolute zd:top-1/2 zd:right-3 zd:-translate-y-1/2 zd:inline-flex zd:items-center zd:rounded-full zd:bg-positive/15 zd:px-2 zd:py-1 zd:text-body3 zd:text-positive zd:pointer-events-none">
@@ -243,24 +255,29 @@ export function Deposit({ onQrClick }: DepositProps) {
                       <Pill
                         label={sourceChainName ?? '—'}
                         logoBg={CHAIN_LOGO_BG}
+                        {...(sourceChainLogo && { logoUri: sourceChainLogo })}
                         disabled={pickerDisabled}
                         trailingIcon={!pickerDisabled && <SelectIcon />}
                       />
                     </SelectTrigger>
                     <SelectContent align="end" style={FULL_ROW_PANEL_STYLE}>
-                      {availableChains.map((token) => (
-                        <SelectItem
-                          key={token.chain.id}
-                          value={String(token.chain.id)}
-                          textValue={token.chain.name}
-                          className="zd:p-0"
-                        >
-                          <TokenListItem
-                            symbol={token.chain.name}
-                            iconVariant="network"
-                          />
-                        </SelectItem>
-                      ))}
+                      {availableChains.map((token) => {
+                        const logo = CHAIN_ICONS[token.chain.id]
+                        return (
+                          <SelectItem
+                            key={token.chain.id}
+                            value={String(token.chain.id)}
+                            textValue={token.chain.name}
+                            className="zd:p-0"
+                          >
+                            <TokenListItem
+                              symbol={token.chain.name}
+                              iconVariant="network"
+                              {...(logo && { imageSource: logo })}
+                            />
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                 }
@@ -292,6 +309,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                   <Pill
                     label={destSymbol ?? '—'}
                     logoBg={TOKEN_LOGO_BG}
+                    {...(destTokenLogo && { logoUri: destTokenLogo })}
                     disabled
                   />
                 }
@@ -299,6 +317,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                   <Pill
                     label={destChain.name}
                     logoBg={DEST_CHAIN_LOGO_BG}
+                    {...(destChainLogo && { logoUri: destChainLogo })}
                     disabled
                   />
                 }
