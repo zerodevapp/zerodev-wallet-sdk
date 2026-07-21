@@ -18,11 +18,22 @@ const TITLE_BY_STEP: Record<SmartRoutingAddressStep, string> = {
 
 function renderStep(
   step: SmartRoutingAddressStep,
-  { onQrClick }: { onQrClick?: (() => void) | undefined },
+  {
+    onQrClick,
+    onViewPastDeposits,
+  }: {
+    onQrClick?: (() => void) | undefined
+    onViewPastDeposits?: (() => void) | undefined
+  },
 ): ReactNode {
   switch (step) {
     case 'deposit':
-      return <Deposit {...(onQrClick && { onQrClick })} />
+      return (
+        <Deposit
+          {...(onQrClick && { onQrClick })}
+          {...(onViewPastDeposits && { onViewPastDeposits })}
+        />
+      )
     default:
       return null
   }
@@ -44,6 +55,8 @@ export interface SmartRoutingAddressProps {
   onClose: () => void
   /** Called when the top-left ? help button is clicked. Optional. */
   onHelp?: () => void
+  /** Called when the user taps the "Past deposits (N)" row. */
+  onViewPastDeposits?: () => void
   className?: string
   size?: 'sm' | 'md' | 'lg'
 }
@@ -52,6 +65,7 @@ export function SmartRoutingAddress({
   recipient,
   onClose,
   onHelp,
+  onViewPastDeposits,
   className,
   size,
 }: SmartRoutingAddressProps) {
@@ -102,7 +116,10 @@ export function SmartRoutingAddress({
         />
       }
     >
-      {renderStep(step, { onQrClick: handleQrClick })}
+      {renderStep(step, {
+        onQrClick: handleQrClick,
+        ...(onViewPastDeposits && { onViewPastDeposits }),
+      })}
       {/* QrSheet renders itself via `useScreenOverlayContainer()` + portal, so
         it stays inside the card frame while composing at this level rather
         than being hoisted into `Screen`'s API. Mounted whenever an address

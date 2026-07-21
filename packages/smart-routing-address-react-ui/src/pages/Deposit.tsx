@@ -18,6 +18,7 @@ import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
 import { useEffect, useMemo, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
 import { LoadingCard } from '../components/LoadingCard'
+import { PendingDeposits } from '../components/PendingDeposits'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { useDepositStatus } from '../hooks/useDepositStatus'
 import { useNewDeposits } from '../hooks/useNewDeposits'
@@ -41,6 +42,10 @@ import {
 
 export interface DepositProps {
   onQrClick?: () => void
+  /** Called when the user taps the "Past deposits (N)" row. When omitted,
+   * the row still renders but does nothing on click. Wire to a router push
+   * (or a step change) to navigate to a past-deposits view. */
+  onViewPastDeposits?: () => void
 }
 
 const SUBTITLE =
@@ -53,7 +58,7 @@ const FULL_ROW_PANEL_STYLE = {
   width: 'calc(var(--radix-select-trigger-width) * 2 + 4px)',
 }
 
-export function Deposit({ onQrClick }: DepositProps) {
+export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
   const { config, addressState } = useSmartRoutingAddressContext()
 
   const success = addressState.status === 'success' ? addressState : null
@@ -112,7 +117,8 @@ export function Deposit({ onQrClick }: DepositProps) {
     pollingInterval: resolvePollingInterval(config),
     baseUrl: resolveBaseUrl(config),
   })
-  useNewDeposits(deposits, hasLoaded)
+  const newDeposits = useNewDeposits(deposits, hasLoaded)
+  const pastDepositsCount = deposits.length - newDeposits.length
 
   const destChain = resolveDestChain(config)
   const destSymbol = source ? getDestTokenSymbol(config, source) : undefined
@@ -339,13 +345,43 @@ export function Deposit({ onQrClick }: DepositProps) {
           }
         />
 
-        <LoadingCard
-          text={
-            source
-              ? `Watching for your deposit on ${source.chain.name}…`
-              : 'Watching for your deposit…'
-          }
-        />
+        {newDeposits.length > 0 ? (
+          <PendingDeposits
+            deposits={newDeposits}
+            estimatedFees={estimatedFees}
+            config={config}
+          />
+        ) : (
+          <LoadingCard
+            text={
+              source
+                ? `Watching for your deposit on ${source.chain.name}…`
+                : 'Watching for your deposit…'
+            }
+          />
+        )}
+
+        {pastDepositsCount > 0 && (
+          <button
+            type="button"
+            onClick={onViewPastDeposits}
+            className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4 zd:cursor-pointer"
+          >
+            <Icon
+              name="clock"
+              className="zd:size-4 zd:text-greyScale/50"
+              aria-hidden
+            />
+            <Text className="zd:flex-1 zd:text-left zd:text-body1">
+              Past deposits ({pastDepositsCount})
+            </Text>
+            <Icon
+              name="chevronRight"
+              className="zd:size-4 zd:text-greyScale/50"
+              aria-hidden
+            />
+          </button>
+        )}
       </div>
 
       <PoweredBy className="zd:justify-center" />
