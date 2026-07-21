@@ -3,6 +3,12 @@
  * React hooks, provider, and UI for ZeroDev Smart Routing Address deposits.
  */
 
+// Components
+export {
+  TxnItem,
+  type TxnItemProps,
+  type TxnStatus,
+} from './components/TxnItem'
 // Provider
 export type { SmartRoutingAddressProviderProps } from './context/SmartRoutingAddressProvider'
 export { SmartRoutingAddressProvider } from './context/SmartRoutingAddressProvider'
