@@ -46,12 +46,6 @@ export interface DepositProps {
 const SUBTITLE =
   "Send any supported token from any network. We'll swap & bridge it directly to your account, ready to use."
 
-// Placeholder colors for the pill logos until we wire real token/chain logos
-// in. Kept here so both the trigger and the dropdown rows agree.
-const TOKEN_LOGO_BG = '#2775CA'
-const CHAIN_LOGO_BG = '#0052FF'
-const DEST_CHAIN_LOGO_BG = '#28A0F0'
-
 // The two picker panels span the full pill row (Figma "Send" layout), not
 // just the trigger cell each Select lives in. Trigger width = half the row
 // minus half the 4px gap, so full-row width = trigger * 2 + 4px.
@@ -207,7 +201,6 @@ export function Deposit({ onQrClick }: DepositProps) {
                     <SelectTrigger asChild>
                       <Pill
                         label={sourceSymbol ?? '—'}
-                        logoBg={TOKEN_LOGO_BG}
                         {...(sourceTokenLogo && { logoUri: sourceTokenLogo })}
                         disabled={pickerDisabled}
                         trailingIcon={!pickerDisabled && <SelectIcon />}
@@ -254,7 +247,6 @@ export function Deposit({ onQrClick }: DepositProps) {
                     <SelectTrigger asChild>
                       <Pill
                         label={sourceChainName ?? '—'}
-                        logoBg={CHAIN_LOGO_BG}
                         {...(sourceChainLogo && { logoUri: sourceChainLogo })}
                         disabled={pickerDisabled}
                         trailingIcon={!pickerDisabled && <SelectIcon />}
@@ -308,7 +300,6 @@ export function Deposit({ onQrClick }: DepositProps) {
                 left={
                   <Pill
                     label={destSymbol ?? '—'}
-                    logoBg={TOKEN_LOGO_BG}
                     {...(destTokenLogo && { logoUri: destTokenLogo })}
                     disabled
                   />
@@ -316,7 +307,6 @@ export function Deposit({ onQrClick }: DepositProps) {
                 right={
                   <Pill
                     label={destChain.name}
-                    logoBg={DEST_CHAIN_LOGO_BG}
                     {...(destChainLogo && { logoUri: destChainLogo })}
                     disabled
                   />
