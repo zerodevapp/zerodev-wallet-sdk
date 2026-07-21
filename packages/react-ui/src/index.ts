@@ -11,9 +11,9 @@ export {
 export { Badge, type BadgeProps } from './components/Badge'
 export {
   BottomSheet,
-  SheetClose,
-  SheetContent,
-  SheetTitle,
+  BottomSheetClose,
+  BottomSheetContent,
+  BottomSheetTitle,
 } from './components/BottomSheet'
 export { Button, type ButtonProps } from './components/Button'
 export { Callout, type CalloutProps } from './components/Callout'
@@ -41,7 +41,6 @@ export {
   type PillProps,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
-export { QrSheet, type QrSheetProps } from './components/QrSheet'
 export { Screen, useScreenOverlayContainer } from './components/Screen'
 export {
   Select,

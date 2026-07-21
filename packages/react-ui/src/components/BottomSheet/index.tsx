@@ -5,12 +5,12 @@ import { cn } from '../../utils/common'
 import { useScreenOverlayContainer } from '../Screen'
 
 export const BottomSheet = Dialog.Root
-export const SheetClose = Dialog.Close
+export const BottomSheetClose = Dialog.Close
 
 /** Accessible label for the sheet. `sr-only` by default — consumers who want
- * a visible title render their own heading inside `<SheetContent>` and keep
- * `<SheetTitle>` as the screen-reader label. */
-export function SheetTitle({
+ * a visible title render their own heading inside `<BottomSheetContent>` and keep
+ * `<BottomSheetTitle>` as the screen-reader label. */
+export function BottomSheetTitle({
   className,
   ...props
 }: ComponentProps<typeof Dialog.Title>) {
@@ -20,8 +20,8 @@ export function SheetTitle({
 /** Bottom-anchored sheet chrome. Portals into the nearest `Screen`, renders
  * the backdrop + panel, and drives open/close animations from Radix's
  * `data-state` attribute. Wrap in `<BottomSheet open onOpenChange>` and
- * compose children freely (title, body, `<SheetClose>` action). */
-export function SheetContent({
+ * compose children freely (title, body, `<BottomSheetClose>` action). */
+export function BottomSheetContent({
   children,
   className,
 }: {

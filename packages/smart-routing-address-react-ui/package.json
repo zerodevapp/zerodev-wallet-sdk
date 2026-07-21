@@ -56,7 +56,8 @@
     "web3"
   ],
   "dependencies": {
-    "@zerodev/react-ui": "workspace:*"
+    "@zerodev/react-ui": "workspace:*",
+    "uqr": "^0.1.2"
   },
   "peerDependencies": {
     "@zerodev/smart-routing-address": "^0.2.5",

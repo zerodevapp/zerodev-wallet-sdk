@@ -1,6 +1,7 @@
-import { QrSheet, Screen, TopNav } from '@zerodev/react-ui'
+import { Screen, TopNav } from '@zerodev/react-ui'
 import { type ReactNode, useEffect, useState } from 'react'
 import type { Address } from 'viem'
+import { QrSheet } from '../components/QrSheet'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { Deposit } from './Deposit'
 

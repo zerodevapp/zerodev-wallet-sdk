@@ -3,10 +3,11 @@
  * React hooks, provider, and UI for ZeroDev Smart Routing Address deposits.
  */
 
+// Components
+export { QrSheet, type QrSheetProps } from './components/QrSheet'
 // Provider
 export type { SmartRoutingAddressProviderProps } from './context/SmartRoutingAddressProvider'
 export { SmartRoutingAddressProvider } from './context/SmartRoutingAddressProvider'
-
 // Hooks
 export type {
   UseDepositStatusParams,
