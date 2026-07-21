@@ -7,7 +7,6 @@ import {
   PoweredBy,
   Select,
   SelectContent,
-  SelectIcon,
   SelectItem,
   SelectTrigger,
   Text,
@@ -200,10 +199,10 @@ export function Deposit({ onQrClick }: DepositProps) {
                   >
                     <SelectTrigger asChild>
                       <Pill
-                        label={sourceSymbol ?? '—'}
+                        label={sourceSymbol ?? ''}
                         {...(sourceTokenLogo && { logoUri: sourceTokenLogo })}
                         disabled={pickerDisabled}
-                        trailingIcon={!pickerDisabled && <SelectIcon />}
+                        loading={!sourceSymbol}
                       />
                     </SelectTrigger>
                     <SelectContent align="start" style={FULL_ROW_PANEL_STYLE}>
@@ -246,10 +245,10 @@ export function Deposit({ onQrClick }: DepositProps) {
                   >
                     <SelectTrigger asChild>
                       <Pill
-                        label={sourceChainName ?? '—'}
+                        label={sourceChainName ?? ''}
                         {...(sourceChainLogo && { logoUri: sourceChainLogo })}
                         disabled={pickerDisabled}
-                        trailingIcon={!pickerDisabled && <SelectIcon />}
+                        loading={!sourceChainName}
                       />
                     </SelectTrigger>
                     <SelectContent align="end" style={FULL_ROW_PANEL_STYLE}>
@@ -299,9 +298,10 @@ export function Deposit({ onQrClick }: DepositProps) {
               <PillRow
                 left={
                   <Pill
-                    label={destSymbol ?? '—'}
+                    label={destSymbol ?? ''}
                     {...(destTokenLogo && { logoUri: destTokenLogo })}
                     disabled
+                    loading={!destSymbol}
                   />
                 }
                 right={
@@ -320,14 +320,18 @@ export function Deposit({ onQrClick }: DepositProps) {
                 address={address}
                 onQrClick={onQrClick}
               />
-              {minDepositAmount && (
-                <DataRow
-                  label="Minimum deposit"
-                  value={minDepositAmount}
-                  info
-                  variant="warning"
-                />
-              )}
+              <DataRow
+                label="Minimum deposit"
+                value={
+                  minDepositAmount ?? (
+                    // Match PillSkeleton's greyish pulse so all loading
+                    // affordances in this card share one visual language.
+                    <div className="zd:h-3.5 zd:w-20 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
+                  )
+                }
+                info
+                variant="warning"
+              />
             </Wrapper>
           }
         />
