@@ -53,10 +53,6 @@ export function PendingDeposits({
     <section
       aria-label="Pending deposits"
       className={cn(
-        // Plain div (not Wrapper) so we skip `backdrop-blur-[15px]`. Nesting
-        // Wrapper's blur under PairMark's own `backdrop-blur-[30px]` composites
-        // through an already-blurred layer and washes the frost out — bypassing
-        // it here lets each PairMark sample the amorphic gradient directly.
         'zd:relative zd:flex zd:w-full zd:flex-col zd:gap-2 zd:overflow-hidden zd:rounded-2xl zd:p-4',
         'zd:border-offWhite zd:border-[0.3px] zd:bg-white/20',
         'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',

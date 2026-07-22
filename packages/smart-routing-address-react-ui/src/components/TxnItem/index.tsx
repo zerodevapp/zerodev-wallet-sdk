@@ -112,11 +112,6 @@ function PairMark({
   return (
     <div
       className={cn(
-        // Frosted well: 60% white so the backdrop-blur has visible tint to
-        // work with. `isolation-isolate` opens a fresh stacking context, so
-        // the blur samples the ancestor gradient behind the SRA card
-        // directly instead of the ghost Wrapper's already-blurred layer —
-        // that keeps the frost readable when nested inside PendingDeposits.
         'zd:relative zd:size-11 zd:shrink-0 zd:rounded-xl zd:isolate zd:bg-white/60 zd:backdrop-blur-[30px]',
         'zd:shadow-[inset_0_3px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_4px_0_rgba(255,255,255,0.1)]',
         className,
