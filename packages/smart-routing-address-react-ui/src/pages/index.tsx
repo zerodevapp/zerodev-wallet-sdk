@@ -1,6 +1,7 @@
 import { Screen, TopNav } from '@zerodev/react-ui'
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import type { Address } from 'viem'
+import { QrSheet } from '../components/QrSheet'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { Deposit } from './Deposit'
 
@@ -43,8 +44,6 @@ export interface SmartRoutingAddressProps {
   onClose: () => void
   /** Called when the top-left ? help button is clicked. Optional. */
   onHelp?: () => void
-  /** Called when the QR icon inside `AddressDisplay` is clicked. Optional. */
-  onQrClick?: () => void
   className?: string
   size?: 'sm' | 'md' | 'lg'
 }
@@ -53,11 +52,11 @@ export function SmartRoutingAddress({
   recipient,
   onClose,
   onHelp,
-  onQrClick,
   className,
   size,
 }: SmartRoutingAddressProps) {
-  const { ensureAddress } = useSmartRoutingAddressContext()
+  const { addressState, ensureAddress } = useSmartRoutingAddressContext()
+  const [qrOpen, setQrOpen] = useState(false)
 
   useEffect(() => {
     // Errors surface via `addressState.status === 'error'`; swallow rejection
@@ -69,6 +68,24 @@ export function SmartRoutingAddress({
   // local machine) here when the flow grows to multiple screens.
   const step: SmartRoutingAddressStep = 'deposit'
   const title = TITLE_BY_STEP[step]
+
+  const address =
+    addressState.status === 'success' ? addressState.address : undefined
+
+  // The QR button in AddressDisplay only exists once the address has resolved,
+  // but guard here too so we don't render an empty QrSheet.
+  const handleQrClick = address ? () => setQrOpen(true) : undefined
+
+  const handleCopy = async () => {
+    if (!address) return
+    try {
+      await navigator.clipboard.writeText(address)
+    } catch {
+      // Clipboard can reject on insecure contexts / permissions; the visual
+      // "copied" state isn't in the spec yet, so just close and swallow.
+    }
+    setQrOpen(false)
+  }
 
   return (
     <Screen
@@ -85,7 +102,19 @@ export function SmartRoutingAddress({
         />
       }
     >
-      {renderStep(step, { onQrClick })}
+      {renderStep(step, { onQrClick: handleQrClick })}
+      {/* QrSheet renders itself via `useScreenOverlayContainer()` + portal, so
+        it stays inside the card frame while composing at this level rather
+        than being hoisted into `Screen`'s API. Mounted whenever an address
+        exists so Radix Dialog owns the open/close animation lifecycle. */}
+      {address && (
+        <QrSheet
+          open={qrOpen}
+          onOpenChange={setQrOpen}
+          address={address}
+          onCopy={handleCopy}
+        />
+      )}
     </Screen>
   )
 }

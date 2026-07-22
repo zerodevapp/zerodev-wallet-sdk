@@ -1,4 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react'
+import {
+  type CSSProperties,
+  createContext,
+  type ReactNode,
+  useContext,
+  useState,
+} from 'react'
 import { cn } from '../../utils/common'
 import { TOP_NAV_HEIGHT } from '../TopNav'
 import {
@@ -8,6 +14,19 @@ import {
 } from './MultiRadialBackground'
 
 const CONTENT_PADDING_TOP = TOP_NAV_HEIGHT + 16
+
+// Container for card-scoped overlays (bottom sheets, dialogs, etc.). Consumers
+// portal into this element via `Radix Dialog.Portal container={...}` so the
+// overlay is clipped inside the card's rounded frame instead of covering the
+// whole page. Populated once Screen's inner card mounts.
+const ScreenOverlayContext = createContext<HTMLDivElement | null>(null)
+
+/** Element inside `Screen` that overlay/portal-based components (e.g. the QR
+ * sheet) should render into. Returns `null` outside a `Screen` — callers
+ * should guard on that and skip rendering. */
+export function useScreenOverlayContainer() {
+  return useContext(ScreenOverlayContext)
+}
 
 export function Screen({
   children,
@@ -24,6 +43,12 @@ export function Screen({
   style?: CSSProperties | undefined
   topNav?: ReactNode
 }) {
+  // Overlay container ref goes into state so children re-render once the DOM
+  // node is available — that lets deeply nested components own their own
+  // overlay state and portal into the card without hoisting it up here.
+  const [overlayContainer, setOverlayContainer] =
+    useState<HTMLDivElement | null>(null)
+
   return (
     <div
       data-zd-size={size}
@@ -50,6 +75,7 @@ export function Screen({
           Its own gradient (base + CardGlow) fills the card so the colour stays
           vivid and distinct from the border. */}
       <div
+        ref={setOverlayContainer}
         className={cn(
           // m-1.5 = calc(var(--zd-spacing) * 1.5) = 6px at density 1, so the
           // gradient border ring thins with the size variants. (Corner radii
@@ -76,7 +102,9 @@ export function Screen({
               paddingTop: `calc(${CONTENT_PADDING_TOP / 4} * var(--zd-spacing))`,
             }}
           >
-            {children}
+            <ScreenOverlayContext.Provider value={overlayContainer}>
+              {children}
+            </ScreenOverlayContext.Provider>
           </div>
         </div>
       </div>

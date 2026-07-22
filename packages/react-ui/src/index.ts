@@ -9,6 +9,12 @@ export {
   ArrowView,
 } from './components/ArrowCardPair'
 export { Badge, type BadgeProps } from './components/Badge'
+export {
+  BottomSheet,
+  BottomSheetClose,
+  BottomSheetContent,
+  BottomSheetTitle,
+} from './components/BottomSheet'
 export { Button, type ButtonProps } from './components/Button'
 export { Callout, type CalloutProps } from './components/Callout'
 export {

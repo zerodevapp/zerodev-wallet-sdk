@@ -6,7 +6,6 @@
 // Provider
 export type { SmartRoutingAddressProviderProps } from './context/SmartRoutingAddressProvider'
 export { SmartRoutingAddressProvider } from './context/SmartRoutingAddressProvider'
-
 // Hooks
 export type {
   UseDepositStatusParams,
