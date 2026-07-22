@@ -186,13 +186,16 @@ describe('token symbols', () => {
     ).toBe('WETH')
   })
 
-  it('returns the configured targetTokenSymbol when set', () => {
+  it('uses the configured target token, regardless of source', () => {
     expect(
       getDestTokenSymbol({ ...BARE_CONFIG, targetTokenSymbol: 'USDC' }),
     ).toBe('USDC')
   })
 
-  it('returns undefined when targetTokenSymbol is unset', () => {
-    expect(getDestTokenSymbol(BARE_CONFIG)).toBeUndefined()
+  it('derives the destination symbol from the defaults', () => {
+    // WBTC is excluded because base has no WBTC token address
+    expect(getDestTokenSymbol(BARE_CONFIG)).toBe(
+      'ETH / USDC / WETH / USDT / DAI / EURC',
+    )
   })
 })

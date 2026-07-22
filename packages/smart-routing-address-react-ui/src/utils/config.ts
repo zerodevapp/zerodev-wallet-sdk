@@ -51,6 +51,21 @@ export function resolveBaseUrl(
   return `${root.replace(/\/+$/, '')}/${config.projectId}`
 }
 
+const PLACEHOLDER_PROJECT_IDS = new Set([
+  'your-zerodev-project-id',
+  '<your-zerodev-project-id>',
+  'demo-project-id',
+])
+
+export function getProjectIdConfigError(
+  config: SmartRoutingAddressConfig,
+): string | null {
+  const projectId = config.projectId?.trim()
+  if (!projectId) return null
+  if (!PLACEHOLDER_PROJECT_IDS.has(projectId)) return null
+  return `Replace config.projectId (${projectId}) with your ZeroDev project id, or omit projectId to use the default Smart Routing Address endpoint.`
+}
+
 export function resolveDashboardUrl(address?: string): string {
   if (!address) return DEFAULT_DASHBOARD_URL
   return `${DEFAULT_DASHBOARD_URL.replace(/\/+$/, '')}/address/${address}`
@@ -63,6 +78,25 @@ export function resolveFillTimeSeconds(
   const fillTime = config.estimatedFillTimeSeconds
   if (typeof fillTime === 'number') return fillTime
   return fillTime?.[chainId] ?? DEFAULT_FILL_TIME_SECONDS
+}
+
+/**
+ * Time for a deposit to be safely observed on its origin chain before a relayer
+ * fills on the destination. Bridge quotes report only the relayer fill time
+ * (which assumes the deposit is already seen), so for slow-finality origins
+ * (Ethereum L1) this term dominates the real "delivered in" estimate — without
+ * it a mainnet deposit would misleadingly read as seconds. Fast rollups settle
+ * in a few seconds.
+ */
+const ORIGIN_CONFIRMATION_SEC: Record<number, number> = {
+  1: 90, // Ethereum mainnet — several blocks for a safe deposit
+  137: 20, // Polygon PoS
+}
+const DEFAULT_ORIGIN_CONFIRMATION_SEC = 5
+
+export function originConfirmationSeconds(chainId: number | undefined): number {
+  if (chainId === undefined) return 0
+  return ORIGIN_CONFIRMATION_SEC[chainId] ?? DEFAULT_ORIGIN_CONFIRMATION_SEC
 }
 
 /** Chain where the routed funds settle */
@@ -165,11 +199,19 @@ export function getSourceTokenSymbol(source: SourceToken): string {
  * Display symbol for the token received on the target chain. The settlement
  * token is fixed by configuration (`targetTokenSymbol`) — it is the single
  * asset the funds are swapped/bridged into, regardless of what the user sends.
- * Returns `undefined` when unset so the "Arrives as" pill can render a
- * skeleton rather than a placeholder string.
+ * Without an explicit setting, every possible target token is joined with a
+ * separator (used only before a destination token is configured).
  */
-export function getDestTokenSymbol(
-  config: SmartRoutingAddressConfig,
-): string | undefined {
-  return config.targetTokenSymbol
+export function getDestTokenSymbol(config: SmartRoutingAddressConfig): string {
+  if (config.targetTokenSymbol) return config.targetTokenSymbol
+
+  const destChain = resolveDestChain(config)
+  const tokenTypes = uniqueTokenTypes(resolveSourceTokens(config))
+  // Distinct token types can share a display symbol (WRAPPED_NATIVE vs WETH)
+  const symbols = new Set(
+    tokenTypes.map((tokenType) =>
+      getSourceTokenSymbol({ tokenType, chain: destChain }),
+    ),
+  )
+  return [...symbols].join(' / ')
 }
