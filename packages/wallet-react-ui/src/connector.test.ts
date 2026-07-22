@@ -62,38 +62,38 @@ describe('connector', () => {
       await connector.setup?.()
     })
 
-    // Signing is pinned to background mode — the prompt-mode gate below is
-    // disabled. Restore this test when prompt-mode signing is released.
-    // it('wraps request by default (prompt is default mode)', async () => {
-    //   const connector = createKitConnector()
-    //   await connector.setup?.()
-    //
-    //   const store = connector.getKitStore()
-    //   store.getState().setUserConfirmationListenerActive(true)
-    //
-    //   const provider = await connector.getProvider()
-    //
-    //   let resolved = false
-    //   const requestPromise = provider
-    //     .request({
-    //       method: 'eth_sendTransaction',
-    //       params: [{ to: '0x1' }],
-    //     })
-    //     .then((result) => {
-    //       resolved = true
-    //       return result
-    //     })
-    //
-    //   await new Promise((r) => setTimeout(r, 10))
-    //   expect(resolved).toBe(false)
-    //
-    //   store.getState().pendingRequests[0]?.resolve()
-    //   await requestPromise
-    //   expect(resolved).toBe(true)
-    // })
-
-    it('does not wrap request (signing is pinned to background)', async () => {
+    it('wraps request by default (prompt is default mode)', async () => {
       const connector = createKitConnector()
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+
+      let resolved = false
+      const requestPromise = provider
+        .request({
+          method: 'eth_sendTransaction',
+          params: [{ to: '0x1' }],
+        })
+        .then((result) => {
+          resolved = true
+          return result
+        })
+
+      await new Promise((r) => setTimeout(r, 10))
+      expect(resolved).toBe(false)
+
+      store.getState().pendingRequests[0]?.resolve()
+      await requestPromise
+      expect(resolved).toBe(true)
+    })
+
+    it('does not wrap request when signing mode is background', async () => {
+      const connector = createKitConnector({
+        config: { signing: { mode: 'background' } },
+      })
       await connector.setup?.()
 
       const provider = await connector.getProvider()
@@ -105,122 +105,119 @@ describe('connector', () => {
     })
   })
 
-  // Signing is pinned to background mode — the prompt-mode confirmation gate is
-  // disabled and not part of this package's public surface. Restore this block
-  // when prompt-mode signing is released.
-  // describe('signing gate', () => {
-  //   it('passes through when listener is not active', async () => {
-  //     const connector = createKitConnector({
-  //       config: { signing: { mode: 'prompt' } },
-  //     })
-  //     await connector.setup?.()
-  //
-  //     const provider = await connector.getProvider()
-  //     const result = await provider.request({
-  //       method: 'eth_sendTransaction',
-  //       params: [{ to: '0x1' }],
-  //     })
-  //     expect(result).toBe('0xhash')
-  //   })
-  //
-  //   it('passes through for non-signing methods even when listener is active', async () => {
-  //     const connector = createKitConnector({
-  //       config: { signing: { mode: 'prompt' } },
-  //     })
-  //     await connector.setup?.()
-  //
-  //     const store = connector.getKitStore()
-  //     store.getState().setUserConfirmationListenerActive(true)
-  //
-  //     const provider = await connector.getProvider()
-  //     const result = await provider.request({ method: 'eth_chainId' })
-  //     expect(result).toBe('0xhash')
-  //   })
-  //
-  //   it('gates request when listener is active and method matches', async () => {
-  //     const connector = createKitConnector({
-  //       config: { signing: { mode: 'prompt' } },
-  //     })
-  //     await connector.setup?.()
-  //
-  //     const store = connector.getKitStore()
-  //     store.getState().setUserConfirmationListenerActive(true)
-  //
-  //     const provider = await connector.getProvider()
-  //
-  //     let resolved = false
-  //     const requestPromise = provider
-  //       .request({
-  //         method: 'eth_sendTransaction',
-  //         params: [{ to: '0x1' }],
-  //       })
-  //       .then((result) => {
-  //         resolved = true
-  //         return result
-  //       })
-  //
-  //     // Request should be pending
-  //     await new Promise((r) => setTimeout(r, 10))
-  //     expect(resolved).toBe(false)
-  //     expect(store.getState().pendingRequests[0]).not.toBeNull()
-  //     expect(store.getState().pendingRequests[0]?.method).toBe(
-  //       'eth_sendTransaction',
-  //     )
-  //
-  //     // Confirm — resolve the gate
-  //     store.getState().pendingRequests[0]?.resolve()
-  //     const result = await requestPromise
-  //     expect(resolved).toBe(true)
-  //     expect(result).toBe('0xhash')
-  //   })
-  //
-  //   it('rejects request when user rejects', async () => {
-  //     const connector = createKitConnector({
-  //       config: { signing: { mode: 'prompt' } },
-  //     })
-  //     await connector.setup?.()
-  //
-  //     const store = connector.getKitStore()
-  //     store.getState().setUserConfirmationListenerActive(true)
-  //
-  //     const provider = await connector.getProvider()
-  //
-  //     const requestPromise = provider.request({
-  //       method: 'personal_sign',
-  //       params: ['0xdata', '0xaddress'],
-  //     })
-  //
-  //     await new Promise((r) => setTimeout(r, 10))
-  //     store.getState().pendingRequests[0]?.reject(new Error('User rejected'))
-  //
-  //     await expect(requestPromise).rejects.toThrow('User rejected')
-  //   })
-  //
-  //   it('respects custom methods list', async () => {
-  //     const connector = createKitConnector({
-  //       config: {
-  //         signing: {
-  //           mode: 'prompt',
-  //           methods: ['eth_sendTransaction'],
-  //         },
-  //       },
-  //     })
-  //     await connector.setup?.()
-  //
-  //     const store = connector.getKitStore()
-  //     store.getState().setUserConfirmationListenerActive(true)
-  //
-  //     const provider = await connector.getProvider()
-  //
-  //     // personal_sign is NOT in the custom methods list — should pass through
-  //     const result = await provider.request({
-  //       method: 'personal_sign',
-  //       params: ['0xdata', '0xaddress'],
-  //     })
-  //     expect(result).toBe('0xhash')
-  //     expect(store.getState().pendingRequests).toEqual([])
-  //   })
-  // })
+  describe('signing gate', () => {
+    it('passes through when listener is not active', async () => {
+      const connector = createKitConnector({
+        config: { signing: { mode: 'prompt' } },
+      })
+      await connector.setup?.()
+
+      const provider = await connector.getProvider()
+      const result = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{ to: '0x1' }],
+      })
+      expect(result).toBe('0xhash')
+    })
+
+    it('passes through for non-signing methods even when listener is active', async () => {
+      const connector = createKitConnector({
+        config: { signing: { mode: 'prompt' } },
+      })
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+      const result = await provider.request({ method: 'eth_chainId' })
+      expect(result).toBe('0xhash')
+    })
+
+    it('gates request when listener is active and method matches', async () => {
+      const connector = createKitConnector({
+        config: { signing: { mode: 'prompt' } },
+      })
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+
+      let resolved = false
+      const requestPromise = provider
+        .request({
+          method: 'eth_sendTransaction',
+          params: [{ to: '0x1' }],
+        })
+        .then((result) => {
+          resolved = true
+          return result
+        })
+
+      // Request should be pending
+      await new Promise((r) => setTimeout(r, 10))
+      expect(resolved).toBe(false)
+      expect(store.getState().pendingRequests[0]).not.toBeNull()
+      expect(store.getState().pendingRequests[0]?.method).toBe(
+        'eth_sendTransaction',
+      )
+
+      // Confirm — resolve the gate
+      store.getState().pendingRequests[0]?.resolve()
+      const result = await requestPromise
+      expect(resolved).toBe(true)
+      expect(result).toBe('0xhash')
+    })
+
+    it('rejects request when user rejects', async () => {
+      const connector = createKitConnector({
+        config: { signing: { mode: 'prompt' } },
+      })
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+
+      const requestPromise = provider.request({
+        method: 'personal_sign',
+        params: ['0xdata', '0xaddress'],
+      })
+
+      await new Promise((r) => setTimeout(r, 10))
+      store.getState().pendingRequests[0]?.reject(new Error('User rejected'))
+
+      await expect(requestPromise).rejects.toThrow('User rejected')
+    })
+
+    it('respects custom methods list', async () => {
+      const connector = createKitConnector({
+        config: {
+          signing: {
+            mode: 'prompt',
+            methods: ['eth_sendTransaction'],
+          },
+        },
+      })
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+
+      // personal_sign is NOT in the custom methods list — should pass through
+      const result = await provider.request({
+        method: 'personal_sign',
+        params: ['0xdata', '0xaddress'],
+      })
+      expect(result).toBe('0xhash')
+      expect(store.getState().pendingRequests).toEqual([])
+    })
+  })
 
   describe('getKitStore', () => {
     it('exposes the store', () => {
@@ -257,13 +254,14 @@ describe('connector', () => {
       expect(store.getState().auth.step).toBeNull()
     })
 
-    it('auth config works', () => {
+    it('auth config works with signing config', () => {
       const authConfig = {
         enabledMethods: ['passkey' as const],
       }
       const connector = createKitConnector({
         config: {
           auth: authConfig,
+          signing: { mode: 'prompt' },
         },
       })
       const store = connector.getKitStore()
@@ -314,41 +312,39 @@ describe('connector', () => {
       ])
     })
 
-    // Depends on the prompt-mode signing gate, which is disabled while signing
-    // is pinned to background. Restore when prompt-mode signing is released.
-    // it('auth state persists across signing operations', async () => {
-    //   const authConfig = {
-    //     enabledMethods: ['email' as const],
-    //   }
-    //   const connector = createKitConnector({
-    //     config: {
-    //       auth: authConfig,
-    //       signing: { mode: 'prompt' },
-    //     },
-    //   })
-    //   await connector.setup?.()
-    //
-    //   const store = connector.getKitStore()
-    //   store.getState().auth.setEmail('test@example.com')
-    //   store.getState().setUserConfirmationListenerActive(true)
-    //
-    //   const provider = await connector.getProvider()
-    //
-    //   const requestPromise = provider.request({
-    //     method: 'eth_sendTransaction',
-    //     params: [{ to: '0x1' }],
-    //   })
-    //
-    //   // Auth state should still be present during signing gate
-    //   expect(store.getState().auth.email).toBe('test@example.com')
-    //
-    //   // Complete request
-    //   await new Promise((r) => setTimeout(r, 10))
-    //   store.getState().pendingRequests[0]?.resolve()
-    //   await requestPromise
-    //
-    //   // Auth state should still be present after signing
-    //   expect(store.getState().auth.email).toBe('test@example.com')
-    // })
+    it('auth state persists across signing operations', async () => {
+      const authConfig = {
+        enabledMethods: ['email' as const],
+      }
+      const connector = createKitConnector({
+        config: {
+          auth: authConfig,
+          signing: { mode: 'prompt' },
+        },
+      })
+      await connector.setup?.()
+
+      const store = connector.getKitStore()
+      store.getState().auth.setEmail('test@example.com')
+      store.getState().setUserConfirmationListenerActive(true)
+
+      const provider = await connector.getProvider()
+
+      const requestPromise = provider.request({
+        method: 'eth_sendTransaction',
+        params: [{ to: '0x1' }],
+      })
+
+      // Auth state should still be present during signing gate
+      expect(store.getState().auth.email).toBe('test@example.com')
+
+      // Complete request
+      await new Promise((r) => setTimeout(r, 10))
+      store.getState().pendingRequests[0]?.resolve()
+      await requestPromise
+
+      // Auth state should still be present after signing
+      expect(store.getState().auth.email).toBe('test@example.com')
+    })
   })
 })

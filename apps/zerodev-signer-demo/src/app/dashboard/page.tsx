@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
+import { SignatureRequest } from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
@@ -106,6 +107,21 @@ export default function DashboardPage() {
   const [gaslessTxCount, setGaslessTxCount] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
+
+  // Toggle for whether SignatureRequest is mounted. When mounted, the kit
+  // gates signing calls on user confirmation; when not, calls go through
+  // silently (background mode). Default off; persisted in localStorage.
+  const [confirmationEnabled, setConfirmationEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("zd:signingConfirmation") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "zd:signingConfirmation",
+      String(confirmationEnabled),
+    );
+  }, [confirmationEnabled]);
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
@@ -241,6 +257,9 @@ export default function DashboardPage() {
   return (
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
+      {confirmationEnabled && (
+        <SignatureRequest className='fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-2 sm:top-18 sm:w-[400px] sm:h-[600px]' />
+      )}
       <div className="min-h-screen">
         <AppHeader />
 
@@ -256,7 +275,7 @@ export default function DashboardPage() {
                   Created with {authMethodLabel}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ChainSelector className="h-9 rounded-full px-3 text-xs" />
                 <button
                   onClick={() => setShowExportModal(true)}
@@ -265,6 +284,30 @@ export default function DashboardPage() {
                 >
                   <Key className="h-3.5 w-3.5" />
                   Export keys
+                </button>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={confirmationEnabled}
+                  onClick={() => setConfirmationEnabled((enabled) => !enabled)}
+                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
+                  title="Gate transactions on user confirmation"
+                >
+                  <FileSignature className="h-3.5 w-3.5" />
+                  Tx review
+                  <span
+                    className={cn(
+                      "relative inline-block h-4 w-7 rounded-full transition-colors",
+                      confirmationEnabled ? "bg-green-600" : "bg-gray-300"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform",
+                        confirmationEnabled && "translate-x-3"
+                      )}
+                    />
+                  </span>
                 </button>
                 <button
                   onClick={handleLogout}
