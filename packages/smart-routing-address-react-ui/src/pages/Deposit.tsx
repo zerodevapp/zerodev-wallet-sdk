@@ -33,7 +33,7 @@ import {
   resolvePollingInterval,
   sourceTokensFromFees,
 } from '../utils/config'
-import { findFeeData } from '../utils/fees'
+import { findFeeData, resolveTokenAddress } from '../utils/fees'
 import {
   formatDisplayAmount,
   formatDuration,
@@ -59,7 +59,8 @@ const FULL_ROW_PANEL_STYLE = {
 }
 
 export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
-  const { config, addressState } = useSmartRoutingAddressContext()
+  const { config, addressState, setActiveRoute } =
+    useSmartRoutingAddressContext()
 
   const success = addressState.status === 'success' ? addressState : null
   const address = success?.address
@@ -121,7 +122,7 @@ export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
   const pastDepositsCount = deposits.length - newDeposits.length
 
   const destChain = resolveDestChain(config)
-  const destSymbol = source ? getDestTokenSymbol(config, source) : undefined
+  const destSymbol = getDestTokenSymbol(config)
   const sourceSymbol = source ? getSourceTokenSymbol(source) : undefined
   const sourceTokenLogo = sourceSymbol
     ? TOKEN_ICONS[sourceSymbol.toUpperCase()]
@@ -137,6 +138,29 @@ export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
   const fillTime = formatDuration(
     resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
   )
+
+  // Publish the current picker selection so hosts (e.g. a demo "send" panel)
+  // can mirror the widget's route. Cleared when the picker is empty so
+  // downstream mocks show their fallback instead of stale state.
+  useEffect(() => {
+    if (!source || !feeData || !sourceSymbol) {
+      setActiveRoute(null)
+      return
+    }
+    const token = resolveTokenAddress(source.tokenType, source.chain.id)
+    if (!token) {
+      setActiveRoute(null)
+      return
+    }
+    setActiveRoute({
+      sourceChainId: source.chain.id,
+      sourceChainName: source.chain.name,
+      token,
+      symbol: sourceSymbol,
+      decimals: feeData.decimal,
+      feeAmount: feeData.fee,
+    })
+  }, [source, feeData, sourceSymbol, setActiveRoute])
 
   // Deduped list of routable token types — the token picker's rows. Chain
   // count per token drives the subtitle. Kept as SourceToken (not a bespoke

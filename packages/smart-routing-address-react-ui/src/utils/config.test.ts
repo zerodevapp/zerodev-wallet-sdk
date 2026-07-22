@@ -186,25 +186,13 @@ describe('token symbols', () => {
     ).toBe('WETH')
   })
 
-  it('mirrors the selected source token type', () => {
+  it('returns the configured targetTokenSymbol when set', () => {
     expect(
-      getDestTokenSymbol(BARE_CONFIG, {
-        tokenType: 'USDT',
-        chain: optimism,
-      }),
-    ).toBe('USDT')
-    expect(
-      getDestTokenSymbol(BARE_CONFIG, {
-        tokenType: 'NATIVE',
-        chain: optimism,
-      }),
-    ).toBe('ETH')
+      getDestTokenSymbol({ ...BARE_CONFIG, targetTokenSymbol: 'USDC' }),
+    ).toBe('USDC')
   })
 
-  it('derives the destination symbol from the defaults', () => {
-    // WBTC is excluded because base has no WBTC token address
-    expect(getDestTokenSymbol(BARE_CONFIG)).toBe(
-      'ETH / USDC / WETH / USDT / DAI / EURC',
-    )
+  it('returns undefined when targetTokenSymbol is unset', () => {
+    expect(getDestTokenSymbol(BARE_CONFIG)).toBeUndefined()
   })
 })

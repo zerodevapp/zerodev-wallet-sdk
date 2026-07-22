@@ -1,6 +1,10 @@
 import { createContext, useContext } from 'react'
 import type { Address } from 'viem'
-import type { AddressState, SmartRoutingAddressConfig } from '../types'
+import type {
+  ActiveRoute,
+  AddressState,
+  SmartRoutingAddressConfig,
+} from '../types'
 
 export type SmartRoutingAddressContextValue = {
   config: SmartRoutingAddressConfig
@@ -14,6 +18,13 @@ export type SmartRoutingAddressContextValue = {
    * fresh creation.
    */
   ensureAddress: (recipient: Address) => Promise<void>
+  /**
+   * The route currently shown in the deposit UI. `null` until the picker
+   * seeds a selection. Hosts can read this to mirror the widget's state.
+   */
+  activeRoute: ActiveRoute | null
+  /** Deposit UI internal — writes the current picker selection to context. */
+  setActiveRoute: (route: ActiveRoute | null) => void
 }
 
 export const SmartRoutingAddressContext =

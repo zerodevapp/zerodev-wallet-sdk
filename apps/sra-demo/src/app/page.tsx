@@ -51,7 +51,7 @@ export default function Home() {
   }
 
   const config = useMemo<SmartRoutingAddressConfig>(
-    () => ({ targetChainId, slippage }),
+    () => ({ targetChainId, targetTokenSymbol: 'USDC', slippage }),
     [targetChainId, slippage],
   )
 

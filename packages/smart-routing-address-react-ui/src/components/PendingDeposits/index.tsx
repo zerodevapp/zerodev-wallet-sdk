@@ -82,7 +82,7 @@ export function PendingDeposits({
             : undefined
           const sourceChainLogo = CHAIN_ICONS[chainId]
 
-          const destSymbol = getDestTokenSymbol(config, source)
+          const destSymbol = getDestTokenSymbol(config)
           const destTokenLogo = destSymbol
             ? TOKEN_ICONS[destSymbol.toUpperCase()]
             : undefined
