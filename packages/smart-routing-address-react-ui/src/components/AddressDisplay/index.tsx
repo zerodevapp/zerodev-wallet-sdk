@@ -72,10 +72,10 @@ export function AddressDisplayUI({
         type="button"
         onClick={onQrClick}
         aria-label="Show QR code"
-        className="zd:flex zd:size-13 zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:rounded-2xl zd:bg-white"
+        className="zd:flex zd:w-13 zd:h-13 zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:rounded-2xl zd:bg-white"
         data-testid="address-display-qr-button"
       >
-        <Icon name="qrCode" className="zd:size-5 zd:text-greyScale" />
+        <Icon name="qrCode" className="zd:w-5 zd:h-5 zd:text-greyScale" />
       </button>
     </Wrapper>
   )

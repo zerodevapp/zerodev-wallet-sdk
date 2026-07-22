@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { TokenChainPill } from './index'
+import { Icon } from '../Icon'
+import { Pill } from './index'
 
-const meta: Meta<typeof TokenChainPill> = {
-  title: 'SmartRoutingAddress/TokenChainPill',
-  component: TokenChainPill,
+const meta: Meta<typeof Pill> = {
+  title: 'Pill',
+  component: Pill,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -21,30 +22,32 @@ const meta: Meta<typeof TokenChainPill> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Interactive source-token pill — the default variant shown in Figma. */
-export const InteractiveToken: Story = {
+/** Interactive variant with a trailing chevron affordance. Keyboard-accessible
+ * (Enter/Space trigger `onClick`). */
+export const Interactive: Story = {
   args: {
     label: 'USDC',
     logoBg: '#2775CA',
     onClick: () => {},
+    trailingIcon: (
+      <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+    ),
   },
 }
 
-/** Interactive source-chain pill. */
+/** Second interactive example with a different label/logo. */
 export const InteractiveChain: Story = {
   args: {
     label: 'Base',
     logoBg: '#0052FF',
     onClick: () => {},
+    trailingIcon: (
+      <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+    ),
   },
 }
 
-/**
- * Display variant — the destination pill from the "Arrives as" card
- * (Figma 17777:81278). Renders on a 5% white surface with no chevron.
- * Achieved by omitting `onClick`; setting `disabled: true` alongside an
- * `onClick` handler produces the same visual.
- */
+/** Display variant — no trailing icon, no click handler. */
 export const Display: Story = {
   args: {
     label: 'Arbitrum One',
@@ -52,9 +55,8 @@ export const Display: Story = {
   },
 }
 
-/** Same display variant, but with `disabled: true` forcing a passed
- * `onClick` handler to be ignored — useful for "temporarily unavailable"
- * states without unmounting/remounting props. */
+/** `disabled` forces a passed `onClick` to be ignored — useful for
+ * "temporarily unavailable" states. */
 export const DisplayForcedDisabled: Story = {
   args: {
     label: 'Arbitrum One',
@@ -71,5 +73,8 @@ export const WithLogoImage: Story = {
     logoUri:
       'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
     onClick: () => {},
+    trailingIcon: (
+      <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+    ),
   },
 }

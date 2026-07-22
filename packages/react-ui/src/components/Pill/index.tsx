@@ -1,7 +1,10 @@
-import { cn, Icon, Text, Wrapper } from '@zerodev/react-ui'
-import type { KeyboardEvent } from 'react'
+import type { HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 'react'
+import { cn } from '../../utils/common'
+import { Text } from '../Text'
+import { Wrapper } from '../Wrapper'
 
-export interface TokenChainPillProps {
+export interface PillProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Text label rendered next to the logo (e.g., "USDC", "Base"). */
   label: string
   /** URL of the logo image; when omitted, a `logoBg` + first letter of `label` placeholder is drawn. */
@@ -10,19 +13,24 @@ export interface TokenChainPillProps {
   logoBg?: string
   /** Click handler; when supplied and not `disabled`, the pill becomes a keyboard-accessible button. */
   onClick?: () => void
-  /** When true, renders as a dimmed, non-interactive pill (no chevron). */
+  /** When true, renders as a dimmed, non-interactive pill. */
   disabled?: boolean
-  className?: string
+  /** Optional trailing affordance (e.g., `<SelectIcon />`). Rendered in a padded slot on the right. */
+  trailingIcon?: ReactNode
+  ref?: Ref<HTMLDivElement>
 }
 
-export function TokenChainPill({
+export function Pill({
   label,
   logoUri,
   logoBg = '#E6EFFB',
   onClick,
   disabled,
+  trailingIcon,
   className,
-}: TokenChainPillProps) {
+  ref,
+  ...rest
+}: PillProps) {
   const logoInitial = label.charAt(0).toUpperCase()
 
   const interactive = Boolean(onClick) && !disabled
@@ -37,14 +45,13 @@ export function TokenChainPill({
 
   return (
     <Wrapper
+      ref={ref}
       variant="solid"
       // Override Wrapper's variant-based bg color for the display variant —
       // Figma spec is exactly rgba(255,255,255,0.05), which none of the
       // Wrapper variants match. Inline style beats Wrapper's own style.
       style={
-        interactive
-          ? undefined
-          : { backgroundColor: 'rgba(255, 255, 255, 0.05)' }
+        disabled ? { backgroundColor: 'rgba(255, 255, 255, 0.05)' } : undefined
       }
       className={cn(
         // Sizing/padding matches Figma: outer pl-1 pr-2 py-1, rounded-2xl.
@@ -52,9 +59,10 @@ export function TokenChainPill({
         'zd:relative zd:flex zd:w-full zd:items-center zd:justify-between zd:overflow-hidden zd:rounded-2xl zd:pl-1 zd:pr-2 zd:py-1',
         // Universal inner shadow from the Figma design token.
         'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
-        interactive && 'zd:cursor-pointer',
+        !disabled && 'zd:cursor-pointer',
         className,
       )}
+      {...rest}
       {...(interactive && {
         role: 'button',
         tabIndex: 0,
@@ -93,13 +101,12 @@ export function TokenChainPill({
         </div>
         <Text className="zd:whitespace-nowrap zd:text-body1">{label}</Text>
       </div>
-      {interactive && (
-        <div className="zd:flex zd:shrink-0 zd:items-center zd:rounded-full zd:p-2">
-          <Icon
-            name="chevronDown"
-            className="zd:size-4 zd:text-greyScale"
-            data-testid="token-chain-pill-chevron"
-          />
+      {trailingIcon && (
+        <div
+          className="zd:flex zd:shrink-0 zd:items-center zd:rounded-full zd:p-2"
+          data-testid="pill-trailing-icon"
+        >
+          {trailingIcon}
         </div>
       )}
     </Wrapper>

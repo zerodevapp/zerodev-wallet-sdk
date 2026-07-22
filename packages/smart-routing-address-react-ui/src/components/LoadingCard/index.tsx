@@ -18,7 +18,7 @@ export function LoadingCard({ text, className, ...rest }: LoadingCardProps) {
     >
       <Icon
         name="lineLoading"
-        className="zd:size-4 zd:text-greyScale/50"
+        className="zd:w-4 zd:h-4 zd:text-greyScale/50"
         data-testid="loading-card-icon"
       />
       <Text className="zd:text-body1 zd:text-greyScale/50">{text}</Text>
