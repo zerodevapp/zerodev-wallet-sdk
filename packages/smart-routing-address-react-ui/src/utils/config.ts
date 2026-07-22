@@ -51,21 +51,6 @@ export function resolveBaseUrl(
   return `${root.replace(/\/+$/, '')}/${config.projectId}`
 }
 
-const PLACEHOLDER_PROJECT_IDS = new Set([
-  'your-zerodev-project-id',
-  '<your-zerodev-project-id>',
-  'demo-project-id',
-])
-
-export function getProjectIdConfigError(
-  config: SmartRoutingAddressConfig,
-): string | null {
-  const projectId = config.projectId?.trim()
-  if (!projectId) return null
-  if (!PLACEHOLDER_PROJECT_IDS.has(projectId)) return null
-  return `Replace config.projectId (${projectId}) with your ZeroDev project id, or omit projectId to use the default Smart Routing Address endpoint.`
-}
-
 export function resolveDashboardUrl(address?: string): string {
   if (!address) return DEFAULT_DASHBOARD_URL
   return `${DEFAULT_DASHBOARD_URL.replace(/\/+$/, '')}/address/${address}`
@@ -78,25 +63,6 @@ export function resolveFillTimeSeconds(
   const fillTime = config.estimatedFillTimeSeconds
   if (typeof fillTime === 'number') return fillTime
   return fillTime?.[chainId] ?? DEFAULT_FILL_TIME_SECONDS
-}
-
-/**
- * Time for a deposit to be safely observed on its origin chain before a relayer
- * fills on the destination. Bridge quotes report only the relayer fill time
- * (which assumes the deposit is already seen), so for slow-finality origins
- * (Ethereum L1) this term dominates the real "delivered in" estimate — without
- * it a mainnet deposit would misleadingly read as seconds. Fast rollups settle
- * in a few seconds.
- */
-const ORIGIN_CONFIRMATION_SEC: Record<number, number> = {
-  1: 90, // Ethereum mainnet — several blocks for a safe deposit
-  137: 20, // Polygon PoS
-}
-const DEFAULT_ORIGIN_CONFIRMATION_SEC = 5
-
-export function originConfirmationSeconds(chainId: number | undefined): number {
-  if (chainId === undefined) return 0
-  return ORIGIN_CONFIRMATION_SEC[chainId] ?? DEFAULT_ORIGIN_CONFIRMATION_SEC
 }
 
 /** Chain where the routed funds settle */
