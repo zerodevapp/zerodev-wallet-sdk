@@ -14,7 +14,7 @@
     "@zerodev/react-ui": "workspace:*",
     "@zerodev/smart-routing-address": "^0.2.5",
     "@zerodev/smart-routing-address-react-ui": "workspace:*",
-    "next": "15.3.8",
+    "next": "15.5.18",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "viem": "^2.47.18"
