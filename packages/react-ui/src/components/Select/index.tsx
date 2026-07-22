@@ -25,6 +25,7 @@ export function SelectTrigger({
       className={cn(
         'zd:inline-flex zd:items-center zd:justify-between zd:gap-2',
         'zd:outline-none zd:cursor-pointer',
+        'zd:data-[state=open]:pointer-events-auto zd:data-[state=open]:cursor-pointer',
         'zd:disabled:cursor-not-allowed zd:disabled:opacity-50',
         className,
       )}
@@ -76,15 +77,23 @@ export function SelectContent({
         ref={ref}
         position={position}
         sideOffset={sideOffset}
-        className={cn('zd:z-50 zd:max-h-80 zd:outline-none', className)}
+        className={cn(
+          'zd:z-50 zd:max-h-80 zd:outline-none',
+          'zd:data-[state=open]:animate-popper-in',
+          className,
+        )}
         {...props}
         style={{
           width: 'var(--radix-select-trigger-width)',
+          transformOrigin: 'var(--radix-select-content-transform-origin)',
           ...style,
         }}
       >
         <Wrapper
           variant="solid"
+          // Override Wrapper's 80% white translucency — a dropdown over
+          // content shouldn't let the content bleed through.
+          style={{ backgroundColor: '#fff' }}
           className="zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden"
         >
           <SelectPrimitive.Viewport className="zd:overflow-y-auto zd:max-h-80">
