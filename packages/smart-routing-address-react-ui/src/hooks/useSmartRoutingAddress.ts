@@ -1,6 +1,6 @@
 import type { Address } from 'viem'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
-import type { AddressState } from '../types'
+import type { ActiveRoute, AddressState } from '../types'
 
 export type UseSmartRoutingAddressResult = {
   addressState: AddressState
@@ -9,6 +9,11 @@ export type UseSmartRoutingAddressResult = {
    * recipient; a new recipient triggers a fresh creation)
    */
   ensureAddress: (recipient: Address) => Promise<void>
+  /**
+   * The route the deposit UI is currently showing (source token + chain +
+   * estimated fee). `null` until the picker has seeded a selection.
+   */
+  activeRoute: ActiveRoute | null
 }
 
 /**
@@ -16,6 +21,7 @@ export type UseSmartRoutingAddressResult = {
  * provider, e.g. to pre-create the address before the modal is opened.
  */
 export function useSmartRoutingAddress(): UseSmartRoutingAddressResult {
-  const { addressState, ensureAddress } = useSmartRoutingAddressContext()
-  return { addressState, ensureAddress }
+  const { addressState, ensureAddress, activeRoute } =
+    useSmartRoutingAddressContext()
+  return { addressState, ensureAddress, activeRoute }
 }

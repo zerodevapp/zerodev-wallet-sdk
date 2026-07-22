@@ -162,24 +162,16 @@ export function getSourceTokenSymbol(source: SourceToken): string {
 }
 
 /**
- * Display symbol(s) for the tokens received on the target chain. With a
- * selected source this is the deposited token type itself, since the default
- * actions forward the same token type; without a selection every possible
- * target token is joined with a separator.
+ * Display symbol for the token received on the target chain. The settlement
+ * token is fixed by configuration (`targetTokenSymbol`) — it is the single
+ * asset the funds are swapped/bridged into, regardless of what the user sends.
+ * Without an explicit setting, every possible target token is joined with a
+ * separator (used only before a destination token is configured).
  */
-export function getDestTokenSymbol(
-  config: SmartRoutingAddressConfig,
-  source?: SourceToken | null,
-): string {
+export function getDestTokenSymbol(config: SmartRoutingAddressConfig): string {
+  if (config.targetTokenSymbol) return config.targetTokenSymbol
+
   const destChain = resolveDestChain(config)
-
-  if (source) {
-    return getSourceTokenSymbol({
-      tokenType: source.tokenType,
-      chain: destChain,
-    })
-  }
-
   const tokenTypes = uniqueTokenTypes(resolveSourceTokens(config))
   // Distinct token types can share a display symbol (WRAPPED_NATIVE vs WETH)
   const symbols = new Set(

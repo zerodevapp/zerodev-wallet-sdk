@@ -112,8 +112,7 @@ function PairMark({
   return (
     <div
       className={cn(
-        'zd:relative zd:size-11 zd:shrink-0 zd:rounded-xl',
-        'zd:bg-white/50 zd:backdrop-blur-[30px]',
+        'zd:relative zd:size-11 zd:shrink-0 zd:rounded-xl zd:isolate zd:bg-white/60 zd:backdrop-blur-[30px]',
         'zd:shadow-[inset_0_3px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_4px_0_rgba(255,255,255,0.1)]',
         className,
       )}

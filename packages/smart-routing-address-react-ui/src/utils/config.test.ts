@@ -186,19 +186,10 @@ describe('token symbols', () => {
     ).toBe('WETH')
   })
 
-  it('mirrors the selected source token type', () => {
+  it('uses the configured target token, regardless of source', () => {
     expect(
-      getDestTokenSymbol(BARE_CONFIG, {
-        tokenType: 'USDT',
-        chain: optimism,
-      }),
-    ).toBe('USDT')
-    expect(
-      getDestTokenSymbol(BARE_CONFIG, {
-        tokenType: 'NATIVE',
-        chain: optimism,
-      }),
-    ).toBe('ETH')
+      getDestTokenSymbol({ ...BARE_CONFIG, targetTokenSymbol: 'USDC' }),
+    ).toBe('USDC')
   })
 
   it('derives the destination symbol from the defaults', () => {

@@ -18,6 +18,7 @@ import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
 import { useEffect, useMemo, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
 import { LoadingCard } from '../components/LoadingCard'
+import { PendingDeposits } from '../components/PendingDeposits'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { useDepositStatus } from '../hooks/useDepositStatus'
 import { useNewDeposits } from '../hooks/useNewDeposits'
@@ -32,7 +33,7 @@ import {
   resolvePollingInterval,
   sourceTokensFromFees,
 } from '../utils/config'
-import { findFeeData } from '../utils/fees'
+import { findFeeData, resolveTokenAddress } from '../utils/fees'
 import {
   formatDisplayAmount,
   formatDuration,
@@ -54,7 +55,8 @@ const FULL_ROW_PANEL_STYLE = {
 }
 
 export function Deposit({ onQrClick }: DepositProps) {
-  const { config, addressState } = useSmartRoutingAddressContext()
+  const { config, addressState, setActiveRoute } =
+    useSmartRoutingAddressContext()
 
   const success = addressState.status === 'success' ? addressState : null
   const address = success?.address
@@ -112,10 +114,11 @@ export function Deposit({ onQrClick }: DepositProps) {
     pollingInterval: resolvePollingInterval(config),
     baseUrl: resolveBaseUrl(config),
   })
-  useNewDeposits(deposits, hasLoaded)
+  const newDeposits = useNewDeposits(deposits, hasLoaded)
+  const pastDepositsCount = deposits.length - newDeposits.length
 
   const destChain = resolveDestChain(config)
-  const destSymbol = source ? getDestTokenSymbol(config, source) : undefined
+  const destSymbol = getDestTokenSymbol(config)
   const sourceSymbol = source ? getSourceTokenSymbol(source) : undefined
   const sourceTokenLogo = sourceSymbol
     ? TOKEN_ICONS[sourceSymbol.toUpperCase()]
@@ -131,6 +134,29 @@ export function Deposit({ onQrClick }: DepositProps) {
   const fillTime = formatDuration(
     resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
   )
+
+  // Publish the current picker selection so hosts (e.g. a demo "send" panel)
+  // can mirror the widget's route. Cleared when the picker is empty so
+  // downstream mocks show their fallback instead of stale state.
+  useEffect(() => {
+    if (!source || !feeData || !sourceSymbol) {
+      setActiveRoute(null)
+      return
+    }
+    const token = resolveTokenAddress(source.tokenType, source.chain.id)
+    if (!token) {
+      setActiveRoute(null)
+      return
+    }
+    setActiveRoute({
+      sourceChainId: source.chain.id,
+      sourceChainName: source.chain.name,
+      token,
+      symbol: sourceSymbol,
+      decimals: feeData.decimal,
+      feeAmount: feeData.fee,
+    })
+  }, [source, feeData, sourceSymbol, setActiveRoute])
 
   // Deduped list of routable token types — the token picker's rows. Chain
   // count per token drives the subtitle. Kept as SourceToken (not a bespoke
@@ -339,13 +365,39 @@ export function Deposit({ onQrClick }: DepositProps) {
           }
         />
 
-        <LoadingCard
-          text={
-            source
-              ? `Watching for your deposit on ${source.chain.name}…`
-              : 'Watching for your deposit…'
-          }
-        />
+        {newDeposits.length > 0 ? (
+          <PendingDeposits
+            deposits={newDeposits}
+            estimatedFees={estimatedFees}
+            config={config}
+          />
+        ) : (
+          <LoadingCard
+            text={
+              source
+                ? `Watching for your deposit on ${source.chain.name}…`
+                : 'Watching for your deposit…'
+            }
+          />
+        )}
+
+        {pastDepositsCount > 0 && (
+          <div className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4">
+            <Icon
+              name="clock"
+              className="zd:size-4 zd:text-greyScale/50"
+              aria-hidden
+            />
+            <Text className="zd:flex-1 zd:text-left zd:text-body1">
+              Past deposits ({pastDepositsCount})
+            </Text>
+            <Icon
+              name="chevronRight"
+              className="zd:size-4 zd:text-greyScale/50"
+              aria-hidden
+            />
+          </div>
+        )}
       </div>
 
       <PoweredBy className="zd:justify-center" />

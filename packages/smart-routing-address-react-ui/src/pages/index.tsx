@@ -18,7 +18,11 @@ const TITLE_BY_STEP: Record<SmartRoutingAddressStep, string> = {
 
 function renderStep(
   step: SmartRoutingAddressStep,
-  { onQrClick }: { onQrClick?: (() => void) | undefined },
+  {
+    onQrClick,
+  }: {
+    onQrClick?: (() => void) | undefined
+  },
 ): ReactNode {
   switch (step) {
     case 'deposit':
@@ -102,7 +106,9 @@ export function SmartRoutingAddress({
         />
       }
     >
-      {renderStep(step, { onQrClick: handleQrClick })}
+      {renderStep(step, {
+        onQrClick: handleQrClick,
+      })}
       {/* QrSheet renders itself via `useScreenOverlayContainer()` + portal, so
         it stays inside the card frame while composing at this level rather
         than being hoisted into `Screen`'s API. Mounted whenever an address

@@ -3,7 +3,7 @@
 import { useSmartRoutingAddress } from '@zerodev/smart-routing-address-react-ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAddress, parseUnits } from 'viem'
-import { arbitrum, base } from 'viem/chains'
+import { base } from 'viem/chains'
 import {
   createSimulation,
   installMockFetch,
@@ -14,18 +14,18 @@ import {
   uninstallMockFetch,
 } from '../mock'
 
-// Hardcoded simulation: 250 USDC on Base → destination chain from the widget's
-// config. Real SRA has to expose the currently-selected picker route for the
-// mock to mirror the user's choice; until it does, this is honest enough for
-// a "here's what a deposit looks like" preview.
-const SOURCE_CHAIN_ID = base.id
-const SOURCE_CHAIN_NAME = 'Base'
-const TOKEN_SYMBOL = 'USDC'
-// USDC on Base
-const SOURCE_TOKEN_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-const TOKEN_DECIMALS = 6
+// Fallback route used before the widget has seeded a picker selection:
+// 250 USDC on Base. Once `activeRoute` populates from the widget's picker,
+// the simulation switches to whatever token/chain the user chose.
+const FALLBACK = {
+  sourceChainId: base.id,
+  sourceChainName: 'Base',
+  symbol: 'USDC',
+  token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const, // USDC on Base
+  decimals: 6,
+  feeAmount: '250000', // 0.25 USDC
+}
 const AMOUNT_WHOLE = '250'
-const FEE_AMOUNT = '250000' // 0.25 USDC
 
 const STEP_LABELS: Record<MockStage, string> = {
   pending: 'Deposit detected — confirming…',
@@ -34,7 +34,8 @@ const STEP_LABELS: Record<MockStage, string> = {
 }
 
 export function MockPanel({ destChainId }: { destChainId: number }) {
-  const { addressState } = useSmartRoutingAddress()
+  const { addressState, activeRoute } = useSmartRoutingAddress()
+  const route = activeRoute ?? FALLBACK
   const [sim, setSim] = useState<'idle' | MockStage>('idle')
   const [pasted, setPasted] = useState('')
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -60,21 +61,21 @@ export function MockPanel({ destChainId }: { destChainId: number }) {
     !!address &&
     pasted.trim().toLowerCase() === address.toLowerCase()
   const running = sim === 'pending' || sim === 'bridging'
-  const amountLabel = `${AMOUNT_WHOLE} ${TOKEN_SYMBOL}`
+  const amountLabel = `${AMOUNT_WHOLE} ${route.symbol}`
 
   const simulate = useCallback(() => {
     clearTimers()
     const past = loadPastDeposits()
     const params = {
-      sourceChainId: SOURCE_CHAIN_ID,
-      token: SOURCE_TOKEN_ADDRESS,
-      amount: parseUnits(AMOUNT_WHOLE, TOKEN_DECIMALS).toString(),
-      feeAmount: FEE_AMOUNT,
+      sourceChainId: route.sourceChainId,
+      token: route.token,
+      amount: parseUnits(AMOUNT_WHOLE, route.decimals).toString(),
+      feeAmount: route.feeAmount,
       destChainId,
       // Simulation reuses the source token address on the destination side;
       // the widget only cares that fields resolve, not that this is realistic
       // for every chain.
-      outputToken: SOURCE_TOKEN_ADDRESS,
+      outputToken: route.token,
     }
     const { snapshot } = createSimulation(params)
 
@@ -94,7 +95,7 @@ export function MockPanel({ destChainId }: { destChainId: number }) {
         setSim('completed')
       }, 6500),
     )
-  }, [destChainId, clearTimers])
+  }, [destChainId, clearTimers, route])
 
   const hint = !address
     ? 'Generating your deposit address…'
@@ -115,8 +116,8 @@ export function MockPanel({ destChainId }: { destChainId: number }) {
 
       <div className="pg__wallet-amount">
         <span className="pg__wallet-value">{AMOUNT_WHOLE}</span>
-        <span className="pg__wallet-symbol">{TOKEN_SYMBOL}</span>
-        <span className="pg__wallet-net">on {SOURCE_CHAIN_NAME}</span>
+        <span className="pg__wallet-symbol">{route.symbol}</span>
+        <span className="pg__wallet-net">on {route.sourceChainName}</span>
       </div>
 
       <label className="pg__wallet-field" data-ok={pastedOk}>

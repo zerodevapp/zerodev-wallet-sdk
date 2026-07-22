@@ -26,6 +26,12 @@ export type SmartRoutingAddressConfig = {
   projectId?: string
   /** Chain id where funds settle */
   targetChainId: number
+  /**
+   * Display symbol for the token received on the target chain (e.g. `"USDC"`).
+   * Fixed by the configured actions — when omitted the UI joins every possible
+   * target symbol with a separator.
+   */
+  targetTokenSymbol?: string
   /** Smart routing address version, defaults to the latest stable */
   version?: SmartRoutingAddressVersion
   /**
@@ -60,3 +66,23 @@ export type AddressState =
   | { status: 'error'; error: Error }
 
 export type DepositStage = 'pending' | 'bridging' | 'completed' | 'failed'
+
+/**
+ * The route the deposit UI is currently showing (selected source token +
+ * chain + estimated fee), surfaced through context so hosts can mirror it —
+ * e.g. a demo "send" panel that matches the chosen token, or analytics.
+ */
+export type ActiveRoute = {
+  /** Source chain id the deposit would come from */
+  sourceChainId: number
+  /** Source chain display name (e.g. "Base") */
+  sourceChainName: string
+  /** On-chain address of the selected source token */
+  token: Address
+  /** Display symbol of the selected source token (e.g. "USDC", "ETH") */
+  symbol: string
+  /** Decimals of the selected source token */
+  decimals: number
+  /** Estimated all-in fee amount in source token atomic units */
+  feeAmount: string
+}

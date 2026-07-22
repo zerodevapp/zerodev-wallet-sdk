@@ -96,7 +96,7 @@ export function Screen({
         <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}
           <div
-            className="zd:flex zd:flex-1 zd:flex-col zd:min-h-0 zd:overflow-y-auto zd:overflow-x-hidden"
+            className="zd:flex zd:flex-1 zd:flex-col zd:min-h-0 zd:overflow-y-auto zd:overflow-x-hidden zd:-mr-4 zd:pr-4"
             // Scale via --zd-spacing (matches TopNav's scaled height) so the
             // top padding shrinks with the frame — otherwise the fixed 68px
             // eats a disproportionate share at smaller sizes and overflows.
