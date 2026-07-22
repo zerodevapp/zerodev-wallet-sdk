@@ -42,10 +42,6 @@ import {
 
 export interface DepositProps {
   onQrClick?: () => void
-  /** Called when the user taps the "Past deposits (N)" row. When omitted,
-   * the row still renders but does nothing on click. Wire to a router push
-   * (or a step change) to navigate to a past-deposits view. */
-  onViewPastDeposits?: () => void
 }
 
 const SUBTITLE =
@@ -58,7 +54,7 @@ const FULL_ROW_PANEL_STYLE = {
   width: 'calc(var(--radix-select-trigger-width) * 2 + 4px)',
 }
 
-export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
+export function Deposit({ onQrClick }: DepositProps) {
   const { config, addressState, setActiveRoute } =
     useSmartRoutingAddressContext()
 
@@ -386,11 +382,7 @@ export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
         )}
 
         {pastDepositsCount > 0 && (
-          <button
-            type="button"
-            onClick={onViewPastDeposits}
-            className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4 zd:cursor-pointer"
-          >
+          <div className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4">
             <Icon
               name="clock"
               className="zd:size-4 zd:text-greyScale/50"
@@ -404,7 +396,7 @@ export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
               className="zd:size-4 zd:text-greyScale/50"
               aria-hidden
             />
-          </button>
+          </div>
         )}
       </div>
 
