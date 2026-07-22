@@ -41,7 +41,7 @@ export {
   type PillProps,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
-export { Screen, useScreenOverlayContainer } from './components/Screen'
+export { Screen } from './components/Screen'
 export {
   Select,
   SelectContent,
