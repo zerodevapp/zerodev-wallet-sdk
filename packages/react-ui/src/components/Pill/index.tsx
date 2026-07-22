@@ -7,10 +7,9 @@ export interface PillProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Text label rendered next to the logo (e.g., "USDC", "Base"). */
   label: string
-  /** URL of the logo image; when omitted, a `logoBg` + first letter of `label` placeholder is drawn. */
+  /** URL of the logo image; when omitted, a neutral placeholder disc with the
+   * first letter of `label` is drawn. */
   logoUri?: string
-  /** Fallback background color when no `logoUri` is supplied. */
-  logoBg?: string
   /** Click handler; when supplied and not `disabled`, the pill becomes a keyboard-accessible button. */
   onClick?: () => void
   /** When true, renders as a dimmed, non-interactive pill. */
@@ -23,7 +22,6 @@ export interface PillProps
 export function Pill({
   label,
   logoUri,
-  logoBg = '#E6EFFB',
   onClick,
   disabled,
   trailingIcon,
@@ -81,19 +79,26 @@ export function Pill({
           <div
             className={cn(
               'zd:absolute zd:top-1/2 zd:left-1/2 zd:-translate-x-1/2 zd:-translate-y-1/2',
-              'zd:flex zd:size-8.5 zd:items-center zd:justify-center zd:overflow-hidden zd:rounded-full',
+              'zd:flex zd:size-8.5 zd:items-center zd:justify-center',
+              // Only round + clip when we're showing the letter fallback disc.
+              // Real logo SVGs bring their own shape (round, diamond, etc.) —
+              // clipping them to a circle chops off tips like Polygon's.
+              // The neutral greyScale/10 fallback disc reads as a design-
+              // system placeholder rather than a token-specific color; real
+              // tokens/chains ship via `logoUri`.
+              !logoUri &&
+                'zd:overflow-hidden zd:rounded-full zd:bg-greyScale/10',
             )}
-            style={logoUri ? undefined : { backgroundColor: logoBg }}
           >
             {logoUri ? (
               <img
                 alt=""
                 src={logoUri}
-                className="zd:size-full zd:object-cover"
+                className="zd:size-full zd:object-contain"
                 data-testid="token-chain-pill-logo"
               />
             ) : logoInitial ? (
-              <span className="zd:text-body2 zd:font-medium zd:text-white">
+              <span className="zd:text-body2 zd:font-medium zd:text-greyScale">
                 {logoInitial}
               </span>
             ) : null}
