@@ -13,3 +13,41 @@
 [data-zd-size="sm"] { --zd-density: 0.8; }  /* compact */
 [data-zd-size="md"] { --zd-density: 0.9; }  /* in between */
 [data-zd-size="lg"] { --zd-density: 1; }    /* default / comfortable */
+
+/* Styled hover tooltip for elements marked with `data-zd-tooltip`.
+ * The `title` attribute drives the text via `attr(title)`, so any element
+ * with both attributes gets a floating, animated tooltip on hover — no JS
+ * or portal required. Mirrors the reference widget's `.sra-drow-info[title]`
+ * behaviour and replaces the OS-default tooltip (which has a 1s delay and
+ * can't be styled). */
+[data-zd-tooltip][title] {
+  position: relative;
+}
+[data-zd-tooltip][title]::after {
+  content: attr(title);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 100;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(25, 17, 11, 0.94);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 8px 22px -10px rgba(25, 17, 11, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+[data-zd-tooltip][title]:hover::after,
+[data-zd-tooltip][title]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
