@@ -87,6 +87,13 @@ const config: Config = {
           from: { opacity: '0', transform: 'scale(0.97) translateY(-3px)' },
           to: { opacity: '1', transform: 'scale(1) translateY(0)' },
         },
+        // Fresh-value flash for live-updating fee estimates: fades and lifts
+        // in when the underlying quote changes, so a route swap visibly
+        // recalculates rather than silently snapping.
+        'fee-flash': {
+          from: { opacity: '0', transform: 'translateY(-3px) scale(0.96)' },
+          to: { opacity: '1', transform: 'none' },
+        },
       },
       animation: {
         'sheet-in': 'sheet-in 300ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
@@ -95,6 +102,7 @@ const config: Config = {
         'backdrop-out': 'backdrop-out 200ms ease-out forwards',
         'skel-pulse': 'skel-pulse 1.1s ease-in-out infinite',
         'popper-in': 'popper-in 160ms ease-out both',
+        'fee-flash': 'fee-flash 420ms cubic-bezier(0.2, 0.9, 0.3, 1) both',
       },
     },
   },

@@ -17,11 +17,17 @@ import {
 import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
 import { useEffect, useMemo, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
+import {
+  FeeBreakdownRows,
+  FeeSummary,
+  LiveValue,
+} from '../components/FeeBreakdown'
 import { LoadingCard } from '../components/LoadingCard'
 import { PendingDeposits } from '../components/PendingDeposits'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { useDepositStatus } from '../hooks/useDepositStatus'
 import { useNewDeposits } from '../hooks/useNewDeposits'
+import { useProviderFees } from '../hooks/useProviderFees'
 import { CHAIN_ICONS, TOKEN_ICONS } from '../iconAssets'
 import type { SourceToken } from '../types'
 import {
@@ -39,6 +45,7 @@ import {
   formatDuration,
   formatSlippage,
 } from '../utils/format'
+import { buildFeeBreakdown } from '../utils/providerFees'
 
 export interface DepositProps {
   onQrClick?: () => void
@@ -55,8 +62,9 @@ const FULL_ROW_PANEL_STYLE = {
 }
 
 export function Deposit({ onQrClick }: DepositProps) {
-  const { config, addressState, setActiveRoute } =
+  const { config, addressState, recipient, setActiveRoute } =
     useSmartRoutingAddressContext()
+  const [feeOpen, setFeeOpen] = useState(false)
 
   const success = addressState.status === 'success' ? addressState : null
   const address = success?.address
@@ -135,6 +143,14 @@ export function Deposit({ onQrClick }: DepositProps) {
     resolveFillTimeSeconds(config, source?.chain.id ?? destChain.id),
   )
 
+  // Live bridge quotes from Across / Relay, keyed off the selected route.
+  // Enriches the SRA fee estimate with the itemised legs it doesn't expose.
+  const providerFees = useProviderFees(source, destChain, feeData, recipient)
+  const breakdown =
+    feeData && sourceSymbol
+      ? buildFeeBreakdown(feeData, sourceSymbol, providerFees.fees)
+      : null
+
   // Publish the current picker selection so hosts (e.g. a demo "send" panel)
   // can mirror the widget's route. Cleared when the picker is empty so
   // downstream mocks show their fallback instead of stale state.
@@ -190,15 +206,17 @@ export function Deposit({ onQrClick }: DepositProps) {
   const slippage =
     typeof config.slippage === 'number' ? formatSlippage(config.slippage) : '—'
 
-  const estimatedFee =
-    feeData && sourceSymbol
-      ? `${formatDisplayAmount(feeData.fee, feeData.decimal, 'up')} ${sourceSymbol}`
-      : '—'
-
   const minDepositAmount =
     feeData && sourceSymbol
       ? `${formatDisplayAmount(feeData.minDeposit, feeData.decimal, 'up')} ${sourceSymbol}`
       : null
+
+  // Flash key re-triggers the LiveValue animation on the estimated-fee row
+  // when the underlying quote changes; combining every meaningful component
+  // catches all updates in one dependency.
+  const feeFlashKey = breakdown
+    ? `${breakdown.totalText ?? ''}|${breakdown.ratePct ?? ''}|${breakdown.flatUsd ?? ''}`
+    : ''
 
   const pickerDisabled = uniqueTokens.length === 0
   const sourceChainName = source?.chain.name
@@ -303,18 +321,63 @@ export function Deposit({ onQrClick }: DepositProps) {
                 }
               />
               <div className="zd:flex zd:w-full zd:flex-col zd:items-start zd:gap-2 zd:px-2 zd:py-4">
-                <DataRow label="Max slippage" value={slippage} info />
                 <DataRow
-                  label="Estimated fee"
-                  value={estimatedFee}
+                  label="Max slippage"
+                  value={slippage}
                   info
                   trailing={
-                    <Icon
-                      name="chevronDown"
-                      className="zd:w-3.5 zd:h-3.5 zd:text-greyScale"
-                    />
+                    breakdown?.provider ? (
+                      <LiveValue
+                        loading={providerFees.loading}
+                        flashKey={breakdown.provider}
+                      >
+                        <span
+                          className="zd:inline-flex zd:items-center zd:rounded-full zd:bg-greyScale/10 zd:px-2 zd:py-0.5 zd:text-body3 zd:text-greyScale"
+                          title={`Quoted via ${breakdown.provider}`}
+                        >
+                          {breakdown.provider}
+                        </span>
+                      </LiveValue>
+                    ) : null
                   }
                 />
+                <DataRow
+                  label="Estimated fee"
+                  value={
+                    breakdown ? (
+                      <LiveValue
+                        loading={providerFees.loading}
+                        flashKey={feeFlashKey}
+                      >
+                        <FeeSummary breakdown={breakdown} />
+                      </LiveValue>
+                    ) : (
+                      '—'
+                    )
+                  }
+                  info
+                  trailing={
+                    breakdown ? (
+                      <button
+                        type="button"
+                        onClick={() => setFeeOpen((prev) => !prev)}
+                        aria-expanded={feeOpen}
+                        aria-label={
+                          feeOpen ? 'Hide fee details' : 'Show fee details'
+                        }
+                        className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-pointer"
+                      >
+                        <Icon
+                          name={feeOpen ? 'chevronUp' : 'chevronDown'}
+                          className="zd:w-3.5 zd:h-3.5 zd:text-greyScale"
+                        />
+                      </button>
+                    ) : null
+                  }
+                />
+                {feeOpen && breakdown && (
+                  <FeeBreakdownRows breakdown={breakdown} />
+                )}
               </div>
             </Wrapper>
           }
@@ -350,7 +413,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                 onQrClick={onQrClick}
               />
               <DataRow
-                label="Minimum deposit"
+                label="Min deposit"
                 value={
                   minDepositAmount ?? (
                     // Match PillSkeleton's greyish pulse so all loading
