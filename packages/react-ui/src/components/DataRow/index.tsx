@@ -16,6 +16,10 @@ export interface DataRowProps {
   /** Handler for the info icon; when supplied, the icon becomes a keyboard-
    * accessible button. Requires `info` to be true. */
   onInfoClick?: () => void
+  /** Tooltip text shown on hover over the info icon. Consumers that ship
+   * the widget's `styles.css` get a styled floating tooltip; otherwise the
+   * native browser tooltip is used. Ignored when `info` is false. */
+  infoTooltip?: string
   /** Content rendered inside the value group, before the value. Typically a
    * small decorative or status icon (e.g. warning). */
   leading?: ReactNode
@@ -33,6 +37,7 @@ export function DataRow({
   value,
   info,
   onInfoClick,
+  infoTooltip,
   leading,
   trailing,
   variant = 'default',
@@ -72,6 +77,7 @@ export function DataRow({
             aria-label={`${label} — more info`}
             className="zd:flex zd:items-center zd:justify-center zd:cursor-pointer"
             data-testid="data-row-info"
+            {...(infoTooltip && { title: infoTooltip, 'data-zd-tooltip': '' })}
           >
             <Icon
               name="info"
@@ -82,6 +88,24 @@ export function DataRow({
               aria-hidden
             />
           </button>
+        ) : infoTooltip ? (
+          // Wrap in a span so the `title` attribute and `data-zd-tooltip`
+          // marker sit on a hoverable box (browsers ignore `title` on SVG).
+          <span
+            className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-help"
+            data-testid="data-row-info"
+            data-zd-tooltip=""
+            title={infoTooltip}
+          >
+            <Icon
+              name="info"
+              className={cn(
+                'zd:w-3.5 zd:h-3.5',
+                isWarning ? 'zd:text-solarOrange' : 'zd:text-greyScale/50',
+              )}
+              aria-hidden
+            />
+          </span>
         ) : (
           <Icon
             name="info"

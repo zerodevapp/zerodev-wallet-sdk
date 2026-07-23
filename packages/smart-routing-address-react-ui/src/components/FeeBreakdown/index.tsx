@@ -109,15 +109,22 @@ export function ProviderValue({ provider }: { provider: string }) {
   )
 }
 
-function InfoMark({ info }: { info?: string }) {
+function InfoMark({ info }: { info: string }) {
+  // Wrap in a span so the `title` and `data-zd-tooltip` marker sit on a
+  // hoverable box (browsers ignore `title` on SVG elements). The marker
+  // opts in to the widget's styled tooltip defined in `styles.css`.
   return (
-    <Icon
-      name="info"
-      className="zd:w-3 zd:h-3 zd:text-greyScale/50"
-      role="img"
-      aria-label={info}
-      {...(info && { title: info })}
-    />
+    <span
+      className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-help"
+      data-zd-tooltip=""
+      title={info}
+    >
+      <Icon
+        name="info"
+        className="zd:w-3 zd:h-3 zd:text-greyScale/50"
+        aria-hidden
+      />
+    </span>
   )
 }
 

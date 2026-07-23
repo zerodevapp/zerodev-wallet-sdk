@@ -22,6 +22,7 @@ import {
   FeeSummary,
   LiveValue,
 } from '../components/FeeBreakdown'
+import { FEE_INFO } from '../components/FeeBreakdown/feeInfo'
 import { LoadingCard } from '../components/LoadingCard'
 import { PendingDeposits } from '../components/PendingDeposits'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
@@ -325,6 +326,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                   label="Max slippage"
                   value={slippage}
                   info
+                  infoTooltip={FEE_INFO.maxSlippage}
                   trailing={
                     breakdown?.provider ? (
                       <LiveValue
@@ -352,10 +354,13 @@ export function Deposit({ onQrClick }: DepositProps) {
                         <FeeSummary breakdown={breakdown} />
                       </LiveValue>
                     ) : (
-                      '—'
+                      // Match Min deposit's skeleton so both loading
+                      // affordances share one visual language.
+                      <div className="zd:h-3.5 zd:w-20 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
                     )
                   }
                   info
+                  infoTooltip={FEE_INFO.estimatedFee}
                   trailing={
                     breakdown ? (
                       <button
@@ -405,7 +410,12 @@ export function Deposit({ onQrClick }: DepositProps) {
                 }
               />
               <div className="zd:flex zd:w-full zd:flex-col zd:items-start zd:px-2">
-                <DataRow label="Ready in" value={fillTime} info />
+                <DataRow
+                  label="Ready in"
+                  value={fillTime}
+                  info
+                  infoTooltip={FEE_INFO.readyIn}
+                />
               </div>
               <AddressDisplay
                 status={addressState.status}
@@ -422,6 +432,7 @@ export function Deposit({ onQrClick }: DepositProps) {
                   )
                 }
                 info
+                infoTooltip={FEE_INFO.minDeposit}
                 variant="warning"
               />
             </Wrapper>
