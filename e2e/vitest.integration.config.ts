@@ -31,7 +31,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['e2e/integration/**/*.test.ts'],
+    include: ['e2e/integration/**/*.test.ts', 'e2e/mocks/**/*.test.ts'],
     environment: 'node',
     testTimeout: 120_000,
     hookTimeout: 60_000,

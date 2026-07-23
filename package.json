@@ -23,6 +23,8 @@
     "test:integration": "vitest run --config e2e/vitest.integration.config.ts",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
+    "test:e2e:mocked": "playwright test --config e2e/playwright.mocked.config.ts",
+    "mock:dev": "tsx e2e/mocks/manual.ts",
     "check:publishable": "node scripts/check-publishable.mjs",
     "prepare": "husky",
     "changeset": "changeset",
@@ -44,8 +46,8 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
-    "@playwright/test": "^1.52.0",
     "@changesets/cli": "^2.29.7",
+    "@playwright/test": "^1.52.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20.0.0",
@@ -53,10 +55,19 @@
     "happy-dom": "^20.10.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.3",
+    "mockttp": "^4.5.0",
+    "tsx": "^4.23.1",
     "typescript": "~5.9.0",
     "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a",
+  "pnpm": {
+    "overrides": {
+      "@peculiar/asn1-schema": "2.8.0",
+      "@peculiar/asn1-x509": "2.8.0",
+      "@peculiar/asn1-x509-attr": "2.8.0"
+    }
+  },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
