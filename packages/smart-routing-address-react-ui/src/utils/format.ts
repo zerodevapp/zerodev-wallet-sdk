@@ -73,6 +73,15 @@ export function formatDuration(seconds: number): string {
   return `~${Math.round(seconds / 60)} min`
 }
 
+/** Symbols treated as ~$1, so a USD equivalent can be shown for their amounts */
+export const STABLE_SYMBOLS = new Set([
+  'USDC',
+  'USDT',
+  'DAI',
+  'USDBC',
+  'USDC.E',
+])
+
 /** ISO timestamp → compact "N unit ago" ("just now", "2 m ago", "3 h ago",
  * "5 d ago", "2 mo ago", "1 y ago"). Returns `null` on invalid input. */
 export function formatRelativeTime(
