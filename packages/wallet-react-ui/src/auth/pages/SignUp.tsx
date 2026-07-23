@@ -1,4 +1,12 @@
-import { Button, Icon, Input, ListItem, Text } from '@zerodev/react-ui'
+import {
+  Button,
+  Icon,
+  Input,
+  ListItem,
+  ListItemChevron,
+  ListItemIcon,
+  Text,
+} from '@zerodev/react-ui'
 import {
   useAuthenticateOAuth,
   useLoginPasskey,
@@ -235,9 +243,9 @@ export function SignUp() {
           <div className="zd:px-4 zd:flex zd:flex-col zd:gap-2">
             {enabledMethods.includes('google') && (
               <ListItem
-                iconName="google"
+                icon={<ListItemIcon name="google" />}
                 title="Google"
-                chevron
+                trailing={<ListItemChevron />}
                 className="zd:rounded-3xl"
                 disabled={anyPending}
                 onClick={handleGoogleAuth}

@@ -4,6 +4,7 @@ import {
   Icon,
   type IconName,
   ListItem,
+  ListItemIcon,
   ListItemSkeleton,
   Text,
   WrappedPressable,
@@ -143,11 +144,22 @@ export function TxGasFees({
           <ListItem
             key={item.tier}
             title={capitalizeFirst(item.tier)}
-            iconName={getTierIcon(item.tier)}
-            details={{
-              text: item.fee,
-              ...(item.feeUsd && { subtext: item.feeUsd }),
-            }}
+            icon={
+              <ListItemIcon
+                name={getTierIcon(item.tier)}
+                className="zd:text-solarOrange"
+              />
+            }
+            trailing={
+              <div className="zd:flex zd:flex-col zd:pr-1">
+                <Text className="zd:text-body1">{item.fee}</Text>
+                {item.feeUsd && (
+                  <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
+                    {item.feeUsd}
+                  </Text>
+                )}
+              </div>
+            }
           />
         ))}
       </div>

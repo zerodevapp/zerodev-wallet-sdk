@@ -33,6 +33,9 @@ export { IconButton, type IconButtonProps } from './components/IconButton'
 export { Input, type InputProps } from './components/Input'
 export {
   ListItem,
+  ListItemChevron,
+  ListItemIcon,
+  type ListItemIconProps,
   type ListItemProps,
   ListItemSkeleton,
 } from './components/ListItem'
