@@ -50,6 +50,8 @@ import { buildFeeBreakdown } from '../utils/providerFees'
 
 export interface DepositProps {
   onQrClick?: () => void
+  /** Navigate to the "Past deposits" view. When omitted, the row is hidden. */
+  onViewPastDeposits?: () => void
 }
 
 const SUBTITLE =
@@ -62,7 +64,7 @@ const FULL_ROW_PANEL_STYLE = {
   width: 'calc(var(--radix-select-trigger-width) * 2 + 4px)',
 }
 
-export function Deposit({ onQrClick }: DepositProps) {
+export function Deposit({ onQrClick, onViewPastDeposits }: DepositProps) {
   const { config, addressState, recipient, setActiveRoute } =
     useSmartRoutingAddressContext()
   const [feeOpen, setFeeOpen] = useState(false)
@@ -455,23 +457,44 @@ export function Deposit({ onQrClick }: DepositProps) {
           />
         )}
 
-        {pastDepositsCount > 0 && (
-          <div className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4">
-            <Icon
-              name="clock"
-              className="zd:size-4 zd:text-greyScale/50"
-              aria-hidden
-            />
-            <Text className="zd:flex-1 zd:text-left zd:text-body1">
-              Past deposits ({pastDepositsCount})
-            </Text>
-            <Icon
-              name="chevronRight"
-              className="zd:size-4 zd:text-greyScale/50"
-              aria-hidden
-            />
-          </div>
-        )}
+        {pastDepositsCount > 0 &&
+          (onViewPastDeposits ? (
+            <button
+              type="button"
+              onClick={onViewPastDeposits}
+              className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4 zd:cursor-pointer"
+            >
+              <Icon
+                name="clock"
+                className="zd:size-4 zd:text-greyScale/50"
+                aria-hidden
+              />
+              <Text className="zd:flex-1 zd:text-left zd:text-body1">
+                Past deposits ({pastDepositsCount})
+              </Text>
+              <Icon
+                name="chevronRight"
+                className="zd:size-4 zd:text-greyScale/50"
+                aria-hidden
+              />
+            </button>
+          ) : (
+            <div className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:px-4 zd:py-4">
+              <Icon
+                name="clock"
+                className="zd:size-4 zd:text-greyScale/50"
+                aria-hidden
+              />
+              <Text className="zd:flex-1 zd:text-left zd:text-body1">
+                Past deposits ({pastDepositsCount})
+              </Text>
+              <Icon
+                name="chevronRight"
+                className="zd:size-4 zd:text-greyScale/50"
+                aria-hidden
+              />
+            </div>
+          ))}
       </div>
 
       <PoweredBy className="zd:justify-center" />
