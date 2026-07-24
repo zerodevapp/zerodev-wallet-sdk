@@ -80,9 +80,6 @@ function IconWithBadge({
         )
       )}
       {chainIconUrl && (
-        // Small chain badge overlay in the bottom-right corner — same pattern
-        // as `TxnItem`'s `PairMark`: 12px disc with a white ring so it reads
-        // against the token tile regardless of background.
         <div className="zd:absolute zd:right-0 zd:bottom-0 zd:size-3.5 zd:overflow-hidden zd:rounded-full zd:border zd:border-white zd:bg-greyScale/10">
           <img
             src={chainIconUrl}
