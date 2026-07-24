@@ -100,7 +100,6 @@ export function AddressDisplay({
   address,
   onQrClick,
 }: AddressDisplayProps) {
-  if (status === 'idle') return null
   if (status === 'error') {
     return <AddressDisplayUI loadingText="Failed to generate address" />
   }

@@ -77,12 +77,19 @@ const config: Config = {
           from: { opacity: '1' },
           to: { opacity: '0' },
         },
+        // Gentle opacity pulse for loading skeletons — softer than Tailwind's
+        // default `pulse` (which dips to 50% and looks jittery on greys).
+        'skel-pulse': {
+          '0%, 100%': { opacity: '0.65' },
+          '50%': { opacity: '1' },
+        },
       },
       animation: {
         'sheet-in': 'sheet-in 300ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
         'sheet-out': 'sheet-out 250ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
         'backdrop-in': 'backdrop-in 200ms ease-out forwards',
         'backdrop-out': 'backdrop-out 200ms ease-out forwards',
+        'skel-pulse': 'skel-pulse 1.1s ease-in-out infinite',
       },
     },
   },

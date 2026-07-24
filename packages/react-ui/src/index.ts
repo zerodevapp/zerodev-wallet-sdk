@@ -42,6 +42,7 @@ export {
 export {
   Pill,
   type PillProps,
+  PillSkeleton,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
 export { Screen } from './components/Screen'

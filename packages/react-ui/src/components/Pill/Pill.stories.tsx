@@ -14,7 +14,6 @@ const meta: Meta<typeof Pill> = {
     ),
   ],
   argTypes: {
-    logoBg: { control: 'color' },
     onClick: { action: 'clicked' },
   },
 }
@@ -27,7 +26,6 @@ type Story = StoryObj<typeof meta>
 export const Interactive: Story = {
   args: {
     label: 'USDC',
-    logoBg: '#2775CA',
     onClick: () => {},
     trailingIcon: (
       <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
@@ -35,11 +33,10 @@ export const Interactive: Story = {
   },
 }
 
-/** Second interactive example with a different label/logo. */
+/** Second interactive example with a different label. */
 export const InteractiveChain: Story = {
   args: {
     label: 'Base',
-    logoBg: '#0052FF',
     onClick: () => {},
     trailingIcon: (
       <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
@@ -51,7 +48,6 @@ export const InteractiveChain: Story = {
 export const Display: Story = {
   args: {
     label: 'Arbitrum One',
-    logoBg: '#28A0F0',
   },
 }
 
@@ -60,7 +56,6 @@ export const Display: Story = {
 export const DisplayForcedDisabled: Story = {
   args: {
     label: 'Arbitrum One',
-    logoBg: '#28A0F0',
     onClick: () => {},
     disabled: true,
   },
@@ -76,5 +71,14 @@ export const WithLogoImage: Story = {
     trailingIcon: (
       <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
     ),
+  },
+}
+
+/** Loading skeleton — renders when `loading` is true, mirroring the pill's
+ * footprint with a pulsing disc + label bar. */
+export const Loading: Story = {
+  args: {
+    label: '',
+    loading: true,
   },
 }
