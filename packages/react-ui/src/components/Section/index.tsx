@@ -8,8 +8,6 @@ export interface SectionProps {
   /** Optional leading icon (solarOrange tint). Omit for a plain title row. */
   iconName?: IconName
   children: ReactNode
-  /** `undefined` (default) → static, no toggle. `false` → collapsible,
-   * starts expanded. `true` → collapsible, starts collapsed. */
   collapsible?: boolean
 }
 
