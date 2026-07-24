@@ -44,6 +44,7 @@ export {
   type PillProps,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
+export { QrCode, type QrCodeProps } from './components/QrCode'
 export { Screen } from './components/Screen'
 export {
   Select,
