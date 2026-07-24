@@ -107,7 +107,7 @@ function Arrow({ className }: { className?: string }) {
 }
 
 export function ArrowView({ className }: { className?: string }) {
-  return <Arrow {...(className === undefined ? {} : { className })} />
+  return <Arrow {...(className !== undefined && { className })} />
 }
 
 export interface ArrowCardPairProps {
@@ -116,13 +116,33 @@ export interface ArrowCardPairProps {
 }
 
 export function ArrowCardPair({ topCard, bottomCard }: ArrowCardPairProps) {
+  // Pure CSS layout — no measurement, no ResizeObserver. Between the two
+  // ClippedCards we drop a zero-height "seam" anchor with equal margins on
+  // top and bottom that add up to GAP. The seam's y-coordinate is therefore
+  // exactly at the centre of the gap, and the arrow — absolutely positioned
+  // inside the seam with `top: 0` and `translate(-50%, -50%)` — centres on
+  // that y regardless of either card's height.
+  const seamMargin = GAP / 2
+
   return (
-    <div className="zd:relative zd:flex zd:flex-col zd:gap-1 zd:items-center zd:justify-center zd:w-full">
+    <div className="zd:relative zd:flex zd:flex-col zd:items-center zd:w-full">
       <ClippedCard position="top">{topCard}</ClippedCard>
-      <ClippedCard position="bottom">{bottomCard}</ClippedCard>
-      <div className="zd:absolute zd:inset-0 zd:flex zd:items-center zd:justify-center zd:pointer-events-none">
-        <Arrow />
+      <div
+        className="zd:relative zd:w-full"
+        style={{
+          height: 0,
+          marginTop: seamMargin,
+          marginBottom: seamMargin,
+        }}
+      >
+        <div
+          className="zd:absolute zd:left-1/2 zd:top-0 zd:pointer-events-none"
+          style={{ transform: 'translate(-50%, -50%)' }}
+        >
+          <Arrow />
+        </div>
       </div>
+      <ClippedCard position="bottom">{bottomCard}</ClippedCard>
     </div>
   )
 }

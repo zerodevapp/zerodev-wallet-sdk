@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { AddressDisplay } from './index'
+import { AddressDisplayUI } from './index'
 
-const meta: Meta<typeof AddressDisplay> = {
-  title: 'SmartRoutingAddress/AddressDisplay',
-  component: AddressDisplay,
+const meta: Meta<typeof AddressDisplayUI> = {
+  title: 'SmartRoutingAddress/AddressDisplayUI',
+  component: AddressDisplayUI,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (

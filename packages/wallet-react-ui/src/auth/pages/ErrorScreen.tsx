@@ -1,5 +1,4 @@
-import { Button } from '@zerodev/react-ui'
-import { PoweredBy } from '../../shared/components/PoweredBy'
+import { Button, PoweredBy } from '@zerodev/react-ui'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useAuth } from '../hooks/useAuth'
 import { stripMagicLinkCodeFromUrl } from '../utils/url'

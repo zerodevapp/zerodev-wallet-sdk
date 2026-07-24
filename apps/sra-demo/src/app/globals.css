@@ -1,0 +1,51 @@
+/*
+ * Intentionally NO `@import "tailwindcss"` here. Adding it would run the
+ * @tailwindcss/postcss plugin across every CSS the Next build ingests —
+ * including the pre-built @zerodev/smart-routing-address-react-ui/styles.css —
+ * and tree-shake any utility the plugin doesn't see referenced by files inside
+ * this app. The SRA components use classes like `zd:w-8.5`, `zd:animate-modal-in`,
+ * `zd:max-h-80` that live only inside the react-ui / SRA source; the plugin
+ * strips them from the served bundle and the UI renders unstyled.
+ *
+ * The demo consumes the design system's precompiled stylesheet as-is and uses
+ * plain CSS for its own tiny layout below.
+ */
+
+:root {
+  --background: #faf7f4;
+  --foreground: #19110b;
+  --muted: #6b6359;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(
+    120% 120% at 50% 0,
+    var(--background) 0,
+    #ffffff 60%
+  );
+  color: var(--foreground);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sra-demo-main {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}

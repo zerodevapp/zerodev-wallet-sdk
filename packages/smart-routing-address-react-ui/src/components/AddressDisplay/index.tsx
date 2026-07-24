@@ -1,4 +1,5 @@
 import { cn, Icon, Text, Wrapper } from '@zerodev/react-ui'
+import type { AddressState } from '../../types'
 import { LoadingCard } from '../LoadingCard'
 
 /**
@@ -15,7 +16,7 @@ import { LoadingCard } from '../LoadingCard'
  * The two states have deliberately different visuals; they share this
  * component because the parent renders the same slot in both cases.
  */
-export interface AddressDisplayProps {
+export interface AddressDisplayUIProps {
   /** Deposit address to render; when omitted, the loading variant is shown. */
   address?: string
   /**
@@ -24,16 +25,16 @@ export interface AddressDisplayProps {
    */
   loadingText?: string
   /** Handler for the QR icon button (ready variant). */
-  onQrClick?: () => void
+  onQrClick?: (() => void) | undefined
   className?: string
 }
 
-export function AddressDisplay({
+export function AddressDisplayUI({
   address,
   loadingText = 'Watching for your deposit…',
   onQrClick,
   className,
-}: AddressDisplayProps) {
+}: AddressDisplayUIProps) {
   if (address === undefined) {
     return (
       <LoadingCard
@@ -71,11 +72,40 @@ export function AddressDisplay({
         type="button"
         onClick={onQrClick}
         aria-label="Show QR code"
-        className="zd:flex zd:size-13 zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:rounded-2xl zd:bg-white"
+        className="zd:flex zd:w-13 zd:h-13 zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:rounded-2xl zd:bg-white"
         data-testid="address-display-qr-button"
       >
-        <Icon name="qrCode" className="zd:size-5 zd:text-greyScale" />
+        <Icon name="qrCode" className="zd:w-5 zd:h-5 zd:text-greyScale" />
       </button>
     </Wrapper>
   )
+}
+
+export interface AddressDisplayProps {
+  /** Current address-generation state from the SRA context. */
+  status: AddressState['status']
+  /** Deposit address, present when `status === 'success'`. */
+  address?: string | undefined
+  /** Handler for the QR icon button (only meaningful once `address` resolves). */
+  onQrClick?: (() => void) | undefined
+}
+
+/**
+ * State-driven wrapper around `AddressDisplayUI`. Picks the right variant
+ * (nothing / loading / ready / error) based on the SRA address-generation
+ * status so the parent page just passes the raw state through.
+ */
+export function AddressDisplay({
+  status,
+  address,
+  onQrClick,
+}: AddressDisplayProps) {
+  if (status === 'idle') return null
+  if (status === 'error') {
+    return <AddressDisplayUI loadingText="Failed to generate address" />
+  }
+  if (status === 'success' && address !== undefined) {
+    return <AddressDisplayUI address={address} onQrClick={onQrClick} />
+  }
+  return <AddressDisplayUI loadingText="Generating deposit address…" />
 }

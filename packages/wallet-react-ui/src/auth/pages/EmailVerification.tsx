@@ -1,7 +1,6 @@
-import { Text } from '@zerodev/react-ui'
+import { PoweredBy, Text } from '@zerodev/react-ui'
 import { useSendMagicLink } from '@zerodev/wallet-react'
 import { useEffect, useState } from 'react'
-import { PoweredBy } from '../../shared/components/PoweredBy'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useAuth } from '../hooks/useAuth'
 

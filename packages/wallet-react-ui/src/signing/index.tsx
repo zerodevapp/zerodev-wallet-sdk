@@ -1,5 +1,5 @@
+import { Screen } from '@zerodev/react-ui'
 import type { CSSProperties, ReactNode } from 'react'
-import { Screen } from '../shared/components/Screen'
 import type { PendingRequest, Request } from '../types.js'
 import { renderRequestContent } from './components/renderRequestContent.js'
 import { usePendingRequest } from './hooks/usePendingRequest.js'
