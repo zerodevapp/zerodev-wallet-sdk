@@ -1,21 +1,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@zerodev/react-ui', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@zerodev/react-ui')>()
+vi.mock('../Icon', async () => {
   const React = await import('react')
-
   const MockIcon = ({
     name,
     ...props
   }: { name: string } & React.SVGProps<SVGSVGElement>) =>
     React.createElement('svg', { 'data-testid': `icon-${name}`, ...props })
-
-  return {
-    ...actual,
-    Icon: MockIcon,
-    icons: {},
-  }
+  return { Icon: MockIcon, icons: {} }
 })
 
 import { Section } from './index'

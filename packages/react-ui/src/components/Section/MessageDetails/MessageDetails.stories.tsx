@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { MessageDetails } from '.'
 
 const meta = {
-  title: 'Signing/MessageDetails',
+  title: 'MessageDetails',
   component: MessageDetails,
   parameters: {
     layout: 'centered',

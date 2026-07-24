@@ -48,6 +48,11 @@ export {
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
 export { Screen } from './components/Screen'
+export { Section, type SectionProps } from './components/Section'
+export {
+  MessageDetails,
+  type MessageDetailsProps,
+} from './components/Section/MessageDetails'
 export {
   Select,
   SelectContent,
@@ -82,4 +87,4 @@ export {
   ZeroDevLogo,
   type ZeroDevLogoProps,
 } from './components/ZeroDevLogo'
-export { cn } from './utils/common'
+export { camelCaseToTitle, cn } from './utils/common'

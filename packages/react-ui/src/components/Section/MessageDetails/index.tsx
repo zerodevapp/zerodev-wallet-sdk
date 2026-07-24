@@ -1,5 +1,5 @@
-import { DataRow } from '@zerodev/react-ui'
-import { camelCaseToTitle } from '../../../../shared/utils/common'
+import { camelCaseToTitle } from '../../../utils/common'
+import { DataRow } from '../../DataRow'
 import { Section } from '..'
 
 export interface MessageDetailsProps {

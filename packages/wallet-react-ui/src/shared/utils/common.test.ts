@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { camelCaseToTitle, capitalizeFirst, shortenHex } from './common'
+import { capitalizeFirst, shortenHex } from './common'
 
 describe('capitalizeFirst', () => {
   it('uppercases the first character', () => {
@@ -46,28 +46,5 @@ describe('shortenHex', () => {
     expect(result.startsWith('0xabc')).toBe(true)
     expect(result.endsWith('f01')).toBe(true)
     expect(result).toContain('...')
-  })
-})
-
-describe('camelCaseToTitle', () => {
-  it('converts single-word camelCase to Title Case', () => {
-    expect(camelCaseToTitle('gasFee')).toBe('Gas Fee')
-  })
-
-  it('handles multiple camelCase words', () => {
-    expect(camelCaseToTitle('transactionGasFee')).toBe('Transaction Gas Fee')
-  })
-
-  it('capitalizes a single lowercase word', () => {
-    expect(camelCaseToTitle('amount')).toBe('Amount')
-  })
-
-  it('leaves strings that already start with uppercase untouched', () => {
-    expect(camelCaseToTitle('From')).toBe('From')
-    expect(camelCaseToTitle('PascalCase')).toBe('PascalCase')
-  })
-
-  it('returns empty string unchanged', () => {
-    expect(camelCaseToTitle('')).toBe('')
   })
 })

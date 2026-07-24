@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cn } from './common'
+import { camelCaseToTitle, cn } from './common'
 
 describe('cn', () => {
   it('joins multiple class strings', () => {
@@ -23,5 +23,28 @@ describe('cn', () => {
 
   it('merges custom font-size tokens from the extended config', () => {
     expect(cn('zd:text-body2', 'zd:text-body1')).toBe('zd:text-body1')
+  })
+})
+
+describe('camelCaseToTitle', () => {
+  it('converts single-word camelCase to Title Case', () => {
+    expect(camelCaseToTitle('gasFee')).toBe('Gas Fee')
+  })
+
+  it('handles multiple camelCase words', () => {
+    expect(camelCaseToTitle('transactionGasFee')).toBe('Transaction Gas Fee')
+  })
+
+  it('capitalizes a single lowercase word', () => {
+    expect(camelCaseToTitle('amount')).toBe('Amount')
+  })
+
+  it('leaves strings that already start with uppercase untouched', () => {
+    expect(camelCaseToTitle('From')).toBe('From')
+    expect(camelCaseToTitle('PascalCase')).toBe('PascalCase')
+  })
+
+  it('returns empty string unchanged', () => {
+    expect(camelCaseToTitle('')).toBe('')
   })
 })

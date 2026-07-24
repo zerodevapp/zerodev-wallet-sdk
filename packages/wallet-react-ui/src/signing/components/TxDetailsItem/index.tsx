@@ -1,6 +1,11 @@
-import { DataRow, Icon, Text, Wrapper } from '@zerodev/react-ui'
+import {
+  camelCaseToTitle,
+  DataRow,
+  Icon,
+  Text,
+  Wrapper,
+} from '@zerodev/react-ui'
 import { useState } from 'react'
-import { camelCaseToTitle } from '../../../shared/utils/common'
 
 export interface TxDetailsItemProps {
   title: string

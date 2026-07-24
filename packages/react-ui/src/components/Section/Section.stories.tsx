@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { icons, Text } from '@zerodev/react-ui'
+import { icons } from '../Icon'
+import { Text } from '../Text'
 import { Section } from '.'
 
 const iconNames = Object.keys(icons)
 
 const meta = {
-  title: 'Signing/Section',
+  title: 'Section',
   component: Section,
   parameters: {
     layout: 'centered',

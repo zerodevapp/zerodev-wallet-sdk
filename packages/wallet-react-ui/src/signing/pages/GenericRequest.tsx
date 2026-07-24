@@ -1,4 +1,10 @@
-import { DataRow, DataRowSkeleton, Icon, Text } from '@zerodev/react-ui'
+import {
+  DataRow,
+  DataRowSkeleton,
+  Icon,
+  Section,
+  Text,
+} from '@zerodev/react-ui'
 import {
   type Address,
   formatEther,
@@ -9,7 +15,6 @@ import {
 } from 'viem'
 import { shortenHex } from '../../shared/utils/common'
 import type { Request } from '../../types.js'
-import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
 import { useGasEstimate } from '../hooks/useGasEstimate'
 import { formatGasFee } from '../utils/formatGasFee'
