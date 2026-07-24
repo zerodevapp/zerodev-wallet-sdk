@@ -1,6 +1,6 @@
 import { encode } from 'uqr'
 
-interface QrCodeProps {
+export interface QrCodeProps {
   /** Data to encode. */
   value: string
   /** Pixel size of the rendered SVG square. */

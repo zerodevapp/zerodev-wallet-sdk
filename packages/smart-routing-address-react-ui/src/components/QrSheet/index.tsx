@@ -4,9 +4,9 @@ import {
   BottomSheetContent,
   BottomSheetTitle,
   Button,
+  QrCode,
   Text,
 } from '@zerodev/react-ui'
-import { QrCode } from './QrCode'
 
 export interface QrSheetProps {
   /** Whether the modal is open. Controlled. */
