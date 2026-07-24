@@ -30,6 +30,11 @@ export {
   icons,
 } from './components/Icon'
 export { IconButton, type IconButtonProps } from './components/IconButton'
+export {
+  InfoCard,
+  type InfoCardImageStyle,
+  type InfoCardProps,
+} from './components/InfoCard'
 export { Input, type InputProps } from './components/Input'
 export {
   ListItem,

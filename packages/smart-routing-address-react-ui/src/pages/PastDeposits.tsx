@@ -15,7 +15,7 @@ import {
   sourceTokensFromFees,
 } from '../utils/config'
 import { getDepositStage } from '../utils/deposits'
-import { findFeeDataByToken } from '../utils/fees'
+import { findFeeDataByToken, tokenAddressMatches } from '../utils/fees'
 import {
   formatDisplayAmount,
   formatRelativeTime,
@@ -136,11 +136,15 @@ export function PastDeposits() {
                       chainId,
                       token,
                     )
+                    // Match on the on-chain address (via `tokenAddressMatches`)
+                    // — the server's `feeData.name` is a display symbol (e.g.
+                    // "ETH"), not the TOKEN_TYPE ("NATIVE"), so a direct
+                    // tokenType === name compare misses native tokens.
                     const source =
                       sourceTokensFromFees(estimatedFees).find(
                         (t) =>
                           t.chain.id === chainId &&
-                          t.tokenType === feeData?.name,
+                          tokenAddressMatches(t.tokenType, chainId, token),
                       ) ?? null
                     const sourceSymbol = source
                       ? getSourceTokenSymbol(source)
