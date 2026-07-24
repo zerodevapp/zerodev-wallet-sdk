@@ -129,7 +129,7 @@ function PairMark({
       {chainIconUrl && (
         <div
           className={cn(
-            'zd:absolute zd:bottom-1 zd:size-3 zd:overflow-hidden zd:rounded-full zd:border zd:border-white zd:bg-greyScale/10',
+            'zd:absolute zd:bottom-1 zd:size-3 zd:overflow-hidden zd:rounded-full zd:bg-white zd:p-px',
             badgeSide === 'left' ? 'zd:left-1' : 'zd:right-1',
           )}
         >

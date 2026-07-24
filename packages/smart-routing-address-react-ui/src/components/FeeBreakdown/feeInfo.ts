@@ -17,4 +17,9 @@ export const FEE_INFO = {
   service: 'Solver fee for filling the route.',
   originGas: 'Gas to submit from the source chain.',
   app: 'Optional application fee.',
+  // Transaction progress steps (transaction-details view)
+  detected: 'Deposit detected on the source chain.',
+  routing: 'Bridge and swap are in progress.',
+  completed: 'Funds arrived in the delivery account.',
+  failed: 'Deposit could not be completed.',
 } as const

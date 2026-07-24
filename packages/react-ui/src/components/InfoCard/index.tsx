@@ -65,9 +65,20 @@ function IconWithBadge({
   return (
     <div className="zd:relative zd:size-11 zd:shrink-0">
       {imageStyle === 'contained' ? (
-        <div className="zd:size-full zd:rounded-xl zd:bg-white zd:flex zd:items-center zd:justify-center">
+        <div
+          className={cn(
+            'zd:size-full zd:rounded-xl zd:isolate zd:bg-white/60 zd:backdrop-blur-[30px]',
+            'zd:shadow-[inset_0_3px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_4px_0_rgba(255,255,255,0.1)]',
+          )}
+        >
           {imageSource && (
-            <img src={imageSource} alt="" className="zd:w-8 zd:h-8" />
+            <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:overflow-hidden zd:rounded-full zd:bg-greyScale/10">
+              <img
+                src={imageSource}
+                alt=""
+                className="zd:size-full zd:object-contain"
+              />
+            </div>
           )}
         </div>
       ) : (
@@ -80,11 +91,11 @@ function IconWithBadge({
         )
       )}
       {chainIconUrl && (
-        <div className="zd:absolute zd:right-0 zd:bottom-0 zd:size-3.5 zd:overflow-hidden zd:rounded-full zd:border zd:border-white zd:bg-greyScale/10">
+        <div className="zd:absolute zd:right-1 zd:bottom-1 zd:h-3 zd:w-3 zd:overflow-hidden zd:rounded-full zd:bg-white zd:p-px">
           <img
             src={chainIconUrl}
             alt=""
-            className="zd:size-full zd:object-contain"
+            className="zd:h-full zd:w-full zd:object-contain"
           />
         </div>
       )}
