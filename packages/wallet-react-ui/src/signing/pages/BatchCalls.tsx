@@ -1,4 +1,10 @@
-import { DataRow, DataRowSkeleton, Icon, Text } from '@zerodev/react-ui'
+import {
+  DataRow,
+  DataRowSkeleton,
+  Icon,
+  Section,
+  Text,
+} from '@zerodev/react-ui'
 import { useMemo } from 'react'
 import {
   type Address,
@@ -12,7 +18,6 @@ import {
 import { useReadContracts } from 'wagmi'
 import { shortenHex } from '../../shared/utils/common'
 import type { BatchCall } from '../../types.js'
-import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
 import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
 import { TxDetailsItem } from '../components/TxDetailsItem'

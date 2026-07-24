@@ -1,6 +1,5 @@
-import { Text } from '@zerodev/react-ui'
+import { Section, Text } from '@zerodev/react-ui'
 import type { Hex } from 'viem'
-import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
 import { decodePersonalSignMessage } from '../utils/personalSign.js'
 

@@ -4,12 +4,12 @@ import {
   DataRowSkeleton,
   Icon,
   InfoCard,
+  Section,
   Text,
 } from '@zerodev/react-ui'
 import type { Address, Hex } from 'viem'
 import { useReadContract } from 'wagmi'
 import { shortenHex } from '../../shared/utils/common'
-import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
 import { SigningPageSkeleton } from '../components/SigningPageSkeleton'
 import { useGasEstimate } from '../hooks/useGasEstimate'

@@ -1,10 +1,14 @@
-import { Icon, type IconName, Text, Wrapper } from '@zerodev/react-ui'
 import { type ReactNode, useState } from 'react'
+import { Icon, type IconName } from '../Icon'
+import { Text } from '../Text'
+import { Wrapper } from '../Wrapper'
 
 export interface SectionProps {
   title: string
   iconName: IconName
   children: ReactNode
+  /** `undefined` (default) → static, no toggle. `false` → collapsible,
+   * starts expanded. `true` → collapsible, starts collapsed. */
   collapsible?: boolean
 }
 
