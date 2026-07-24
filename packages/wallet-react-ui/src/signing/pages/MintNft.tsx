@@ -1,7 +1,12 @@
-import { DataRow, DataRowSkeleton, Icon, Text } from '@zerodev/react-ui'
+import {
+  DataRow,
+  DataRowSkeleton,
+  Icon,
+  InfoCard,
+  Text,
+} from '@zerodev/react-ui'
 import type { Address, Hex } from 'viem'
 import { useReadContract } from 'wagmi'
-import { InfoCard } from '../components/InfoCard'
 import { Section } from '../components/Section'
 import { SigningLayout } from '../components/SigningLayout'
 import { SigningPageSkeleton } from '../components/SigningPageSkeleton'

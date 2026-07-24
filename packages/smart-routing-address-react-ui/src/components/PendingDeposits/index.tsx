@@ -13,7 +13,7 @@ import {
   sourceTokensFromFees,
 } from '../../utils/config'
 import { getDepositStage } from '../../utils/deposits'
-import { findFeeDataByToken } from '../../utils/fees'
+import { findFeeDataByToken, tokenAddressMatches } from '../../utils/fees'
 import {
   formatDisplayAmount,
   formatRelativeTime,
@@ -67,10 +67,16 @@ export function PendingDeposits({
           const feeData = findFeeDataByToken(estimatedFees, chainId, token)
 
           // Source pair: reconstruct the SourceToken so we can look up its
-          // symbol + chain icon the same way the trigger pill does.
+          // symbol + chain icon the same way the trigger pill does. Matching
+          // on the on-chain address (via `tokenAddressMatches`) — the
+          // server's `feeData.name` is a display symbol (e.g. "ETH"), not the
+          // TOKEN_TYPE ("NATIVE"), so a direct `t.tokenType === name` compare
+          // misses native tokens.
           const source =
             sourceTokensFromFees(estimatedFees).find(
-              (t) => t.chain.id === chainId && t.tokenType === feeData?.name,
+              (t) =>
+                t.chain.id === chainId &&
+                tokenAddressMatches(t.tokenType, chainId, token),
             ) ?? null
           const sourceSymbol = source ? getSourceTokenSymbol(source) : ''
           const sourceTokenLogo = sourceSymbol
