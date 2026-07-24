@@ -80,7 +80,7 @@ export const AsLink: Story = {
     asChild: true,
     children: (
       // biome-ignore lint/a11y/useAnchorContent: the row layout (incl. the title text) is injected into the anchor via Slot
-      <a href="https://metamask.io" target="_blank" rel="noreferrer" />
+      <a href="https://metamask.io" target="_blank" rel="noopener noreferrer" />
     ),
   },
 }
