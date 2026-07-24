@@ -5,8 +5,11 @@ import { Wrapper } from '../Wrapper'
 
 export interface SectionProps {
   title: string
-  iconName: IconName
+  /** Optional leading icon (solarOrange tint). Omit for a plain title row. */
+  iconName?: IconName
   children: ReactNode
+  /** `undefined` (default) → static, no toggle. `false` → collapsible,
+   * starts expanded. `true` → collapsible, starts collapsed. */
   collapsible?: boolean
 }
 
@@ -22,7 +25,12 @@ export function Section({
     <Wrapper className="zd:p-4 zd:flex zd:flex-col zd:gap-3 zd:rounded-xl zd:w-full">
       <div className="zd:flex zd:flex-row zd:justify-between zd:items-center">
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
-          <Icon name={iconName} className="zd:h-4 zd:w-4 zd:text-solarOrange" />
+          {iconName && (
+            <Icon
+              name={iconName}
+              className="zd:h-4 zd:w-4 zd:text-solarOrange"
+            />
+          )}
           <Text className="zd:text-h3">{title}</Text>
         </div>
         {collapsible !== undefined && (

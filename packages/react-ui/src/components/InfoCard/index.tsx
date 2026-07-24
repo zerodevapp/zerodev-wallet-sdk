@@ -62,6 +62,43 @@ function IconWithBadge({
   chainIconUrl?: string
   imageStyle: InfoCardImageStyle
 }) {
+  // When a chain badge is present, always render the PairMark tile pattern
+  // (matches `TxnItem`): translucent white/60 backdrop-blurred rounded tile
+  // with a circular token image centered inside and a small chain disc inset
+  // from the corner. `imageStyle` only branches when the badge is absent
+  // (preserved for wallet-react-ui's avatar-style consumers).
+  if (chainIconUrl) {
+    return (
+      <div
+        className={cn(
+          'zd:relative zd:size-11 zd:shrink-0 zd:rounded-xl zd:isolate zd:bg-white/60 zd:backdrop-blur-[30px]',
+          'zd:shadow-[inset_0_3px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_4px_0_rgba(255,255,255,0.1)]',
+        )}
+      >
+        <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:overflow-hidden zd:rounded-full zd:bg-greyScale/10">
+          {imageSource && (
+            <img
+              src={imageSource}
+              alt=""
+              className="zd:size-full zd:object-contain"
+            />
+          )}
+        </div>
+        {/* Chain disc inset from the corner. Explicit `h-3 w-3` — Tailwind's
+         *  `size-3` shortcut compiles fine but sub-unit `size-3.5` doesn't
+         *  under the `zd:` prefix, so `h-*`/`w-*` is used across TxnItem too
+         *  for consistency. */}
+        <div className="zd:absolute zd:right-1 zd:bottom-1 zd:h-3 zd:w-3 zd:overflow-hidden zd:rounded-full zd:border zd:border-white zd:bg-greyScale/10">
+          <img
+            src={chainIconUrl}
+            alt=""
+            className="zd:h-full zd:w-full zd:object-contain"
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="zd:relative zd:size-11 zd:shrink-0">
       {imageStyle === 'contained' ? (
@@ -78,15 +115,6 @@ function IconWithBadge({
             className="zd:size-full zd:rounded-xl"
           />
         )
-      )}
-      {chainIconUrl && (
-        <div className="zd:absolute zd:right-0 zd:bottom-0 zd:size-3.5 zd:overflow-hidden zd:rounded-full zd:border zd:border-white zd:bg-greyScale/10">
-          <img
-            src={chainIconUrl}
-            alt=""
-            className="zd:size-full zd:object-contain"
-          />
-        </div>
       )}
     </div>
   )
