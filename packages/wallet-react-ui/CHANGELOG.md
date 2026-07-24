@@ -1,5 +1,15 @@
 # @zerodev/wallet-react-ui
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [61aaa41]
+- Updated dependencies [51b0199]
+- Updated dependencies [07fd578]
+- Updated dependencies [4d08a5e]
+  - @zerodev/react-ui@0.0.4
+
 ## 0.0.4
 
 ### Patch Changes
