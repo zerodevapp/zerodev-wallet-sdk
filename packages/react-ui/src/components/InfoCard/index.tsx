@@ -62,11 +62,6 @@ function IconWithBadge({
   chainIconUrl?: string
   imageStyle: InfoCardImageStyle
 }) {
-  // Single layout: an outer 44px tile whose interior renders per `imageStyle`
-  // — `contained` uses the PairMark tile (translucent white/60 backdrop-blur
-  // with a circular token disc centered inside, matching `TxnItem`), and
-  // `filled` renders the image bare at 44px. The chain badge is an optional
-  // overlay in both variants — no chainIconUrl-driven branch.
   return (
     <div className="zd:relative zd:size-11 zd:shrink-0">
       {imageStyle === 'contained' ? (
@@ -96,12 +91,6 @@ function IconWithBadge({
         )
       )}
       {chainIconUrl && (
-        // Small chain disc inset from the bottom-right corner. Explicit
-        // `h-3 w-3` rather than the `size-3` shortcut — sub-unit variants
-        // (`size-3.5` etc.) don't compile under the `zd:` prefix, so pairs
-        // are used across `TxnItem` too for consistency. `p-0.5` leaves the
-        // chain icon breathing room inside the white disc (Figma
-        // `18210:73702`) rather than filling edge-to-edge.
         <div className="zd:absolute zd:right-1 zd:bottom-1 zd:h-3 zd:w-3 zd:overflow-hidden zd:rounded-full zd:bg-white zd:p-px">
           <img
             src={chainIconUrl}

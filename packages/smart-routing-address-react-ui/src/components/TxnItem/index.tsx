@@ -127,9 +127,6 @@ function PairMark({
         )}
       </div>
       {chainIconUrl && (
-        // Small chain disc inset from the corner — solid white with `p-0.5`
-        // so the chain icon has breathing room (matches `InfoCard`'s badge
-        // and Figma `18210:73702`) rather than filling the disc edge-to-edge.
         <div
           className={cn(
             'zd:absolute zd:bottom-1 zd:size-3 zd:overflow-hidden zd:rounded-full zd:bg-white zd:p-px',
