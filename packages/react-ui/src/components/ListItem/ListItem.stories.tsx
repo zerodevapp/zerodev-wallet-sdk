@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { ListItem, ListItemSkeleton } from './index'
+import { Badge } from '../Badge'
+import { Text } from '../Text'
+import {
+  ListItem,
+  ListItemChevron,
+  ListItemIcon,
+  ListItemSkeleton,
+} from './index'
 
 const meta = {
   title: 'Shared/ListItem',
@@ -10,14 +17,6 @@ const meta = {
   },
   tags: ['autodocs'],
   argTypes: {
-    iconName: {
-      control: 'text',
-      description: 'Icon name to display',
-    },
-    imageUri: {
-      control: 'text',
-      description: 'Image URI to display',
-    },
     title: {
       control: 'text',
       description: 'Main title text',
@@ -25,14 +24,6 @@ const meta = {
     subtitle: {
       control: 'text',
       description: 'Subtitle text',
-    },
-    chevron: {
-      control: 'boolean',
-      description: 'Show chevron icon',
-    },
-    alert: {
-      control: 'boolean',
-      description: 'Alert styling',
     },
   },
   decorators: [
@@ -49,45 +40,48 @@ type Story = StoryObj<typeof meta>
 
 export const WithIcon: Story = {
   args: {
-    iconName: 'wallet',
+    icon: <ListItemIcon name="wallet" />,
     title: 'Wallet',
     subtitle: 'Connected',
-    chevron: true,
+    trailing: <ListItemChevron />,
   },
 }
 
 export const WithDetails: Story = {
   args: {
-    iconName: 'wallet',
+    icon: <ListItemIcon name="wallet" className="zd:text-solarOrange" />,
     title: 'Transaction',
     subtitle: 'Pending',
-    details: {
-      text: '$100.00',
-      subtext: 'USD',
-    },
+    trailing: (
+      <div className="zd:flex zd:flex-col zd:pr-1">
+        <Text className="zd:text-body1">$100.00</Text>
+        <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
+          USD
+        </Text>
+      </div>
+    ),
   },
 }
 
 export const WithBadge: Story = {
   args: {
-    iconName: 'wallet',
+    icon: <ListItemIcon name="wallet" />,
     title: 'Verified Wallet',
-    badgeProps: {
-      text: 'Verified',
-      variant: 'secondary',
-      leadingIcon: 'check',
-    },
-    chevron: true,
+    subtitle: <Badge text="Verified" variant="secondary" leadingIcon="check" />,
+    trailing: <ListItemChevron />,
   },
 }
 
-export const AlertState: Story = {
+export const AsLink: Story = {
   args: {
-    iconName: 'warning',
-    title: 'Action Required',
-    subtitle: 'Review transaction',
-    alert: true,
-    chevron: true,
+    icon: <ListItemIcon name="wallet" />,
+    title: 'Get MetaMask',
+    trailing: <ListItemChevron />,
+    asChild: true,
+    children: (
+      // biome-ignore lint/a11y/useAnchorContent: the row layout (incl. the title text) is injected into the anchor via Slot
+      <a href="https://metamask.io" target="_blank" rel="noopener noreferrer" />
+    ),
   },
 }
 

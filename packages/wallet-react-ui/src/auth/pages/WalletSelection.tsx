@@ -1,4 +1,4 @@
-import { ListItem, PoweredBy, Text } from '@zerodev/react-ui'
+import { ListItem, ListItemIcon, PoweredBy, Text } from '@zerodev/react-ui'
 import { useConnect } from 'wagmi'
 import { useAuth } from '../hooks/useAuth'
 
@@ -35,8 +35,17 @@ export function WalletSelection() {
               <ListItem
                 key={connector.uid}
                 title={connector.name}
-                iconName="walletOutline"
-                {...(connector.icon ? { imageUri: connector.icon } : {})}
+                icon={
+                  connector.icon ? (
+                    <img
+                      src={connector.icon}
+                      alt=""
+                      className="zd:w-6 zd:h-6"
+                    />
+                  ) : (
+                    <ListItemIcon name="walletOutline" />
+                  )
+                }
                 disabled={isPending}
                 onClick={() => handleSelect(connector)}
                 className="zd:rounded-3xl"

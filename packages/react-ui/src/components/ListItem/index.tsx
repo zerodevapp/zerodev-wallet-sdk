@@ -1,7 +1,7 @@
-import type { ButtonHTMLAttributes } from 'react'
+import { Slot } from 'radix-ui'
+import type { ButtonHTMLAttributes, ReactElement, ReactNode } from 'react'
 
 import { cn } from '../../utils/common'
-import { Badge, type BadgeProps } from '../Badge'
 import { Icon, type IconName } from '../Icon'
 import { Text } from '../Text'
 import { Wrapper } from '../Wrapper'
@@ -35,102 +35,97 @@ export function ListItemSkeleton({ className }: ListItemSkeletonProps) {
   )
 }
 
-export interface ListItemProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  iconName?: IconName
-  imageUri?: string
+interface ListItemBaseProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   title: string
-  subtitle?: string
-  badgeProps?: BadgeProps
-  details?: { text: string; subtext?: string }
-  chevron?: boolean
-  alert?: boolean
+  /** Secondary line under the title — plain text (auto-styled) or any node,
+   * e.g. a `<Badge />`. */
+  subtitle?: ReactNode
+  /** Leading tile content — any node (`ListItemIcon`, `<img>`, a brand mark).
+   * Size the node itself (e.g. `zd:w-6 zd:h-6`); the tile keeps its frame. */
+  icon?: ReactNode
+  /** Right side of the row — `<ListItemChevron />` or any custom node. */
+  trailing?: ReactNode
 }
 
+// `children` is only meaningful as the asChild target — the union makes the
+// pairing a compile-time contract.
+type ListItemAsChildProps =
+  | {
+      /** Render the row into the child element (e.g. an `<a>`) instead of a
+       * `<button>`. Pass a single childless element; the row layout is
+       * injected into it. */
+      asChild: true
+      children: ReactElement
+    }
+  | { asChild?: false; children?: never }
+
+export type ListItemProps = ListItemBaseProps & ListItemAsChildProps
+
 export function ListItem({
-  iconName,
-  imageUri,
+  icon,
   title,
   subtitle,
-  badgeProps,
-  details,
-  chevron,
-  alert,
+  trailing,
+  asChild,
+  children,
   className,
   ...rest
 }: ListItemProps) {
+  const Comp = asChild ? Slot.Root : 'button'
   return (
-    <Wrapper
-      className={cn(
-        'zd:w-full zd:h-17 zd:rounded-2xl',
-        alert && 'zd:border-0',
-        className,
-      )}
-    >
-      <button
-        type="button"
+    <Wrapper className={cn('zd:w-full zd:h-17 zd:rounded-2xl', className)}>
+      <Comp
+        {...(!asChild && { type: 'button' as const })}
         className={cn(
-          'zd:w-full zd:flex zd:flex-row zd:justify-between zd:items-center zd:p-2 zd:transition-colors zd:cursor-pointer',
-          alert
-            ? 'zd:bg-solarOrange/15'
-            : 'zd:hover:bg-white/20 zd:active:bg-white/30',
+          'zd:w-full zd:flex zd:flex-row zd:justify-between zd:items-center zd:p-2 zd:transition-colors zd:cursor-pointer zd:hover:bg-white/20 zd:active:bg-white/30',
           rest.disabled && 'zd:opacity-50 zd:cursor-not-allowed',
         )}
         {...rest}
       >
+        {asChild && <Slot.Slottable>{children}</Slot.Slottable>}
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
-          <div
-            className={cn(
-              'zd:w-13 zd:h-13 zd:rounded-2xl zd:flex zd:items-center zd:justify-center zd:shrink-0',
-              alert ? 'zd:bg-offWhite/50' : 'zd:bg-white',
-            )}
-          >
-            {imageUri ? (
-              <img src={imageUri} alt="" className="zd:w-6 zd:h-6" />
-            ) : iconName ? (
-              <Icon
-                name={iconName}
-                className={cn(
-                  'zd:w-6 zd:h-6',
-                  details || alert
-                    ? 'zd:text-solarOrange'
-                    : 'zd:text-greyScale',
-                )}
-              />
-            ) : null}
+          <div className="zd:w-13 zd:h-13 zd:rounded-2xl zd:bg-white zd:flex zd:items-center zd:justify-center zd:shrink-0">
+            {icon}
           </div>
-          <div
-            className={cn(
-              'zd:flex zd:flex-col zd:justify-center zd:text-left',
-              badgeProps ? 'zd:gap-2' : 'zd:gap-1',
-            )}
-          >
+          <div className="zd:flex zd:flex-col zd:justify-center zd:text-left zd:gap-1">
             <Text className="zd:text-body1">{title}</Text>
-            {subtitle && (
+            {typeof subtitle === 'string' ? (
               <Text className="zd:text-body3 zd:text-greyScale/50">
                 {subtitle}
               </Text>
+            ) : (
+              subtitle
             )}
-            {badgeProps && <Badge {...badgeProps} />}
           </div>
         </div>
-        {details ? (
-          <div className="zd:flex zd:flex-col zd:pr-1">
-            <Text className="zd:text-body1">{details.text}</Text>
-            {details.subtext && (
-              <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
-                {details.subtext}
-              </Text>
-            )}
-          </div>
-        ) : chevron ? (
-          <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
-            <Icon
-              name="chevronRight"
-              className="zd:h-6 zd:w-6 zd:text-greyScale"
-            />
-          </div>
-        ) : null}
-      </button>
+        {trailing}
+      </Comp>
     </Wrapper>
+  )
+}
+
+export interface ListItemIconProps {
+  name: IconName
+  className?: string
+}
+
+/** Standard leading icon for the tile — pre-sized and colored for the slot;
+ * override via `className` (e.g. `zd:text-solarOrange`). */
+export function ListItemIcon({ name, className }: ListItemIconProps) {
+  return (
+    <Icon
+      name={name}
+      className={cn('zd:w-6 zd:h-6 zd:text-greyScale', className)}
+    />
+  )
+}
+
+/** Standard trailing chevron for navigation rows. */
+export function ListItemChevron() {
+  return (
+    <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
+      <Icon name="chevronRight" className="zd:h-6 zd:w-6 zd:text-greyScale" />
+    </div>
   )
 }

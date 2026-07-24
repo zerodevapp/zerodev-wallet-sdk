@@ -16,7 +16,7 @@ vi.mock('../Icon', async () => {
   }
 })
 
-import { ListItem, ListItemSkeleton } from './index'
+import { ListItem, ListItemChevron, ListItemSkeleton } from './index'
 
 afterEach(() => {
   cleanup()
@@ -28,62 +28,52 @@ describe('ListItem', () => {
     expect(screen.getByText('Test Title')).toBeDefined()
   })
 
-  it('renders subtitle when provided', () => {
+  it('renders a string subtitle with the standard styling', () => {
     render(<ListItem title="Test Title" subtitle="Test Subtitle" />)
     expect(screen.getByText('Test Subtitle')).toBeDefined()
   })
 
-  it('renders icon when iconName is provided', () => {
-    render(<ListItem title="Test Title" iconName="wallet" />)
-    expect(screen.getByTestId('icon-wallet')).toBeDefined()
+  it('renders a node subtitle as-is', () => {
+    render(
+      <ListItem title="Test Title" subtitle={<span data-testid="badge" />} />,
+    )
+    expect(screen.getByTestId('badge')).toBeDefined()
   })
 
-  it('renders chevron when chevron prop is true', () => {
-    render(<ListItem title="Test Title" chevron />)
-    expect(screen.getByTestId('icon-chevronRight')).toBeDefined()
+  it('renders the icon slot inside the leading tile', () => {
+    render(
+      <ListItem title="Test Title" icon={<span data-testid="custom-icon" />} />,
+    )
+    expect(screen.getByTestId('custom-icon')).toBeDefined()
   })
 
-  it('renders badge when badgeProps is provided', () => {
+  it('renders the trailing slot', () => {
     render(
       <ListItem
         title="Test Title"
-        badgeProps={{ text: 'New', variant: 'secondary' }}
+        trailing={<span data-testid="trailing" />}
       />,
     )
-    expect(screen.getByText('New')).toBeDefined()
+    expect(screen.getByTestId('trailing')).toBeDefined()
   })
 
-  it('applies correct gap when badge is present', () => {
-    const { container } = render(
-      <ListItem title="Test Title" badgeProps={{ text: 'Badge' }} />,
-    )
-    const contentDiv = container.querySelector('.zd\\:gap-2')
-    expect(contentDiv).not.toBeNull()
-  })
-
-  it('renders details when provided', () => {
-    render(
-      <ListItem
-        title="Test Title"
-        details={{
-          text: 'Detail Text',
-          subtext: 'Detail Subtext',
-        }}
-      />,
-    )
-    expect(screen.getByText('Detail Text')).toBeDefined()
-    expect(screen.getByText('Detail Subtext')).toBeDefined()
-  })
-
-  it('applies alert styling when alert prop is true', () => {
-    const { container } = render(<ListItem title="Test Title" alert />)
-    const button = container.querySelector('button')
-    expect(button?.className).toContain('bg-solarOrange/15')
-  })
-
-  it('renders as a button element', () => {
+  it('renders as a button element by default', () => {
     render(<ListItem title="Test Title" />)
     expect(screen.getByRole('button')).toBeDefined()
+  })
+
+  it('renders into the child element with asChild', () => {
+    render(
+      <ListItem title="Link Row" asChild trailing={<ListItemChevron />}>
+        {/* biome-ignore lint/a11y/useAnchorContent: the row layout (incl. the title text) is injected into the anchor via Slot */}
+        <a href="https://example.com" />
+      </ListItem>,
+    )
+    const link = screen.getByRole('link')
+    expect(link.getAttribute('href')).toBe('https://example.com')
+    // row layout is injected into the anchor
+    expect(link.textContent).toContain('Link Row')
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })
 
