@@ -1,10 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-// Fully stub `../Icon` — the real module uses `import.meta.glob` for SVG
-// assets which the test env can't transform (`transformWithOxc is not a
-// function`). Providing every export the module needs to expose so downstream
-// imports stay valid.
 vi.mock('../Icon', async () => {
   const React = await import('react')
   const MockIcon = ({

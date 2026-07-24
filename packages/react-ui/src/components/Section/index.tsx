@@ -7,8 +7,6 @@ export interface SectionProps {
   title: string
   iconName: IconName
   children: ReactNode
-  /** `undefined` (default) → static, no toggle. `false` → collapsible,
-   * starts expanded. `true` → collapsible, starts collapsed. */
   collapsible?: boolean
 }
 
