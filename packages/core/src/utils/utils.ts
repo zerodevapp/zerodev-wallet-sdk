@@ -70,7 +70,12 @@ export const generateRandomBuffer = (): ArrayBuffer => {
  */
 export const base64UrlEncode = (challenge: ArrayBuffer): string => {
   const bytes = new Uint8Array(challenge)
-  const binary = String.fromCharCode(...bytes)
+  let binary = ''
+
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!)
+  }
+
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
