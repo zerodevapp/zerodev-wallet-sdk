@@ -48,7 +48,7 @@ test.describe('Passkey Flow', () => {
     // resident/discoverable or it can never be used to log in. The virtual
     // authenticator honors the residentKey hint, so a non-resident credential
     // here would mean broken login.
-    virtualAuth = await registerAndWaitForDashboard(page)
+    virtualAuth = await registerAndEnterLab(page)
 
     try {
       const credentials = await getVirtualCredentials(virtualAuth)
