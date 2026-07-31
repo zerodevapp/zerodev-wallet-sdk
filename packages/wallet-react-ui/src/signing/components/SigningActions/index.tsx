@@ -1,20 +1,22 @@
 import { Button, Text, Wrapper } from '@zerodev/react-ui'
-import { useAuth } from '../../../auth/hooks/useAuth'
 
 interface SigningActionsProps {
   onConfirm: () => void
   onReject: () => void
   disabled?: boolean
+  /** Optional agreement links under the actions. Never passed yet — wire
+   * these up from `SignatureRequest`'s props when the signing UI ships. */
+  termsAndConditionsUrl?: string | undefined
+  privacyPolicyUrl?: string | undefined
 }
 
 export function SigningActions({
   onConfirm,
   onReject,
   disabled,
+  termsAndConditionsUrl,
+  privacyPolicyUrl,
 }: SigningActionsProps) {
-  const { config } = useAuth()
-  const termsAndConditionsUrl = config?.termsAndConditionsUrl
-  const privacyPolicyUrl = config?.privacyPolicyUrl
   const showAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
 
   return (

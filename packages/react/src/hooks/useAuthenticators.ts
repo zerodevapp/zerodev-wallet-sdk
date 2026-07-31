@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query'
 import { type Config, type ResolvedRegister, useConfig } from 'wagmi'
 import { getAuthenticators } from '../actions.js'
+import { shouldRetryRequest } from '../utils/query.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined
@@ -31,6 +32,10 @@ export function useAuthenticators<
       return getAuthenticators(config)
     },
     enabled: Boolean(config),
+    // An expired/invalid session returns a 4xx that never succeeds on retry;
+    // retrying it just amplifies the auth-failure noise (DPL-662). Retry only
+    // transient errors. Consumer-supplied `query.retry` still wins.
+    retry: query?.retry ?? shouldRetryRequest,
   })
 }
 

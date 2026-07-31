@@ -33,6 +33,13 @@ export async function createWebauthnStamper({
             name: options.userName,
             displayName: options.userName,
           },
+          // Login resolves the credential with an empty allowCredentials list,
+          // which can only surface discoverable (resident) credentials — so the
+          // credential must be created as resident.
+          authenticatorSelection: {
+            residentKey: 'required',
+            userVerification: 'preferred',
+          },
         },
       })
 

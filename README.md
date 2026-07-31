@@ -75,7 +75,7 @@ For framework-agnostic usage, see [@zerodev/wallet-core](./packages/core/README.
 
 If you'd rather not build your own auth and signing UI, use
 [@zerodev/wallet-react-ui](./packages/wallet-react-ui/README.md) — drop-in
-React components (`<AuthFlow />`, `<SignatureRequest />`) built on top of
+React components (`<ConnectWallet />`, `<SignatureRequest />`) built on top of
 this SDK.
 
 ## React Native
@@ -339,7 +339,7 @@ zerodev-wallet-sdk/
 │   │   └── dist/          # Compiled output
 │   └── wallet-react-ui/         # Drop-in React UI components
 │       ├── src/
-│       │   ├── auth/      # <AuthFlow /> + auth pages and hooks
+│       │   ├── auth/      # <ConnectWallet /> + auth pages and hooks
 │       │   ├── signing/   # <SignatureRequest /> + signing hooks
 │       │   ├── shared/    # Shared components and utilities
 │       │   └── connector.ts # Enhanced wagmi connector (zeroDevWallet)
@@ -359,6 +359,6 @@ MIT
 
 ## Packages
 
-- **[@zerodev/wallet-react-ui](./packages/wallet-react-ui)** — Drop-in React UI components (`<AuthFlow />`, `<SignatureRequest />`) and enhanced wagmi connector
+- **[@zerodev/wallet-react-ui](./packages/wallet-react-ui)** — Drop-in React UI components (`<ConnectWallet />`, `<SignatureRequest />`) and enhanced wagmi connector
 - **[@zerodev/wallet-react](./packages/react)** — React hooks and Wagmi connector (recommended for React apps)
 - **[@zerodev/wallet-core](./packages/core)** — Core SDK (framework-agnostic)

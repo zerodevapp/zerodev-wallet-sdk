@@ -3,16 +3,19 @@
  */
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AuthFlow } from './index'
+import { ConnectWallet } from './index'
 import type { AuthStep } from './types'
 
 afterEach(() => {
   cleanup()
 })
 
-// Mock all page components
+// Mock all page components. ConnectWallet renders `SignUp.Default` by default,
+// so the mock needs the compound shape.
 vi.mock('./pages/SignUp', () => ({
-  SignUp: () => <div data-testid="sign-up">SignUp Page</div>,
+  SignUp: Object.assign(() => <div data-testid="sign-up">SignUp Page</div>, {
+    Default: () => <div data-testid="sign-up">SignUp Page</div>,
+  }),
 }))
 
 vi.mock('./pages/EmailVerification', () => ({
@@ -54,51 +57,68 @@ vi.mock('../shared/components/StatusScreen', () => ({
   ),
 }))
 
-// Mock useAuth hook
+// Mock useAuth hook. Typed against the real hook so field drift (renamed or
+// removed members) fails the typecheck instead of accumulating silently.
 let mockStep: AuthStep | null = null
 vi.mock('./hooks/useAuth', () => ({
-  useAuth: () => ({
+  useAuth: (): ReturnType<typeof import('./hooks/useAuth')['useAuth']> => ({
     step: mockStep,
     email: null,
     otpId: null,
-    enabledMethods: ['email', 'google', 'passkey'],
-    config: null,
+    otpEncryptionTargetBundle: null,
     goToStep: vi.fn(),
-    onBack: null,
+    goBack: null,
     reset: vi.fn(),
     setEmail: vi.fn(),
-    setOtpId: vi.fn(),
+    setOtpSession: vi.fn(),
+    clearOtpSession: vi.fn(),
   }),
 }))
 
-// Mock useKitStore — otherwise it calls wagmi's useConfig which needs a
-// provider. Return a real zustand store so `useStore(store, selector)` works.
-import { create } from 'zustand'
-
-const mockKitStore = create(() => ({ logo: null }))
-vi.mock('../shared/hooks/useKitStore', () => ({
-  useKitStore: () => mockKitStore,
-}))
-
-describe('AuthFlow', () => {
+describe('ConnectWallet', () => {
   it('renders nothing when step is null', () => {
     mockStep = null
-    const { container } = render(<AuthFlow />)
+    const { container } = render(<ConnectWallet />)
 
     expect(container.firstChild).toBeNull()
   })
 
   it('renders sign-up page', () => {
     mockStep = 'sign-up'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('sign-up')).toBeDefined()
     expect(screen.getByText('SignUp Page')).toBeDefined()
   })
 
+  it('shows the logo only on the sign-up step', () => {
+    mockStep = 'sign-up'
+    const { unmount } = render(
+      <ConnectWallet logo={<div data-testid="brand-logo" />} />,
+    )
+    expect(screen.getByTestId('brand-logo')).toBeDefined()
+    unmount()
+
+    mockStep = 'otp-input'
+    render(<ConnectWallet logo={<div data-testid="brand-logo" />} />)
+    expect(screen.queryByTestId('brand-logo')).toBeNull()
+  })
+
+  it('renders custom sign-up content via renderSignUp', () => {
+    mockStep = 'sign-up'
+    render(
+      <ConnectWallet
+        renderSignUp={() => <div data-testid="custom-sign-up">Custom</div>}
+      />,
+    )
+
+    expect(screen.getByTestId('custom-sign-up')).toBeDefined()
+    expect(screen.queryByTestId('sign-up')).toBeNull()
+  })
+
   it('renders email-verification page', () => {
     mockStep = 'email-verification'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('email-verification')).toBeDefined()
     expect(screen.getByText('EmailVerification Page')).toBeDefined()
@@ -106,7 +126,7 @@ describe('AuthFlow', () => {
 
   it('renders otp-input page', () => {
     mockStep = 'otp-input'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('otp-input')).toBeDefined()
     expect(screen.getByText('OtpInput Page')).toBeDefined()
@@ -114,7 +134,7 @@ describe('AuthFlow', () => {
 
   it('renders verifying-otp page', () => {
     mockStep = 'verifying-otp'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('verifying')).toBeDefined()
     expect(screen.getByText('Verifying Page')).toBeDefined()
@@ -122,7 +142,7 @@ describe('AuthFlow', () => {
 
   it('renders oauth-in-progress state', () => {
     mockStep = 'oauth-in-progress'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('status-view')).toBeDefined()
     expect(screen.getByTestId('status-title').textContent).toBe(
@@ -135,7 +155,7 @@ describe('AuthFlow', () => {
 
   it('renders passkey-prompt state', () => {
     mockStep = 'passkey-prompt'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('status-view')).toBeDefined()
     expect(screen.getByTestId('status-title').textContent).toBe(
@@ -148,21 +168,21 @@ describe('AuthFlow', () => {
 
   it('renders wallet-selection state', () => {
     mockStep = 'wallet-selection'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('wallet-selection')).toBeDefined()
   })
 
   it('renders authenticated state as null', () => {
     mockStep = 'authenticated'
-    const { container } = render(<AuthFlow />)
+    const { container } = render(<ConnectWallet />)
 
     expect(container.firstChild).toBeNull()
   })
 
   it('renders error page', () => {
     mockStep = 'error'
-    render(<AuthFlow />)
+    render(<ConnectWallet />)
 
     expect(screen.getByTestId('error')).toBeDefined()
     expect(screen.getByText('Error Page')).toBeDefined()
@@ -170,7 +190,7 @@ describe('AuthFlow', () => {
 
   it('handles unknown step gracefully', () => {
     mockStep = 'unknown-step' as AuthStep
-    const { container } = render(<AuthFlow />)
+    const { container } = render(<ConnectWallet />)
 
     expect(container.firstChild).toBeNull()
   })

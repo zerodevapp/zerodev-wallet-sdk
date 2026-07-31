@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand'
-import type { AuthConfig, AuthMethod, AuthStep } from './types'
+import type { AuthStep } from './types'
 
 const OTP_SESSION_STORAGE_KEY = 'zerodev:auth:otpSession'
 
@@ -47,7 +47,6 @@ export interface AuthStoreSlice {
     // State
     step: AuthStep | null
     stepHistory: AuthStep[]
-    enabledMethods: AuthMethod[]
     email: string | null
     setEmail: (email: string) => void
     otpId: string | null
@@ -63,10 +62,10 @@ export interface AuthStoreSlice {
     }) => void
     /** Clear the persisted OTP session after a successful verify. */
     clearOtpSession: () => void
-    config: AuthConfig | null
 
     // Actions
-    initialize: (config: AuthConfig) => void
+    /** Restore a persisted OTP session (survives reloads mid-email-flow). */
+    initialize: () => void
     goToStep: (step: AuthStep | null) => void
     goBack: () => void
     reset: () => void
@@ -83,24 +82,19 @@ export const createAuthStoreSlice: StateCreator<
     // Initial state
     step: null,
     stepHistory: [],
-    enabledMethods: [],
     email: null,
     otpId: null,
     otpEncryptionTargetBundle: null,
-    config: null,
 
     // Actions
-    initialize: (config: AuthConfig) => {
+    initialize: () => {
       const stored = readStoredOtpSession()
+      if (!stored) return
       set((state) => ({
         auth: {
           ...state.auth,
-          config,
-          enabledMethods: config.enabledMethods,
-          ...(stored && {
-            otpId: stored.otpId,
-            otpEncryptionTargetBundle: stored.otpEncryptionTargetBundle,
-          }),
+          otpId: stored.otpId,
+          otpEncryptionTargetBundle: stored.otpEncryptionTargetBundle,
         },
       }))
     },

@@ -16,7 +16,7 @@ import { WalletStrip } from "./WalletStrip";
  *
  * Keyed off `isConnected` alone, never wagmi's `status`. With the zeroDevWallet
  * connector `connecting` is not transient: `connect()` stays pending while the
- * user works through the AuthFlow, so hiding the login surface during it
+ * user works through the ConnectWallet, so hiding the login surface during it
  * unmounts the very UI that would resolve the connection and the page hangs.
  * Loading treatment belongs inside LoginScreen, which keys off the auth step.
  */

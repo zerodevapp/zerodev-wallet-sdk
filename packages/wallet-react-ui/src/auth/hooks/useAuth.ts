@@ -12,16 +12,11 @@ export function useAuth() {
     store,
     (state) => state.auth.otpEncryptionTargetBundle,
   )
-  const enabledMethods = useStore(store, (state) => state.auth.enabledMethods)
-  const authConfig = useStore(store, (state) => state.auth.config)
-
   return {
     step,
     email,
     otpId,
     otpEncryptionTargetBundle,
-    enabledMethods,
-    config: authConfig,
     goToStep: store.getState().auth.goToStep,
     goBack: stepHistory.length > 0 ? store.getState().auth.goBack : null,
     reset: store.getState().auth.reset,

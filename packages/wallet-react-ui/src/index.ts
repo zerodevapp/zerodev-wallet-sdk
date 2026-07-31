@@ -4,14 +4,14 @@
  */
 
 // Auth
-export { AuthFlow } from './auth'
+export { ConnectWallet } from './auth'
 export { useAuth } from './auth/hooks/useAuth'
-export type { AuthMethod, AuthStep } from './auth/types'
+export { SignUp } from './auth/pages/SignUp'
+export type { AuthMethod, AuthStep, EmailAuthMethod } from './auth/types'
 
 // Connector
 export type {
   // SigningConfig,
-  ZeroDevKitConfig,
   ZeroDevKitConnectorParams,
 } from './connector.js'
 export { zeroDevWallet } from './connector.js'

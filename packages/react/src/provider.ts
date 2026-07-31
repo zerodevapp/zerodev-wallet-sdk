@@ -83,7 +83,11 @@ export function createProvider({
     const timeUntilExpiry = expiryMs - now
 
     if (timeUntilExpiry <= 0) {
-      console.log('Session already expired')
+      // Session already expired — e.g. the tab was backgrounded across expiry so
+      // the pre-expiry refresh timer never fired. Drop the dead session so the
+      // app re-authenticates instead of hammering the backend with the expired
+      // key (DPL-662). Mirrors the refresh-failure path below.
+      store.getState().clear()
       return
     }
 
@@ -140,6 +144,18 @@ export function createProvider({
     },
   )
 
+  // The setTimeout above only runs while the tab is open, so a session that
+  // lapses while backgrounded is never caught by it. Re-evaluate whenever the
+  // tab becomes visible again: refresh if still valid, drop if already expired
+  // (DPL-662).
+  const onVisibilityChange = () => {
+    if (document.visibilityState !== 'visible') return
+    scheduleSessionRefresh()
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibilityChange)
+  }
+
   // Schedule initial refresh if session exists
   const initialSession = store.getState().session
   if (initialSession) {
@@ -150,10 +166,13 @@ export function createProvider({
     ...emitter,
 
     destroy() {
-      // Cleanup timer and subscription
+      // Cleanup timer, subscription, and visibility listener
       if (sessionRefreshTimer) {
         clearTimeout(sessionRefreshTimer)
         sessionRefreshTimer = null
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange)
       }
       unsubscribe()
     },

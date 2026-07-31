@@ -4,6 +4,8 @@ import {
   getTypesForEIP712Domain,
   type Hex,
   hashTypedData,
+  isAddress,
+  isAddressEqual,
   type LocalAccount,
   numberToHex,
   parseSignature,
@@ -35,17 +37,20 @@ export async function toViemAccount(
 ): Promise<LocalAccount> {
   const { client, organizationId, projectId, getToken } = params
 
-  let address: Hex = zeroAddress
-
-  try {
-    const walletResponse = await client.getUserWallet({
-      organizationId,
-      projectId,
-      token: await getToken(),
-    })
-    address = walletResponse.walletAddresses[0]
-  } catch {
-    address = zeroAddress
+  const walletResponse = await client.getUserWallet({
+    organizationId,
+    projectId,
+    token: await getToken(),
+  })
+  const address = walletResponse.walletAddresses[0]
+  if (
+    !address ||
+    !isAddress(address, { strict: false }) ||
+    isAddressEqual(address, zeroAddress)
+  ) {
+    throw new Error(
+      `Cannot build account: wallet address is missing, malformed, or zero for organization ${organizationId} (got ${address ?? 'undefined'}).`,
+    )
   }
 
   // Modified from: https://github.com/tkhq/sdk/blob/4e439bf2973ea13b51d981d7c24a4841d4e5fd5f/packages/viem/src/index.ts#L419-L461

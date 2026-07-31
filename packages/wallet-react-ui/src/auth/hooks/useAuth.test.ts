@@ -1,7 +1,6 @@
 import { cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from '../../store'
-import type { AuthConfig } from '../types'
 import { useAuth } from './useAuth'
 
 // Mock wagmi
@@ -23,15 +22,6 @@ afterEach(() => {
   mockConnector.getKitStore.mockClear()
   mockConfig.connectors = [mockConnector]
 })
-
-function createMockAuthConfig(overrides?: Partial<AuthConfig>): AuthConfig {
-  return {
-    enabledMethods: ['email', 'google', 'passkey'],
-    onSuccess: () => {},
-    onError: () => {},
-    ...overrides,
-  }
-}
 
 describe('useAuth', () => {
   it('throws error when zerodev-wallet connector is not found', () => {
@@ -66,25 +56,6 @@ describe('useAuth', () => {
     expect(result.current.step).toBeNull()
     expect(result.current.email).toBeNull()
     expect(result.current.otpId).toBeNull()
-    expect(result.current.enabledMethods).toEqual([])
-    expect(result.current.config).toBeNull()
-  })
-
-  it('returns auth state after initialization', () => {
-    const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
-    mockConnector.getKitStore.mockReturnValue(store)
-
-    const { result } = renderHook(() => useAuth())
-
-    expect(result.current.step).toBeNull()
-    expect(result.current.enabledMethods).toEqual([
-      'email',
-      'google',
-      'passkey',
-    ])
-    expect(result.current.config).toEqual(config)
   })
 
   it('returns email, otpId, and otpEncryptionTargetBundle from store', () => {
@@ -105,8 +76,7 @@ describe('useAuth', () => {
 
   it('exposes goToStep function', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result } = renderHook(() => useAuth())
@@ -118,8 +88,7 @@ describe('useAuth', () => {
 
   it('exposes goBack function when history is non-empty', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     store.getState().auth.goToStep('email-verification')
     store.getState().auth.goToStep('otp-input')
     mockConnector.getKitStore.mockReturnValue(store)
@@ -134,8 +103,7 @@ describe('useAuth', () => {
 
   it('returns goBack as null when history is empty', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     store.getState().auth.goToStep('sign-up')
     mockConnector.getKitStore.mockReturnValue(store)
 
@@ -146,8 +114,7 @@ describe('useAuth', () => {
 
   it('exposes reset function', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     store.getState().auth.setEmail('user@example.com')
     store.getState().auth.goToStep('email-verification')
     mockConnector.getKitStore.mockReturnValue(store)
@@ -189,7 +156,6 @@ describe('useAuth', () => {
 
   it('reactively updates when store changes', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result, rerender } = renderHook(() => useAuth())
@@ -197,7 +163,7 @@ describe('useAuth', () => {
     expect(result.current.step).toBeNull()
 
     // Change store state
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     store.getState().auth.goToStep('sign-up')
     rerender()
 
@@ -206,8 +172,7 @@ describe('useAuth', () => {
 
   it('handles multiple step transitions', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     store.getState().auth.goToStep('sign-up')
     mockConnector.getKitStore.mockReturnValue(store)
 
@@ -234,8 +199,7 @@ describe('useAuth', () => {
 
   it('handles complete email auth flow', () => {
     const store = createStore()
-    const config = createMockAuthConfig()
-    store.getState().auth.initialize(config)
+    store.getState().auth.initialize()
     mockConnector.getKitStore.mockReturnValue(store)
 
     const { result, rerender } = renderHook(() => useAuth())
@@ -270,18 +234,5 @@ describe('useAuth', () => {
     result.current.goToStep('authenticated')
     rerender()
     expect(result.current.step).toBe('authenticated')
-  })
-
-  it('works with different enabled methods', () => {
-    const store = createStore()
-    const config = createMockAuthConfig({
-      enabledMethods: ['passkey'],
-    })
-    store.getState().auth.initialize(config)
-    mockConnector.getKitStore.mockReturnValue(store)
-
-    const { result } = renderHook(() => useAuth())
-
-    expect(result.current.enabledMethods).toEqual(['passkey'])
   })
 })

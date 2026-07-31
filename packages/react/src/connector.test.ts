@@ -13,14 +13,14 @@ const {
   mockEoaAccount,
 } = vi.hoisted(() => ({
   createKernelAccountMock: vi.fn().mockResolvedValue({
-    address: '0xkernel000000000000000000000000000000abcd',
+    address: '0xcafecafecafecafecafecafecafecafecafecafe',
   }),
   createKernelAccountClientMock: vi.fn().mockReturnValue({}),
   createZeroDevPaymasterClientMock: vi.fn().mockReturnValue({}),
   signerToEcdsaValidatorMock: vi.fn().mockResolvedValue({ name: 'ecdsa' }),
   createWalletClientMock: vi.fn().mockReturnValue({}),
   mockEoaAccount: {
-    address: '0xeoa000000000000000000000000000000000abcd' as const,
+    address: '0xe0a0e0a0e0a0e0a0e0a0e0a0e0a0e0a0e0a0e0a0' as const,
   },
 }))
 
@@ -143,7 +143,7 @@ describe('zeroDevWallet connector — mode branching', () => {
       const result = await connector.connect({ chainId: sepolia.id })
 
       expect(result.accounts).toEqual([
-        '0xkernel000000000000000000000000000000abcd',
+        '0xcafecafecafecafecafecafecafecafecafecafe',
       ])
     })
   })

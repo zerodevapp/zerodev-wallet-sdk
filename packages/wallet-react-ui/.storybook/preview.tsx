@@ -26,7 +26,7 @@ const preview: Preview = {
   globalTypes: {
     screen: {
       name: 'Screen',
-      description: 'Render the story inside the AuthFlow card chrome',
+      description: 'Render the story inside the ConnectWallet card chrome',
       defaultValue: 'on',
       toolbar: {
         icon: 'contrast',

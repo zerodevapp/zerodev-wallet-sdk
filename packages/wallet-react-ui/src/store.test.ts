@@ -124,10 +124,8 @@ describe('store', () => {
       expect(state.auth).toBeDefined()
       expect(state.auth.step).toBeNull()
       expect(state.auth.stepHistory).toEqual([])
-      expect(state.auth.enabledMethods).toEqual([])
       expect(state.auth.email).toBeNull()
       expect(state.auth.otpId).toBeNull()
-      expect(state.auth.config).toBeNull()
     })
 
     it('auth and pending requests state are independent', () => {

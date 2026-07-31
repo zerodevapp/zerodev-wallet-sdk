@@ -26,6 +26,7 @@ export { useVerifyOTP } from './hooks/useVerifyOTP.js'
 export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
 export { createZeroDevWalletStore } from './store.js'
+export { isClientError, shouldRetryRequest } from './utils/query.js'
 export type { OAuthProvider } from './utils/verifyGoogleLoginUrl.js'
 export {
   generateOAuthNonce,

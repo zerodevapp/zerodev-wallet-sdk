@@ -29,7 +29,7 @@ Every feature we ship gets a surface here. Two levels of grouping:
 
 | Route                  | Behaviour                                                   |
 | ---------------------- | ----------------------------------------------------------- |
-| `/`                    | Overview — every feature and its status. Auth gate: renders the `AuthFlow` login when disconnected, swapping in place with no redirect. |
+| `/`                    | Overview — every feature and its status. Auth gate: renders the `ConnectWallet` login when disconnected, swapping in place with no redirect. |
 | `/tx-signing/<area>`   | A Tx Signing area: `signing`｜`transactions`｜`contracts`｜`rpc`｜`session`. Unknown area → 404. |
 | `/tx-signing`          | Redirects to the first area.                                 |
 | `/sra`                 | Placeholder until the SRA PR lands.                          |

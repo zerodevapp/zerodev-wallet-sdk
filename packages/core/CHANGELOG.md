@@ -1,5 +1,17 @@
 # @zerodev/wallet-core
 
+## 0.0.3
+
+### Patch Changes
+
+- 8769b2c: fix: register passkeys as discoverable (resident) credentials so passkey login can find them. register() now sets authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' }, matching the username-less login flow (empty allowCredentials).
+
+## 0.0.2
+
+### Patch Changes
+
+- c8dceeb: fix: require a valid, non-zero owner when building the account. The wallet address is now validated before use — `getToken` throws on a missing session token, `toViemAccount` refuses a missing/malformed/zero address, and account derivation re-checks the owner.
+
 ## 0.0.1
 
 Initial public release.

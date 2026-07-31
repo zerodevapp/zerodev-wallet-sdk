@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ZeroDevKitConnectorParams } from './connector'
 import { zeroDevWallet } from './connector'
 import type { createStore } from './store'
@@ -232,53 +232,41 @@ describe('connector', () => {
   })
 
   describe('auth integration', () => {
-    it('initializes auth when config is provided', () => {
-      const authConfig = {
-        enabledMethods: ['email' as const, 'google' as const],
-        onSuccess: vi.fn(),
-        onError: vi.fn(),
-      }
-      const connector = createKitConnector({
-        config: { auth: authConfig },
-      })
-      const store = connector.getKitStore()
-
-      expect(store.getState().auth.config).toEqual(authConfig)
-      expect(store.getState().auth.enabledMethods).toEqual(['email', 'google'])
-      expect(store.getState().auth.step).toBeNull()
+    afterEach(() => {
+      window.localStorage.removeItem('zerodev:auth:otpSession')
     })
 
-    it('does not initialize auth when config is not provided', () => {
+    it('starts with a null step', () => {
       const connector = createKitConnector()
       const store = connector.getKitStore()
 
-      expect(store.getState().auth.config).toBeNull()
-      expect(store.getState().auth.enabledMethods).toEqual([])
       expect(store.getState().auth.step).toBeNull()
     })
 
-    it('auth config works', () => {
-      const authConfig = {
-        enabledMethods: ['passkey' as const],
-      }
-      const connector = createKitConnector({
-        config: {
-          auth: authConfig,
-        },
-      })
+    it('restores a persisted OTP session on setup, not at factory time', async () => {
+      window.localStorage.setItem(
+        'zerodev:auth:otpSession',
+        JSON.stringify({
+          otpId: 'otp-stored',
+          otpEncryptionTargetBundle: 'bundle-stored',
+        }),
+      )
+      const connector = createKitConnector()
       const store = connector.getKitStore()
 
-      expect(store.getState().auth.config).toEqual(authConfig)
-      expect(store.getState().auth.enabledMethods).toEqual(['passkey'])
+      // Factory construction runs on the server too — it must not hydrate.
+      expect(store.getState().auth.otpId).toBeNull()
+
+      await connector.setup?.()
+
+      expect(store.getState().auth.otpId).toBe('otp-stored')
+      expect(store.getState().auth.otpEncryptionTargetBundle).toBe(
+        'bundle-stored',
+      )
     })
 
     it('disconnect resets auth state to null step', async () => {
-      const authConfig = {
-        enabledMethods: ['email' as const],
-      }
-      const connector = createKitConnector({
-        config: { auth: authConfig },
-      })
+      const connector = createKitConnector()
       const store = connector.getKitStore()
 
       store.getState().auth.setEmail('test@example.com')
@@ -291,27 +279,6 @@ describe('connector', () => {
 
       expect(store.getState().auth.email).toBeNull()
       expect(store.getState().auth.step).toBeNull()
-      expect(store.getState().auth.config).toEqual(authConfig)
-    })
-
-    it('supports all auth methods in config', () => {
-      const authConfig = {
-        enabledMethods: [
-          'email' as const,
-          'google' as const,
-          'passkey' as const,
-        ],
-      }
-      const connector = createKitConnector({
-        config: { auth: authConfig },
-      })
-      const store = connector.getKitStore()
-
-      expect(store.getState().auth.enabledMethods).toEqual([
-        'email',
-        'google',
-        'passkey',
-      ])
     })
 
     // Depends on the prompt-mode signing gate, which is disabled while signing

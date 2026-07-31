@@ -50,3 +50,19 @@ export async function teardownVirtualAuthenticator(
     // Ignore errors during cleanup
   }
 }
+
+/**
+ * Lists the credentials currently stored on the virtual authenticator. Used to
+ * assert a registered passkey is discoverable (resident): login resolves
+ * credentials with an empty allowCredentials list, which can only surface
+ * resident credentials.
+ */
+export async function getVirtualCredentials(auth: VirtualAuthenticator) {
+  const { credentials } = await auth.cdpSession.send(
+    'WebAuthn.getCredentials',
+    {
+      authenticatorId: auth.authenticatorId,
+    },
+  )
+  return credentials
+}

@@ -35,11 +35,6 @@ export const config = createConfig({
     zeroDevWallet({
       projectId: 'your-project-id', // from https://dashboard.zerodev.app
       chains: [sepolia],
-      config: {
-        auth: {
-          enabledMethods: ['email', 'google', 'passkey'],
-        },
-      },
     }),
   ],
   transports: { [sepolia.id]: http() },
@@ -74,11 +69,11 @@ function Root() {
 
 ## Usage
 
-Mount `<AuthFlow />` to render the active sign-in screen. Connecting via the
+Mount `<ConnectWallet />` to render the active sign-in screen. Connecting via the
 `zeroDevWallet` connector is what opens the auth flow.
 
 ```tsx
-import { AuthFlow } from '@zerodev/wallet-react-ui'
+import { ConnectWallet } from '@zerodev/wallet-react-ui'
 import { useAccount, useConnect } from 'wagmi'
 
 function App() {
@@ -91,7 +86,7 @@ function App() {
         <button onClick={() => connect({ connector: connectors[0] })}>
           Connect
         </button>
-        <AuthFlow />
+        <ConnectWallet />
       </>
     )
   }
@@ -100,17 +95,66 @@ function App() {
 }
 ```
 
+### Customizing the sign-up page
+
+Bare `<ConnectWallet />` renders the canonical sign-up page (passkey → Google →
+email). Which methods appear — and how — is decided by composition, not
+config.
+
+Keep the default page and set its options:
+
+```tsx
+<ConnectWallet
+  logo={<YourLogo />}
+  renderSignUp={() => (
+    <SignUp.Default
+      emailAuthMethod="otp" // 'magicLink' (default) | 'otp'
+      termsAndConditionsUrl="https://example.com/terms"
+      privacyPolicyUrl="https://example.com/privacy"
+    />
+  )}
+/>
+```
+
+Or compose the page yourself from the `SignUp.*` units:
+
+```tsx
+import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
+
+<ConnectWallet
+  renderSignUp={() => (
+    <SignUp emailAuthMethod="otp" termsAndConditionsUrl="https://example.com/terms">
+      <SignUp.Google />
+      <SignUp.Divider />
+      <SignUp.Email />
+    </SignUp>
+  )}
+/>
+```
+
+- `<SignUp>` (the root) owns the shared page state and the consent gate: when
+  either terms URL is set, a checkbox appears and every method is blocked
+  until the user agrees. `emailAuthMethod` picks the email verification flow.
+- Units: `SignUp.Passkey`, `SignUp.Google`, `SignUp.Email`, `SignUp.Divider`.
+  Order and presence are yours; while one method is in flight, the others
+  disable themselves.
+- `SignUp.Default` is the canonical composition; it accepts the same props as
+  the root and forwards them.
+- Auth success/failure surfaces through wagmi — await `connect`, or watch
+  `useAccount()`.
+
 ## API
 
 | Export | Description |
 | --- | --- |
 | `zeroDevWallet` | wagmi connector with kit-specific auth extensions. |
-| `<AuthFlow />` | Renders the current auth step (sign-in, OTP, verifying, etc.). |
+| `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `onClose`. |
+| `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Divider`). |
 | `useAuth` | Read / drive the auth flow state. |
 
 ### Types
 
-`AuthMethod`, `AuthStep`, `ZeroDevKitConfig`, `ZeroDevKitConnectorParams`.
+`AuthMethod`, `AuthStep`, `EmailAuthMethod`, `ZeroDevKitConnectorParams`.
 
 ## Development
 

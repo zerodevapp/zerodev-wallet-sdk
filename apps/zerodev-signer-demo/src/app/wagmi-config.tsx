@@ -1,6 +1,5 @@
 'use client'
 
-import { ZeroDevLogo } from '@zerodev/react-ui'
 import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
@@ -15,16 +14,6 @@ const rpcUrls: Record<number, string | undefined> = {
 // Set NEXT_PUBLIC_WALLET_MODE to 'EOA' | '4337' | '7702' to override; leave
 // unset for the SDK default ('7702').
 const mode = process.env.NEXT_PUBLIC_WALLET_MODE as WalletMode | undefined
-
-// Read the email auth method choice from localStorage on init. Toggled by
-// the cogwheel on the landing page; changes trigger a page reload so this
-// re-runs with the new value.
-function getEmailAuthMethod(): 'otp' | 'magicLink' {
-  if (typeof window === 'undefined') return 'otp'
-  return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
-    ? 'magicLink'
-    : 'otp'
-}
 
 export const config = createConfig({
   chains: [arbitrumSepolia, sepolia],
@@ -44,13 +33,6 @@ export const config = createConfig({
         organizationId: process.env.NEXT_PUBLIC_ORG_ID,
       }),
       ...(mode && { mode }),
-      config: {
-        logo: <ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />,
-        auth: {
-          enabledMethods: ['email', 'google', 'passkey'],
-          emailAuthMethod: getEmailAuthMethod(),
-        },
-      },
     }),
   ],
   ssr: true,

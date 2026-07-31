@@ -1,8 +1,6 @@
 import { Screen, TopNav } from '@zerodev/react-ui'
 import { type ReactNode, useEffect } from 'react'
-import { useStore } from 'zustand'
 import { StatusScreen } from '../shared/components/StatusScreen'
-import { useKitStore } from '../shared/hooks/useKitStore'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
 import { ErrorScreen } from './pages/ErrorScreen'
@@ -37,10 +35,13 @@ function PasskeyPrompt() {
   )
 }
 
-function renderStep(step: AuthStep | null): ReactNode {
+function renderStep(
+  step: AuthStep | null,
+  renderSignUp?: (() => ReactNode) | undefined,
+): ReactNode {
   switch (step) {
     case 'sign-up':
-      return <SignUp />
+      return renderSignUp ? renderSignUp() : <SignUp.Default />
     case 'email-verification':
       return <EmailVerification />
     case 'otp-input':
@@ -60,15 +61,23 @@ function renderStep(step: AuthStep | null): ReactNode {
   }
 }
 
-export function AuthFlow({
+export function ConnectWallet({
   onClose: userOnClose,
   size,
+  renderSignUp,
+  logo,
 }: {
   onClose?: (() => void) | undefined
   size?: 'sm' | 'md' | 'lg' | undefined
+  /** Replace the default sign-up page: compose `SignUp.*` units inside
+   * `<SignUp>`. Omit to render the canonical page (`SignUp.Default`). */
+  renderSignUp?: (() => ReactNode) | undefined
+  /** Optional brand logo for the top nav on the sign-up page. When omitted,
+   * no logo is shown. `PoweredBy` always shows the ZeroDev mark
+   * independently. */
+  logo?: ReactNode | undefined
 } = {}) {
   const { step, goToStep, goBack, reset } = useAuth()
-  const logo = useStore(useKitStore(), (s) => s.logo)
 
   useEffect(() => {
     if (step === null && hasMagicLinkCodeInUrl()) {
@@ -76,7 +85,7 @@ export function AuthFlow({
     }
   }, [step, goToStep])
 
-  const content = renderStep(step)
+  const content = renderStep(step, renderSignUp)
   if (!content) return null
 
   const handleClose = () => {
@@ -89,6 +98,9 @@ export function AuthFlow({
   return (
     <Screen
       {...(size && { size })}
+      // Sign-up shrinks to its content (few methods → shorter card) but never
+      // grows past the standard height; other steps keep the fixed size.
+      className={step === 'sign-up' ? 'zd:h-auto zd:max-h-202.5' : undefined}
       // Some elements in SignUp need to go from edge to edge.
       // No vertical padding; we set px-0 so we can fully control this padding.
       contentClassName={step === 'sign-up' ? 'zd:px-0' : undefined}

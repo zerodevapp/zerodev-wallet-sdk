@@ -1,10 +1,26 @@
 'use client'
 
-import { AuthFlow, useAuth } from '@zerodev/wallet-react-ui'
+import { ZeroDevLogo } from '@zerodev/react-ui'
+import { ConnectWallet, SignUp, useAuth } from '@zerodev/wallet-react-ui'
 import { Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Fragment, useEffect, useMemo } from 'react'
 import { useAccount, useConnect } from 'wagmi'
+import {
+  type AuthMethodId,
+  pickConfigParams,
+  resolveWalletConfig,
+} from '../lib/config-params'
 import { AppHeader } from './AppHeader'
+
+// The auth methods the URL selected, rendered as SignUp units in a fixed
+// order. Mirrors the resolved config the connector was built from.
+const UNIT_BY_METHOD: Record<AuthMethodId, () => React.ReactNode> = {
+  passkey: () => <SignUp.Passkey />,
+  google: () => <SignUp.Google />,
+  email: () => <SignUp.Email />,
+}
+const METHOD_ORDER: AuthMethodId[] = ['passkey', 'google', 'email']
 
 /**
  * Login surface for the QA lab. Unlike the signer demo's landing page this
@@ -16,7 +32,19 @@ export function LoginScreen() {
   const { isConnected, status: accountStatus } = useAccount()
   const { step: authStep } = useAuth()
 
-  // Auth has succeeded (AuthFlow unmounts once step hits `authenticated`) but
+  // Resolve the same URL params the connector was built from, so the rendered
+  // methods and email flow match the config under test (see Providers).
+  const searchParams = useSearchParams()
+  const configKey = pickConfigParams(searchParams).toString()
+  const resolved = useMemo(
+    () => resolveWalletConfig(new URLSearchParams(configKey)),
+    [configKey],
+  )
+  const pickedMethods = METHOD_ORDER.filter((m) =>
+    resolved.authMethods.includes(m),
+  )
+
+  // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet. Cover that window with a loader so
   // the column doesn't sit blank before the lab swaps in.
   const isSettling = isConnected || authStep === 'authenticated'
@@ -24,7 +52,7 @@ export function LoginScreen() {
   // misleading CTA.
   const showReconnect =
     !isConnected && authStep === null && connectStatus === 'error'
-  // AuthFlow renders nothing until it has a `step`, so any time we're not
+  // ConnectWallet renders nothing until it has a `step`, so any time we're not
   // connected and have no step yet — initial session probe, auto-connect in
   // flight, or landing back here right after logout — show the loader.
   const showLoading =
@@ -64,7 +92,23 @@ export function LoginScreen() {
             <p className="mb-6 text-center text-sm font-semibold uppercase tracking-[0.22em] text-[#9c958c]">
               Sign in to open the QA Lab
             </p>
-            <AuthFlow size="md" />
+            <ConnectWallet
+              size="md"
+              logo={
+                <ZeroDevLogo
+                  variant="mark"
+                  tone="color"
+                  className="zd:h-8 zd:w-auto"
+                />
+              }
+              renderSignUp={() => (
+                <SignUp emailAuthMethod={resolved.emailAuthMethod}>
+                  {pickedMethods.map((method) => (
+                    <Fragment key={method}>{UNIT_BY_METHOD[method]()}</Fragment>
+                  ))}
+                </SignUp>
+              )}
+            />
           </>
         )}
       </main>

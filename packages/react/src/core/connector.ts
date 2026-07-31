@@ -13,7 +13,15 @@ import type {
   StorageAdapter,
 } from '@zerodev/wallet-core'
 import { createZeroDevWallet, KMS_SERVER_URL } from '@zerodev/wallet-core'
-import { type Chain, createPublicClient, createWalletClient, http } from 'viem'
+import {
+  type Chain,
+  createPublicClient,
+  createWalletClient,
+  http,
+  isAddress,
+  isAddressEqual,
+  zeroAddress,
+} from 'viem'
 import { NotAuthenticatedError } from '../errors.js'
 import { createProvider } from '../provider.js'
 import { type CreateStoreOptions, createZeroDevWalletStore } from '../store.js'
@@ -116,6 +124,14 @@ export function zeroDevWalletCore(
       const state = store.getState()
       const eoaAccount = state.eoaAccount
       if (!eoaAccount) throw new NotAuthenticatedError()
+      if (
+        !isAddress(eoaAccount.address, { strict: false }) ||
+        isAddressEqual(eoaAccount.address, zeroAddress)
+      ) {
+        throw new Error(
+          'Refusing to build an account from an invalid or zero-address owner (unrecoverable): the wallet address failed to resolve.',
+        )
+      }
 
       const chain = params.chains.find((c) => c.id === chainId)
       if (!chain) throw new Error(`Chain ${chainId} not found in config`)

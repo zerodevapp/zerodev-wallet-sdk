@@ -1,6 +1,7 @@
 'use client'
 
-import {AuthFlow, useAuth} from '@zerodev/wallet-react-ui'
+import {ZeroDevLogo} from '@zerodev/react-ui'
+import {ConnectWallet, SignUp, useAuth} from '@zerodev/wallet-react-ui'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
 import {useRouter} from 'next/navigation'
 import {Suspense, useEffect} from 'react'
@@ -8,6 +9,16 @@ import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
 
 export const dynamic = 'force-dynamic'
+
+// Email auth method choice, set by the browser E2E specs (stored in localStorage).
+// Read at render time — ConnectWallet renders SignUp only after user interaction,
+// so this always runs client-side with the current value.
+function getEmailAuthMethod(): 'otp' | 'magicLink' {
+  if (typeof window === 'undefined') return 'otp'
+  return localStorage.getItem('zd:emailAuthMethod') === 'magicLink'
+    ? 'magicLink'
+    : 'otp'
+}
 
 export default function LandingPage() {
   return (
@@ -23,7 +34,7 @@ function LandingPageInner() {
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
-  // Auth has succeeded (AuthFlow unmounts once step hits `authenticated`) but
+  // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
   // loading screen so the page doesn't sit blank and then jump.
@@ -32,7 +43,7 @@ function LandingPageInner() {
   // misleading CTA.
   const showReconnect =
     !isConnected && authStep === null && connectStatus === 'error'
-  // AuthFlow renders nothing until it has a `step`, so any time we're not
+  // ConnectWallet renders nothing until it has a `step`, so any time we're not
   // connected and have no step yet — initial session probe, auto-connect in
   // flight, or landing back here right after logout — show the loader instead
   // of a blank column. Keeps the login <-> dashboard transition smooth in
@@ -125,7 +136,20 @@ function LandingPageInner() {
             </div>
           ) : (
 
-              <AuthFlow size="md" />
+              // Using renderSignUp for demo purposes, although using <ConnectWallet /> on its own would be enough
+              // because SignUp has a default
+              <ConnectWallet
+                size="md"
+                logo={<ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />}
+                renderSignUp={() =>
+                  <SignUp emailAuthMethod={getEmailAuthMethod()}>
+                    <SignUp.Passkey />
+                    <SignUp.Divider />
+                    <SignUp.Google />
+                    <SignUp.Email />
+                  </SignUp>
+                }
+              />
 
           )}
 

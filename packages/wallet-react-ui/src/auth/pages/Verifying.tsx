@@ -11,13 +11,8 @@ function getCodeFromUrl(): string | null {
 }
 
 export function Verifying() {
-  const {
-    otpId,
-    otpEncryptionTargetBundle,
-    goToStep,
-    clearOtpSession,
-    config,
-  } = useAuth()
+  const { otpId, otpEncryptionTargetBundle, goToStep, clearOtpSession } =
+    useAuth()
   const [code] = useState<string | null>(getCodeFromUrl)
   const [error, setError] = useState<Error | null>(null)
 
@@ -26,14 +21,12 @@ export function Verifying() {
   const { mutate: verifyMagicLink, isPending: isVerificationLoading } =
     useVerifyMagicLink({
       mutation: {
-        onSuccess: async () => {
+        onSuccess: () => {
           clearOtpSession()
           goToStep('authenticated')
-          config?.onSuccess?.()
         },
         onError: (err) => {
           setError(err)
-          config?.onError?.(err)
         },
       },
     })

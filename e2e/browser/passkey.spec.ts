@@ -16,6 +16,7 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { expectLabReady } from '../helpers/ui-login.js'
 import {
+  getVirtualCredentials,
   setupVirtualAuthenticator,
   teardownVirtualAuthenticator,
   type VirtualAuthenticator,
@@ -40,6 +41,26 @@ async function registerAndEnterLab(page: Page): Promise<VirtualAuthenticator> {
 
 test.describe('Passkey Flow', () => {
   let virtualAuth: VirtualAuthenticator
+
+  test('registers a discoverable (resident) passkey', async ({ page }) => {
+    // The regression guard for the login flow: login resolves credentials with
+    // an empty allowCredentials list, so a passkey the SDK registers must be
+    // resident/discoverable or it can never be used to log in. The virtual
+    // authenticator honors the residentKey hint, so a non-resident credential
+    // here would mean broken login.
+    virtualAuth = await registerAndWaitForDashboard(page)
+
+    try {
+      const credentials = await getVirtualCredentials(virtualAuth)
+      expect(credentials.length).toBeGreaterThan(0)
+      for (const cred of credentials) {
+        expect(cred.isResidentCredential).toBe(true)
+      }
+      console.log('Passkey registered as a discoverable (resident) credential')
+    } finally {
+      await teardownVirtualAuthenticator(virtualAuth)
+    }
+  })
 
   test('should register with passkey and sign a message', async ({ page }) => {
     virtualAuth = await registerAndEnterLab(page)

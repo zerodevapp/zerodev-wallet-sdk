@@ -459,7 +459,12 @@ export async function createZeroDevWalletCore(
         projectId,
         getToken: async () => {
           const activeSession = await sessionStorageManager.getActiveSession()
-          return activeSession?.token ?? ''
+          if (!activeSession?.token) {
+            throw new Error(
+              'No active session token; refusing to build an account without authentication.',
+            )
+          }
+          return activeSession.token
         },
       })
     },

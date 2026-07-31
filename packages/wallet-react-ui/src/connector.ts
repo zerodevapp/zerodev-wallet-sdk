@@ -7,8 +7,6 @@ import {
   zeroDevWallet as baseZeroDevWallet,
   NotAuthenticatedError,
 } from '@zerodev/wallet-react'
-import type { ReactNode } from 'react'
-import type { AuthConfig } from './auth/types'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
 
@@ -20,18 +18,9 @@ const DEFAULT_SIGNING_PROMPT_METHODS: RequestMethod[] = [
   'eth_signTypedData_v4',
 ]
 
-export type ZeroDevKitConfig = {
-  auth?: AuthConfig
-  /**
-   * Optional brand logo rendered in the auth flow's top nav. When omitted,
-   * no logo is shown. `PoweredBy` always shows the ZeroDev mark independently.
-   */
-  logo?: ReactNode
-}
-
-export type ZeroDevKitConnectorParams = ZeroDevWalletConnectorParams & {
-  config?: ZeroDevKitConfig
-}
+/** The kit connector takes exactly the base connector's param
+ We alias it to leave room for expansion */
+export type ZeroDevKitConnectorParams = ZeroDevWalletConnectorParams
 
 function requireUserConfirmation(
   store: ReturnType<typeof createStore>,
@@ -74,12 +63,7 @@ export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
   const baseFactory = baseZeroDevWallet(params)
-  const store = createStore({ logo: params.config?.logo })
-
-  // Initialize auth config if provided
-  if (params.config?.auth) {
-    store.getState().auth.initialize(params.config.auth)
-  }
+  const store = createStore()
 
   return (wagmiConfig) => {
     const connector = baseFactory(wagmiConfig)
@@ -101,7 +85,6 @@ export function zeroDevWallet(
         } catch (error) {
           if (
             connectParams?.isReconnecting ||
-            !params.config?.auth ||
             !(error instanceof NotAuthenticatedError)
           ) {
             throw error
@@ -119,24 +102,25 @@ export function zeroDevWallet(
 
       async disconnect() {
         await connector.disconnect?.()
-        if (params.config?.auth) {
-          store.getState().auth.reset()
-        }
+        store.getState().auth.reset()
       },
 
       async setup() {
         await connector.setup?.()
 
-        // Request-wrapping is only meaningful in the browser (it gates calls
-        // on UI confirmation). Skip during SSR — getProvider() touches
-        // `window` for EIP-6963 discovery and would crash on the server.
+        // Everything below is browser-only. Skip during SSR — getProvider()
+        // touches `window` for EIP-6963 discovery and would crash on the
+        // server, and the session restore reads localStorage.
         if (typeof window === 'undefined') return
+
+        // Restore a persisted OTP session so an email flow survives a reload.
+        store.getState().auth.initialize()
 
         // Signing is pinned to background mode: the prompt-mode confirmation UI
         // is not part of this package's public surface, so requests always pass
         // through without gating. The wrapping logic below is retained but
         // unreachable.
-        // const signing = params.config?.signing
+        // const signing = params.signing
         const signing = { mode: 'background' } as const
         if (signing.mode === 'background') return
 

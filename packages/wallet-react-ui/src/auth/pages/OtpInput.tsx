@@ -12,7 +12,6 @@ export function OtpInput() {
     setOtpSession,
     clearOtpSession,
     goToStep,
-    config,
   } = useAuth()
   const { mutateAsync: sendOtp, isPending: isSendOtpPending } = useSendOTP()
   const { mutateAsync: verifyOtp, isPending } = useVerifyOTP()
@@ -43,10 +42,8 @@ export function OtpInput() {
       })
       clearOtpSession()
       goToStep('authenticated')
-      config?.onSuccess?.()
-    } catch (err) {
+    } catch {
       setError(true)
-      config?.onError?.(err)
     }
   }
 

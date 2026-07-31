@@ -1,5 +1,21 @@
 # @zerodev/wallet-react
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [8769b2c]
+  - @zerodev/wallet-core@0.0.3
+
+## 0.0.4
+
+### Patch Changes
+
+- 8bd66e2: fix: the expired-session retry storm: useAuthenticators no longer retries 4xx, and an already-expired session is dropped (and re-checked on tab focus) so returning-after-expiry users re-authenticate instead of hammering the backend with a dead key. Adds isClientError / shouldRetryRequest for gating your own QueryClient retries.
+- c8dceeb: fix: require a valid, non-zero owner when building the account. The wallet address is now validated before use — `getToken` throws on a missing session token, `toViemAccount` refuses a missing/malformed/zero address, and account derivation re-checks the owner.
+- Updated dependencies [c8dceeb]
+  - @zerodev/wallet-core@0.0.2
+
 ## 0.0.3
 
 ### Patch Changes
