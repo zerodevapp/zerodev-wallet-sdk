@@ -176,7 +176,10 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
               <ExternalLink className="h-4 w-4" />
             </a>
           )}
-          <span className="hidden shrink-0 rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 lg:inline">
+          <span
+            className="hidden shrink-0 rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 lg:inline"
+            data-testid="wallet-auth-method"
+          >
             {authMethodLabel}
           </span>
         </div>
