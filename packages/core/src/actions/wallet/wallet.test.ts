@@ -664,7 +664,7 @@ describe('getUserWallet', () => {
     })
 
     expect(mockClient.request).toHaveBeenCalledWith({
-      path: 'proj-456/user-wallet',
+      path: 'proj-456/wallets',
       method: 'GET',
       headers: {
         Authorization: 'Bearer bearer-token-jwt',
