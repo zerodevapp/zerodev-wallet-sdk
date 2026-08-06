@@ -78,7 +78,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@zerodev/smart-routing-address": "^0.2.5",
     "happy-dom": "^20.6.0",
-    "postcss": "^8.5.8",
+    "postcss": "^8.5.23",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "storybook": "^10.3.3",
