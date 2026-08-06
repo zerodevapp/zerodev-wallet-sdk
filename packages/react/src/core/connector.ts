@@ -101,8 +101,14 @@ export function zeroDevWalletCore(
 
   return createConnector<Provider, Properties>((wagmiConfig) => {
     let store: ReturnType<typeof createZeroDevWalletStore>
-    let provider: ReturnType<typeof createProvider>
+    let provider: ReturnType<typeof createProvider> | undefined
     let initPromise: Promise<void> | null = null
+
+    const resetProvider = () => {
+      provider?.destroy()
+      provider = undefined
+      initPromise = null
+    }
 
     // Get transports from Wagmi config (uses user's RPC URLs)
     const transports = wagmiConfig.transports
@@ -172,7 +178,6 @@ export function zeroDevWalletCore(
               },
             }),
       })
-      store.getState().setKernelAccount(chainId, kernelAccount)
 
       const kernelClient = createKernelAccountClient({
         account: kernelAccount,
@@ -190,6 +195,7 @@ export function zeroDevWalletCore(
           ),
         }),
       })
+      store.getState().setKernelAccount(chainId, kernelAccount)
       store.getState().setKernelClient(chainId, kernelClient)
     }
 
@@ -209,10 +215,19 @@ export function zeroDevWalletCore(
       ? { fetchOptions: params.fetchOptions }
       : undefined
 
+    const switchActiveChain = async (chainId: number) => {
+      await setupChain(chainId, httpOpts)
+      store.getState().setActiveChainId(chainId)
+      wagmiConfig.emitter.emit('change', { chainId })
+    }
+
     // Lazy initialization - only runs on client side (idempotent)
     const initialize = async () => {
       if (initPromise) return initPromise
-      initPromise = doInitialize()
+      initPromise = doInitialize().catch((error) => {
+        initPromise = null
+        throw error
+      })
       return initPromise
     }
 
@@ -260,21 +275,24 @@ export function zeroDevWalletCore(
         projectId: params.projectId,
       })
 
-      // Create EIP-1193 provider
-      provider = createProvider({
-        store,
-        config: params,
-        chains: Array.from(params.chains),
-      })
-
       // Check for existing session (page reload)
       const session = await wallet.getSession()
       if (session) {
         console.log('Found existing session, restoring...')
         const eoaAccount = await wallet.toAccount()
         store.getState().setEoaAccount(eoaAccount)
-        store.getState().setSession(session)
       }
+      // Core is the source of truth. This explicitly erases any stale React
+      // session hydrated by an older SDK version when Core has no valid match.
+      store.getState().setSession(session ?? null)
+
+      // Start provider timers only after the validated Core session is loaded.
+      provider = createProvider({
+        store,
+        config: params,
+        chains: Array.from(params.chains),
+        switchChain: switchActiveChain,
+      })
 
       console.log('ZeroDevWallet connector initialized')
     }
@@ -360,9 +378,10 @@ export function zeroDevWalletCore(
         if (!store) return
         const wallet = store.getState().wallet
 
-        // Cleanup provider (clears timers)
-        provider?.destroy()
-
+        // Stop refresh immediately when the user asks to disconnect. If
+        // remote revocation fails, Core keeps the credentials for an explicit
+        // retry, but this dead provider cannot silently extend the session.
+        resetProvider()
         await wallet?.logout()
         store.getState().clear()
       },
@@ -396,6 +415,9 @@ export function zeroDevWalletCore(
 
       async getProvider() {
         await initialize()
+        if (!provider) {
+          throw new Error('ZeroDevWallet provider failed to initialize')
+        }
         return provider
       },
 
@@ -407,11 +429,12 @@ export function zeroDevWalletCore(
           throw new NotAuthenticatedError()
         }
 
-        store.getState().setActiveChainId(chainId)
-        await setupChain(chainId, httpOpts)
-
-        wagmiConfig.emitter.emit('change', { chainId })
-        return params.chains.find((c) => c.id === chainId)!
+        const chain = params.chains.find(
+          (candidate) => candidate.id === chainId,
+        )
+        if (!chain) throw new Error(`Chain ${chainId} not found in config`)
+        await switchActiveChain(chainId)
+        return chain
       },
 
       async isAuthorized() {
@@ -438,7 +461,7 @@ export function zeroDevWalletCore(
       },
       onDisconnect() {
         console.log('Disconnect event')
-        provider?.destroy()
+        resetProvider()
         store.getState().clear()
       },
     }

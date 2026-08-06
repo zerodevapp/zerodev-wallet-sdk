@@ -1,12 +1,13 @@
 import type { KernelAccountClient } from '@zerodev/sdk'
-import type { LocalAccount } from 'viem'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { privateKeyToAccount } from 'viem/accounts'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mainnet, sepolia } from 'wagmi/chains'
-import type { WalletMode } from './connector.js'
+import type { WalletMode } from './core/connector.js'
 import { createProvider } from './provider.js'
 import { createZeroDevWalletStore } from './store.js'
 
-const EOA_ADDRESS = '0xeoa000000000000000000000000000000000abcd'
+const EOA_ACCOUNT = privateKeyToAccount(`0x${'11'.repeat(32)}`)
+const EOA_ADDRESS = EOA_ACCOUNT.address
 
 const sendUserOperationMock = vi.fn()
 const getUserOperationReceiptMock = vi.fn()
@@ -19,7 +20,7 @@ const mockKernelClient = {
 function createTestProvider(mode?: WalletMode) {
   const store = createZeroDevWalletStore()
   store.getState().setActiveChainId(sepolia.id)
-  store.getState().setEoaAccount({ address: EOA_ADDRESS } as LocalAccount)
+  store.getState().setEoaAccount(EOA_ACCOUNT)
   store.getState().setKernelClient(sepolia.id, mockKernelClient)
 
   return createProvider({
@@ -36,6 +37,10 @@ function createTestProvider(mode?: WalletMode) {
 beforeEach(() => {
   sendUserOperationMock.mockReset()
   getUserOperationReceiptMock.mockReset()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('wallet_sendCalls', () => {
@@ -237,7 +242,7 @@ describe('wallet_getCallsStatus', () => {
     // status response must reflect the bundle's chain, not the active one.
     const store = createZeroDevWalletStore()
     store.getState().setActiveChainId(sepolia.id)
-    store.getState().setEoaAccount({ address: EOA_ADDRESS } as LocalAccount)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
     store.getState().setKernelClient(mainnet.id, mockKernelClient)
     const provider = createProvider({
       store,
@@ -292,5 +297,255 @@ describe('wallet_getCapabilities', () => {
     })) as Record<string, { atomic: { status: string } }>
 
     expect(result['0xaa36a7'].atomic.status).toBe('unsupported')
+  })
+})
+
+describe('provider state safety', () => {
+  it('auto-refreshes a 15-minute session at the default one-minute threshold', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    const store = createZeroDevWalletStore()
+    const wallet = {
+      refreshSession: vi.fn().mockReturnValue(new Promise(() => {})),
+    }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession({
+      id: 'fifteen-minute-session',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey',
+      token: 'jwt',
+      expiry: Date.now() + 15 * 60_000,
+      createdAt: Date.now(),
+    })
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    vi.advanceTimersByTime(14 * 60_000 - 1)
+    expect(wallet.refreshSession).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    expect(wallet.refreshSession).toHaveBeenCalledOnce()
+    provider.destroy()
+  })
+
+  it('does not let an in-flight refresh restore a cleared session', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    const store = createZeroDevWalletStore()
+    const session = {
+      id: 'session-1',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      token: 'jwt',
+      expiry: Date.now() + 30_000,
+      createdAt: Date.now(),
+    }
+    const replacement = { ...session, id: 'session-2', token: 'new-jwt' }
+    let resolveRefresh = (_session: typeof replacement) => {}
+    const refresh = new Promise<typeof replacement>((resolve) => {
+      resolveRefresh = resolve
+    })
+    const wallet = { refreshSession: vi.fn().mockReturnValue(refresh) }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession(session)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    await vi.waitFor(() => expect(wallet.refreshSession).toHaveBeenCalledOnce())
+
+    store.getState().clear()
+    resolveRefresh(replacement)
+    await refresh
+    await Promise.resolve()
+
+    expect(store.getState().session).toBeNull()
+    expect(store.getState().eoaAccount).toBeNull()
+    provider.destroy()
+  })
+
+  it('clears a session that expired while hidden without refreshing it', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    const store = createZeroDevWalletStore()
+    const wallet = { refreshSession: vi.fn() }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession({
+      id: 'expired-in-background',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey',
+      token: 'jwt',
+      expiry: Date.now() + 120_000,
+      createdAt: Date.now(),
+    })
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+    store
+      .getState()
+      .setKernelAccount(sepolia.id, { address: EOA_ADDRESS } as never)
+    store.getState().setKernelClient(sepolia.id, mockKernelClient)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    vi.setSystemTime(Date.now() + 121_000)
+    expect(document.visibilityState).toBe('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(wallet.refreshSession).not.toHaveBeenCalled()
+    expect(store.getState().session).toBeNull()
+    expect(store.getState().eoaAccount).toBeNull()
+    expect(store.getState().kernelAccounts.size).toBe(0)
+    expect(store.getState().kernelClients.size).toBe(0)
+    provider.destroy()
+  })
+
+  it('preserves a still-valid identity when auto-refresh fails transiently', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = createZeroDevWalletStore()
+    const session = {
+      id: 'session-1',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      token: 'jwt',
+      expiry: Date.now() + 30_000,
+      createdAt: Date.now(),
+    }
+    const wallet = {
+      refreshSession: vi.fn().mockRejectedValue(new Error('network down')),
+    }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession(session)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    await vi.waitFor(() => expect(wallet.refreshSession).toHaveBeenCalledOnce())
+    await Promise.resolve()
+
+    expect(store.getState().session).toEqual(session)
+    expect(store.getState().eoaAccount?.address).toBe(EOA_ADDRESS)
+    expect(vi.getTimerCount()).toBeGreaterThan(0)
+    provider.destroy()
+  })
+
+  it('clears a session rejected during auto-refresh instead of retrying it', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = createZeroDevWalletStore()
+    const wallet = {
+      refreshSession: vi.fn().mockRejectedValue({ status: 401 }),
+      logout: vi.fn().mockResolvedValue(true),
+    }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession({
+      id: 'rejected-session',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey',
+      token: 'jwt',
+      expiry: Date.now() + 30_000,
+      createdAt: Date.now(),
+    })
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    await vi.waitFor(() => expect(wallet.logout).toHaveBeenCalledOnce())
+
+    expect(wallet.logout).toHaveBeenCalledWith()
+    expect(store.getState().session).toBeNull()
+    expect(store.getState().eoaAccount).toBeNull()
+    provider.destroy()
+  })
+
+  it('preserves retryable state when rejected-session cleanup also fails', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const store = createZeroDevWalletStore()
+    const session = {
+      id: 'rejected-session',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      token: 'jwt',
+      expiry: Date.now() + 30_000,
+      createdAt: Date.now(),
+    }
+    const wallet = {
+      refreshSession: vi.fn().mockRejectedValue({ status: 401 }),
+      logout: vi.fn().mockRejectedValue(new Error('backend unavailable')),
+    }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession(session)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    await vi.waitFor(() => expect(wallet.logout).toHaveBeenCalledOnce())
+    await Promise.resolve()
+
+    expect(store.getState().session).toEqual(session)
+    expect(store.getState().eoaAccount).toBe(EOA_ACCOUNT)
+    expect(vi.getTimerCount()).toBeGreaterThan(0)
+    provider.destroy()
+  })
+
+  it('does not commit a provider chain switch when setup fails', async () => {
+    const store = createZeroDevWalletStore()
+    store.getState().setActiveChainId(sepolia.id)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+    const switchChain = vi.fn().mockRejectedValue(new Error('setup failed'))
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia, mainnet] },
+      chains: [sepolia, mainnet],
+      switchChain,
+    })
+
+    await expect(
+      provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x1' }],
+      }),
+    ).rejects.toThrow('setup failed')
+
+    expect(store.getState().activeChainId).toBe(sepolia.id)
+    provider.destroy()
+  })
+
+  it('rejects personal_sign for an address other than the active owner', async () => {
+    const provider = createTestProvider('EOA')
+
+    await expect(
+      provider.request({
+        method: 'personal_sign',
+        params: ['0x1234', '0x2222222222222222222222222222222222222222'],
+      }),
+    ).rejects.toThrow('Invalid from address')
   })
 })

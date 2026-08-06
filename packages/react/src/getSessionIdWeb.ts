@@ -14,6 +14,7 @@ function openOAuthPopup(url: string): Window | null {
   )
 
   if (authWindow) {
+    authWindow.opener = null
     authWindow.location.href = url
   }
 

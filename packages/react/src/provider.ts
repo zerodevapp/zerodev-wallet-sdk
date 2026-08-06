@@ -55,6 +55,7 @@ type CreateProviderParams = {
   store: ReturnType<typeof createZeroDevWalletStore>
   config: ConnectorCoreParams
   chains: Chain[]
+  switchChain?: (chainId: number) => Promise<void>
 }
 
 export type ZeroDevProvider = ReturnType<typeof Provider.createEmitter> & {
@@ -65,11 +66,13 @@ export type ZeroDevProvider = ReturnType<typeof Provider.createEmitter> & {
 export function createProvider({
   store,
   config,
+  switchChain,
 }: CreateProviderParams): ZeroDevProvider {
   // Mirrors the default in `connector.ts` — keep these in sync.
   const mode: WalletMode = config.mode ?? '7702'
   const emitter = Provider.createEmitter()
   let sessionRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  let refreshPromise: Promise<void> | null = null
 
   // Session auto-refresh logic
   const scheduleSessionRefresh = () => {
@@ -98,7 +101,7 @@ export function createProvider({
     }
 
     const threshold =
-      config.sessionWarningThreshold || SESSION_WARNING_THRESHOLD_MS
+      config.sessionWarningThreshold ?? SESSION_WARNING_THRESHOLD_MS
     const refreshAt = expiryMs - threshold
     const timeUntilRefresh = refreshAt - now
 
@@ -113,27 +116,66 @@ export function createProvider({
     }
   }
 
-  const refreshSessionNow = async () => {
+  const refreshSessionNow = async (): Promise<void> => {
+    if (refreshPromise) return refreshPromise
+
     const state = store.getState()
     if (!state.wallet || !state.session) return
 
-    console.log('Auto-refreshing session...')
-    store.getState().setIsExpiring(true)
-
-    try {
-      const newSession = await state.wallet.refreshSession(state.session.id)
-      console.log('Session refreshed successfully')
-      store.getState().setSession(newSession || null)
-      store.getState().setIsExpiring(false)
-
-      if (newSession) {
-        scheduleSessionRefresh()
-      }
-    } catch (err) {
-      console.error('Session refresh failed:', err)
-      store.getState().setIsExpiring(false)
+    const wallet = state.wallet
+    const session = state.session
+    if (normalizeTimestamp(session.expiry) <= Date.now()) {
       store.getState().clear()
+      return
     }
+
+    refreshPromise = (async () => {
+      console.log('Auto-refreshing session...')
+      store.getState().setIsExpiring(true)
+
+      try {
+        const newSession = await wallet.refreshSession(session.id)
+        if (store.getState().session?.id !== session.id) return
+        console.log('Session refreshed successfully')
+        store.getState().setSession(newSession || null)
+        store.getState().setIsExpiring(false)
+      } catch (err) {
+        console.error('Session refresh failed:', err)
+        if (store.getState().session?.id !== session.id) return
+        store.getState().setIsExpiring(false)
+
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'status' in err &&
+          err.status === 401
+        ) {
+          try {
+            await wallet.logout()
+            store.getState().clear()
+            return
+          } catch (logoutError) {
+            console.error('Failed to clear rejected session:', logoutError)
+          }
+        }
+
+        const timeRemaining = normalizeTimestamp(session.expiry) - Date.now()
+        if (timeRemaining <= 0) {
+          store.getState().clear()
+          return
+        }
+        // A temporary backend/network failure must not discard a still-valid
+        // identity. Retry without recursively re-entering the warning window.
+        sessionRefreshTimer = setTimeout(
+          () => refreshSessionNow(),
+          Math.min(5_000, timeRemaining),
+        )
+      }
+    })().finally(() => {
+      refreshPromise = null
+    })
+
+    return refreshPromise
   }
 
   // Subscribe to session changes
@@ -371,7 +413,8 @@ export function createProvider({
             throw new Error('Missing sign parameters')
           }
 
-          const [message] = params
+          const [message, address] = params
+          validateFromAddress(activeChainId, address)
           const account = await signerForActiveChain(state, activeChainId, mode)
           if (!account) throw new NotAuthenticatedError()
 
@@ -385,7 +428,8 @@ export function createProvider({
             throw new Error('Missing typed data parameters')
           }
 
-          const [, typedDataJson] = params
+          const [address, typedDataJson] = params
+          validateFromAddress(activeChainId, address)
           const account = await signerForActiveChain(state, activeChainId, mode)
           if (!account) throw new NotAuthenticatedError()
 
@@ -400,9 +444,15 @@ export function createProvider({
 
           const [{ chainId }] = params
           const chainId_number = parseInt(chainId, 16)
-
-          // Update active chain
-          store.getState().setActiveChainId(chainId_number)
+          if (
+            !config.chains.some((candidate) => candidate.id === chainId_number)
+          ) {
+            throw new Error(`Chain ${chainId_number} not found in config`)
+          }
+          if (!switchChain) {
+            throw new Error('Chain switching is not configured')
+          }
+          await switchChain(chainId_number)
 
           // Emit chainChanged event
           emitter.emit('chainChanged', chainId)
