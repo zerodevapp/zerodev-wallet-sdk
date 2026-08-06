@@ -32,6 +32,8 @@ type GuerrillaMessage = {
   mail_subject: string
 }
 
+const consumedMessageIds = new Map<string, Set<string>>()
+
 /**
  * Pings the email service to check availability.
  * @throws If the service is unavailable
@@ -112,10 +114,13 @@ export async function searchForNewEmail(
 
       const listData = await listRes.json()
       const messages: GuerrillaMessage[] = listData.list ?? []
+      const consumed = consumedMessageIds.get(authToken) ?? new Set<string>()
       // Guerrilla seeds every new inbox with its own welcome email; ignore it
-      // so we wait for the actual OTP rather than extracting from the greeting.
+      // and any OTP already consumed by this test process. The latter matters
+      // when the same wallet logs in twice: the old email remains in the inbox.
       const message = messages.find(
-        (m) => !/guerrillamail\.com/i.test(m.mail_from),
+        (m) =>
+          !/guerrillamail\.com/i.test(m.mail_from) && !consumed.has(m.mail_id),
       )
       if (!message) continue
 
@@ -131,7 +136,11 @@ export async function searchForNewEmail(
       const emailData = await emailRes.json()
       const subject = emailData.mail_subject ?? ''
       const body = emailData.mail_body ?? ''
-      if (subject || body) return `${subject}\n\n${body}`
+      if (subject || body) {
+        consumed.add(message.mail_id)
+        consumedMessageIds.set(authToken, consumed)
+        return `${subject}\n\n${body}`
+      }
     } catch (err) {
       // Network errors during polling — keep trying
       if (Date.now() >= deadline) throw err

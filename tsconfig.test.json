@@ -1,10 +1,9 @@
 {
   "extends": "./templates/typescript/tsconfig.base.json",
   "include": [
+    "e2e/**/*.ts",
     "packages/core/src/**/*.ts",
-    "packages/react/src/**/*.ts",
-    "packages/wallet-react-ui/src/**/*.ts",
-    "packages/wallet-react-ui/src/**/*.tsx"
+    "packages/react/src/**/*.ts"
   ],
   "compilerOptions": {
     "noEmit": true,

@@ -4,7 +4,7 @@
  * by the production TLS Fetcher key (no `dangerouslyOverrideSignerPublicKey`).
  *
  * Doesn't require email service — only the backend on `upgrade_turnkey` and a
- * test project. Skipped without ZD_PROJECT_ID set.
+ * test project. Skipped without ZD_OTP_PROJECT_ID set.
  */
 
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -23,9 +23,9 @@ describe('OTP init wire shape', () => {
       skipReason = `Backend not reachable at ${BACKEND_URL}`
       return
     }
-    projectId = process.env.ZD_PROJECT_ID || ''
+    projectId = process.env.ZD_OTP_PROJECT_ID || ''
     if (!projectId) {
-      skipReason = 'ZD_PROJECT_ID not set'
+      skipReason = 'ZD_OTP_PROJECT_ID not set'
       return
     }
   })

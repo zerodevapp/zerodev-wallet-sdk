@@ -13,20 +13,8 @@
  */
 
 import { expect, test } from '@playwright/test'
-import {
-  EMAIL_POLL_INTERVAL_MS,
-  EMAIL_POLL_TIMEOUT_MS,
-} from '../helpers/constants.js'
-
-// Demo app uses 6-digit OTP codes (configured in zerodev-signer-demo)
-const DEMO_APP_OTP_LENGTH = 6
-
-import { extractOtpCode } from '../helpers/otp-utils.js'
-import {
-  createNewAccount,
-  ping,
-  searchForNewEmail,
-} from '../helpers/temp-email.js'
+import { createNewAccount, ping } from '../helpers/temp-email.js'
+import { loginWithOtp } from '../helpers/ui-login.js'
 
 test.describe('OTP Flow', () => {
   test.beforeEach(async () => {
@@ -38,50 +26,21 @@ test.describe('OTP Flow', () => {
   })
 
   test('should complete OTP login through the UI', async ({ page }) => {
-    // Step 1: Create temp email
     const emailAccount = await createNewAccount()
-    const email = emailAccount.address
+    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await expect(page.getByText('Your Smart Wallet')).toBeVisible()
+  })
 
-    // Step 2: Seed the demo's email-method choice so wagmi-config picks OTP
-    // on first paint. Then navigate.
-    await page.addInitScript(() => {
-      localStorage.setItem('zd:emailAuthMethod', 'otp')
-    })
-    await page.goto('/')
-    await expect(page.getByText('Continue to your wallet')).toBeVisible()
+  test('should verify OTP for an existing wallet after logout', async ({
+    page,
+  }) => {
+    const emailAccount = await createNewAccount()
+    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
 
-    // Step 3: Enter email and submit (press Enter)
-    await page.getByPlaceholder('Enter your email').fill(email)
-    await page.getByPlaceholder('Enter your email').press('Enter')
+    await page.getByRole('button', { name: /Logout/i }).click()
+    await page.waitForURL('/', { timeout: 30_000 })
 
-    // Step 5: Wait for OTP verification step
-    await expect(
-      page.getByText(`Enter the code from the email we sent to ${email}`, {
-        exact: false,
-      }),
-    ).toBeVisible({ timeout: 30_000 })
-
-    // Step 6: Poll for email and extract OTP code
-    const emailContent = await searchForNewEmail(
-      emailAccount.authToken,
-      EMAIL_POLL_INTERVAL_MS,
-      EMAIL_POLL_TIMEOUT_MS,
-    )
-    const otpCode = extractOtpCode(emailContent, DEMO_APP_OTP_LENGTH, true)
-    expect(otpCode).toBeTruthy()
-
-    // Step 7: Enter OTP code
-    await page.getByLabel('Verification code').fill(otpCode!)
-
-    // Step 8: Click verify
-    await page.getByRole('button', { name: /Confirm code/i }).click()
-
-    // Step 9: Wait for dashboard redirect
-    await page.waitForURL('**/dashboard', { timeout: 60_000 })
-
-    // Step 10: Verify dashboard elements (wallet creation can take time)
-    await expect(page.getByText('Your Smart Wallet')).toBeVisible({
-      timeout: 60_000,
-    })
+    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await expect(page.getByText('Your Smart Wallet')).toBeVisible()
   })
 })

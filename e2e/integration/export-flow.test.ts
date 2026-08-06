@@ -81,9 +81,9 @@ describe('Wallet Export', () => {
 
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
 
-    projectId = process.env.ZD_PROJECT_ID || ''
+    projectId = process.env.ZD_OTP_PROJECT_ID || ''
     if (!projectId) {
-      skipReason = 'ZD_PROJECT_ID not set'
+      skipReason = 'ZD_OTP_PROJECT_ID not set'
       return
     }
   })

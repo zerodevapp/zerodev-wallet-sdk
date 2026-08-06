@@ -28,7 +28,10 @@ import {
   EMAIL_POLL_TIMEOUT_MS,
   OTP_CODE_LENGTH,
 } from '../helpers/constants.js'
-import { extractOtpCode } from '../helpers/otp-utils.js'
+import {
+  extractOtpCode,
+  extractOtpCodeFromMagicLinkUrl,
+} from '../helpers/otp-utils.js'
 import {
   createNewAccount,
   ping,
@@ -63,9 +66,9 @@ describe('OTP Authentication Flow', () => {
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
 
     // Get project ID from env
-    projectId = process.env.ZD_PROJECT_ID || ''
+    projectId = process.env.ZD_OTP_PROJECT_ID || ''
     if (!projectId) {
-      skipReason = 'ZD_PROJECT_ID not set'
+      skipReason = 'ZD_OTP_PROJECT_ID not set'
       return
     }
   })
@@ -81,8 +84,8 @@ describe('OTP Authentication Flow', () => {
     // Step 2: Create test stamper (Node.js ECDSA P-256 implementation)
     const stamper = createTestStamper()
     const publicKey = await stamper.getPublicKey()
-    expect(publicKey).toBeTruthy()
-    console.log(`Generated public key: ${publicKey!.substring(0, 16)}...`)
+    if (!publicKey) throw new Error('Test stamper returned no public key')
+    console.log(`Generated public key: ${publicKey.substring(0, 16)}...`)
 
     // Step 3: Create SDK client with test transport (includes Origin header)
     const client = createTestClient(stamper)
@@ -104,15 +107,16 @@ describe('OTP Authentication Flow', () => {
       EMAIL_POLL_INTERVAL_MS,
       EMAIL_POLL_TIMEOUT_MS,
     )
+    expect(extractOtpCodeFromMagicLinkUrl(emailContent)).toBeNull()
     const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)
-    expect(otpCode).toBeTruthy()
+    if (!otpCode) throw new Error('Plain-OTP email contained no code')
     console.log(`Extracted OTP code: ${otpCode}`)
 
     // Step 6: HPKE-seal the OTP attempt to the enclave's per-session target
     // key, then verify with Auth Proxy.
     const encryptedOtpBundle = await encryptOtpAttempt({
-      otpCode: otpCode!,
-      publicKey: publicKey!,
+      otpCode,
+      publicKey,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
     })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })
@@ -126,7 +130,7 @@ describe('OTP Authentication Flow', () => {
     // Step 7: Build client signature
     const clientSignature = await buildClientSignature({
       verificationToken: verifyResult.verificationToken,
-      publicKey: publicKey!,
+      publicKey,
       stamper,
     })
     expect(clientSignature).toBeTruthy()
@@ -174,6 +178,7 @@ describe('OTP Authentication Flow', () => {
     // Create stamper and client
     const stamper = createTestStamper()
     const publicKey = await stamper.getPublicKey()
+    if (!publicKey) throw new Error('Test stamper returned no public key')
     const client = createTestClient(stamper)
 
     // Register with OTP
@@ -186,7 +191,7 @@ describe('OTP Authentication Flow', () => {
     // Try to verify with a wrong code
     const wrongEncryptedBundle = await encryptOtpAttempt({
       otpCode: 'WRONG12',
-      publicKey: publicKey!,
+      publicKey,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
     })
     const authProxyClient = createAuthProxyClient({ authProxyConfigId })

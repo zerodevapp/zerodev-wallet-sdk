@@ -1,7 +1,7 @@
 /**
  * Browser E2E test for wallet export.
  *
- * After OTP login, opens the Export Keys modal and verifies the real decrypted
+ * After magic-link login, opens the Export Keys modal and verifies the decrypted
  * secret is rendered inside the Turnkey export iframe:
  *   1. Seed phrase -> 12/24-word BIP-39 mnemonic
  *   2. Private key -> hex
@@ -15,7 +15,7 @@
 
 import { expect, type FrameLocator, type Page, test } from '@playwright/test'
 import { createNewAccount, ping } from '../helpers/temp-email.js'
-import { loginWithOtp } from '../helpers/ui-login.js'
+import { loginWithMagicLink } from '../helpers/ui-login.js'
 
 /**
  * Reads rendered text out of a Turnkey export iframe. Waits until the iframe
@@ -48,7 +48,7 @@ test.describe('Wallet Export', () => {
 
   test('should export the seed phrase', async ({ page }) => {
     const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
 
     await openExportModal(page)
     await page.getByRole('button', { name: /Seed Phrase/i }).click()
@@ -78,7 +78,7 @@ test.describe('Wallet Export', () => {
 
   test('should export the private key', async ({ page }) => {
     const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
 
     await openExportModal(page)
     await page.getByRole('button', { name: /Private Key/i }).click()

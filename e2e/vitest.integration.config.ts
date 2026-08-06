@@ -1,5 +1,5 @@
-import fs from 'node:fs'
-import path from 'node:path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import { defineConfig } from 'vitest/config'
 
 // Load `.env` from repo root (see `.env.example`) into process.env. Done
@@ -32,6 +32,7 @@ export default defineConfig({
   },
   test: {
     include: ['e2e/integration/**/*.test.ts'],
+    globalSetup: ['e2e/integration/global-setup.ts'],
     environment: 'node',
     testTimeout: 120_000,
     hookTimeout: 60_000,

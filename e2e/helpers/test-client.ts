@@ -15,7 +15,6 @@ import type {
 import { BACKEND_URL } from './constants.js'
 
 const noopStamper: PasskeyStamper = {
-  getPublicKey: async () => null,
   stamp: async () => ({ stampHeaderName: '', stampHeaderValue: '' }),
   clear: async () => {},
   register: async () => ({
