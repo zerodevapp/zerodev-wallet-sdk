@@ -1,5 +1,5 @@
 /**
- * E2E integration test for session management.
+ * Contract test for session management.
  *
  * After OTP login:
  * 1. Login with stamp using a new key pair (session refresh)

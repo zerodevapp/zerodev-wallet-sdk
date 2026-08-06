@@ -120,8 +120,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  integration-test:
-    name: Integration Tests
+  contract-test:
+    name: Contract Tests (live KMS)
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     needs: [build]
@@ -141,10 +141,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run integration tests
-        run: pnpm test:integration
+      - name: Run contract tests
+        run: pnpm test:contract:ci
         env:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+
+      # A fully skipped suite exits 0, so this job could not fail. `always()`
+      # keeps the skip count visible when the run above failed too.
+      - name: Verify contract tests
+        if: always()
+        run: pnpm test:contract:check
 
   e2e-test:
     name: Browser E2E Tests
