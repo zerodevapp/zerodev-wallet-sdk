@@ -1,41 +1,90 @@
 import { ApiKeyStamper, SignatureFormat } from '@turnkey/api-key-stamper'
-import { generateP256KeyPair } from '@turnkey/crypto'
+import { generateP256KeyPair, verifyStampSignature } from '@turnkey/crypto'
 import * as SecureStore from 'expo-secure-store'
 import type { ApiKeyStamper as ZDApiKeyStamper } from '../../stampers/types.js'
 
-const PUBLIC_KEY = 'zerodev.publicKey'
-const PRIVATE_KEY = 'zerodev.privateKey'
+const KEY_PAIR = 'zerodev.keyPair'
+const LEGACY_PUBLIC_KEY = 'zerodev.publicKey'
+const LEGACY_PRIVATE_KEY = 'zerodev.privateKey'
+
+type StoredKeyPair = { publicKey: string; privateKey: string }
+const KEY_PAIR_CHECK = 'ZeroDev Wallet key-pair ownership check'
+
+function parseKeyPair(value: string | null): StoredKeyPair | null {
+  if (!value) return null
+  try {
+    const pair = JSON.parse(value) as Partial<StoredKeyPair>
+    if (
+      typeof pair.publicKey !== 'string' ||
+      !pair.publicKey ||
+      typeof pair.privateKey !== 'string' ||
+      !pair.privateKey
+    ) {
+      return null
+    }
+    return pair as StoredKeyPair
+  } catch {
+    return null
+  }
+}
 
 class SecureStoreStamperInner {
   private publicKeyHex: string | null = null
 
   async init(): Promise<void> {
-    const publicKey = await SecureStore.getItemAsync(PUBLIC_KEY)
-    const privateKey = await SecureStore.getItemAsync(PRIVATE_KEY)
-
-    if (publicKey && privateKey) {
-      this.publicKeyHex = publicKey
-    } else {
-      await this.resetKeyPair()
+    const storedPair = parseKeyPair(await SecureStore.getItemAsync(KEY_PAIR))
+    if (storedPair) {
+      await this.validateKeyPair(storedPair)
+      this.publicKeyHex = storedPair.publicKey
+      return
     }
+
+    const publicKey = await SecureStore.getItemAsync(LEGACY_PUBLIC_KEY)
+    const privateKey = await SecureStore.getItemAsync(LEGACY_PRIVATE_KEY)
+    if (publicKey && privateKey) {
+      await this.persistKeyPair({ publicKey, privateKey })
+      await Promise.all([
+        SecureStore.deleteItemAsync(LEGACY_PUBLIC_KEY),
+        SecureStore.deleteItemAsync(LEGACY_PRIVATE_KEY),
+      ])
+      return
+    }
+
+    await this.resetKeyPair()
   }
 
   async getPublicKey(): Promise<string | null> {
     return this.publicKeyHex
   }
 
-  async resetKeyPair(externalKeyPair?: {
-    publicKey: string
-    privateKey: string
-  }): Promise<void> {
-    await this.clear()
-
+  async resetKeyPair(externalKeyPair?: StoredKeyPair): Promise<void> {
     const pair = externalKeyPair ?? generateP256KeyPair()
+    await this.persistKeyPair(pair)
+  }
 
-    await SecureStore.setItemAsync(PUBLIC_KEY, pair.publicKey)
-    await SecureStore.setItemAsync(PRIVATE_KEY, pair.privateKey)
-
+  private async persistKeyPair(pair: StoredKeyPair): Promise<void> {
+    await this.validateKeyPair(pair)
+    // SecureStore replaces one value atomically. Update memory only after the
+    // durable write succeeds, so a failed rotation preserves the live pair.
+    await SecureStore.setItemAsync(KEY_PAIR, JSON.stringify(pair))
     this.publicKeyHex = pair.publicKey
+  }
+
+  private async validateKeyPair(pair: StoredKeyPair): Promise<void> {
+    try {
+      const signature = await new ApiKeyStamper({
+        apiPublicKey: pair.publicKey,
+        apiPrivateKey: pair.privateKey,
+      }).sign(KEY_PAIR_CHECK, SignatureFormat.Der)
+      if (
+        await verifyStampSignature(pair.publicKey, signature, KEY_PAIR_CHECK)
+      ) {
+        return
+      }
+    } catch {
+      // Normalize invalid encoding and mismatched-key failures below.
+    }
+    throw new Error('Stored public and private keys do not match.')
   }
 
   private async getTurnkeyApiKeyStamper(): Promise<ApiKeyStamper> {
@@ -45,14 +94,14 @@ class SecureStoreStamperInner {
       )
     }
 
-    const privateKey = await SecureStore.getItemAsync(PRIVATE_KEY)
-    if (!privateKey) {
-      throw new Error('No private key found in secure store.')
+    const pair = parseKeyPair(await SecureStore.getItemAsync(KEY_PAIR))
+    if (!pair || pair.publicKey !== this.publicKeyHex) {
+      throw new Error('No matching key pair found in secure store.')
     }
 
     return new ApiKeyStamper({
       apiPublicKey: this.publicKeyHex,
-      apiPrivateKey: privateKey,
+      apiPrivateKey: pair.privateKey,
     })
   }
 
@@ -70,8 +119,13 @@ class SecureStoreStamperInner {
   }
 
   async clear(): Promise<void> {
-    await SecureStore.deleteItemAsync(PUBLIC_KEY)
-    await SecureStore.deleteItemAsync(PRIVATE_KEY)
+    // Remove legacy recovery sources first. If this fails, keep the atomic
+    // record authoritative so a later init cannot resurrect a revoked key.
+    await Promise.all([
+      SecureStore.deleteItemAsync(LEGACY_PUBLIC_KEY),
+      SecureStore.deleteItemAsync(LEGACY_PRIVATE_KEY),
+    ])
+    await SecureStore.deleteItemAsync(KEY_PAIR)
     this.publicKeyHex = null
   }
 }
@@ -117,6 +171,7 @@ export async function createSecureStoreStamper(): Promise<ZDApiKeyStamper> {
       return inner.sign(payload)
     },
     async clear() {
+      pendingKeyPair = null
       await inner.clear()
     },
     async resetKeyPair() {
@@ -128,11 +183,28 @@ export async function createSecureStoreStamper(): Promise<ZDApiKeyStamper> {
       pendingKeyPair = keyPair
       return keyPair.publicKey
     },
+    async stampPending(payload: string) {
+      if (!pendingKeyPair) throw new Error('No pending key rotation')
+      return new ApiKeyStamper({
+        apiPublicKey: pendingKeyPair.publicKey,
+        apiPrivateKey: pendingKeyPair.privateKey,
+      }).stamp(payload)
+    },
+    async signPending(payload: string) {
+      if (!pendingKeyPair) throw new Error('No pending key rotation')
+      return new ApiKeyStamper({
+        apiPublicKey: pendingKeyPair.publicKey,
+        apiPrivateKey: pendingKeyPair.privateKey,
+      }).sign(payload, SignatureFormat.Der)
+    },
     async commitKeyRotation() {
       if (!pendingKeyPair) {
         throw new Error('No pending key rotation to commit')
       }
       await inner.resetKeyPair(pendingKeyPair)
+      pendingKeyPair = null
+    },
+    async discardKeyRotation() {
       pendingKeyPair = null
     },
   }

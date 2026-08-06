@@ -1,6 +1,6 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
-import type { ApiKeyStamper, PasskeyStamper } from '../../stampers/types.js'
+import type { Stamper } from '../../stampers/types.js'
 import type { StamperType } from '../../types/session.js'
 
 export type RestRequestArgs = {
@@ -40,8 +40,8 @@ export type RestTransportConfig = {
   timeoutMs?: number
   key?: string
   name?: string
-  apiKeyStamper: ApiKeyStamper
-  passkeyStamper: PasskeyStamper
+  apiKeyStamper: Stamper
+  passkeyStamper: Stamper
 }
 
 export function rest(url: string, cfg: RestTransportConfig): RestTransport {
@@ -64,7 +64,7 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
 
       // Handle stamping if requested
       if (args.stamp) {
-        let stamper: ApiKeyStamper | PasskeyStamper
+        let stamper: Stamper
         if (args.stampWith === 'apiKey') {
           stamper = cfg.apiKeyStamper
         } else if (args.stampWith === 'passkey') {

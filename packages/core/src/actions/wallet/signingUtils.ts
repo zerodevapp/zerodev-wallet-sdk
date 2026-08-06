@@ -1,6 +1,14 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import type { Hex } from 'viem'
-import { hashMessage, keccak256, toHex } from 'viem'
+import {
+  hashMessage,
+  isAddress,
+  isAddressEqual,
+  keccak256,
+  recoverAddress,
+  toHex,
+  zeroAddress,
+} from 'viem'
 import type { Client } from '../../client/types.js'
 
 export type TurnkeyPayload = {
@@ -20,13 +28,25 @@ export function buildTurnkeyPayload(
   address: Hex,
   payloadHash: string,
 ): TurnkeyPayload {
+  if (
+    !isAddress(address, { strict: false }) ||
+    isAddressEqual(address, zeroAddress)
+  ) {
+    throw new Error(
+      `Refusing to sign with an invalid or zero address: ${address}`,
+    )
+  }
+  const normalizedPayloadHash = payloadHash.replace(/^0x/, '')
+  if (!/^[0-9a-fA-F]{64}$/.test(normalizedPayloadHash)) {
+    throw new Error('Refusing to sign a payload that is not a 32-byte hex hash')
+  }
   return {
     type: 'ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2',
     timestampMs: Date.now().toString(),
     organizationId,
     parameters: {
       signWith: address,
-      payload: payloadHash,
+      payload: normalizedPayloadHash,
       encoding: 'PAYLOAD_ENCODING_HEXADECIMAL',
       hashFunction: 'HASH_FUNCTION_NO_OP',
     },
@@ -63,7 +83,7 @@ export async function sendSigningRequest(
   const fullBodyString = canonicalizeEx(fullBody)
   const outerStamp = await client.apiKeyStamper.stamp(fullBodyString)
 
-  const { signature } = await client.request({
+  const response = await client.request({
     path: `${projectId}/${path}`,
     method: 'POST',
     body: fullBody,
@@ -72,8 +92,27 @@ export async function sendSigningRequest(
       Authorization: `Bearer ${token}`,
     },
   })
+  const signature = response?.signature
+  if (typeof signature !== 'string' || !signature) {
+    throw new Error('Signing response did not contain a valid signature')
+  }
 
-  return (signature.startsWith('0x') ? signature : `0x${signature}`) as Hex
+  const normalizedSignature = (
+    signature.startsWith('0x') ? signature : `0x${signature}`
+  ) as Hex
+  const recoveredAddress = await recoverAddress({
+    hash: `0x${turnkeyPayload.parameters.payload}`,
+    signature: normalizedSignature,
+  })
+  if (
+    !isAddressEqual(recoveredAddress, turnkeyPayload.parameters.signWith as Hex)
+  ) {
+    throw new Error(
+      `Signing response did not recover to expected owner ${turnkeyPayload.parameters.signWith}.`,
+    )
+  }
+
+  return normalizedSignature
 }
 
 /**

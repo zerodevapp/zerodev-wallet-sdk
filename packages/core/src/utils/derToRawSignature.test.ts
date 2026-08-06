@@ -169,6 +169,12 @@ describe('derToRawSignature', () => {
         'Invalid DER signature: expected INTEGER tag (0x02) for s',
       )
     })
+
+    it('throws when an INTEGER length exceeds the available input', () => {
+      expect(() => derToRawSignature('30040220aa')).toThrow(
+        'Invalid DER signature: truncated r value',
+      )
+    })
   })
 
   describe('real-world test vectors', () => {

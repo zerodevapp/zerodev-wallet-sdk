@@ -1,5 +1,5 @@
 import type { PartialBy } from 'viem'
-import type { ZeroDevWalletSession } from '../types/session.js'
+import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 
 /**
  * Parses a session from a JWT.
@@ -7,29 +7,50 @@ import type { ZeroDevWalletSession } from '../types/session.js'
  * @param token - The JWT to parse.
  * @returns {PartialBy<ZeroDevWalletSession, "createdAt" | "id" | "stamperType">} - The parsed session.
  */
-export function parseSession(
-  token: string | ZeroDevWalletSession,
-): PartialBy<ZeroDevWalletSession, 'createdAt' | 'id' | 'stamperType'> {
+export function parseSession(token: string | ZeroDevWalletSession): PartialBy<
+  ZeroDevWalletSession,
+  'createdAt' | 'id' | 'stamperType'
+> & {
+  publicKey?: string
+} {
   if (typeof token !== 'string') {
     return token
   }
-  const [, payload] = token.split('.')
-  if (!payload) {
+  const parts = token.split('.')
+  if (parts.length !== 3 || !parts[1]) {
     throw new Error('Invalid JWT: Missing payload')
   }
 
-  const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
-  const decoded = JSON.parse(atob(base64))
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+  const decoded: unknown = JSON.parse(atob(base64))
+  if (!decoded || typeof decoded !== 'object') {
+    throw new Error('JWT payload missing required fields')
+  }
   const {
     exp,
     public_key: publicKey,
     session_type: sessionType,
     user_id: userId,
     organization_id: organizationId,
-  } = decoded
+  } = decoded as Record<string, unknown>
 
-  if (!exp || !publicKey || !sessionType || !userId || !organizationId) {
+  if (
+    typeof exp !== 'number' ||
+    !Number.isFinite(exp) ||
+    exp <= 0 ||
+    typeof publicKey !== 'string' ||
+    !publicKey ||
+    (sessionType !== SessionType.READ_ONLY &&
+      sessionType !== SessionType.READ_WRITE) ||
+    typeof userId !== 'string' ||
+    !userId ||
+    typeof organizationId !== 'string' ||
+    !organizationId
+  ) {
     throw new Error('JWT payload missing required fields')
+  }
+  if (normalizeTimestamp(exp) <= Date.now()) {
+    throw new Error('JWT session is already expired')
   }
 
   return {
@@ -37,7 +58,8 @@ export function parseSession(
     userId,
     organizationId,
     expiry: exp,
-    token: publicKey,
+    token,
+    publicKey,
   }
 }
 
@@ -93,7 +115,9 @@ export function pointEncode(raw: Uint8Array): Uint8Array {
     throw new Error('Invalid x or y length')
   }
 
-  const prefix = (y[31]! & 1) === 0 ? 0x02 : 0x03
+  const lastY = y.at(-1)
+  if (lastY === undefined) throw new Error('Invalid y coordinate')
+  const prefix = (lastY & 1) === 0 ? 0x02 : 0x03
 
   const compressed = new Uint8Array(33)
   compressed[0] = prefix

@@ -23,8 +23,15 @@ export function derToRawSignature(derHex: string): string {
   }
   offset++ // Skip INTEGER tag
 
-  const rLength = der[offset]!
+  const rLength = der[offset]
+  if (rLength === undefined) {
+    throw new Error('Invalid DER signature: missing r length')
+  }
   offset++ // Skip length byte
+
+  if (offset + rLength > der.length) {
+    throw new Error('Invalid DER signature: truncated r value')
+  }
 
   const rBytes = der.slice(offset, offset + rLength)
   offset += rLength
@@ -35,8 +42,15 @@ export function derToRawSignature(derHex: string): string {
   }
   offset++ // Skip INTEGER tag
 
-  const sLength = der[offset]!
+  const sLength = der[offset]
+  if (sLength === undefined) {
+    throw new Error('Invalid DER signature: missing s length')
+  }
   offset++ // Skip length byte
+
+  if (offset + sLength > der.length) {
+    throw new Error('Invalid DER signature: truncated s value')
+  }
 
   const sBytes = der.slice(offset, offset + sLength)
 

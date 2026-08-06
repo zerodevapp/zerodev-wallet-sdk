@@ -20,30 +20,107 @@ export type StorageManager = {
   setActiveSession(sessionKey: string): Promise<void>
   clearSession(sessionKey: string): Promise<void>
   clearAllSessions(): Promise<void>
+  stageSessionTransition(
+    sessionData: ZeroDevWalletSession,
+    publicKey: string,
+  ): Promise<void>
+  commitSessionTransition(): Promise<ZeroDevWalletSession | undefined>
+  recoverSessionTransition(
+    activePublicKey: string | null,
+  ): Promise<ZeroDevWalletSession | undefined>
+}
+
+type SessionTransition = {
+  sessionData: ZeroDevWalletSession
+  publicKey: string
+}
+
+let mutationTail = Promise.resolve()
+
+function isStoredSession(value: unknown): value is ZeroDevWalletSession {
+  if (!value || typeof value !== 'object') return false
+  const session = value as Partial<ZeroDevWalletSession>
+  return (
+    typeof session.id === 'string' &&
+    typeof session.userId === 'string' &&
+    typeof session.organizationId === 'string' &&
+    (session.stamperType === 'apiKey' || session.stamperType === 'passkey') &&
+    typeof session.token === 'string' &&
+    session.token.length > 0 &&
+    typeof session.expiry === 'number' &&
+    Number.isFinite(session.expiry) &&
+    session.expiry > 0 &&
+    typeof session.createdAt === 'number' &&
+    Number.isFinite(session.createdAt)
+  )
 }
 
 export function createStorageManager(adapter: StorageAdapter): StorageManager {
   const ACTIVE_SESSION_KEY = '@zerodev/active_session'
   const ALL_SESSIONS_KEY = '@zerodev/sessions'
+  const SESSION_TRANSITION_KEY = '@zerodev/session_transition'
+
+  const withMutation = async <T>(mutation: () => Promise<T>): Promise<T> => {
+    const result = mutationTail.then(mutation)
+    mutationTail = result.then(
+      () => undefined,
+      () => undefined,
+    )
+    return result
+  }
+
+  const parseSessionKeys = (value: string | null): string[] | undefined => {
+    if (!value) return []
+    try {
+      const parsed: unknown = JSON.parse(value)
+      if (
+        !Array.isArray(parsed) ||
+        !parsed.every((key): key is string => typeof key === 'string')
+      ) {
+        return undefined
+      }
+      return parsed
+    } catch {
+      return undefined
+    }
+  }
+
+  const restoreItem = async (key: string, value: string | null) => {
+    if (value === null) await adapter.removeItem(key)
+    else await adapter.setItem(key, value)
+  }
+
+  const storeSessionUnlocked = async (
+    sessionData: ZeroDevWalletSession,
+    sessionKey: string,
+  ): Promise<void> => {
+    const recordKey = sessionKey
+    const [previousRecord, previousIndex, previousActive] = await Promise.all([
+      adapter.getItem(recordKey),
+      adapter.getItem(ALL_SESSIONS_KEY),
+      adapter.getItem(ACTIVE_SESSION_KEY),
+    ])
+    try {
+      await adapter.setItem(recordKey, JSON.stringify(sessionData))
+      const sessions = parseSessionKeys(previousIndex) ?? []
+      if (!sessions.includes(sessionKey)) sessions.push(sessionKey)
+      await adapter.setItem(ALL_SESSIONS_KEY, JSON.stringify(sessions))
+      await adapter.setItem(ACTIVE_SESSION_KEY, sessionKey)
+    } catch (error) {
+      await Promise.allSettled([
+        restoreItem(recordKey, previousRecord),
+        restoreItem(ALL_SESSIONS_KEY, previousIndex),
+        restoreItem(ACTIVE_SESSION_KEY, previousActive),
+      ])
+      throw error
+    }
+  }
 
   const storeSession = async (
     sessionData: ZeroDevWalletSession,
     sessionKey: string,
-  ): Promise<void> => {
-    // Store the session data
-    await adapter.setItem(sessionKey, JSON.stringify(sessionData))
-
-    // Add to sessions list if not already present
-    const sessionsStr = await adapter.getItem(ALL_SESSIONS_KEY)
-    const sessions = JSON.parse(sessionsStr || '[]')
-    if (!sessions.includes(sessionKey)) {
-      sessions.push(sessionKey)
-      await adapter.setItem(ALL_SESSIONS_KEY, JSON.stringify(sessions))
-    }
-
-    // Set as active session
-    await adapter.setItem(ACTIVE_SESSION_KEY, sessionKey)
-  }
+  ): Promise<void> =>
+    withMutation(() => storeSessionUnlocked(sessionData, sessionKey))
 
   const getActiveSession = async (): Promise<
     ZeroDevWalletSession | undefined
@@ -66,10 +143,14 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     if (!sessionStr) return undefined
 
     try {
-      const session: ZeroDevWalletSession = JSON.parse(sessionStr)
+      const session: unknown = JSON.parse(sessionStr)
+      if (!isStoredSession(session)) {
+        await clearSession(sessionKey)
+        return undefined
+      }
 
       // Check if session is expired
-      if (session.expiry && normalizeTimestamp(session.expiry) < Date.now()) {
+      if (normalizeTimestamp(session.expiry) < Date.now()) {
         await clearSession(sessionKey)
         return undefined
       }
@@ -82,13 +163,17 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     }
   }
 
-  const listSessionKeys = async (): Promise<string[]> => {
+  const listSessionKeysUnlocked = async (): Promise<string[]> => {
     const sessionsStr = await adapter.getItem(ALL_SESSIONS_KEY)
-    const sessionKeys = JSON.parse(sessionsStr || '[]')
+    const parsedKeys = parseSessionKeys(sessionsStr)
+    if (!parsedKeys) {
+      await adapter.removeItem(ALL_SESSIONS_KEY)
+      return []
+    }
 
     // Clean up any keys that don't have corresponding sessions
     const validKeys: string[] = []
-    for (const key of sessionKeys) {
+    for (const key of parsedKeys) {
       const exists = await adapter.getItem(key)
       if (exists) {
         validKeys.push(key)
@@ -96,12 +181,15 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     }
 
     // Update the list if we found invalid keys
-    if (validKeys.length !== sessionKeys.length) {
+    if (validKeys.length !== parsedKeys.length) {
       await adapter.setItem(ALL_SESSIONS_KEY, JSON.stringify(validKeys))
     }
 
     return validKeys
   }
+
+  const listSessionKeys = async (): Promise<string[]> =>
+    withMutation(listSessionKeysUnlocked)
 
   const listSessions = async (): Promise<ZeroDevWalletSession[]> => {
     const sessionKeys = await listSessionKeys()
@@ -124,15 +212,17 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
       throw new Error(`Session not found: ${sessionKey}`)
     }
 
-    await adapter.setItem(ACTIVE_SESSION_KEY, sessionKey)
+    await withMutation(async () => {
+      await adapter.setItem(ACTIVE_SESSION_KEY, sessionKey)
+    })
   }
 
-  const clearSession = async (sessionKey: string): Promise<void> => {
+  const clearSessionUnlocked = async (sessionKey: string): Promise<void> => {
     // Remove the session data
     await adapter.removeItem(sessionKey)
 
     // Remove from sessions list
-    const sessions = await listSessionKeys()
+    const sessions = await listSessionKeysUnlocked()
     const updated = sessions.filter((k) => k !== sessionKey)
     await adapter.setItem(ALL_SESSIONS_KEY, JSON.stringify(updated))
 
@@ -143,17 +233,98 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     }
   }
 
-  const clearAllSessions = async (): Promise<void> => {
-    const sessions = await listSessionKeys()
+  const clearSession = async (sessionKey: string): Promise<void> =>
+    withMutation(() => clearSessionUnlocked(sessionKey))
 
-    // Remove all session data
+  const clearAllSessions = async (): Promise<void> =>
+    withMutation(async () => {
+      await clearAllSessionsUnlocked()
+      await adapter.removeItem(SESSION_TRANSITION_KEY)
+    })
+
+  async function clearAllSessionsUnlocked(): Promise<void> {
+    const sessions = await listSessionKeysUnlocked()
+
     for (const key of sessions) {
       await adapter.removeItem(key)
     }
 
-    // Clear the metadata
     await adapter.removeItem(ALL_SESSIONS_KEY)
     await adapter.removeItem(ACTIVE_SESSION_KEY)
+  }
+
+  const parseTransition = (value: string | null): SessionTransition | null => {
+    if (!value) return null
+    try {
+      const parsed = JSON.parse(value) as Partial<SessionTransition>
+      if (
+        !isStoredSession(parsed.sessionData) ||
+        typeof parsed.publicKey !== 'string' ||
+        !parsed.publicKey
+      ) {
+        return null
+      }
+      return parsed as SessionTransition
+    } catch {
+      return null
+    }
+  }
+
+  const stageSessionTransition = async (
+    sessionData: ZeroDevWalletSession,
+    publicKey: string,
+  ): Promise<void> =>
+    withMutation(async () => {
+      await adapter.setItem(
+        SESSION_TRANSITION_KEY,
+        JSON.stringify({ sessionData, publicKey }),
+      )
+    })
+
+  const commitSessionTransition = async (): Promise<
+    ZeroDevWalletSession | undefined
+  > =>
+    withMutation(async () => {
+      const transition = parseTransition(
+        await adapter.getItem(SESSION_TRANSITION_KEY),
+      )
+      if (!transition) {
+        await adapter.removeItem(SESSION_TRANSITION_KEY)
+        return undefined
+      }
+
+      await clearAllSessionsUnlocked()
+      await storeSessionUnlocked(
+        transition.sessionData,
+        transition.sessionData.id,
+      )
+      await adapter.removeItem(SESSION_TRANSITION_KEY)
+      return transition.sessionData
+    })
+
+  const normalizeKey = (key: string) => key.replace(/^0x/, '').toLowerCase()
+
+  const recoverSessionTransition = async (
+    activePublicKey: string | null,
+  ): Promise<ZeroDevWalletSession | undefined> => {
+    const transition = parseTransition(
+      await adapter.getItem(SESSION_TRANSITION_KEY),
+    )
+    if (!transition) {
+      if (await adapter.getItem(SESSION_TRANSITION_KEY)) {
+        await adapter.removeItem(SESSION_TRANSITION_KEY)
+      }
+      return undefined
+    }
+    if (!activePublicKey) {
+      await adapter.removeItem(SESSION_TRANSITION_KEY)
+      return undefined
+    }
+    if (normalizeKey(activePublicKey) !== normalizeKey(transition.publicKey)) {
+      await adapter.removeItem(SESSION_TRANSITION_KEY)
+      return undefined
+    }
+    return commitSessionTransition()
   }
 
   return {
@@ -166,5 +337,8 @@ export function createStorageManager(adapter: StorageAdapter): StorageManager {
     setActiveSession,
     clearSession,
     clearAllSessions,
+    stageSessionTransition,
+    commitSessionTransition,
+    recoverSessionTransition,
   }
 }

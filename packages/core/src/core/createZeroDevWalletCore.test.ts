@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { RestRequestError } from '../errors/request.js'
 import type { StorageAdapter } from '../storage/manager.js'
 import { createZeroDevWalletCore } from './createZeroDevWalletCore.js'
 
@@ -10,7 +11,10 @@ const h = vi.hoisted(() => ({
     getPublicKey: vi.fn(),
     resetKeyPair: vi.fn(),
     prepareKeyRotation: vi.fn(),
+    stampPending: vi.fn(),
+    signPending: vi.fn(),
     commitKeyRotation: vi.fn(),
+    discardKeyRotation: vi.fn(),
     sign: vi.fn(),
   },
   passkeyStamper: {
@@ -30,6 +34,8 @@ const h = vi.hoisted(() => ({
     registerWithOTP: vi.fn(),
     loginWithOTP: vi.fn(),
     getAuthProxyConfigId: vi.fn(),
+    getAuthenticators: vi.fn(),
+    logout: vi.fn(),
   },
   authProxyClient: { verifyOtp: vi.fn() },
   encryptOtpAttempt: vi.fn(),
@@ -64,7 +70,6 @@ import {
 } from '../client/index.js'
 
 const BASE_TIME_MS = 1_700_000_000_000 // fixed "now" so session ids/expiry are deterministic
-const SESSION_EXPIRATION_MS = 900 * 1000 // DEFAULT_SESSION_EXPIRATION_IN_SECONDS = '900'
 
 // A parseable Turnkey session JWT
 function createJwt(payload: Record<string, unknown>): string {
@@ -73,16 +78,14 @@ function createJwt(payload: Record<string, unknown>): string {
 }
 const VALID_JWT = createJwt({
   exp: 2_000_000_000, // seconds → normalizes to year ~2033
-  public_key: 'jwt-public-key',
+  public_key: 'rotated-pub-key',
   session_type: 'SESSION_TYPE_READ_WRITE',
   user_id: 'user-1',
   organization_id: 'org-1',
 })
 
 // In-memory storage adapter (same shape used in manager.test.ts).
-function createMemoryAdapter(): StorageAdapter & {
-  store: Map<string, string>
-} {
+function createMemoryAdapter() {
   const store = new Map<string, string>()
   return {
     store,
@@ -93,10 +96,27 @@ function createMemoryAdapter(): StorageAdapter & {
     removeItem: vi.fn((key: string) => {
       store.delete(key)
     }),
-  }
+  } satisfies StorageAdapter & { store: Map<string, string> }
 }
 
 let adapter: ReturnType<typeof createMemoryAdapter>
+
+function invocationOrder(
+  mock: { mock: { invocationCallOrder: number[] } },
+  index = 0,
+): number {
+  const order = mock.mock.invocationCallOrder[index]
+  if (order === undefined) throw new Error(`Expected mock invocation ${index}`)
+  return order
+}
+
+async function activeSessionId(
+  sdk: Awaited<ReturnType<typeof createZeroDevWalletCore>>,
+): Promise<string> {
+  const session = await sdk.getSession()
+  if (!session) throw new Error('Expected active session')
+  return session.id
+}
 
 function baseConfig(overrides: Record<string, unknown> = {}) {
   return {
@@ -118,9 +138,16 @@ beforeEach(() => {
 
   // Defaults
   h.apiKeyStamper.resetKeyPair.mockResolvedValue(undefined)
-  h.apiKeyStamper.getPublicKey.mockResolvedValue('generated-pub-key')
+  h.apiKeyStamper.clear.mockResolvedValue(undefined)
+  h.apiKeyStamper.getPublicKey.mockResolvedValue('rotated-pub-key')
   h.apiKeyStamper.prepareKeyRotation.mockResolvedValue('rotated-pub-key')
+  h.apiKeyStamper.stampPending.mockResolvedValue({
+    stampHeaderName: 'X-Stamp',
+    stampHeaderValue: 'pending-stamp-value',
+  })
+  h.apiKeyStamper.signPending.mockResolvedValue('pop-signature')
   h.apiKeyStamper.commitKeyRotation.mockResolvedValue(undefined)
+  h.apiKeyStamper.discardKeyRotation.mockResolvedValue(undefined)
   h.apiKeyStamper.sign.mockResolvedValue('pop-signature')
   h.apiKeyStamper.stamp.mockResolvedValue({
     stampHeaderName: 'X-Stamp',
@@ -153,6 +180,19 @@ beforeEach(() => {
   h.client.getAuthProxyConfigId.mockResolvedValue({
     authProxyConfigId: 'cfg-1',
   })
+  h.client.getAuthenticators.mockResolvedValue({
+    oauths: null,
+    passkeys: null,
+    emailContacts: null,
+    apiKeys: null,
+    sessionKeys: [
+      {
+        ApiKey: 'rotated-pub-key',
+        TurnkeyId: 'turnkey-session-key-1',
+      },
+    ],
+  })
+  h.client.logout.mockResolvedValue({})
 
   h.authProxyClient.verifyOtp.mockResolvedValue({
     verificationToken: 'v-token',
@@ -168,6 +208,31 @@ afterEach(() => {
 
 // construction / transport wiring
 describe('createZeroDevWalletCore — construction', () => {
+  it('drops an expired restored session before account creation', async () => {
+    const sessionId = 'expired-session'
+    adapter.store.set(
+      sessionId,
+      JSON.stringify({
+        id: sessionId,
+        userId: 'user-1',
+        organizationId: 'org-1',
+        stamperType: 'apiKey',
+        token: VALID_JWT,
+        expiry: BASE_TIME_MS / 1_000 - 1,
+        createdAt: BASE_TIME_MS - 60_000,
+      }),
+    )
+    adapter.store.set('@zerodev/sessions', JSON.stringify([sessionId]))
+    adapter.store.set('@zerodev/active_session', sessionId)
+
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    await expect(sdk.getSession()).resolves.toBeUndefined()
+    await expect(sdk.toAccount()).rejects.toThrow('No active session')
+    expect(h.toViemAccount).not.toHaveBeenCalled()
+    expect(adapter.store.has(sessionId)).toBe(false)
+  })
+
   it('builds the transport against the default KMS url when no proxyBaseUrl', async () => {
     await createZeroDevWalletCore(baseConfig())
 
@@ -208,16 +273,48 @@ describe('createZeroDevWalletCore — construction', () => {
 
 // getPublicKey
 describe('getPublicKey', () => {
-  it('resets the key pair before reading the public key', async () => {
+  it('does not replace the live session key while preparing OAuth', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
-    h.apiKeyStamper.getPublicKey.mockResolvedValue('compressed-pub-key')
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    h.apiKeyStamper.prepareKeyRotation.mockClear()
+    h.apiKeyStamper.resetKeyPair.mockClear()
 
     const result = await sdk.getPublicKey()
 
-    expect(result).toBe('compressed-pub-key')
-    expect(
-      h.apiKeyStamper.resetKeyPair.mock.invocationCallOrder[0],
-    ).toBeLessThan(h.apiKeyStamper.getPublicKey.mock.invocationCallOrder[0]!)
+    expect(result).toBe('rotated-pub-key')
+    expect(h.apiKeyStamper.prepareKeyRotation).toHaveBeenCalledOnce()
+    expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
+  })
+
+  it('reuses one pending key across duplicate OAuth preparation calls', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    const [first, second] = await Promise.all([
+      sdk.getPublicKey(),
+      sdk.getPublicKey(),
+    ])
+
+    expect(first).toBe(second)
+    expect(h.apiKeyStamper.prepareKeyRotation).toHaveBeenCalledOnce()
+  })
+
+  it('does not reuse a stale OAuth key after another auth flow rotates it', async () => {
+    h.apiKeyStamper.prepareKeyRotation
+      .mockResolvedValueOnce('oauth-pending-key')
+      .mockResolvedValueOnce('rotated-pub-key')
+      .mockResolvedValueOnce('fresh-oauth-key')
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    await expect(sdk.getPublicKey()).resolves.toBe('oauth-pending-key')
+    await sdk.auth({
+      type: 'otp',
+      mode: 'verifyOtp',
+      otpId: 'otp-1',
+      otpCode: '123456',
+      otpEncryptionTargetBundle: 'bundle',
+    })
+
+    await expect(sdk.getPublicKey()).resolves.toBe('fresh-oauth-key')
   })
 })
 
@@ -232,7 +329,7 @@ describe('auth — oauth', () => {
       sessionId: 'oauth-session-id',
     })
 
-    expect(h.apiKeyStamper.sign).toHaveBeenCalledWith('oauth-session-id')
+    expect(h.apiKeyStamper.signPending).toHaveBeenCalledWith('oauth-session-id')
     expect(h.client.authenticateWithOAuth).toHaveBeenCalledWith({
       provider: 'google',
       projectId: 'proj-1',
@@ -260,11 +357,134 @@ describe('auth — oauth', () => {
 
     expect(await sdk.getSession()).toBeUndefined()
   })
+
+  it('recovers a committed key if final session persistence fails', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    adapter.setItem.mockImplementation((key: string, value: string) => {
+      if (key.includes('session_oauth_')) throw new Error('storage failed')
+      adapter.store.set(key, value)
+    })
+
+    await expect(
+      sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' }),
+    ).rejects.toThrow('storage failed')
+    expect(adapter.store.has('@zerodev/session_transition')).toBe(true)
+
+    adapter.setItem.mockImplementation((key: string, value: string) => {
+      adapter.store.set(key, value)
+    })
+    const recoveredSdk = await createZeroDevWalletCore(baseConfig())
+
+    await expect(recoveredSdk.getSession()).resolves.toMatchObject({
+      token: VALID_JWT,
+      publicKey: 'rotated-pub-key',
+    })
+    expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+  })
+
+  it('recovers when key commit throws after the key became durable', async () => {
+    h.apiKeyStamper.commitKeyRotation.mockRejectedValueOnce(
+      new Error('commit acknowledgement lost'),
+    )
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    await expect(
+      sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' }),
+    ).resolves.toMatchObject({ session: VALID_JWT })
+
+    await expect(sdk.getSession()).resolves.toMatchObject({
+      token: VALID_JWT,
+      publicKey: 'rotated-pub-key',
+    })
+    expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+  })
+
+  it('preserves the old key and session when transition staging fails', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+    h.apiKeyStamper.commitKeyRotation.mockClear()
+    h.apiKeyStamper.discardKeyRotation.mockClear()
+    adapter.setItem.mockImplementation((key: string, value: string) => {
+      if (key === '@zerodev/session_transition') {
+        throw new Error('journal unavailable')
+      }
+      adapter.store.set(key, value)
+    })
+
+    await expect(sdk.refreshSession()).rejects.toThrow('journal unavailable')
+
+    await expect(sdk.getSession()).resolves.toEqual(existingSession)
+    expect(h.apiKeyStamper.commitKeyRotation).not.toHaveBeenCalled()
+    expect(h.apiKeyStamper.discardKeyRotation).toHaveBeenCalled()
+  })
+
+  it('preserves the old state when key commit fails before activation', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+    h.apiKeyStamper.prepareKeyRotation.mockResolvedValueOnce('new-public-key')
+    h.apiKeyStamper.getPublicKey.mockResolvedValue('rotated-pub-key')
+    h.client.loginWithStamp.mockResolvedValueOnce({
+      session: createJwt({
+        exp: 2_000_000_000,
+        public_key: 'new-public-key',
+        session_type: 'SESSION_TYPE_READ_WRITE',
+        user_id: 'user-1',
+        organization_id: 'org-1',
+      }),
+    })
+    h.apiKeyStamper.commitKeyRotation.mockRejectedValueOnce(
+      new Error('commit failed before activation'),
+    )
+
+    await expect(sdk.refreshSession()).rejects.toThrow(
+      'commit failed before activation',
+    )
+
+    await expect(sdk.getSession()).resolves.toEqual(existingSession)
+    expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+  })
+
+  it.each(['session record', 'session index', 'active pointer'])(
+    'self-recovers when the %s write fails once after key activation',
+    async (failurePoint) => {
+      const sdk = await createZeroDevWalletCore(baseConfig())
+      let failed = false
+      adapter.setItem.mockImplementation((key: string, value: string) => {
+        const shouldFail =
+          (failurePoint === 'session record' &&
+            key.includes('session_oauth_')) ||
+          (failurePoint === 'session index' && key === '@zerodev/sessions') ||
+          (failurePoint === 'active pointer' &&
+            key === '@zerodev/active_session')
+        if (!failed && shouldFail) {
+          failed = true
+          throw new Error(`transient ${failurePoint} failure`)
+        }
+        adapter.store.set(key, value)
+      })
+
+      await expect(
+        sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' }),
+      ).resolves.toMatchObject({ session: VALID_JWT })
+
+      await expect(sdk.getSession()).resolves.toMatchObject({
+        token: VALID_JWT,
+        publicKey: 'rotated-pub-key',
+      })
+      expect(failed).toBe(true)
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+    },
+  )
 })
 
 // auth: passkey register
 describe('auth — passkey register', () => {
   it('registers, rotates the key, and commits ONLY after the server accepts login', async () => {
+    h.apiKeyStamper.prepareKeyRotation
+      .mockResolvedValueOnce('registration-pub-key')
+      .mockResolvedValueOnce('rotated-pub-key')
     const sdk = await createZeroDevWalletCore(baseConfig())
 
     const data = await sdk.auth({ type: 'passkey', mode: 'register' })
@@ -285,7 +505,7 @@ describe('auth — passkey register', () => {
       },
       challenge: 'challenge',
       projectId: 'proj-1',
-      encodedPublicKey: 'generated-pub-key',
+      encodedPublicKey: 'registration-pub-key',
     })
     // Login uses the rotated (pending) public key against the resolved org.
     expect(h.client.loginWithStamp).toHaveBeenCalledWith(
@@ -295,61 +515,96 @@ describe('auth — passkey register', () => {
         organizationId: 'org-explicit',
       }),
     )
-    // Safety-critical ordering: prepare → login → commit. Committing before
-    // the server accepts the new key would strand the wallet.
-    expect(
-      h.apiKeyStamper.prepareKeyRotation.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(h.client.loginWithStamp.mock.invocationCallOrder[0]!)
-    expect(h.client.loginWithStamp.mock.invocationCallOrder[0]!).toBeLessThan(
-      h.apiKeyStamper.commitKeyRotation.mock.invocationCallOrder[0]!,
+    // The registration key is committed only after the backend creates it;
+    // the durable key is committed only after login returns a matching JWT.
+    expect(invocationOrder(h.client.registerWithPasskey)).toBeLessThan(
+      invocationOrder(h.apiKeyStamper.commitKeyRotation),
+    )
+    expect(invocationOrder(h.apiKeyStamper.prepareKeyRotation, 1)).toBeLessThan(
+      invocationOrder(h.client.loginWithStamp),
+    )
+    expect(invocationOrder(h.client.loginWithStamp)).toBeLessThan(
+      invocationOrder(h.apiKeyStamper.commitKeyRotation, 1),
     )
 
     // Returns the registration response (not the login response).
     expect(data).toMatchObject({ userId: 'user-1', walletAddress: '0xwallet' })
 
-    // Session uses the default expiration window, not the JWT exp.
+    // Session expiration comes from the backend-signed JWT.
     const stored = await sdk.getSession()
     expect(stored).toMatchObject({
       id: `session_indexedDb_${BASE_TIME_MS}`,
       stamperType: 'apiKey',
-      expiry: BASE_TIME_MS + SESSION_EXPIRATION_MS,
+      expiry: 2_000_000_000,
       token: VALID_JWT,
     })
   })
 
   it('throws when a public key cannot be generated', async () => {
-    h.apiKeyStamper.getPublicKey.mockResolvedValue(null)
+    h.apiKeyStamper.prepareKeyRotation.mockRejectedValueOnce(
+      new Error('Failed to get public key'),
+    )
     const sdk = await createZeroDevWalletCore(baseConfig())
 
     await expect(
       sdk.auth({ type: 'passkey', mode: 'register' }),
     ).rejects.toThrow('Failed to get public key')
   })
+
+  it('refuses passkey registration while another wallet session is active', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+
+    h.apiKeyStamper.resetKeyPair.mockClear()
+    await expect(
+      sdk.auth({ type: 'passkey', mode: 'register' }),
+    ).rejects.toThrow(/logout before registering/i)
+
+    expect(await sdk.getSession()).toEqual(existingSession)
+    expect(h.passkeyStamper.register).not.toHaveBeenCalled()
+    expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
+  })
 })
 
 // auth: passkey login
 describe('auth — passkey login', () => {
-  it('logs in with the passkey stamper using the freshly generated key (no rotation)', async () => {
+  it('logs in with the passkey stamper and commits the accepted pending key', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
 
     const loginData = await sdk.auth({ type: 'passkey', mode: 'login' })
 
     expect(h.client.loginWithStamp).toHaveBeenCalledWith(
       expect.objectContaining({
-        targetPublicKey: 'generated-pub-key',
+        targetPublicKey: 'rotated-pub-key',
         stampWith: 'passkey',
         organizationId: 'org-explicit',
       }),
     )
-    // Login path does not rotate keys.
-    expect(h.apiKeyStamper.prepareKeyRotation).not.toHaveBeenCalled()
-    expect(h.apiKeyStamper.commitKeyRotation).not.toHaveBeenCalled()
+    expect(h.apiKeyStamper.prepareKeyRotation).toHaveBeenCalledOnce()
+    expect(h.apiKeyStamper.commitKeyRotation).toHaveBeenCalledOnce()
     expect(loginData).toEqual({ session: VALID_JWT })
 
     expect(await sdk.getSession()).toMatchObject({
       stamperType: 'apiKey',
-      expiry: BASE_TIME_MS + SESSION_EXPIRATION_MS,
+      expiry: 2_000_000_000,
     })
+  })
+
+  it('preserves the live key and session when passkey login fails', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+
+    h.apiKeyStamper.resetKeyPair.mockClear()
+    h.client.loginWithStamp.mockRejectedValueOnce(new Error('login failed'))
+
+    await expect(sdk.auth({ type: 'passkey', mode: 'login' })).rejects.toThrow(
+      'login failed',
+    )
+
+    expect(await sdk.getSession()).toEqual(existingSession)
+    expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
   })
 })
 
@@ -369,7 +624,7 @@ describe('auth — otp', () => {
     // OTP is HPKE-sealed to the freshly generated key.
     expect(h.encryptOtpAttempt).toHaveBeenCalledWith({
       otpCode: '123456',
-      publicKey: 'generated-pub-key',
+      publicKey: 'rotated-pub-key',
       encryptionTargetBundle: 'target-bundle',
     })
     // Encrypted bundle goes to the auth proxy, keyed by the fetched config id.
@@ -384,7 +639,7 @@ describe('auth — otp', () => {
     expect(h.buildClientSignature).toHaveBeenCalledWith(
       expect.objectContaining({
         verificationToken: 'v-token',
-        publicKey: 'generated-pub-key',
+        publicKey: 'rotated-pub-key',
       }),
     )
     expect(h.client.loginWithOTP).toHaveBeenCalledWith({
@@ -440,7 +695,9 @@ describe('auth — otp', () => {
   })
 
   it('throws when a public key cannot be generated', async () => {
-    h.apiKeyStamper.getPublicKey.mockResolvedValue(null)
+    h.apiKeyStamper.prepareKeyRotation.mockRejectedValueOnce(
+      new Error('Failed to get public key'),
+    )
     const sdk = await createZeroDevWalletCore(baseConfig())
 
     await expect(
@@ -452,6 +709,28 @@ describe('auth — otp', () => {
         otpEncryptionTargetBundle: 'b',
       }),
     ).rejects.toThrow('Failed to get public key')
+  })
+
+  it('preserves the live key and session when OTP verification fails', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+
+    h.apiKeyStamper.resetKeyPair.mockClear()
+    h.authProxyClient.verifyOtp.mockRejectedValueOnce(new Error('invalid otp'))
+
+    await expect(
+      sdk.auth({
+        type: 'otp',
+        mode: 'verifyOtp',
+        otpId: 'otp-1',
+        otpCode: 'wrong',
+        otpEncryptionTargetBundle: 'bundle',
+      }),
+    ).rejects.toThrow('invalid otp')
+
+    expect(await sdk.getSession()).toEqual(existingSession)
+    expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
   })
 })
 
@@ -525,6 +804,9 @@ describe('refreshSession', () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
     const oldId = (await sdk.getSession())?.id
+    h.apiKeyStamper.prepareKeyRotation.mockClear()
+    h.apiKeyStamper.commitKeyRotation.mockClear()
+    h.client.loginWithStamp.mockClear()
 
     const refreshed = await sdk.refreshSession()
 
@@ -535,11 +817,11 @@ describe('refreshSession', () => {
         organizationId: 'org-explicit',
       }),
     )
-    expect(
-      h.apiKeyStamper.prepareKeyRotation.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(h.client.loginWithStamp.mock.invocationCallOrder[0]!)
-    expect(h.client.loginWithStamp.mock.invocationCallOrder[0]!).toBeLessThan(
-      h.apiKeyStamper.commitKeyRotation.mock.invocationCallOrder[0]!,
+    expect(invocationOrder(h.apiKeyStamper.prepareKeyRotation)).toBeLessThan(
+      invocationOrder(h.client.loginWithStamp),
+    )
+    expect(invocationOrder(h.client.loginWithStamp)).toBeLessThan(
+      invocationOrder(h.apiKeyStamper.commitKeyRotation),
     )
 
     // Old session replaced by a fresh indexedDb session.
@@ -549,12 +831,81 @@ describe('refreshSession', () => {
     expect(Object.keys(all)).toEqual([`session_indexedDb_${BASE_TIME_MS}`])
   })
 
+  it('does not commit a refreshed key until the replacement session is valid', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+
+    h.apiKeyStamper.commitKeyRotation.mockClear()
+    h.client.loginWithStamp.mockResolvedValueOnce({ session: 'invalid' })
+
+    await expect(sdk.refreshSession()).rejects.toThrow(/JWT|session/i)
+
+    expect(await sdk.getSession()).toEqual(existingSession)
+    expect(h.apiKeyStamper.commitKeyRotation).not.toHaveBeenCalled()
+  })
+
+  it('rejects a replacement session bound to a different public key', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+
+    h.apiKeyStamper.commitKeyRotation.mockClear()
+    h.client.loginWithStamp.mockResolvedValueOnce({
+      session: createJwt({
+        exp: 2_000_000_000,
+        public_key: 'attacker-key',
+        session_type: 'SESSION_TYPE_READ_WRITE',
+        user_id: 'user-1',
+        organization_id: 'org-1',
+      }),
+    })
+
+    await expect(sdk.refreshSession()).rejects.toThrow(/public key/i)
+
+    expect(await sdk.getSession()).toEqual(existingSession)
+    expect(h.apiKeyStamper.commitKeyRotation).not.toHaveBeenCalled()
+  })
+
+  it('never overlaps refreshes that share the stamper pending-key slot', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+
+    let releaseFirst = () => {}
+    const firstLoginGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    let calls = 0
+    let inFlight = 0
+    let maxInFlight = 0
+    h.client.loginWithStamp.mockImplementation(async () => {
+      calls += 1
+      inFlight += 1
+      maxInFlight = Math.max(maxInFlight, inFlight)
+      if (calls === 1) await firstLoginGate
+      inFlight -= 1
+      return { session: VALID_JWT }
+    })
+
+    const first = sdk.refreshSession()
+    const second = sdk.refreshSession()
+    for (let i = 0; i < 100 && maxInFlight === 0; i += 1) {
+      await Promise.resolve()
+    }
+    const observedMaxInFlight = maxInFlight
+
+    releaseFirst()
+    await Promise.allSettled([first, second])
+
+    expect(observedMaxInFlight).toBe(1)
+  })
+
   it('throws for a non-apiKey session type', async () => {
     // Seed a restored passkey-type session directly into storage. NOTE: no SDK
     // flow currently produces stamperType:'passkey' (passkey login/register both
     // store 'apiKey'), so this guard is unreachable via the public API today —
     // the test protects it as a regression guard for future/restored sessions.
-    // It couples to the manager's private storage keys (@zerodev/*); a rename
+    // It couples to the manager's private project-scoped storage keys; a rename
     // there would break this test without any change to core's own logic.
     const key = 'session:passkey'
     const passkeySession = {
@@ -562,7 +913,7 @@ describe('refreshSession', () => {
       userId: 'user-1',
       organizationId: 'org-1',
       stamperType: 'passkey',
-      token: 't',
+      token: VALID_JWT,
       expiry: 2_000_000_000,
       createdAt: BASE_TIME_MS,
     }
@@ -576,52 +927,122 @@ describe('refreshSession', () => {
     expect(h.apiKeyStamper.prepareKeyRotation).not.toHaveBeenCalled()
   })
 
-  it('refreshes the session named by an explicit sessionId, not the active one', async () => {
+  it('refuses to refresh an inactive session after the key has changed', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'a' })
-    const targetId = (await sdk.getSession())!.id
+    const targetId = await activeSessionId(sdk)
     vi.setSystemTime(BASE_TIME_MS + 1000)
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'b' })
-    const activeId = (await sdk.getSession())!.id // now the active session
+    const activeId = await activeSessionId(sdk)
 
-    const refreshed = await sdk.refreshSession(targetId)
+    h.apiKeyStamper.prepareKeyRotation.mockClear()
+    await expect(sdk.refreshSession(targetId)).rejects.toThrow(
+      /inactive session|not supported/i,
+    )
 
-    // The explicitly-named session was rotated away; the active one is untouched.
     const all = await sdk.getAllSessions()
     expect(all[targetId]).toBeUndefined()
     expect(all[activeId]).toBeDefined()
-    expect(refreshed?.id).toBe(`session_indexedDb_${BASE_TIME_MS + 1000}`)
+    expect(h.apiKeyStamper.prepareKeyRotation).not.toHaveBeenCalled()
   })
 })
 
 // session management
 describe('session management', () => {
-  it('switchSession activates the named session and returns it', async () => {
+  it('keeps an existing session bound to the active device key', async () => {
+    const session = {
+      id: 'existing-session',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      sessionType: 'SESSION_TYPE_READ_WRITE' as const,
+      token: VALID_JWT,
+      expiry: 2_000_000_000,
+      createdAt: BASE_TIME_MS,
+    }
+    adapter.store.set(session.id, JSON.stringify(session))
+    adapter.store.set('@zerodev/sessions', JSON.stringify([session.id]))
+    adapter.store.set('@zerodev/active_session', session.id)
+
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    await expect(sdk.getSession()).resolves.toEqual(session)
+  })
+
+  it('clears a restored session whose JWT is bound to another key', async () => {
+    const session = {
+      id: 'tampered-session',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      token: createJwt({
+        exp: 2_000_000_000,
+        public_key: 'attacker-public-key',
+        session_type: 'SESSION_TYPE_READ_WRITE',
+        user_id: 'user-1',
+        organization_id: 'org-1',
+      }),
+      expiry: 2_000_000_000,
+      createdAt: BASE_TIME_MS,
+    }
+    adapter.store.set(session.id, JSON.stringify(session))
+    adapter.store.set('@zerodev/sessions', JSON.stringify([session.id]))
+    adapter.store.set('@zerodev/active_session', session.id)
+
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    await expect(sdk.getSession()).resolves.toBeUndefined()
+    await expect(sdk.getAllSessions()).resolves.toEqual({})
+    expect(adapter.store.has(session.id)).toBe(false)
+  })
+
+  it('switchSession returns the session when it is already active', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'a' })
-    const firstId = (await sdk.getSession())!.id
+    const activeId = await activeSessionId(sdk)
+
+    const switched = await sdk.switchSession(activeId)
+
+    expect(switched?.id).toBe(activeId)
+    expect((await sdk.getSession())?.id).toBe(activeId)
+  })
+
+  it('refuses session switching while the SDK has only one global key vault', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'a' })
+    const firstId = await activeSessionId(sdk)
     vi.setSystemTime(BASE_TIME_MS + 1000)
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'b' })
 
-    const switched = await sdk.switchSession(firstId)
-
-    expect(switched?.id).toBe(firstId)
-    expect((await sdk.getSession())?.id).toBe(firstId)
+    await expect(sdk.switchSession(firstId)).rejects.toThrow(
+      /single active session|not supported/i,
+    )
   })
 
   it('clearSession removes only the named session', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'a' })
-    const firstId = (await sdk.getSession())!.id
+    const firstId = await activeSessionId(sdk)
     vi.setSystemTime(BASE_TIME_MS + 1000)
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'b' })
-    const secondId = (await sdk.getSession())!.id
+    const secondId = await activeSessionId(sdk)
 
     await sdk.clearSession(firstId)
 
     const all = await sdk.getAllSessions()
     expect(all[firstId]).toBeUndefined()
     expect(all[secondId]).toBeDefined()
+  })
+
+  it('refuses to orphan the active remote key through local session clearing', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'a' })
+    const activeId = await activeSessionId(sdk)
+
+    await expect(sdk.clearSession(activeId)).rejects.toThrow(/use logout/i)
+    await expect(sdk.clearAllSessions()).rejects.toThrow(/use logout/i)
+
+    await expect(sdk.getSession()).resolves.toBeDefined()
   })
 })
 
@@ -654,16 +1075,192 @@ describe('auth — runtime guards', () => {
 
 // logout
 describe('logout', () => {
-  it('clears all sessions, resets the key pair, and returns true', async () => {
+  it('revokes the exact current key before clearing local state', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
     await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockClear()
+    h.client.logout.mockImplementationOnce(async () => {
+      expect(await sdk.getSession()).toBeDefined()
+      expect(h.apiKeyStamper.clear).not.toHaveBeenCalled()
+      return {}
+    })
 
     const result = await sdk.logout()
 
     expect(result).toBe(true)
-    expect(h.apiKeyStamper.resetKeyPair).toHaveBeenCalled()
+    expect(h.client.getAuthenticators).toHaveBeenCalledWith({
+      subOrganizationId: 'org-1',
+      projectId: 'proj-1',
+      token: VALID_JWT,
+    })
+    expect(h.client.logout).toHaveBeenCalledWith({
+      projectId: 'proj-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      apiKeyId: 'turnkey-session-key-1',
+    })
+    expect(h.apiKeyStamper.clear).toHaveBeenCalled()
     expect(await sdk.getSession()).toBeUndefined()
     expect(await sdk.getAllSessions()).toEqual({})
+  })
+
+  it('preserves the live local key and session when remote revocation fails', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockClear()
+    h.client.logout.mockRejectedValueOnce(new Error('activity rejected'))
+
+    await expect(sdk.logout()).rejects.toThrow('activity rejected')
+
+    expect(await sdk.getSession()).toBeDefined()
+    expect(h.apiKeyStamper.clear).not.toHaveBeenCalled()
+  })
+
+  it('allows explicit local recovery after an ambiguous revocation failure', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockClear()
+    h.client.logout.mockRejectedValueOnce(new Error('network unavailable'))
+
+    await expect(sdk.logout({ force: true })).resolves.toBe(true)
+
+    expect(h.apiKeyStamper.clear).toHaveBeenCalledOnce()
+    await expect(sdk.getSession()).resolves.toBeUndefined()
+  })
+
+  it('clears unusable session metadata when the local key is already gone', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.getPublicKey.mockResolvedValue(null)
+    h.apiKeyStamper.clear.mockClear()
+    h.client.getAuthenticators.mockClear()
+
+    await expect(sdk.logout()).resolves.toBe(true)
+
+    expect(h.client.getAuthenticators).not.toHaveBeenCalled()
+    expect(h.apiKeyStamper.clear).toHaveBeenCalledOnce()
+    await expect(sdk.getSession()).resolves.toBeUndefined()
+  })
+
+  it('clears local state when the backend confirms the credential is rejected', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockClear()
+    h.client.getAuthenticators.mockRejectedValueOnce(
+      new RestRequestError('https://kms.test/authenticators', 401, {
+        message: 'credential revoked',
+      }),
+    )
+
+    await expect(sdk.logout()).resolves.toBe(true)
+
+    expect(h.apiKeyStamper.clear).toHaveBeenCalledOnce()
+    await expect(sdk.getSession()).resolves.toBeUndefined()
+  })
+
+  it('preserves local credentials on a non-terminal 403 revocation failure', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockClear()
+    h.client.getAuthenticators.mockRejectedValueOnce(
+      new RestRequestError('https://kms.test/authenticators', 403, {
+        message: 'policy denied',
+      }),
+    )
+
+    await expect(sdk.logout()).rejects.toThrow()
+
+    expect(h.apiKeyStamper.clear).not.toHaveBeenCalled()
+    await expect(sdk.getSession()).resolves.toBeDefined()
+  })
+
+  it('matches equivalent Turnkey public-key encodings during logout', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    const localPublicKey = `0x02${'AB'.repeat(32)}`
+    h.apiKeyStamper.getPublicKey.mockResolvedValue(localPublicKey)
+    h.client.getAuthenticators.mockResolvedValueOnce({
+      oauths: null,
+      passkeys: null,
+      emailContacts: null,
+      apiKeys: null,
+      sessionKeys: [
+        {
+          ApiKey: localPublicKey.slice(2).toLowerCase(),
+          TurnkeyId: 'normalized-key-id',
+        },
+      ],
+    })
+
+    await sdk.logout()
+
+    expect(h.client.logout).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKeyId: 'normalized-key-id' }),
+    )
+  })
+
+  it('accepts the legacy lowercase authenticator response casing', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.client.getAuthenticators.mockResolvedValueOnce({
+      oauths: null,
+      passkeys: null,
+      emailContacts: null,
+      apiKeys: null,
+      sessionKeys: [
+        {
+          apiKey: 'rotated-pub-key',
+          turnkeyId: 'legacy-lowercase-key-id',
+        },
+      ],
+    })
+
+    await sdk.logout()
+
+    expect(h.client.logout).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKeyId: 'legacy-lowercase-key-id' }),
+    )
+  })
+
+  it('does not reuse a prepared OAuth key after logout', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.prepareKeyRotation.mockClear()
+
+    await sdk.getPublicKey()
+    await sdk.logout()
+    await sdk.getPublicKey()
+
+    expect(h.apiKeyStamper.prepareKeyRotation).toHaveBeenCalledTimes(2)
+  })
+
+  it('still removes session tokens when local key cleanup throws', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockRejectedValueOnce(new Error('key erase failed'))
+
+    await expect(sdk.logout()).rejects.toThrow('key erase failed')
+
+    await expect(sdk.getSession()).resolves.toBeUndefined()
+  })
+
+  it('preserves local state if the backend cannot identify the current key', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 's' })
+    h.apiKeyStamper.clear.mockClear()
+    h.client.getAuthenticators.mockResolvedValueOnce({
+      oauths: null,
+      passkeys: null,
+      emailContacts: null,
+      apiKeys: null,
+      sessionKeys: [],
+    })
+
+    await expect(sdk.logout()).rejects.toThrow(/refusing to erase local/i)
+
+    expect(h.client.logout).not.toHaveBeenCalled()
+    expect(await sdk.getSession()).toBeDefined()
+    expect(h.apiKeyStamper.clear).not.toHaveBeenCalled()
   })
 })
 
@@ -691,7 +1288,9 @@ describe('toAccount', () => {
       }),
     )
     // The injected getToken resolves the active session's token.
-    const { getToken } = h.toViemAccount.mock.calls[0]![0] as {
+    const toAccountCall = h.toViemAccount.mock.calls[0]
+    if (!toAccountCall) throw new Error('Expected toViemAccount call')
+    const { getToken } = toAccountCall[0] as {
       getToken: () => Promise<string>
     }
     expect(await getToken()).toBe(VALID_JWT)

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ApiKeyStamper } from '../../stampers/types.js'
 import { rest } from './rest.js'
 
 function makeStamper(headerName: string) {
@@ -8,7 +7,7 @@ function makeStamper(headerName: string) {
     // Echo the signed payload back so tests can assert what was signed.
     stampHeaderValue: `signed:${payload}`,
   }))
-  return { stamp } as unknown as ApiKeyStamper & { stamp: typeof stamp }
+  return { stamp, clear: vi.fn(async () => {}) }
 }
 
 describe('rest transport — timestamp stamp position (GET behind StampCheckUser)', () => {
@@ -84,5 +83,34 @@ describe('rest transport — timestamp stamp position (GET behind StampCheckUser
     const headers = init.headers as Record<string, string>
     const ts = headers['X-Timestamp']!
     expect(headers['X-Stamp-Webauthn']).toBe(`signed:${ts}`)
+  })
+
+  it('signs and sends the identical canonical body for header-stamped POSTs', async () => {
+    const transport = rest('https://kms.test/api/v1', {
+      apiKeyStamper,
+      passkeyStamper,
+    })
+    const body = {
+      type: 'ACTIVITY_TYPE_DELETE_API_KEYS',
+      organizationId: 'org-1',
+      parameters: { userId: 'user-1', apiKeyIds: ['key-1'] },
+      timestampMs: '1700000000000',
+    }
+
+    await transport.request({
+      path: 'proj-1/auth/logout',
+      method: 'POST',
+      body,
+      stamp: true,
+      stampPostion: 'headers',
+    })
+
+    const signedPayload = apiKeyStamper.stamp.mock.calls[0]![0]
+    const [, init] = fetchMock.mock.calls[0]!
+    expect(JSON.parse(signedPayload)).toEqual(body)
+    expect(JSON.parse(init.body)).toEqual(body)
+    expect((init.headers as Record<string, string>)['X-Stamp']).toBe(
+      `signed:${signedPayload}`,
+    )
   })
 })

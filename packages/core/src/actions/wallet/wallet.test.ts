@@ -1,4 +1,4 @@
-import { hashMessage, keccak256, toHex } from 'viem'
+import { hashMessage, keccak256, recoverAddress, toHex } from 'viem'
 import { describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
 import { getUserWallet } from './getUserWallet.js'
@@ -12,6 +12,13 @@ import { signMessage } from './signMessage.js'
 import { signTransaction } from './signTransaction.js'
 import { signTypedDataV4 } from './signTypedDataV4.js'
 import { signUserOperation } from './signUserOperation.js'
+
+vi.mock('viem', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('viem')>()),
+  recoverAddress: vi.fn(async () =>
+    Promise.resolve('0x1234567890abcdef1234567890abcdef12345678'),
+  ),
+}))
 
 function createMockClient(
   requestImpl?: (params: {
@@ -133,7 +140,7 @@ describe('buildTurnkeyPayload', () => {
     const payload = buildTurnkeyPayload(
       'org-123',
       '0x1234567890abcdef1234567890abcdef12345678',
-      'deadbeef',
+      'deadbeef'.repeat(8),
     )
 
     expect(payload.type).toBe('ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2')
@@ -141,19 +148,43 @@ describe('buildTurnkeyPayload', () => {
     expect(payload.parameters.signWith).toBe(
       '0x1234567890abcdef1234567890abcdef12345678',
     )
-    expect(payload.parameters.payload).toBe('deadbeef')
+    expect(payload.parameters.payload).toBe('deadbeef'.repeat(8))
     expect(payload.parameters.encoding).toBe('PAYLOAD_ENCODING_HEXADECIMAL')
     expect(payload.parameters.hashFunction).toBe('HASH_FUNCTION_NO_OP')
   })
 
   it('includes timestampMs as string', () => {
     const before = Date.now()
-    const payload = buildTurnkeyPayload('org', '0x00', 'hash')
+    const payload = buildTurnkeyPayload(
+      'org',
+      '0x1234567890abcdef1234567890abcdef12345678',
+      'ab'.repeat(32),
+    )
     const after = Date.now()
 
     const ts = Number.parseInt(payload.timestampMs, 10)
     expect(ts).toBeGreaterThanOrEqual(before)
     expect(ts).toBeLessThanOrEqual(after)
+  })
+
+  it.each([
+    '0x0000000000000000000000000000000000000000',
+    '0x00',
+    'not-an-address',
+  ])('refuses unsafe signer address %s', (address) => {
+    expect(() =>
+      buildTurnkeyPayload('org', address as `0x${string}`, 'ab'.repeat(32)),
+    ).toThrow(/invalid|zero/i)
+  })
+
+  it('refuses a payload that is not a 32-byte hex hash', () => {
+    expect(() =>
+      buildTurnkeyPayload(
+        'org',
+        '0x1234567890abcdef1234567890abcdef12345678',
+        'deadbeef',
+      ),
+    ).toThrow(/32-byte hex hash/i)
   })
 })
 
@@ -311,6 +342,39 @@ describe('signMessage', () => {
         encoding: 'utf8',
       }),
     ).rejects.toThrow('Signing failed')
+  })
+
+  it('rejects a signing response without a signature', async () => {
+    const mockClient = createMockClient(async () => ({}))
+
+    await expect(
+      signMessage(mockClient, {
+        organizationId: 'org-123',
+        projectId: 'proj-456',
+        token: 'token',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        message: 'Hello',
+        encoding: 'utf8',
+      }),
+    ).rejects.toThrow(/valid signature/i)
+  })
+
+  it('rejects a response signed by a different wallet', async () => {
+    vi.mocked(recoverAddress).mockResolvedValueOnce(
+      '0x1234567890abcdef1234567890abcdef12345679',
+    )
+    const mockClient = createMockClient(async () => ({ signature: 'bad' }))
+
+    await expect(
+      signMessage(mockClient, {
+        organizationId: 'org-123',
+        projectId: 'proj-456',
+        token: 'token',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        message: 'Hello',
+        encoding: 'utf8',
+      }),
+    ).rejects.toThrow(/expected owner/i)
   })
 })
 
@@ -639,7 +703,7 @@ describe('sign7702Authorization', () => {
         token: 'token',
         address: '0x1234567890abcdef1234567890abcdef12345678',
         unsignedTransaction: 'abc123',
-        hashedAuthorization: 'hash',
+        hashedAuthorization: 'ab'.repeat(32),
       }),
     ).rejects.toThrow('Chain not allowed')
   })

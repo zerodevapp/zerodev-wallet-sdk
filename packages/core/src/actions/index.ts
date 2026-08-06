@@ -23,7 +23,10 @@ export {
   getWhoami,
   type LoginWithOTPParameters,
   type LoginWithOTPReturnType,
+  type LogoutParameters,
+  type LogoutReturnType,
   loginWithOTP,
+  logout,
   type OAuthAuthenticator,
   type OtpContact,
   type PasskeyAuthenticator,
@@ -33,6 +36,7 @@ export {
   type RegisterWithPasskeyReturnType,
   registerWithOTP,
   registerWithPasskey,
+  type SessionKeyAuthenticator,
 } from './auth/index.js'
 
 // Wallet actions
