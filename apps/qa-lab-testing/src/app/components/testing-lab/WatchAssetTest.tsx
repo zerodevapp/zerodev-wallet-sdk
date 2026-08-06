@@ -5,7 +5,7 @@ import { useState } from "react";
 import { erc20Abi } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import { cn } from "../../lib/utils";
-import { TEST_ERC20 } from "./contracts";
+import { addressOn, TEST_ERC20 } from "./contracts";
 
 type Eip1193 = {
   request: (args: { method: string; params?: unknown }) => Promise<unknown>;
@@ -35,24 +35,27 @@ const rawStringify = (value: unknown): string => {
  * method yet, so it's expected to return "Method not supported".
  */
 export function WatchAssetTest() {
-  const { connector } = useAccount();
+  const { chain, connector } = useAccount();
   const [run, setRun] = useState<RunState>({ status: "idle" });
+
+  const erc20Address = addressOn(TEST_ERC20, chain?.id);
 
   const { data } = useReadContracts({
     contracts: [
       {
-        address: TEST_ERC20.address,
+        address: erc20Address,
         abi: erc20Abi,
         functionName: "symbol",
-        chainId: TEST_ERC20.chainId,
+        chainId: chain?.id,
       },
       {
-        address: TEST_ERC20.address,
+        address: erc20Address,
         abi: erc20Abi,
         functionName: "decimals",
-        chainId: TEST_ERC20.chainId,
+        chainId: chain?.id,
       },
     ],
+    query: { enabled: Boolean(erc20Address) },
   });
 
   const symbol = (data?.[0]?.result as string | undefined) ?? "";
@@ -61,7 +64,7 @@ export function WatchAssetTest() {
   const params = {
     type: "ERC20",
     options: {
-      address: TEST_ERC20.address,
+      address: erc20Address,
       symbol,
       decimals,
     },
@@ -101,8 +104,8 @@ export function WatchAssetTest() {
       </p>
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 font-mono text-[11px] text-gray-600">
-        <div className="truncate" title={TEST_ERC20.address}>
-          address: {TEST_ERC20.address}
+        <div className="truncate" title={erc20Address}>
+          address: {erc20Address ?? "not deployed on this chain"}
         </div>
         <div>
           symbol: {symbol || "…"} · decimals: {decimals}
@@ -112,7 +115,7 @@ export function WatchAssetTest() {
       <div aria-hidden className="grow" />
       <button
         onClick={handleWatch}
-        disabled={run.status === "pending"}
+        disabled={run.status === "pending" || !erc20Address}
         className={cn(
           "mt-4 w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer",
           "border border-gray-950 bg-gray-950 text-white hover:bg-black hover:shadow-sm",

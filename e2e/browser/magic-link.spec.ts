@@ -8,7 +8,7 @@
  * 4. Wait for "Magic link sent" confirmation
  * 5. Poll for email, extract OTP code from the magic link URL
  * 6. Navigate to the magic link URL (simulating email click)
- * 7. Verify auto-verification succeeds and redirects to /dashboard
+ * 7. Verify auto-verification succeeds and the lab renders authenticated
  */
 
 import { expect, test } from '@playwright/test'
@@ -22,6 +22,7 @@ import {
   ping,
   searchForNewEmail,
 } from '../helpers/temp-email.js'
+import { expectLabReady } from '../helpers/ui-login.js'
 
 test.describe('Magic Link Flow', () => {
   test.beforeEach(async () => {
@@ -37,12 +38,8 @@ test.describe('Magic Link Flow', () => {
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
 
-    // Step 2: Seed the demo's email-method choice so wagmi-config picks
-    // magic-link on first paint. Then navigate.
-    await page.addInitScript(() => {
-      localStorage.setItem('zd:emailAuthMethod', 'magicLink')
-    })
-    await page.goto('/')
+    // Step 2: Pick magic-link via the lab's config params — the default is OTP.
+    await page.goto('/?emailAuth=magicLink')
     await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
     // Step 3: Enter email and submit (press Enter)
@@ -65,21 +62,15 @@ test.describe('Magic Link Flow', () => {
     expect(otpCode).toBeTruthy()
     console.log(`Extracted magic link code: ${otpCode}`)
 
-    // Step 7: Navigate to the verify URL (simulating clicking the magic link)
-    // The demo app stores otpId in localStorage, so we navigate in the same context
-    await page.goto(`/verify?code=${otpCode}`)
+    // Step 7: Navigate to the verify URL (simulating clicking the magic link).
+    // The app stores otpId in localStorage, so we navigate in the same context.
+    // `emailAuth` has to come along: the config params build the wagmi
+    // connector, and dropping them here would rebuild it and lose the session.
+    await page.goto(`/verify?code=${otpCode}&emailAuth=magicLink`)
 
-    // Step 8: Wait for auto-verification and redirect to dashboard.
-    // The kit has no dedicated success screen — `goToStep('authenticated')`
-    // transitions silently and the demo's effect routes to /dashboard.
-    await page.waitForURL('**/dashboard', { timeout: 60_000 })
-
-    // Step 9: Verify dashboard loaded
-    // Wallet creation (EIP-7702 Kernel) can be slow, so accept either
-    // the loaded state or the loading spinner as proof of successful auth
-    await expect(
-      page.getByText('Your Smart Wallet').or(page.getByText('Loading wallet')),
-    ).toBeVisible({ timeout: 60_000 })
+    // Step 8: The verify page routes back to the lab once wagmi connects.
+    // Wallet creation (EIP-7702 Kernel) can be slow.
+    await expectLabReady(page)
     console.log('Magic link login successful')
   })
 })

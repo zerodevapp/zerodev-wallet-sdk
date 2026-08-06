@@ -5,19 +5,23 @@ import { type Address, erc20Abi, erc721Abi, formatUnits } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
 import { cn } from "../../lib/utils";
 import {
+  addressOn,
   getContractsByKind,
-  TEST_CONTRACTS_CHAIN,
+  isTestContractChain,
+  TEST_CONTRACT_CHAIN_NAMES,
   type TestContract,
 } from "./contracts";
 
 function BalanceShell({
   contract,
+  address,
   value,
   symbol,
   onRefresh,
   isFetching,
 }: {
   contract: TestContract;
+  address: Address | undefined;
   value: string;
   symbol: string;
   onRefresh: () => void;
@@ -29,9 +33,9 @@ function BalanceShell({
         <p className="text-sm font-medium text-gray-900">{contract.name}</p>
         <p
           className="truncate font-mono text-[11px] text-gray-400"
-          title={contract.address}
+          title={address}
         >
-          {contract.address}
+          {address ?? "not deployed here"}
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -57,17 +61,20 @@ function BalanceShell({
 function Erc20BalanceRow({
   contract,
   account,
+  chainId,
 }: {
   contract: TestContract;
   account: Address;
+  chainId: number | undefined;
 }) {
+  const address = addressOn(contract, chainId);
   const { data, refetch, isFetching, isError } = useReadContracts({
     contracts: [
-      { address: contract.address, abi: erc20Abi, functionName: "balanceOf", args: [account], chainId: contract.chainId },
-      { address: contract.address, abi: erc20Abi, functionName: "decimals", chainId: contract.chainId },
-      { address: contract.address, abi: erc20Abi, functionName: "symbol", chainId: contract.chainId },
+      { address, abi: erc20Abi, functionName: "balanceOf", args: [account], chainId },
+      { address, abi: erc20Abi, functionName: "decimals", chainId },
+      { address, abi: erc20Abi, functionName: "symbol", chainId },
     ],
-    query: { enabled: Boolean(account), refetchInterval: 15_000 },
+    query: { enabled: Boolean(account && address), refetchInterval: 15_000 },
   });
 
   const balance = data?.[0]?.result as bigint | undefined;
@@ -86,6 +93,7 @@ function Erc20BalanceRow({
   return (
     <BalanceShell
       contract={contract}
+      address={address}
       value={value}
       symbol={symbol}
       onRefresh={() => refetch()}
@@ -97,16 +105,19 @@ function Erc20BalanceRow({
 function Erc721BalanceRow({
   contract,
   account,
+  chainId,
 }: {
   contract: TestContract;
   account: Address;
+  chainId: number | undefined;
 }) {
+  const address = addressOn(contract, chainId);
   const { data, refetch, isFetching, isError } = useReadContracts({
     contracts: [
-      { address: contract.address, abi: erc721Abi, functionName: "balanceOf", args: [account], chainId: contract.chainId },
-      { address: contract.address, abi: erc721Abi, functionName: "symbol", chainId: contract.chainId },
+      { address, abi: erc721Abi, functionName: "balanceOf", args: [account], chainId },
+      { address, abi: erc721Abi, functionName: "symbol", chainId },
     ],
-    query: { enabled: Boolean(account), refetchInterval: 15_000 },
+    query: { enabled: Boolean(account && address), refetchInterval: 15_000 },
   });
 
   const count = data?.[0]?.result as bigint | undefined;
@@ -117,6 +128,7 @@ function Erc721BalanceRow({
   return (
     <BalanceShell
       contract={contract}
+      address={address}
       value={value}
       symbol={symbol}
       onRefresh={() => refetch()}
@@ -137,7 +149,7 @@ export function ContractBalances() {
 
   // Only flag a mismatch once a chain is actually known — while disconnected
   // the panel shows its "connect a wallet" state instead.
-  const wrongChain = Boolean(chain && chain.id !== TEST_CONTRACTS_CHAIN.id);
+  const unsupportedChain = Boolean(chain && !isTestContractChain(chain.id));
 
   if (erc20Contracts.length === 0 && erc721Contracts.length === 0) return null;
 
@@ -148,17 +160,18 @@ export function ContractBalances() {
       </h3>
       <p className="mt-1 text-sm text-gray-500">
         Holdings of the active address for each deployed test contract (ERC20
-        balance, ERC721 owned-NFT count). Every contract below is deployed on{" "}
+        balance, ERC721 owned-NFT count), on{" "}
         <span
           className="font-medium text-gray-700"
           data-testid="contract-balances-chain"
         >
-          {TEST_CONTRACTS_CHAIN.name}
+          {chain?.name ?? "the connected chain"}
         </span>
-        .
+        . Each chain is a separate deployment, so balances don&apos;t carry
+        across.
       </p>
 
-      {wrongChain && (
+      {unsupportedChain && (
         <div
           className="mt-4 flex items-start gap-2 rounded-lg border border-yellow-100 bg-yellow-50 px-3 py-2.5"
           data-testid="contract-balances-wrong-chain"
@@ -166,12 +179,9 @@ export function ContractBalances() {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
           <p className="text-sm text-yellow-700">
             Your wallet is on{" "}
-            <span className="font-semibold">{chain?.name}</span>, not{" "}
-            {TEST_CONTRACTS_CHAIN.name}. These balances still read from{" "}
-            {TEST_CONTRACTS_CHAIN.name} — they&apos;re queried with an explicit
-            chain — so they stay correct and give no hint anything is wrong. The
-            write tests below don&apos;t pin a chain and will fail until you
-            switch the wallet&apos;s network (top of the dashboard).
+            <span className="font-semibold">{chain?.name}</span>, where none of
+            these are deployed. Switch to {TEST_CONTRACT_CHAIN_NAMES} (top of
+            the dashboard) — the write tests below are disabled until you do.
           </p>
         </div>
       )}
@@ -184,6 +194,7 @@ export function ContractBalances() {
                 key={contract.key}
                 contract={contract}
                 account={address}
+                chainId={chain?.id}
               />
             ))}
             {erc721Contracts.map((contract) => (
@@ -191,6 +202,7 @@ export function ContractBalances() {
                 key={contract.key}
                 contract={contract}
                 account={address}
+                chainId={chain?.id}
               />
             ))}
           </>

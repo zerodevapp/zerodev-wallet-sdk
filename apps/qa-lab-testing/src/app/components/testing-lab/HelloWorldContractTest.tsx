@@ -5,11 +5,13 @@ import { useState } from "react";
 import { maxUint256 } from "viem";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { cn } from "../../lib/utils";
-import { TEST_HELLO_WORLD } from "./contracts";
+import {
+  addressOn,
+  TEST_CONTRACT_CHAIN_NAMES,
+  TEST_HELLO_WORLD,
+} from "./contracts";
 import { ClearRunsButton, TxRunList, useTxRuns } from "./txRuns";
 
-const HW_ADDRESS = TEST_HELLO_WORLD.address;
-const HW_CHAIN_ID = TEST_HELLO_WORLD.chainId;
 const HW_ABI = TEST_HELLO_WORLD.abi;
 
 // Edge-value presets to stress how the popup renders different uint256
@@ -33,33 +35,44 @@ export function HelloWorldContractTest() {
   const { runs, track, clear } = useTxRuns();
   const [value, setValue] = useState("42");
 
-  const wrongChain = chain?.id !== HW_CHAIN_ID;
+  const hwAddress = addressOn(TEST_HELLO_WORLD, chain?.id);
+  const unsupportedChain = !hwAddress;
 
+  // Reads the connected chain's deployment, not a pinned one — the two are
+  // independent, so their stored messages differ.
   const {
     data: stored,
     refetch,
     isFetching,
   } = useReadContract({
-    address: HW_ADDRESS,
+    address: hwAddress,
     abi: HW_ABI,
     functionName: "readMessage",
-    chainId: HW_CHAIN_ID,
-    query: { refetchInterval: 15_000 },
+    chainId: chain?.id,
+    query: { enabled: Boolean(hwAddress), refetchInterval: 15_000 },
   });
 
   const handleSet = () => {
-    track(`setMessage(${value})`, () =>
-      writeContractAsync({
-        address: HW_ADDRESS,
+    track(`setMessage(${value})`, () => {
+      if (!hwAddress) {
+        throw new Error(
+          `HelloWorld is not deployed on ${chain?.name ?? "this chain"}`,
+        );
+      }
+      return writeContractAsync({
+        address: hwAddress,
         abi: HW_ABI,
         functionName: "setMessage",
         args: [BigInt(value || "0")],
-      }),
-    );
+      });
+    });
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
+    <div
+      className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 sm:p-5"
+      data-testid="case-helloworld"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
@@ -67,19 +80,26 @@ export function HelloWorldContractTest() {
           </h3>
           <p className="mt-1 text-sm text-gray-500">
             Calls <code>setMessage(uint256)</code> on{" "}
-            <code className="break-all">{HW_ADDRESS}</code> (Arbitrum Sepolia) —
-            a non-token write the popup renders as a generic call.
+            <code className="break-all" data-testid="helloworld-address">
+              {hwAddress ?? "—"}
+            </code>{" "}
+            on {chain?.name ?? "the connected chain"} — a non-token write the
+            popup renders as a generic call.
           </p>
         </div>
         {runs.length > 0 && <ClearRunsButton onClear={clear} />}
       </div>
 
-      {wrongChain && (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-yellow-100 bg-yellow-50 px-3 py-2.5">
+      {unsupportedChain && (
+        <div
+          className="mt-4 flex items-start gap-2 rounded-lg border border-yellow-100 bg-yellow-50 px-3 py-2.5"
+          data-testid="helloworld-unsupported-chain"
+        >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
           <p className="text-sm text-yellow-700">
-            This contract is on Arbitrum Sepolia. Switch the wallet&apos;s
-            network (top of the dashboard) or the call will fail.
+            Not deployed on {chain?.name ?? "this chain"}. Switch the
+            wallet&apos;s network (top of the dashboard) to{" "}
+            {TEST_CONTRACT_CHAIN_NAMES}.
           </p>
         </div>
       )}
@@ -137,9 +157,12 @@ export function HelloWorldContractTest() {
       <div aria-hidden className="grow" />
       <button
         onClick={handleSet}
+        disabled={unsupportedChain}
+        data-testid="helloworld-submit"
         className={cn(
           "mt-4 w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer",
           "border border-gray-950 bg-gray-950 text-white hover:bg-black hover:shadow-sm",
+          "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-gray-950",
           "flex items-center justify-center gap-2",
         )}
       >

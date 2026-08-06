@@ -2,6 +2,7 @@
 
 import { ChainMethodsTest } from "./ChainMethodsTest";
 import { ContractBalances } from "./ContractBalances";
+import { DemoNftMintTest } from "./DemoNftMintTest";
 import { Erc20ContractTest } from "./Erc20ContractTest";
 import { Erc721ContractTest } from "./Erc721ContractTest";
 import { HelloWorldContractTest } from "./HelloWorldContractTest";
@@ -13,6 +14,7 @@ import { SessionExpiryTest } from "./SessionExpiryTest";
 import { SignMessageCounterTest } from "./SignMessageCounterTest";
 import { SignMessagePresetTest } from "./SignMessagePresetTest";
 import { SignTypedDataInvalidTest } from "./SignTypedDataInvalidTest";
+import { SignTypedDataTest } from "./SignTypedDataTest";
 import { WatchAssetTest } from "./WatchAssetTest";
 
 /**
@@ -26,11 +28,13 @@ const AREA_CASES: Record<string, React.ComponentType[]> = {
   signing: [
     SignMessageCounterTest,
     SignMessagePresetTest,
+    SignTypedDataTest,
     SignTypedDataInvalidTest,
   ],
   transactions: [SendEthTest, SendHighAmountTest, SendInvalidAddressTest],
   contracts: [
     ContractBalances,
+    DemoNftMintTest,
     Erc20ContractTest,
     Erc721ContractTest,
     HelloWorldContractTest,

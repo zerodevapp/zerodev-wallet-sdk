@@ -2,7 +2,7 @@
  * Browser E2E test for the Passkey (WebAuthn) authentication flow.
  *
  * Uses a CDP virtual authenticator to simulate biometric authentication.
- * This tests the FULL auth flow: WebAuthn ceremony → backend → Turnkey → session → dashboard.
+ * This tests the FULL auth flow: WebAuthn ceremony → backend → Turnkey → session → lab.
  * The virtual authenticator auto-accepts the biometric prompt (the standard way
  * to test WebAuthn in Playwright/Puppeteer).
  *
@@ -14,6 +14,7 @@
 
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { expectLabReady } from '../helpers/ui-login.js'
 import {
   getVirtualCredentials,
   setupVirtualAuthenticator,
@@ -22,52 +23,10 @@ import {
 } from '../helpers/virtual-authenticator.js'
 
 /**
- * Sample EIP-712 typed data using Arbitrum Sepolia chainId (421614).
- * Must match a chain allowed by the project, otherwise the backend rejects it.
- */
-const TYPED_DATA_SAMPLE = JSON.stringify(
-  {
-    domain: {
-      name: 'Ether Mail',
-      version: '1',
-      chainId: 421614,
-      verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
-    },
-    types: {
-      Person: [
-        { name: 'name', type: 'string' },
-        { name: 'wallet', type: 'address' },
-      ],
-      Mail: [
-        { name: 'from', type: 'Person' },
-        { name: 'to', type: 'Person' },
-        { name: 'contents', type: 'string' },
-      ],
-    },
-    primaryType: 'Mail',
-    message: {
-      from: {
-        name: 'Cow',
-        wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
-      },
-      to: {
-        name: 'Bob',
-        wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
-      },
-      contents: 'Hello, Bob!',
-    },
-  },
-  null,
-  2,
-)
-
-/**
- * Register a passkey via virtual authenticator and wait for the dashboard to load.
+ * Register a passkey via virtual authenticator and wait for the lab to load.
  * Returns the virtual authenticator handle for teardown.
  */
-async function registerAndWaitForDashboard(
-  page: Page,
-): Promise<VirtualAuthenticator> {
+async function registerAndEnterLab(page: Page): Promise<VirtualAuthenticator> {
   const virtualAuth = await setupVirtualAuthenticator(page)
 
   await page.goto('/')
@@ -75,11 +34,7 @@ async function registerAndWaitForDashboard(
 
   await page.getByRole('button', { name: /Create a passkey/i }).click()
 
-  await page.waitForURL('**/dashboard', { timeout: 60_000 })
-  await expect(page.getByText('Your Smart Wallet')).toBeVisible({
-    timeout: 60_000,
-  })
-  await expect(page.getByText(/0x[0-9a-fA-F]{40}/)).toBeVisible()
+  await expectLabReady(page)
 
   return virtualAuth
 }
@@ -93,7 +48,7 @@ test.describe('Passkey Flow', () => {
     // resident/discoverable or it can never be used to log in. The virtual
     // authenticator honors the residentKey hint, so a non-resident credential
     // here would mean broken login.
-    virtualAuth = await registerAndWaitForDashboard(page)
+    virtualAuth = await registerAndEnterLab(page)
 
     try {
       const credentials = await getVirtualCredentials(virtualAuth)
@@ -108,25 +63,22 @@ test.describe('Passkey Flow', () => {
   })
 
   test('should register with passkey and sign a message', async ({ page }) => {
-    virtualAuth = await registerAndWaitForDashboard(page)
+    virtualAuth = await registerAndEnterLab(page)
 
     try {
-      // Navigate to Sign Message tab
+      await page.getByTestId('nav-feature-tx-signing').click()
+      await expect(page.getByTestId('area-signing')).toBeVisible()
+
       await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Sign Anything/i })
+        .getByTestId('case-sign-message-presets')
+        .getByTestId('sign-message-submit')
         .click()
 
-      // Payload is pre-filled with the sample, so sign directly. ("Load Sample"
-      // only appears once the user edits the payload.)
-      await page
-        .getByRole('button', { name: /Sign Anything/i })
-        .nth(1)
-        .click()
-
-      // Exact match avoids the kit's "Signature Request" heading; match only
-      // the result-panel label.
-      await expect(page.getByText('Message signed successfully')).toBeVisible({
+      const run = page.getByTestId('sign-run-1')
+      await expect(run).toHaveAttribute('data-status', 'success', {
+        timeout: 30_000,
+      })
+      await expect(run).toHaveAttribute('data-verify', 'valid', {
         timeout: 30_000,
       })
       console.log('Passkey registration + sign message successful')
@@ -138,33 +90,19 @@ test.describe('Passkey Flow', () => {
   test('should sign typed data (EIP-712) after passkey registration', async ({
     page,
   }) => {
-    virtualAuth = await registerAndWaitForDashboard(page)
+    virtualAuth = await registerAndEnterLab(page)
 
     try {
-      // Navigate to Sign Message tab
-      await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Sign Anything/i })
-        .click()
+      await page.getByTestId('nav-feature-tx-signing').click()
+      await expect(page.getByTestId('area-signing')).toBeVisible()
 
-      // Switch to Typed Data mode
-      await page
-        .getByRole('button', { name: /Typed Data \(EIP-712\)/i })
-        .click()
+      await page.getByTestId('sign-typed-data-submit').click()
 
-      // Fill with typed data using a valid chainId for the project
-      const textarea = page.getByPlaceholder('Enter EIP-712 typed data JSON...')
-      await textarea.fill(TYPED_DATA_SAMPLE)
-
-      // Click the sign action button (nth(1) — nth(0) is the nav tab)
-      await page
-        .getByRole('button', { name: /Sign Anything/i })
-        .nth(1)
-        .click()
-
-      await expect(page.getByText('Message signed successfully')).toBeVisible({
-        timeout: 30_000,
-      })
+      await expect(page.getByTestId('typed-data-run-1')).toHaveAttribute(
+        'data-status',
+        'success',
+        { timeout: 30_000 },
+      )
       console.log('Typed data (EIP-712) signing successful')
     } finally {
       await teardownVirtualAuthenticator(virtualAuth)
@@ -174,22 +112,22 @@ test.describe('Passkey Flow', () => {
   test('should mint NFT (send transaction) after passkey registration', async ({
     page,
   }) => {
-    virtualAuth = await registerAndWaitForDashboard(page)
+    virtualAuth = await registerAndEnterLab(page)
 
     try {
-      // "Gas-free Mint" is the default tab; click it explicitly to be safe.
-      await page
-        .getByRole('navigation')
-        .getByRole('button', { name: /Gas-free Mint/i })
-        .click()
+      await page.getByTestId('nav-feature-tx-signing').click()
+      await page.getByTestId('feature-tx-signing-tab-contracts').click()
+      await expect(page.getByTestId('area-contracts')).toBeVisible()
 
-      // Fixed-mode tab hides the mode selector, so there is a single Mint button.
-      // Exact match avoids the "Gas-free Mint" tab.
-      await page.getByRole('button', { name: 'Mint', exact: true }).click()
+      const mint = page.getByTestId('case-demo-nft-mint')
+      await expect(mint.getByTestId('demo-nft-address')).not.toHaveText('—')
+      await mint.getByTestId('demo-nft-mint-submit').click()
 
-      await expect(page.getByText(/NFT minted/i)).toBeVisible({
-        timeout: 60_000,
-      })
+      await expect(mint.getByTestId('tx-run-1')).toHaveAttribute(
+        'data-status',
+        'success',
+        { timeout: 60_000 },
+      )
       console.log('Mint NFT (send transaction) successful')
     } finally {
       await teardownVirtualAuthenticator(virtualAuth)

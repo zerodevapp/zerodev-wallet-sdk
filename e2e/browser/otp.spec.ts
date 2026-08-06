@@ -1,32 +1,29 @@
 /**
  * Browser E2E test for the OTP authentication flow.
  *
- * Tests the full OTP flow through the demo app UI:
+ * Tests the full OTP flow through the QA lab UI:
  * 1. Create temp email
  * 2. Navigate to login page
  * 3. Enter email and click "Continue with email OTP code"
  * 4. Wait for OTP verification step
  * 5. Poll for email, extract OTP code
  * 6. Enter OTP code and click "Verify and continue"
- * 7. Verify redirect to /dashboard
- * 8. Verify wallet address and balance are displayed
+ * 7. Verify the lab renders authenticated, with the wallet address
  */
 
 import { expect, test } from '@playwright/test'
 import {
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
+  OTP_CODE_LENGTH,
 } from '../helpers/constants.js'
-
-// Demo app uses 6-digit OTP codes (configured in zerodev-signer-demo)
-const DEMO_APP_OTP_LENGTH = 6
-
 import { extractOtpCode } from '../helpers/otp-utils.js'
 import {
   createNewAccount,
   ping,
   searchForNewEmail,
 } from '../helpers/temp-email.js'
+import { expectLabReady } from '../helpers/ui-login.js'
 
 test.describe('OTP Flow', () => {
   test.beforeEach(async () => {
@@ -42,11 +39,7 @@ test.describe('OTP Flow', () => {
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
 
-    // Step 2: Seed the demo's email-method choice so wagmi-config picks OTP
-    // on first paint. Then navigate.
-    await page.addInitScript(() => {
-      localStorage.setItem('zd:emailAuthMethod', 'otp')
-    })
+    // Step 2: Navigate. The lab defaults to OTP as its email method.
     await page.goto('/')
     await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
@@ -67,7 +60,7 @@ test.describe('OTP Flow', () => {
       EMAIL_POLL_INTERVAL_MS,
       EMAIL_POLL_TIMEOUT_MS,
     )
-    const otpCode = extractOtpCode(emailContent, DEMO_APP_OTP_LENGTH, true)
+    const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH, true)
     expect(otpCode).toBeTruthy()
 
     // Step 7: Enter OTP code
@@ -76,12 +69,8 @@ test.describe('OTP Flow', () => {
     // Step 8: Click verify
     await page.getByRole('button', { name: /Confirm code/i }).click()
 
-    // Step 9: Wait for dashboard redirect
-    await page.waitForURL('**/dashboard', { timeout: 60_000 })
-
-    // Step 10: Verify dashboard elements (wallet creation can take time)
-    await expect(page.getByText('Your Smart Wallet')).toBeVisible({
-      timeout: 60_000,
-    })
+    // Step 9: The lab replaces the login surface in place (wallet creation can
+    // take time)
+    await expectLabReady(page)
   })
 })

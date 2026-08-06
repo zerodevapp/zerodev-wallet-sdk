@@ -173,8 +173,8 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Build and start demo app
-        working-directory: apps/zerodev-signer-demo
+      - name: Build and start QA lab
+        working-directory: apps/qa-lab-testing
         run: |
           pnpm build
           pnpm start &
@@ -185,23 +185,23 @@ jobs:
           # staging KMS above (the SDK default host is prod).
           NEXT_PUBLIC_ZERODEV_AA_HOST: https://staging-meta-aa-provider.onrender.com
 
-      - name: Wait for demo app
+      - name: Wait for QA lab
         run: |
           for i in $(seq 1 15); do
             if curl -sf http://localhost:3000 > /dev/null 2>&1; then
-              echo "Demo app is ready"
+              echo "QA lab is ready"
               exit 0
             fi
-            echo "Waiting for demo app... ($i/15)"
+            echo "Waiting for QA lab... ($i/15)"
             sleep 2
           done
-          echo "Demo app failed to start"
+          echo "QA lab failed to start"
           exit 1
 
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
-          DEMO_APP_URL: http://localhost:3000
+          LAB_APP_URL: http://localhost:3000
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

@@ -256,13 +256,21 @@ dropping a component into `testing-lab/` and listing it in the relevant tab in `
 ```bash
 pnpm install                                  # from the repo root
 cp .env.example .env                          # then fill in the values
-pnpm --filter @zerodev/qa-lab-testing dev     # http://localhost:3002
+pnpm --filter @zerodev/qa-lab-testing dev     # http://localhost:3000
 ```
 
-Port **3002** so it can run alongside `zerodev-signer-demo` (3000).
+Port **3000** because the ZeroDev project's access-control policy only permits
+`http://localhost:3000` as an origin — anything else gets a 403 from the KMS backend.
+`zerodev-signer-demo` defaults to the same port, so pass an explicit `--port` to whichever
+you start second.
 
-## Note on e2e
+## e2e
 
-`e2e/playwright.config.ts` still boots `zerodev-signer-demo` on 3000. Repointing it here is a follow-up:
-`goto('/')` still lands on the login screen, but `post-auth.spec.ts` assumes a `/dashboard` route that
-this app doesn't have.
+`e2e/playwright.config.ts` boots this app and the Playwright suite runs against it. Two things
+to know when writing specs:
+
+- There is no post-login route. The auth gate swaps the login surface for the lab at the same
+  URL, so wait on the lab (`expectLabReady` in `e2e/helpers/ui-login.ts`), not a navigation.
+- Wallet config comes from URL params, not localStorage. A spec picks a non-default by
+  navigating — e.g. `goto('/?emailAuth=magicLink')` — and every later navigation in that test
+  must carry the same params, or the wagmi connector is rebuilt and the session is lost.

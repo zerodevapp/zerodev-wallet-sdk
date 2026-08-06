@@ -9,7 +9,7 @@ export function AppHeader() {
   const { applied } = useResolvedConfig();
 
   return (
-    <header className="sticky top-0 z-0 border-b border-[var(--border-warm)] bg-white/95 font-[var(--font-dm-sans)] backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-[var(--border-warm)] bg-white/95 font-[var(--font-dm-sans)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1920px] items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:h-[88px] lg:px-9 lg:py-0">
         <ConfigLink
           href="/"

@@ -30,7 +30,7 @@ export const SUPPORTED_CHAINS = [arbitrumSepolia, sepolia] as const;
  * Defaults for anything overridable via URL params (see `config-params.ts`).
  * These are what the app runs with when no params are present.
  */
-export const DEFAULT_AUTH_METHODS = ["email"] as const;
+export const DEFAULT_AUTH_METHODS = ["email", "google", "passkey"] as const;
 
 export const DEFAULT_EMAIL_AUTH_METHOD = "otp" as const;
 

@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const demoAppDir = path.resolve(__dirname, '../apps/zerodev-signer-demo')
+const labAppDir = path.resolve(__dirname, '../apps/qa-lab-testing')
 
 export default defineConfig({
   testDir: './browser',
@@ -17,7 +17,7 @@ export default defineConfig({
     timeout: 30_000,
   },
   use: {
-    baseURL: process.env.DEMO_APP_URL || 'http://localhost:3000',
+    baseURL: process.env.LAB_APP_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // Local backend uses a self-signed TLS cert. Opt in via env so CI /
@@ -33,7 +33,7 @@ export default defineConfig({
   webServer: process.env.CI
     ? undefined
     : {
-        command: `cd ${demoAppDir} && pnpm dev`,
+        command: `cd ${labAppDir} && pnpm dev`,
         url: 'http://localhost:3000',
         reuseExistingServer: true,
         timeout: 30_000,

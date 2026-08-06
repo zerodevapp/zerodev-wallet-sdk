@@ -1,5 +1,5 @@
 import { type Abi, type Address, parseAbi } from "viem";
-import { arbitrumSepolia } from "viem/chains";
+import { arbitrumSepolia, sepolia } from "viem/chains";
 
 /**
  * Registry of test contracts deployed for the Testing Lab.
@@ -12,16 +12,11 @@ import { arbitrumSepolia } from "viem/chains";
  */
 
 /**
- * The chain every entry in `TEST_CONTRACTS` is deployed on.
- *
- * Worth knowing how the two directions differ: balance reads pass an explicit
- * `chainId`, so they resolve against this chain whatever the wallet is
- * connected to. Writes don't — `writeContract` targets the wallet's active
- * chain — so they fail against a contract that doesn't exist there. That
- * asymmetry is why the Contracts tab warns when the wallet is elsewhere:
- * balances keep updating and look fine while every write is doomed.
+ * The chains every entry in `TEST_CONTRACTS` is deployed on. Same source on
+ * both, but each is an independent deployment — mints, `imageURI` and `message`
+ * do not carry across.
  */
-export const TEST_CONTRACTS_CHAIN = arbitrumSepolia;
+export const TEST_CONTRACT_CHAINS = [arbitrumSepolia, sepolia] as const;
 
 export type TestContractKind = "erc20" | "erc721" | "custom";
 
@@ -31,12 +26,26 @@ export interface TestContract {
   /** Human-readable name shown in the UI. */
   name: string;
   kind: TestContractKind;
-  address: Address;
-  /** Chain the contract is deployed on. */
-  chainId: number;
+  /** Deployment address per chain id. */
+  addresses: Record<number, Address>;
   /** Full ABI (reads + writes). */
   abi: Abi;
 }
+
+/** The deployment on `chainId`, or undefined if there isn't one. */
+export const addressOn = (
+  contract: { addresses: Record<number, Address> },
+  chainId: number | undefined,
+): Address | undefined =>
+  chainId === undefined ? undefined : contract.addresses[chainId];
+
+export const isTestContractChain = (chainId: number | undefined): boolean =>
+  TEST_CONTRACT_CHAINS.some((chain) => chain.id === chainId);
+
+/** For prose: "Arbitrum Sepolia or Sepolia". */
+export const TEST_CONTRACT_CHAIN_NAMES = TEST_CONTRACT_CHAINS.map(
+  (chain) => chain.name,
+).join(" or ");
 
 /** ABI for the deployed test ERC20 (reads + the writes exercised by the lab). */
 export const testErc20Abi = parseAbi([
@@ -55,15 +64,17 @@ export const testErc20Abi = parseAbi([
 ]);
 
 /**
- * Test ERC20 on Arbitrum Sepolia. Exported as a typed const so interaction
+ * Test ERC20. Exported as a typed const so interaction
  * cases (e.g. Erc20ContractTest) get literal ABI types for `writeContract`.
  */
 export const TEST_ERC20 = {
-  key: "test-erc20-arb-sepolia",
+  key: "test-erc20",
   name: "Test ERC20",
   kind: "erc20" as const,
-  address: "0x7358eca9B17E833F09E911F46b6AC2cD96c7C806" as Address,
-  chainId: TEST_CONTRACTS_CHAIN.id,
+  addresses: {
+    [arbitrumSepolia.id]: "0x7358eca9B17E833F09E911F46b6AC2cD96c7C806" as Address,
+    [sepolia.id]: "0x05358932e81cc0e8324d39187fe8fce0672f1f06" as Address,
+  },
   abi: testErc20Abi,
 };
 
@@ -88,17 +99,19 @@ export const testErc721Abi = parseAbi([
 ]);
 
 /**
- * Test ERC721 (Test NFT / TNFT) on Arbitrum Sepolia — fully on-chain metadata
+ * Test ERC721 (Test NFT / TNFT) — fully on-chain metadata
  * (base64 data URI) pointing at one shared IPFS image (settable via
  * `setImageURI`). Exported as a typed const so interaction cases get literal
  * ABI types for `writeContract`.
  */
 export const TEST_ERC721 = {
-  key: "test-erc721-arb-sepolia",
+  key: "test-erc721",
   name: "Test NFT (TNFT)",
   kind: "erc721" as const,
-  address: "0xc707054cdc1930Eab467F4Edce7443cB45505d57" as Address,
-  chainId: TEST_CONTRACTS_CHAIN.id,
+  addresses: {
+    [arbitrumSepolia.id]: "0xc707054cdc1930Eab467F4Edce7443cB45505d57" as Address,
+    [sepolia.id]: "0xf29d9b0c4d5ad90722019ff6336c94cb889f0f98" as Address,
+  },
   abi: testErc721Abi,
 };
 
@@ -114,14 +127,35 @@ export const helloWorldAbi = parseAbi([
   "event MessageSet(uint256 indexed message)",
 ]);
 
-/** Minimal custom contract on Arbitrum Sepolia (arbitrary contract call). */
+/** Minimal custom contract (arbitrary contract call). */
 export const TEST_HELLO_WORLD = {
-  key: "test-helloworld-arb-sepolia",
+  key: "test-helloworld",
   name: "HelloWorld",
   kind: "custom" as const,
-  address: "0x675b6783E57FbE73207da8b73dDDad7CAd74d6f1" as Address,
-  chainId: TEST_CONTRACTS_CHAIN.id,
+  addresses: {
+    [arbitrumSepolia.id]: "0x675b6783E57FbE73207da8b73dDDad7CAd74d6f1" as Address,
+    [sepolia.id]: "0x19e1b5c5e4e777e4ad6b5e0a62f4b7385fbbfd24" as Address,
+  },
   abi: helloWorldAbi,
+};
+
+/**
+ * The NFT `zerodev-signer-demo` mints against, kept so the lab exercises the
+ * same target the demo did rather than only the lab's own ERC721.
+ *
+ * Deliberately outside `TEST_CONTRACTS`: that registry is single-chain
+ * (`TEST_CONTRACTS_CHAIN`) and this is deployed per chain, so it can't be
+ * described by a `TestContract` entry.
+ */
+export const demoNftAbi = parseAbi([
+  "function balanceOf(address owner) external view returns (uint256 balance)",
+  "function mint(address _to) public",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+]);
+
+export const DEMO_NFT_ADDRESSES: Record<number, Address> = {
+  [sepolia.id]: "0x34bE7f35132E97915633BC1fc020364EA5134863" as Address,
+  [arbitrumSepolia.id]: "0x4eae0b2130d5c3be154ebc851cd1dc0cc694b808" as Address,
 };
 
 /** All deployed test contracts. Add new deployments here. */

@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 3002",
-    "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-ui exec vite build --watch & (sleep 2 && open http://localhost:3002) & pnpm --filter @zerodev/qa-lab-testing dev",
+    "dev": "next dev --port 3000",
+    "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-ui exec vite build --watch & (sleep 2 && open http://localhost:3000) & pnpm --filter @zerodev/qa-lab-testing dev",
     "build": "next build",
-    "start": "next start --port 3002",
+    "start": "next start --port 3000",
     "lint": "next lint"
   },
   "dependencies": {

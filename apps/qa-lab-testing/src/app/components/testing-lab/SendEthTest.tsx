@@ -30,7 +30,10 @@ export function SendEthTest() {
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
+    <div
+      className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 sm:p-5"
+      data-testid="case-send-eth"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
@@ -83,6 +86,7 @@ export function SendEthTest() {
       <div aria-hidden className="grow" />
       <button
         onClick={handleSend}
+        data-testid="send-eth-submit"
         className={cn(
           "mt-4 w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer",
           "border border-gray-950 bg-gray-950 text-white hover:bg-black hover:shadow-sm",

@@ -191,7 +191,10 @@ export function SignMessagePresetTest() {
   const isEdited = text !== activePreset.build(counter + 1);
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
+    <div
+      className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 sm:p-5"
+      data-testid="case-sign-message-presets"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
@@ -223,6 +226,7 @@ export function SignMessagePresetTest() {
         <select
           value={presetKey}
           onChange={(e) => handlePresetChange(e.target.value)}
+          data-testid="sign-message-preset"
           className={cn(
             "w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 cursor-pointer",
             "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
@@ -273,6 +277,7 @@ export function SignMessagePresetTest() {
       <div aria-hidden className="grow" />
       <button
         onClick={handleSign}
+        data-testid="sign-message-submit"
         className={cn(
           "mt-4 w-full py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer",
           "border border-gray-950 bg-gray-950 text-white hover:bg-black hover:shadow-sm",
@@ -284,10 +289,13 @@ export function SignMessagePresetTest() {
       </button>
 
       {runs.length > 0 && (
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 space-y-2" data-testid="sign-runs">
           {runs.map((run) => (
             <li
               key={run.id}
+              data-testid={`sign-run-${run.id}`}
+              data-status={run.status}
+              data-verify={run.verify}
               className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
             >
               <div className="flex items-center gap-2.5">

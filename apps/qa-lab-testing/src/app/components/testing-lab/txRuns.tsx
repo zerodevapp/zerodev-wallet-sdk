@@ -75,7 +75,7 @@ export function TxRunList({ runs }: { runs: TxRun[] }) {
   if (runs.length === 0) return null;
 
   return (
-    <ul className="mt-4 space-y-2">
+    <ul className="mt-4 space-y-2" data-testid="tx-runs">
       {runs.map((run) => {
         const explorerUrl =
           run.hash && explorerBaseUrl
@@ -84,6 +84,8 @@ export function TxRunList({ runs }: { runs: TxRun[] }) {
         return (
           <li
             key={run.id}
+            data-testid={`tx-run-${run.id}`}
+            data-status={run.status}
             className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
           >
             <span className="shrink-0">
@@ -110,6 +112,8 @@ export function TxRunList({ runs }: { runs: TxRun[] }) {
               <span
                 className="shrink-0 font-mono text-[11px] text-gray-400"
                 title={run.hash}
+                data-testid="tx-run-hash"
+                data-hash={run.hash}
               >
                 {shortHex(run.hash)}
               </span>
