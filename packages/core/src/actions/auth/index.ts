@@ -17,6 +17,7 @@ export {
   getAuthenticators,
   type OAuthAuthenticator,
   type PasskeyAuthenticator,
+  type SessionKeyAuthenticator,
 } from './getAuthenticators.js'
 export {
   type GetAuthProxyConfigIdReturnType,
@@ -46,6 +47,11 @@ export {
   type LoginWithStampReturnType,
   loginWithStamp,
 } from './loginWithStamp.js'
+export {
+  type LogoutParameters,
+  type LogoutReturnType,
+  logout,
+} from './logout.js'
 export {
   type OtpContact,
   type RegisterWithOTPParameters,

@@ -3,7 +3,7 @@ import type { ZeroDevWalletSession } from '../types/session.js'
 import { createStorageManager, type StorageAdapter } from './manager.js'
 
 // Create a mock in-memory storage adapter
-function createMockAdapter(): StorageAdapter & { store: Map<string, string> } {
+function createMockAdapter() {
   const store = new Map<string, string>()
   return {
     store,
@@ -14,7 +14,7 @@ function createMockAdapter(): StorageAdapter & { store: Map<string, string> } {
     removeItem: vi.fn((key: string) => {
       store.delete(key)
     }),
-  }
+  } satisfies StorageAdapter & { store: Map<string, string> }
 }
 
 // Helper to create a valid session
@@ -92,6 +92,87 @@ describe('createStorageManager', () => {
       await manager.storeSession(session, sessionKey)
 
       expect(adapter.store.get('@zerodev/active_session')).toBe(sessionKey)
+    })
+
+    it('rolls back the session record when indexing it fails', async () => {
+      const manager = createStorageManager(adapter)
+      const session = createSession()
+      const sessionKey = 'session:partial-write'
+      adapter.setItem.mockImplementation((key: string, value: string) => {
+        if (key === '@zerodev/sessions') throw new Error('storage failed')
+        adapter.store.set(key, value)
+      })
+
+      await expect(manager.storeSession(session, sessionKey)).rejects.toThrow(
+        'storage failed',
+      )
+
+      expect(adapter.store.has(sessionKey)).toBe(false)
+    })
+
+    it.each([
+      ['session record', 'session:new'],
+      ['session index', '@zerodev/sessions'],
+      ['active pointer', '@zerodev/active_session'],
+    ])(
+      'restores the complete old state when the %s write fails',
+      async (_, failureKey) => {
+        const manager = createStorageManager(adapter)
+        const oldSession = createSession({ id: 'session:old' })
+        const newSession = createSession({ id: 'session:new' })
+        await manager.storeSession(oldSession, oldSession.id)
+        const oldIndex = adapter.store.get('@zerodev/sessions')
+        const oldActive = adapter.store.get('@zerodev/active_session')
+        let failed = false
+        adapter.setItem.mockImplementation((key: string, value: string) => {
+          if (!failed && key === failureKey) {
+            failed = true
+            throw new Error(`failed ${failureKey}`)
+          }
+          adapter.store.set(key, value)
+        })
+
+        await expect(
+          manager.storeSession(newSession, newSession.id),
+        ).rejects.toThrow(`failed ${failureKey}`)
+
+        expect(adapter.store.get(oldSession.id)).toBe(
+          JSON.stringify(oldSession),
+        )
+        expect(adapter.store.get('@zerodev/sessions')).toBe(oldIndex)
+        expect(adapter.store.get('@zerodev/active_session')).toBe(oldActive)
+        expect(adapter.store.has(newSession.id)).toBe(false)
+      },
+    )
+
+    it('does not lose sessions stored concurrently', async () => {
+      const concurrentAdapter: StorageAdapter = {
+        getItem: vi.fn(async (key: string) => {
+          if (key === '@zerodev/sessions') {
+            const snapshot = adapter.store.get(key) ?? null
+            await Promise.resolve()
+            return snapshot
+          }
+          return adapter.store.get(key) ?? null
+        }),
+        setItem: vi.fn(async (key: string, value: string) => {
+          adapter.store.set(key, value)
+        }),
+        removeItem: vi.fn(async (key: string) => {
+          adapter.store.delete(key)
+        }),
+      }
+      const manager = createStorageManager(concurrentAdapter)
+
+      await Promise.all([
+        manager.storeSession(createSession(), 'session:a'),
+        manager.storeSession(createSession(), 'session:b'),
+      ])
+
+      await expect(manager.listSessionKeys()).resolves.toEqual([
+        'session:a',
+        'session:b',
+      ])
     })
   })
 
@@ -201,7 +282,7 @@ describe('createStorageManager', () => {
       expect(adapter.store.has(sessionKey)).toBe(false)
     })
 
-    it('returns session when expiry is 0 (falsy but not expired)', async () => {
+    it('clears and returns undefined when expiry is zero', async () => {
       const manager = createStorageManager(adapter)
       const sessionWithZeroExpiry = createSession({ expiry: 0 })
       const sessionKey = 'session:zero-expiry'
@@ -211,8 +292,8 @@ describe('createStorageManager', () => {
 
       const result = await manager.getSession(sessionKey)
 
-      // expiry: 0 is falsy, so the expiry check is skipped and session is returned
-      expect(result).toEqual(sessionWithZeroExpiry)
+      expect(result).toBeUndefined()
+      expect(adapter.store.has(sessionKey)).toBe(false)
     })
 
     it('clears and returns undefined for malformed JSON', async () => {
@@ -220,6 +301,19 @@ describe('createStorageManager', () => {
       const sessionKey = 'session:malformed'
 
       adapter.store.set(sessionKey, 'not-valid-json')
+      adapter.store.set('@zerodev/sessions', JSON.stringify([sessionKey]))
+
+      const result = await manager.getSession(sessionKey)
+
+      expect(result).toBeUndefined()
+      expect(adapter.store.has(sessionKey)).toBe(false)
+    })
+
+    it('clears and returns undefined for a structurally invalid session', async () => {
+      const manager = createStorageManager(adapter)
+      const sessionKey = 'session:invalid-shape'
+
+      adapter.store.set(sessionKey, '{}')
       adapter.store.set('@zerodev/sessions', JSON.stringify([sessionKey]))
 
       const result = await manager.getSession(sessionKey)
@@ -251,6 +345,13 @@ describe('createStorageManager', () => {
       const keys = await manager.listSessionKeys()
 
       expect(keys).toEqual([])
+    })
+
+    it('recovers safely when the session index is corrupted', async () => {
+      const manager = createStorageManager(adapter)
+      adapter.store.set('@zerodev/sessions', 'not-json')
+
+      await expect(manager.listSessionKeys()).resolves.toEqual([])
     })
 
     it('removes keys that have no corresponding session data', async () => {
@@ -446,10 +547,110 @@ describe('createStorageManager', () => {
       expect(adapter.store.has('@zerodev/active_session')).toBe(false)
     })
 
+    it('clears a staged transition containing a replacement bearer token', async () => {
+      const manager = createStorageManager(adapter)
+      const session = createSession({ token: 'replacement-bearer-token' })
+      await manager.stageSessionTransition(session, 'pending-key')
+
+      await manager.clearAllSessions()
+
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+    })
+
     it('handles empty state gracefully', async () => {
       const manager = createStorageManager(adapter)
 
       await expect(manager.clearAllSessions()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('session transition recovery', () => {
+    it('stages a replacement without changing the active session', async () => {
+      const manager = createStorageManager(adapter)
+      const oldSession = createSession({ id: 'old-session' })
+      const newSession = createSession({ id: 'new-session' })
+      await manager.storeSession(oldSession, oldSession.id)
+
+      await manager.stageSessionTransition(newSession, 'new-public-key')
+
+      await expect(manager.getActiveSession()).resolves.toEqual(oldSession)
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(true)
+    })
+
+    it('finishes a staged transition when the persisted key was committed', async () => {
+      const manager = createStorageManager(adapter)
+      const oldSession = createSession({ id: 'old-session' })
+      const newSession = createSession({ id: 'new-session' })
+      await manager.storeSession(oldSession, oldSession.id)
+      await manager.stageSessionTransition(newSession, '0xNEW-PUBLIC-KEY')
+
+      const recovered = await manager.recoverSessionTransition('new-public-key')
+
+      expect(recovered).toEqual(newSession)
+      await expect(manager.getActiveSession()).resolves.toEqual(newSession)
+      expect(await manager.listSessionKeys()).toEqual([newSession.id])
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+    })
+
+    it('discards an uncommitted transition and preserves the old session', async () => {
+      const manager = createStorageManager(adapter)
+      const oldSession = createSession({ id: 'old-session' })
+      const newSession = createSession({ id: 'new-session' })
+      await manager.storeSession(oldSession, oldSession.id)
+      await manager.stageSessionTransition(newSession, 'new-public-key')
+
+      await manager.recoverSessionTransition('old-public-key')
+
+      await expect(manager.getActiveSession()).resolves.toEqual(oldSession)
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+    })
+
+    it('discards a staged transition when no active local key exists', async () => {
+      const manager = createStorageManager(adapter)
+      const newSession = createSession({ id: 'new-session' })
+      await manager.stageSessionTransition(newSession, 'new-public-key')
+
+      await manager.recoverSessionTransition(null)
+
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
+    })
+
+    it('retains the journal when final session persistence fails', async () => {
+      const manager = createStorageManager(adapter)
+      const newSession = createSession({ id: 'new-session' })
+      await manager.stageSessionTransition(newSession, 'new-public-key')
+      adapter.setItem.mockImplementation((key: string, value: string) => {
+        if (key === newSession.id) throw new Error('storage failed')
+        adapter.store.set(key, value)
+      })
+
+      await expect(manager.commitSessionTransition()).rejects.toThrow(
+        'storage failed',
+      )
+
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(true)
+    })
+
+    it('rejects a structurally tampered transition instead of committing it', async () => {
+      const manager = createStorageManager(adapter)
+      const oldSession = createSession({ id: 'old-session' })
+      const newSession = createSession({ id: 'new-session' })
+      await manager.storeSession(oldSession, oldSession.id)
+      await manager.stageSessionTransition(newSession, 'new-public-key')
+      adapter.store.set(
+        '@zerodev/session_transition',
+        JSON.stringify({
+          sessionData: { ...newSession, token: '' },
+          publicKey: 'new-public-key',
+        }),
+      )
+
+      await expect(
+        manager.recoverSessionTransition('new-public-key'),
+      ).resolves.toBeUndefined()
+
+      await expect(manager.getActiveSession()).resolves.toEqual(oldSession)
+      expect(adapter.store.has('@zerodev/session_transition')).toBe(false)
     })
   })
 

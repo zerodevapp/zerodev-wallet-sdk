@@ -12,6 +12,8 @@ export type ZeroDevWalletSession = {
   stamperType: StamperType
   sessionType?: SessionType
   token: string
+  /** Public key bound into the session JWT; persisted for crash recovery. */
+  publicKey?: string
   expiry: number
   createdAt: number
 }

@@ -110,7 +110,7 @@ export async function exportPrivateKey(
     )
   }
 
-  return { exportBundle, address: address!, organizationId }
+  return { exportBundle, address, organizationId }
 }
 
 export type { KeyFormat }

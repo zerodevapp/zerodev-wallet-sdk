@@ -19,7 +19,7 @@ function createJwtPayload(payload: Record<string, unknown>): string {
 describe('parseSession', () => {
   it('parses a valid JWT into session object', () => {
     const payload = {
-      exp: 1700000000,
+      exp: 2000000000,
       public_key: 'test-public-key',
       session_type: 'SESSION_TYPE_READ_WRITE',
       user_id: 'user-123',
@@ -33,8 +33,9 @@ describe('parseSession', () => {
       sessionType: 'SESSION_TYPE_READ_WRITE',
       userId: 'user-123',
       organizationId: 'org-456',
-      expiry: 1700000000,
-      token: 'test-public-key',
+      expiry: 2000000000,
+      token: jwt,
+      publicKey: 'test-public-key',
     })
   })
 
@@ -107,6 +108,30 @@ describe('parseSession', () => {
     expect(() => parseSession(jwt)).toThrow(
       'JWT payload missing required fields',
     )
+  })
+
+  it('throws before key commit when expiry has the wrong type', () => {
+    const jwt = createJwtPayload({
+      exp: '2000000000',
+      public_key: 'key',
+      session_type: 'SESSION_TYPE_READ_WRITE',
+      user_id: 'user',
+      organization_id: 'org',
+    })
+
+    expect(() => parseSession(jwt)).toThrow('missing required fields')
+  })
+
+  it('throws when the returned session is already expired', () => {
+    const jwt = createJwtPayload({
+      exp: 1,
+      public_key: 'key',
+      session_type: 'SESSION_TYPE_READ_WRITE',
+      user_id: 'user',
+      organization_id: 'org',
+    })
+
+    expect(() => parseSession(jwt)).toThrow('already expired')
   })
 })
 

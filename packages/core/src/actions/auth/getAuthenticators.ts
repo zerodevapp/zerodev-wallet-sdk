@@ -37,6 +37,21 @@ export type ApiKeyAuthenticator = {
   [key: string]: unknown
 }
 
+/** A temporary session key registered for an authenticated SDK session. */
+export type SessionKeyAuthenticator = {
+  /** Current backend wire casing (the Go model has no JSON tags). */
+  ApiKey?: string
+  KeyType?: string
+  ExpiresAt?: string
+  TurnkeyId?: string
+  /** Forward-compatible casing if the backend adds JSON tags. */
+  apiKey?: string
+  keyType?: string
+  expiresAt?: string
+  turnkeyId?: string
+  [key: string]: unknown
+}
+
 export type GetAuthenticatorsReturnType = {
   /** OAuth providers linked to the user (null if none) */
   oauths: OAuthAuthenticator[] | null
@@ -46,13 +61,16 @@ export type GetAuthenticatorsReturnType = {
   emailContacts: EmailContact[] | null
   /** API keys associated with the user (null if none) */
   apiKeys: ApiKeyAuthenticator[] | null
+  /** Temporary session keys associated with the user (null if none) */
+  sessionKeys: SessionKeyAuthenticator[] | null
 }
 
 /**
- * Fetches all authenticators (oauths, passkeys, emailContacts, apiKeys) for
+ * Fetches all authenticators (oauths, passkeys, emailContacts, apiKeys,
+ * sessionKeys) for
  * the authenticated user within the given project/sub-organization.
  *
- * Corresponds to `POST /api/v1/{projectId}/authenticators`.
+ * Corresponds to `GET /api/v1/{projectId}/authenticators`.
  *
  * @param client - The ZeroDev Wallet client
  * @param params - The parameters for the authenticators request

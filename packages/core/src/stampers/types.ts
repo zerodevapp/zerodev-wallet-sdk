@@ -37,8 +37,14 @@ export type ApiKeyStamper = Stamper & {
   resetKeyPair: () => Promise<void>
   /** Generate a new key pair internally, return its compressed public key, but keep the OLD key active for stamp(). */
   prepareKeyRotation: () => Promise<string>
+  /** Stamp with the prepared key without making it active. */
+  stampPending: (payload: string) => Promise<Stamp>
+  /** Sign with the prepared key without making it active. */
+  signPending: (payload: string) => Promise<string>
   /** Promote the pending key to active. Call after the server accepts the new key. */
   commitKeyRotation: () => Promise<void>
+  /** Forget the prepared key while keeping the active key untouched. */
+  discardKeyRotation: () => Promise<void>
   /**
    * Sign `payload` with the currently active key. Returns a hex-encoded
    * ECDSA-P256 / SHA-256 signature in ASN.1 DER form.

@@ -7,7 +7,7 @@ export type BuildClientSignatureParams = {
   /** The compressed public key hex */
   publicKey: string
   /** The API key stamper for signing */
-  stamper: ApiKeyStamper
+  stamper: Pick<ApiKeyStamper, 'stamp'>
 }
 
 /**
@@ -64,7 +64,9 @@ function extractTokenIdFromJwt(jwt: string): string {
     throw new Error('Invalid JWT format')
   }
 
-  const payload = JSON.parse(base64UrlDecode(parts[1]!))
+  const encodedPayload = parts[1]
+  if (!encodedPayload) throw new Error('Invalid JWT format')
+  const payload = JSON.parse(base64UrlDecode(encodedPayload))
   if (!payload.id) {
     throw new Error('JWT payload missing id field')
   }

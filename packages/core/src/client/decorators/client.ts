@@ -28,7 +28,10 @@ import {
   getWhoami,
   type LoginWithOTPParameters,
   type LoginWithOTPReturnType,
+  type LogoutParameters,
+  type LogoutReturnType,
   loginWithOTP,
+  logout,
   type RegisterWithOTPParameters,
   type RegisterWithOTPReturnType,
   type RegisterWithPasskeyParameters,
@@ -84,6 +87,9 @@ export type ZeroDevWalletActions = {
   getAuthenticators: (
     params: GetAuthenticatorsParameters,
   ) => Promise<GetAuthenticatorsReturnType>
+
+  /** Revokes the caller's current Turnkey session key. */
+  logout: (params: LogoutParameters) => Promise<LogoutReturnType>
 
   // Wallet actions
   /**
@@ -203,6 +209,7 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     authenticateWithOAuth: (params) => authenticateWithOAuth(client, params),
     getWhoami: (params) => getWhoami(client, params),
     getAuthenticators: (params) => getAuthenticators(client, params),
+    logout: (params) => logout(client, params),
 
     // Wallet actions
     getUserWallet: (params) => getUserWallet(client, params),

@@ -36,9 +36,13 @@ function createMockStamper(
     }),
     getPublicKey: vi.fn().mockResolvedValue('mock-public-key'),
     clear: vi.fn().mockResolvedValue(undefined),
+    sign: vi.fn().mockResolvedValue(signatureHex),
     resetKeyPair: vi.fn().mockResolvedValue(undefined),
     prepareKeyRotation: vi.fn().mockResolvedValue('mock-public-key'),
+    stampPending: vi.fn(),
+    signPending: vi.fn(),
     commitKeyRotation: vi.fn().mockResolvedValue(undefined),
+    discardKeyRotation: vi.fn().mockResolvedValue(undefined),
   }
 }
 
