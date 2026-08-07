@@ -23,57 +23,27 @@ import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
-import {
-  getAuthProxyConfigId,
-  waitForBackend,
-} from '../helpers/backend-health.js'
+import { getAuthProxyConfigId } from '../helpers/backend-health.js'
 import {
   BACKEND_URL,
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
 } from '../helpers/constants.js'
 import { extractOtpCodeFromMagicLinkUrl } from '../helpers/otp-utils.js'
-import {
-  createNewAccount,
-  ping,
-  searchForNewEmail,
-} from '../helpers/temp-email.js'
+import { createNewAccount, searchForNewEmail } from '../helpers/temp-email.js'
 import { createTestClient } from '../helpers/test-client.js'
 import { createTestStamper } from '../helpers/test-stamper.js'
 
 describe('Magic Link Authentication Flow', () => {
   let projectId: string
   let authProxyConfigId: string
-  let skipReason = ''
 
   beforeAll(async () => {
-    try {
-      await waitForBackend(BACKEND_URL)
-    } catch {
-      skipReason = `Backend not reachable at ${BACKEND_URL}`
-      return
-    }
-
-    try {
-      await ping()
-    } catch {
-      skipReason = 'Email service unavailable'
-      return
-    }
-
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
-
     projectId = process.env.ZD_PROJECT_ID || ''
-    if (!projectId) {
-      skipReason = 'ZD_PROJECT_ID not set'
-      return
-    }
   })
 
-  it('should complete the full magic link register + login flow', async (context) => {
-    console.log(`Skipping magic link flow test: ${skipReason}`)
-    context.skip(!!skipReason, skipReason)
-
+  it('should complete the full magic link register + login flow', async () => {
     // Step 1: Create temp email account
     const emailAccount = await createNewAccount()
     const email = emailAccount.address

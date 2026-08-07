@@ -6,7 +6,11 @@
 
 import { expect, type Page } from '@playwright/test'
 import { EMAIL_POLL_INTERVAL_MS, EMAIL_POLL_TIMEOUT_MS } from './constants.js'
-import { extractOtpCode, extractOtpCodeFromMagicLinkUrl } from './otp-utils.js'
+import {
+  extractMagicLinkUrl,
+  extractOtpCode,
+  extractOtpCodeFromMagicLinkUrl,
+} from './otp-utils.js'
 import { searchForNewEmail } from './temp-email.js'
 
 // Demo app uses 6-digit OTP codes (configured in zerodev-signer-demo).
@@ -79,11 +83,15 @@ export async function loginWithMagicLink(
     EMAIL_POLL_INTERVAL_MS,
     EMAIL_POLL_TIMEOUT_MS,
   )
-  const otpCode = extractOtpCodeFromMagicLinkUrl(emailContent)
-  if (!otpCode) {
+  const magicLinkUrl = extractMagicLinkUrl(emailContent)
+  if (!magicLinkUrl) {
     throw new Error('Magic-link project sent no verification link')
   }
 
-  await page.goto(`/verify?code=${otpCode}`)
+  // Navigate the actual emailed link rather than reconstructing /verify?code=
+  // against baseURL, so a change to the project's magic_link_template (host or
+  // path) is exercised here instead of silently passing. Assumes the template
+  // points at the demo app under test.
+  await page.goto(magicLinkUrl)
   await expectDashboard(page)
 }

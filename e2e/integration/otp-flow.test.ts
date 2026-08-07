@@ -18,10 +18,7 @@ import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.
 import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
-import {
-  getAuthProxyConfigId,
-  waitForBackend,
-} from '../helpers/backend-health.js'
+import { getAuthProxyConfigId } from '../helpers/backend-health.js'
 import {
   BACKEND_URL,
   EMAIL_POLL_INTERVAL_MS,
@@ -32,50 +29,20 @@ import {
   extractOtpCode,
   extractOtpCodeFromMagicLinkUrl,
 } from '../helpers/otp-utils.js'
-import {
-  createNewAccount,
-  ping,
-  searchForNewEmail,
-} from '../helpers/temp-email.js'
+import { createNewAccount, searchForNewEmail } from '../helpers/temp-email.js'
 import { createTestClient } from '../helpers/test-client.js'
 import { createTestStamper } from '../helpers/test-stamper.js'
 
 describe('OTP Authentication Flow', () => {
   let projectId: string
   let authProxyConfigId: string
-  let skipReason = ''
 
   beforeAll(async () => {
-    // Check backend availability first (fast fail)
-    try {
-      await waitForBackend(BACKEND_URL)
-    } catch {
-      skipReason = `Backend not reachable at ${BACKEND_URL}`
-      return
-    }
-
-    // Check email service availability
-    try {
-      await ping()
-    } catch {
-      skipReason = 'Email service unavailable'
-      return
-    }
-
-    // Get auth proxy config ID from backend
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
-
-    // Get project ID from env
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
-    if (!projectId) {
-      skipReason = 'ZD_OTP_PROJECT_ID not set'
-      return
-    }
   })
 
-  it('should complete the full OTP register + login flow', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('should complete the full OTP register + login flow', async () => {
     // Step 1: Create temp email account
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
@@ -168,9 +135,7 @@ describe('OTP Authentication Flow', () => {
     )
   })
 
-  it('should reject an invalid OTP code', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('should reject an invalid OTP code', async () => {
     // Create temp email
     const emailAccount = await createNewAccount()
     const email = emailAccount.address

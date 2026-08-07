@@ -9,10 +9,10 @@ const demoAppDir = path.resolve(__dirname, '../apps/zerodev-signer-demo')
 const envPath = path.resolve(__dirname, '../.env')
 if (existsSync(envPath)) loadEnvFile(envPath)
 
+// Only the OTP demo server (below) consumes this, and only for local runs.
+// Don't require it at config load, or `--list`, single-project, and magic-link
+// runs would all demand an OTP project id they never use.
 const otpProjectId = process.env.ZD_OTP_PROJECT_ID
-if (!otpProjectId) {
-  throw new Error('ZD_OTP_PROJECT_ID is required for browser OTP tests')
-}
 
 const magicLinkBaseUrl = process.env.DEMO_APP_URL || 'http://localhost:3000'
 const otpBaseUrl = process.env.OTP_DEMO_APP_URL || 'http://localhost:3001'
@@ -58,16 +58,23 @@ export default defineConfig({
             reuseExistingServer: true,
             timeout: 30_000,
           },
-          {
-            command: `cd ${demoAppDir} && pnpm dev --port 3001`,
-            url: otpBaseUrl,
-            env: {
-              NEXT_DIST_DIR: '.next-e2e-otp',
-              NEXT_PUBLIC_ZERODEV_PROJECT_ID: otpProjectId,
-            },
-            reuseExistingServer: true,
-            timeout: 30_000,
-          },
+          // The OTP demo server (:3001) is only needed by otp.spec.ts. Start it
+          // only when an OTP project id is configured, so magic-link-only and
+          // `--list` runs don't require ZD_OTP_PROJECT_ID.
+          ...(otpProjectId
+            ? [
+                {
+                  command: `cd ${demoAppDir} && pnpm dev --port 3001`,
+                  url: otpBaseUrl,
+                  env: {
+                    NEXT_DIST_DIR: '.next-e2e-otp',
+                    NEXT_PUBLIC_ZERODEV_PROJECT_ID: otpProjectId,
+                  },
+                  reuseExistingServer: true,
+                  timeout: 30_000,
+                },
+              ]
+            : []),
         ],
       }),
 })

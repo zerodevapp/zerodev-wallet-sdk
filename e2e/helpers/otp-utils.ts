@@ -38,8 +38,9 @@ export function extractMagicLinkCode(content: string): string | null {
  *
  * When a project is configured with a magic-link template, Turnkey sends
  * an email containing a URL with the OTP code embedded as a query parameter.
- * For example, with template "http://localhost:3000/callback?code=%s",
- * the email will contain "http://localhost:3000/callback?code=1234567".
+ * For example, with template "http://localhost:3000/verify?code=%s",
+ * the email will contain "http://localhost:3000/verify?code=1234567". The
+ * host/path are whatever the project's magic_link_template specifies.
  *
  * @param content - The email text content
  * @returns The extracted OTP code, or null if not found
@@ -48,4 +49,15 @@ export function extractOtpCodeFromMagicLinkUrl(content: string): string | null {
   // Look for code= query parameter value in URLs
   const match = content.match(/[?&]code=([A-Za-z0-9]+)/)
   return match ? match[1] : null
+}
+
+/**
+ * Extracts the full magic-link verification URL from email content — the actual
+ * link the user would click, including whatever host/path the project's
+ * magic_link_template specifies. Returns the first URL carrying a `code=` query
+ * parameter, or null.
+ */
+export function extractMagicLinkUrl(content: string): string | null {
+  const urls = content.match(/https?:\/\/[^\s"'<>]+/g) ?? []
+  return urls.find((url) => /[?&]code=[A-Za-z0-9]+/.test(url)) ?? null
 }

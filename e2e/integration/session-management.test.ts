@@ -15,11 +15,9 @@ import { parseSession } from '../../packages/core/src/utils/utils.js'
 import {
   getAuthProxyConfigId,
   getParentOrgId,
-  waitForBackend,
 } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
 import { completeOtpLogin } from '../helpers/otp-login.js'
-import { ping } from '../helpers/temp-email.js'
 import { createTestClient } from '../helpers/test-client.js'
 import { createTestStamper } from '../helpers/test-stamper.js'
 
@@ -40,36 +38,14 @@ describe('Session Management', () => {
   let projectId: string
   let authProxyConfigId: string
   let parentOrgId: string
-  let skipReason = ''
 
   beforeAll(async () => {
-    try {
-      await waitForBackend(BACKEND_URL)
-    } catch {
-      skipReason = `Backend not reachable at ${BACKEND_URL}`
-      return
-    }
-
-    try {
-      await ping()
-    } catch {
-      skipReason = 'Email service unavailable'
-      return
-    }
-
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
     parentOrgId = await getParentOrgId(BACKEND_URL)
-
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
-    if (!projectId) {
-      skipReason = 'ZD_OTP_PROJECT_ID not set'
-      return
-    }
   })
 
-  it('refreshes through Core, survives restoration, signs, and revokes the replacement key on logout', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('refreshes through Core, survives restoration, signs, and revokes the replacement key on logout', async () => {
     const { stamper, session, sessionToken } = await completeOtpLogin(
       projectId,
       authProxyConfigId,

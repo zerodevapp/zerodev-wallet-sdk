@@ -6,50 +6,27 @@
  * 2. Exercise every signing route against the real backend
  */
 
+import { recoverTransactionAddress } from 'viem'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { toViemAccount } from '../../packages/core/src/adapters/viem.js'
-import {
-  getAuthProxyConfigId,
-  waitForBackend,
-} from '../helpers/backend-health.js'
+import { getAuthProxyConfigId } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
 import { completeOtpLogin } from '../helpers/otp-login.js'
-import { ping } from '../helpers/temp-email.js'
 
 const CHAIN_ID = 421614
 
 describe('Wallet Operations', () => {
   let projectId: string
   let authProxyConfigId: string
-  let skipReason = ''
 
   beforeAll(async () => {
-    try {
-      await waitForBackend(BACKEND_URL)
-    } catch {
-      skipReason = `Backend not reachable at ${BACKEND_URL}`
-      return
-    }
-
-    try {
-      await ping()
-    } catch {
-      skipReason = 'Email service unavailable'
-      return
-    }
-
+    // Backend reachability, email service, and project-id env are enforced once
+    // in global-setup.ts, which fails the whole run if any are unmet.
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
-
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
-    if (!projectId) {
-      skipReason = 'ZD_OTP_PROJECT_ID not set'
-      return
-    }
   })
 
-  it('should get user wallet addresses after login', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('should get user wallet addresses after login', async () => {
     const { client, session, sessionToken } = await completeOtpLogin(
       projectId,
       authProxyConfigId,
@@ -72,9 +49,7 @@ describe('Wallet Operations', () => {
     console.log(`Wallet addresses: ${wallet.walletAddresses.join(', ')}`)
   })
 
-  it('should sign every supported payload after login', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('should sign every supported payload after login', async () => {
     const { client, session, sessionToken } = await completeOtpLogin(
       projectId,
       authProxyConfigId,
@@ -102,7 +77,14 @@ describe('Wallet Operations', () => {
       to: account.address,
       value: 0n,
     })
-    expect(signedTransaction).toMatch(/^0x[0-9a-f]+$/i)
+    // Re-derive the signer from the RETURNED serialized bytes. This catches any
+    // divergence between the serializer used to build the signing hash and the
+    // one used for the returned encoding (see #383) — a plain hex-shape regex
+    // (which also matches 0x0) would not.
+    const recoveredSigner = await recoverTransactionAddress({
+      serializedTransaction: signedTransaction as `0x02${string}`,
+    })
+    expect(recoveredSigner.toLowerCase()).toBe(account.address.toLowerCase())
 
     const typedDataSignature = await account.signTypedData({
       domain: {

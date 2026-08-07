@@ -100,6 +100,12 @@ test.describe('Post-Auth Operations', () => {
       const stored = localStorage.getItem(sessionId)
       if (!stored) throw new Error('Expected the active session record')
       const session = JSON.parse(stored)
+      // Expiry 65s out: just past SESSION_WARNING_THRESHOLD_MS (60s in
+      // provider.ts), so on reload the refresh fires on the scheduled timer
+      // (~5s later) — the path under test — while still landing inside the 30s
+      // waitForResponse below. If that threshold moves, this could silently
+      // cover the immediate-refresh path (raise it well past 65s) or time out
+      // (lower it below the wait window) instead. Keep them in sync.
       session.expiry = Date.now() + 65_000
       localStorage.setItem(sessionId, JSON.stringify(session))
     }, initialSessionId)

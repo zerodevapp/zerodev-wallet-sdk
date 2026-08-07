@@ -9,30 +9,16 @@
 
 import { beforeAll, describe, expect, it } from 'vitest'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
-import { waitForBackend } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
 
 describe('OTP init wire shape', () => {
   let projectId: string
-  let skipReason = ''
 
-  beforeAll(async () => {
-    try {
-      await waitForBackend(BACKEND_URL)
-    } catch {
-      skipReason = `Backend not reachable at ${BACKEND_URL}`
-      return
-    }
+  beforeAll(() => {
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
-    if (!projectId) {
-      skipReason = 'ZD_OTP_PROJECT_ID not set'
-      return
-    }
   })
 
-  it('returns otpEncryptionTargetBundle that encryptOtpAttempt accepts under the production pinned key', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('returns otpEncryptionTargetBundle that encryptOtpAttempt accepts under the production pinned key', async () => {
     const res = await fetch(`${BACKEND_URL}/${projectId}/auth/init/otp`, {
       method: 'POST',
       headers: {
