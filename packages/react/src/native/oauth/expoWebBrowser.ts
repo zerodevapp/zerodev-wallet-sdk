@@ -2,6 +2,15 @@ import * as Linking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
 import type { GetOAuthSessionIdFn } from '../../authenticateOAuth.js'
 
+function isExpectedCallback(url: URL, redirectUri: string): boolean {
+  const expected = new URL(redirectUri)
+  return (
+    url.protocol === expected.protocol &&
+    url.host === expected.host &&
+    url.pathname === expected.pathname
+  )
+}
+
 /**
  * Races two observation primitives because iOS and Android deliver the
  * backend's OAuth redirect through different OS mechanisms:
@@ -16,31 +25,30 @@ export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
   redirectUri: string
 }): GetOAuthSessionIdFn {
   return async ({ oauthUrl }) => {
-    // fromDeepLink is resolved from *outside* its executor — by the
-    // Linking listener below. new Promise's executor runs synchronously,
-    // so resolveLink/rejectLink point at this promise's resolvers by the
-    // next statement. The `!` tells TS to trust that definite assignment.
-    let resolveLink!: (sid: string) => void
-    let rejectLink!: (err: Error) => void
-    const fromDeepLink = new Promise<string>((res, rej) => {
-      resolveLink = res
-      rejectLink = rej
-    })
-
     // When the OS wakes the app with the callback URL, this fires.
     // We filter to our OAuth callbacks, extract session_id, and settle
-    // fromDeepLink via the captured resolver.
-    const sub = Linking.addEventListener('url', ({ url }) => {
-      const q = new URL(url).searchParams
-      const error = q.get('error')
-      if (error) {
-        rejectLink(new Error(error || 'OAuth authentication failed'))
-        return
-      }
-      if (q.get('oauth_success') !== 'true') return
-      const sid = q.get('session_id')
-      if (sid) resolveLink(sid)
-      else rejectLink(new Error('OAuth redirect missing session_id'))
+    // fromDeepLink with the promise's own resolver.
+    let sub: ReturnType<typeof Linking.addEventListener> | undefined
+    const fromDeepLink = new Promise<string>((resolve, reject) => {
+      sub = Linking.addEventListener('url', ({ url }) => {
+        let parsed: URL
+        try {
+          parsed = new URL(url)
+        } catch {
+          return
+        }
+        if (!isExpectedCallback(parsed, params.redirectUri)) return
+        const q = parsed.searchParams
+        const error = q.get('error')
+        if (error) {
+          reject(new Error(error || 'OAuth authentication failed'))
+          return
+        }
+        if (q.get('oauth_success') !== 'true') return
+        const sid = q.get('session_id')
+        if (sid) resolve(sid)
+        else reject(new Error('OAuth redirect missing session_id'))
+      })
     })
 
     // The other path: the auth browser session observes the redirect to
@@ -60,8 +68,14 @@ export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
     ).then((r) => {
       if (r.type !== 'success') throw new Error('OAuth cancelled or failed')
       const parsed = new URL(r.url)
+      if (!isExpectedCallback(parsed, params.redirectUri)) {
+        throw new Error('OAuth callback URL did not match redirectUri')
+      }
       const error = parsed.searchParams.get('error')
       if (error) throw new Error(error || 'OAuth authentication failed')
+      if (parsed.searchParams.get('oauth_success') !== 'true') {
+        throw new Error('OAuth callback missing success marker')
+      }
       const sid = parsed.searchParams.get('session_id')
       if (!sid) throw new Error('OAuth redirect missing session_id')
       return sid
@@ -72,7 +86,7 @@ export function createOAuthGetSessionIdWithExpoWebBrowser(params: {
     } finally {
       // Drop the listener — a leaked subscription would fire on unrelated
       // deep links later in the app's lifetime.
-      sub.remove()
+      sub?.remove()
       // Close the auth tab if the deep-link branch settled the race — the
       // OS brought the app to foreground but left the Custom Tab in the
       // back stack. When fromBrowser already won, the auth session has

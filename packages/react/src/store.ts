@@ -68,8 +68,9 @@ export type CreateStoreOptions = {
   storage?: StateStorage<void>
 }
 
-export const createZeroDevWalletStore = (options?: CreateStoreOptions) =>
-  create<ZeroDevWalletState>()(
+export const createZeroDevWalletStore = (options?: CreateStoreOptions) => {
+  const storage = options?.storage
+  return create<ZeroDevWalletState>()(
     subscribeWithSelector(
       persist(
         (set, get) => ({
@@ -87,7 +88,20 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) =>
           // Actions
           setWallet: (wallet) => set({ wallet }),
 
-          setEoaAccount: (account) => set({ eoaAccount: account }),
+          setEoaAccount: (account) => {
+            const previous = get().eoaAccount
+            const ownerChanged =
+              (previous?.address.toLowerCase() ?? null) !==
+              (account?.address.toLowerCase() ?? null)
+            set({
+              eoaAccount: account,
+              ...(ownerChanged && {
+                kernelAccounts: new Map(),
+                kernelClients: new Map(),
+                walletClients: new Map(),
+              }),
+            })
+          },
 
           setKernelAccount: (chainId, account) => {
             const accounts = new Map(get().kernelAccounts)
@@ -128,13 +142,13 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) =>
         }),
         {
           name: 'zerodev-wallet',
-          // Only persist session data, not clients or accounts
+          // Core owns and validates session persistence. React only remembers
+          // the preferred chain; duplicating JWT state creates stale identities.
           partialize: (state) => ({
-            session: state.session,
             activeChainId: state.activeChainId,
           }),
-          ...(options?.storage && {
-            storage: createJSONStorage(() => options.storage!),
+          ...(storage && {
+            storage: createJSONStorage(() => storage),
           }),
           // We'll handle hydration manually to ensure it completes before we use the store
           skipHydration: true,
@@ -142,3 +156,4 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) =>
       ),
     ),
   )
+}
