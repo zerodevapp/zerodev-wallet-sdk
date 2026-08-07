@@ -15,13 +15,9 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { exportPrivateKey } from '../../packages/core/src/utils/exportPrivateKey.js'
 import { exportWallet } from '../../packages/core/src/utils/exportWallet.js'
-import {
-  getAuthProxyConfigId,
-  waitForBackend,
-} from '../helpers/backend-health.js'
+import { getAuthProxyConfigId } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
 import { completeOtpLogin } from '../helpers/otp-login.js'
-import { ping } from '../helpers/temp-email.js'
 import {
   asExportWallet,
   generateTargetPublicKey,
@@ -62,35 +58,13 @@ function assertExportBundle(exportBundle: string, organizationId: string) {
 describe('Wallet Export', () => {
   let projectId: string
   let authProxyConfigId: string
-  let skipReason = ''
 
   beforeAll(async () => {
-    try {
-      await waitForBackend(BACKEND_URL)
-    } catch {
-      skipReason = `Backend not reachable at ${BACKEND_URL}`
-      return
-    }
-
-    try {
-      await ping()
-    } catch {
-      skipReason = 'Email service unavailable'
-      return
-    }
-
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
-
-    projectId = process.env.ZD_PROJECT_ID || ''
-    if (!projectId) {
-      skipReason = 'ZD_PROJECT_ID not set'
-      return
-    }
+    projectId = process.env.ZD_OTP_PROJECT_ID || ''
   })
 
-  it('should export the secret recovery phrase (seed phrase)', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('should export the secret recovery phrase (seed phrase)', async () => {
     const { client, session } = await completeOtpLogin(
       projectId,
       authProxyConfigId,
@@ -113,9 +87,7 @@ describe('Wallet Export', () => {
     )
   })
 
-  it('should export a wallet account private key', async (context) => {
-    context.skip(!!skipReason, skipReason)
-
+  it('should export a wallet account private key', async () => {
     const { client, session, sessionToken } = await completeOtpLogin(
       projectId,
       authProxyConfigId,

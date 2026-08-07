@@ -6,6 +6,7 @@ _types
 .DS_Store
 .eslintcache
 .next
+.next-*
 bench
 cache
 coverage

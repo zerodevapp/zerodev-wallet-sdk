@@ -16,7 +16,7 @@ import {
   EMAIL_POLL_TIMEOUT_MS,
   OTP_CODE_LENGTH,
 } from './constants.js'
-import { extractOtpCode } from './otp-utils.js'
+import { extractOtpCode, extractOtpCodeFromMagicLinkUrl } from './otp-utils.js'
 import { createNewAccount, searchForNewEmail } from './temp-email.js'
 import { createTestClient } from './test-client.js'
 import { createTestStamper } from './test-stamper.js'
@@ -27,7 +27,8 @@ export async function completeOtpLogin(
 ) {
   const emailAccount = await createNewAccount()
   const stamper = createTestStamper()
-  const publicKey = (await stamper.getPublicKey())!
+  const publicKey = await stamper.getPublicKey()
+  if (!publicKey) throw new Error('Test stamper did not produce a public key')
 
   const client = createTestClient(stamper)
 
@@ -42,7 +43,11 @@ export async function completeOtpLogin(
     EMAIL_POLL_INTERVAL_MS,
     EMAIL_POLL_TIMEOUT_MS,
   )
-  const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)!
+  if (extractOtpCodeFromMagicLinkUrl(emailContent)) {
+    throw new Error('Plain-OTP project unexpectedly sent a magic-link email')
+  }
+  const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)
+  if (!otpCode) throw new Error('OTP email did not contain a verification code')
 
   const encryptedOtpBundle = await encryptOtpAttempt({
     otpCode,

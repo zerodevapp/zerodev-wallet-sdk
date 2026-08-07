@@ -21,11 +21,13 @@ export type TestStamperKeyPair = {
  * Creates a test stamper that implements the IndexedDbStamper interface
  * using Node.js crypto instead of browser IndexedDB.
  */
-export function createTestStamper(): ApiKeyStamper & {
+export function createTestStamper(
+  initialKeyPair: TestStamperKeyPair | null = null,
+): ApiKeyStamper & {
   /** Expose the key pair for tests that need direct access */
   getKeyPair(): TestStamperKeyPair | null
 } {
-  let keyPair: TestStamperKeyPair | null = null
+  let keyPair = initialKeyPair
   let pendingKeyPair: TestStamperKeyPair | null = null
 
   function ensureKeyPair(): TestStamperKeyPair {
@@ -42,27 +44,7 @@ export function createTestStamper(): ApiKeyStamper & {
     },
 
     async stamp(payload: string): Promise<Stamp> {
-      const kp = ensureKeyPair()
-      const publicKeyHex = getCompressedPublicKeyHex(kp.publicKey)
-
-      // Sign the payload (DER-encoded ECDSA signature)
-      const signer = createSign('SHA256')
-      signer.update(payload)
-      const derSignature = signer.sign(kp.privateKey)
-      const signatureHex = derSignature.toString('hex')
-
-      // Build the stamp value matching Turnkey's API key stamp format
-      const stampJson = JSON.stringify({
-        publicKey: publicKeyHex,
-        signature: signatureHex,
-        scheme: 'SIGNATURE_SCHEME_TK_API_P256',
-      })
-      const stampHeaderValue = base64UrlEncode(Buffer.from(stampJson))
-
-      return {
-        stampHeaderName: 'X-Stamp',
-        stampHeaderValue,
-      }
+      return stampWithKeyPair(ensureKeyPair(), payload)
     },
 
     async resetKeyPair(externalKeyPair?: CryptoKeyPair): Promise<void> {
@@ -96,6 +78,39 @@ export function createTestStamper(): ApiKeyStamper & {
       keyPair = pendingKeyPair
       pendingKeyPair = null
     },
+    async discardKeyRotation() {
+      pendingKeyPair = null
+    },
+    async stampPending(payload: string) {
+      if (!pendingKeyPair) throw new Error('No pending key rotation')
+      return stampWithKeyPair(pendingKeyPair, payload)
+    },
+    async signPending(payload: string) {
+      if (!pendingKeyPair) throw new Error('No pending key rotation')
+      return signWithKeyPair(pendingKeyPair, payload)
+    },
+    async sign(payload: string) {
+      return signWithKeyPair(ensureKeyPair(), payload)
+    },
+  }
+}
+
+function signWithKeyPair(keyPair: TestStamperKeyPair, payload: string): string {
+  const signer = createSign('SHA256')
+  signer.update(payload)
+  return signer.sign(keyPair.privateKey).toString('hex')
+}
+
+function stampWithKeyPair(keyPair: TestStamperKeyPair, payload: string): Stamp {
+  const stampJson = JSON.stringify({
+    publicKey: getCompressedPublicKeyHex(keyPair.publicKey),
+    signature: signWithKeyPair(keyPair, payload),
+    scheme: 'SIGNATURE_SCHEME_TK_API_P256',
+  })
+
+  return {
+    stampHeaderName: 'X-Stamp',
+    stampHeaderValue: base64UrlEncode(Buffer.from(stampJson)),
   }
 }
 
@@ -124,7 +139,9 @@ function getCompressedPublicKeyHex(publicKey: KeyObject): string {
   const y = uncompressed.subarray(33, 65)
 
   // Prefix: 0x02 if Y is even, 0x03 if Y is odd
-  const prefix = (y[y.length - 1]! & 1) === 0 ? 0x02 : 0x03
+  const lastY = y.at(-1)
+  if (lastY === undefined) throw new Error('Expected a P-256 y coordinate')
+  const prefix = (lastY & 1) === 0 ? 0x02 : 0x03
 
   const compressed = Buffer.alloc(33)
   compressed[0] = prefix

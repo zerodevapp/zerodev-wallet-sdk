@@ -1,15 +1,29 @@
 /**
  * Browser E2E test for post-authentication operations.
  *
- * After OTP login:
+ * After magic-link login:
  * 1. Sign a message via the "Sign Message" tab
  * 2. Send a transaction via the "Send Transaction" tab
  * 3. Copy wallet address
  * 4. Logout and verify redirect to login page
  */
 
-import { expect, test } from '@playwright/test'
-import { loginWithOtp } from '../helpers/ui-login.js'
+import { expect, type Page, test } from '@playwright/test'
+import { loginWithMagicLink } from '../helpers/ui-login.js'
+
+async function signMessage(page: Page) {
+  await page
+    .getByRole('navigation')
+    .getByRole('button', { name: /Sign Anything/i })
+    .click()
+  await page
+    .getByRole('button', { name: /Sign Anything/i })
+    .nth(1)
+    .click()
+  await expect(page.getByText('Message signed successfully')).toBeVisible({
+    timeout: 30_000,
+  })
+}
 
 /**
  * Sample EIP-712 typed data using Arbitrum Sepolia chainId (421614).
@@ -64,33 +78,72 @@ test.describe('Post-Auth Operations', () => {
 
   test('should sign a message after login', async ({ page }) => {
     const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
 
-    // Click the "Sign Message" tab (in the navigation area)
-    await page
-      .getByRole('navigation')
-      .getByRole('button', { name: /Sign Anything/i })
-      .click()
-
-    // Payload is pre-filled with the sample; sign directly. ("Load Sample"
-    // only appears once the user edits the payload.)
-    // Click the sign action button (nth(1) — nth(0) is the nav tab)
-    await page
-      .getByRole('button', { name: /Sign Anything/i })
-      .nth(1)
-      .click()
-
-    // Exact match avoids the kit's "Signature Request" heading; match only
-    // the result-panel label.
-    await expect(page.getByText('Message signed successfully')).toBeVisible({
-      timeout: 30_000,
-    })
+    await signMessage(page)
     console.log('Message signed successfully')
+  })
+
+  test('should auto-refresh, sign, reload, and sign again', async ({
+    page,
+  }) => {
+    test.setTimeout(180_000)
+    const emailAccount = await createNewAccount()
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
+
+    const initialSessionId = await page.evaluate(() =>
+      localStorage.getItem('@zerodev/active_session'),
+    )
+    if (!initialSessionId) throw new Error('Expected an active browser session')
+
+    await page.evaluate((sessionId) => {
+      const stored = localStorage.getItem(sessionId)
+      if (!stored) throw new Error('Expected the active session record')
+      const session = JSON.parse(stored)
+      // Expiry 65s out: just past SESSION_WARNING_THRESHOLD_MS (60s in
+      // provider.ts), so on reload the refresh fires on the scheduled timer
+      // (~5s later) — the path under test — while still landing inside the 30s
+      // waitForResponse below. If that threshold moves, this could silently
+      // cover the immediate-refresh path (raise it well past 65s) or time out
+      // (lower it below the wait window) instead. Keep them in sync.
+      session.expiry = Date.now() + 65_000
+      localStorage.setItem(sessionId, JSON.stringify(session))
+    }, initialSessionId)
+
+    const refreshResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().endsWith('/auth/login/stamp'),
+      { timeout: 30_000 },
+    )
+    await page.reload()
+    await expect(page.getByText('Your Smart Wallet')).toBeVisible({
+      timeout: 60_000,
+    })
+
+    const refreshResponse = await refreshResponsePromise
+    expect(refreshResponse.ok()).toBe(true)
+    await refreshResponse.finished()
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => localStorage.getItem('@zerodev/active_session')),
+        { timeout: 30_000 },
+      )
+      .not.toBe(initialSessionId)
+
+    await signMessage(page)
+    await page.reload()
+    await expect(page.getByText('Your Smart Wallet')).toBeVisible({
+      timeout: 60_000,
+    })
+    await signMessage(page)
   })
 
   test('should sign typed data (EIP-712) after login', async ({ page }) => {
     const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
 
     // Click the "Sign Message" tab
     await page
@@ -121,7 +174,7 @@ test.describe('Post-Auth Operations', () => {
 
   test('should mint NFT (send transaction) after login', async ({ page }) => {
     const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
 
     // Navigate to the "Gas-free Mint" tab
     await page
@@ -142,7 +195,7 @@ test.describe('Post-Auth Operations', () => {
 
   test('should logout and redirect to login page', async ({ page }) => {
     const emailAccount = await createNewAccount()
-    await loginWithOtp(page, emailAccount.address, emailAccount.authToken)
+    await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
 
     // Click logout
     await page.getByRole('button', { name: /Logout/i }).click()
