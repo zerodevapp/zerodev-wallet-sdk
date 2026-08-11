@@ -31,7 +31,10 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['e2e/integration/**/*.test.ts'],
+    include: ['e2e/contract/**/*.test.ts'],
+    // Fails fast on a missing ZD_PROJECT_ID instead of letting every test skip
+    // itself and reporting a meaningless green.
+    globalSetup: [path.resolve(__dirname, 'contract-global-setup.ts')],
     environment: 'node',
     testTimeout: 120_000,
     hookTimeout: 60_000,

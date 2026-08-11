@@ -1,5 +1,5 @@
 /**
- * Test-only bridge between the low-level integration client/session and the
+ * Test-only bridge between the low-level contract client/session and the
  * `wallet: ZeroDevWalletSDK` object the export functions expect, plus a
  * throwaway target public key generator.
  *
@@ -8,7 +8,7 @@
  *   - client        -> client.apiKeyStamper | client.passkeyStamper
  *   - toAccount()   -> { address }   (exportPrivateKey only, when address omitted)
  *
- * parseSession() omits `stamperType`, and the integration client's
+ * parseSession() omits `stamperType`, and the contract client's
  * passkeyStamper is a no-op that returns empty stamp headers. The export
  * functions branch on `session.stamperType === 'apiKey'`, so this adapter MUST
  * report `stamperType: 'apiKey'` or Turnkey receives an invalid (empty) stamp.
@@ -38,7 +38,7 @@ export function generateTargetPublicKey(): string {
 type BridgeSession = { organizationId: string } & Record<string, unknown>
 
 /**
- * Wraps the integration client + parsed session into the minimal wallet shape
+ * Wraps the contract client + parsed session into the minimal wallet shape
  * the export functions consume. `address` is only used by exportPrivateKey's
  * toAccount() fallback; pass it when known so toAccount() is never relied on.
  */

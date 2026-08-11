@@ -1,6 +1,22 @@
 import * as path from 'node:path'
 import { defineConfig } from 'vitest/config'
 
+/**
+ * In-process integration tests — any file named `*.integration.test.ts`
+ * under a package's `src` directory (see `include` below).
+ *
+ * These compose several real units together — connector + store + provider,
+ * or wallet core + storage + session lifecycle — with only the KMS boundary
+ * supplied as a test double. No network, no staging dependency, so they run
+ * in milliseconds and are deterministic.
+ *
+ * Distinct from the CONTRACT suite (`e2e/vitest.contract.config.ts`), which
+ * talks to a live KMS and verifies the wire contract — stamping, JCS
+ * canonicalization, HPKE. Same "many units" scope, opposite dependency
+ * profile, so they get separate configs and separate coverage.
+ *
+ * Environment and aliases mirror the unit config; only `include` differs.
+ */
 export default defineConfig({
   resolve: {
     alias: {
@@ -22,9 +38,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
+    include: [
+      'packages/*/src/**/*.integration.test.ts',
+      'packages/*/src/**/*.integration.test.tsx',
+    ],
     coverage: {
       provider: 'v8',
-      // `lcov` (coverage/lcov.info) is what Codecov ingests in CI.
+      reportsDirectory: 'coverage/integration',
       reporter: ['text', 'html', 'lcov'],
       include: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.tsx'],
       exclude: [
@@ -40,20 +60,5 @@ export default defineConfig({
         'packages/*/src/**/*.d.ts',
       ],
     },
-    include: [
-      'packages/*/src/**/*.test.ts',
-      'packages/*/src/**/*.test.tsx',
-      // Repo tooling that gates CI (e.g. the contract-ran checker)
-      'scripts/**/*.test.ts',
-    ],
-    // In-process integration tests compose several units and have their own
-    // config (`vitest.integration.config.ts`) so they can be reported and
-    // covered separately. Excluded here to keep this suite single-unit.
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      'packages/*/src/**/*.integration.test.ts',
-      'packages/*/src/**/*.integration.test.tsx',
-    ],
   },
 })

@@ -1,7 +1,7 @@
 /**
  * Shared helper: completes an end-to-end OTP login against a real backend.
  *
- * Used by integration tests that need an authenticated session as a setup
+ * Used by contract tests that need an authenticated session as a setup
  * step (`session-management`, `wallet-operations`). Handles the full
  * register → email → encrypted-verify → login flow and returns the
  * authenticated client + session.
