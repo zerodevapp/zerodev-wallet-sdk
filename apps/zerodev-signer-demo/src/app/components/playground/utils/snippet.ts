@@ -5,6 +5,7 @@ export type UnitType =
   | 'google'
   | 'email'
   | 'wallet'
+  | 'walletConnect'
   | 'installedWallets'
   | 'moreWallets'
   | 'divider'
@@ -41,6 +42,7 @@ export const UNIT_DEFS: { type: UnitType; label: string; multi: boolean }[] = [
   { type: 'google', label: 'Google', multi: false },
   { type: 'email', label: 'Email', multi: false },
   { type: 'wallet', label: 'Pinned wallet', multi: true },
+  { type: 'walletConnect', label: 'WalletConnect', multi: false },
   { type: 'installedWallets', label: 'Installed wallets', multi: false },
   { type: 'moreWallets', label: 'More wallets', multi: false },
   { type: 'divider', label: 'Divider', multi: true },
@@ -100,6 +102,7 @@ const UNIT_TAG: Record<
   passkey: 'Passkey',
   google: 'Google',
   email: 'Email',
+  walletConnect: 'WalletConnect',
   moreWallets: 'MoreWallets',
   divider: 'Divider',
 }

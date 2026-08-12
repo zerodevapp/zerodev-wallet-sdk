@@ -10,6 +10,7 @@ import { SignUpInstalledWallets } from './InstalledWallets'
 import { SignUpMoreWallets } from './MoreWallets'
 import { SignUpPasskey } from './Passkey'
 import { SignUpWallet } from './Wallet'
+import { SignUpWalletConnect } from './WalletConnect'
 
 type SignUpRootProps = {
   children: ReactNode
@@ -158,6 +159,7 @@ export const SignUp = Object.assign(SignUpRoot, {
   Google: SignUpGoogle,
   Email: SignUpEmail,
   Wallet: SignUpWallet,
+  WalletConnect: SignUpWalletConnect,
   InstalledWallets: SignUpInstalledWallets,
   MoreWallets: SignUpMoreWallets,
   Divider: SignUpDivider,

@@ -155,9 +155,9 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   either terms URL is set, a checkbox appears and every method is blocked
   until the user agrees. `emailAuthMethod` picks the email verification flow.
 - Units: `SignUp.Passkey`, `SignUp.Google`, `SignUp.Email`, `SignUp.Wallet`,
-  `SignUp.InstalledWallets`, `SignUp.MoreWallets`, `SignUp.Divider`. Order and
-  presence are yours; while one method is in flight, the others disable
-  themselves.
+  `SignUp.WalletConnect`, `SignUp.InstalledWallets`, `SignUp.MoreWallets`,
+  `SignUp.Divider`. Order and presence are yours; while one method is in
+  flight, the others disable themselves.
 - `SignUp.Wallet` pins one external wallet as its own row. `walletId` is the
   `WalletId` union (e.g. `'metamask'`, `'coinbase'`, `'rabby'`); the row
   connects the wallet when a live connector claims it (browser extension or a
@@ -168,6 +168,11 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   none are installed. Wallets pinned via `SignUp.Wallet` are excluded
   automatically; `excludeWalletIds` hides further wallets by guide id or rdns,
   and `maxWallets` caps the list (default 4, known wallets ranked first).
+- `SignUp.WalletConnect` renders a "WalletConnect" row that opens a pairing
+  sheet: a QR code any mobile wallet can scan, plus a copy-link fallback. The
+  pairing starts when the sheet opens and a fresh link is generated per open.
+  The row renders nothing unless a `zeroDevWalletConnect` connector is in
+  your wagmi config.
 - `SignUp.MoreWallets` renders a row that opens an overlay sheet with the full
   wallet grid — every known wallet plus any other live connector; installed
   ones connect, the rest link to the vendor's download page.

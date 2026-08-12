@@ -218,6 +218,8 @@ function renderSignUpItem(item: PlaygroundItem) {
       return <SignUp.Email key={item.key} />
     case 'wallet':
       return <SignUp.Wallet key={item.key} walletId={item.walletId} />
+    case 'walletConnect':
+      return <SignUp.WalletConnect key={item.key} />
     case 'installedWallets':
       return (
         <SignUp.InstalledWallets

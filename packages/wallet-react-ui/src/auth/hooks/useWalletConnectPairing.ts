@@ -5,6 +5,7 @@ import {
   useConnections,
   useConnectors,
 } from 'wagmi'
+import { isZeroDevWalletConnect } from '../utils/isZeroDevWalletConnect'
 import { useAuth } from './useAuth'
 
 export type WalletConnectPairing = {
@@ -22,9 +23,7 @@ export type WalletConnectPairing = {
 export function useWalletConnectPairing(): WalletConnectPairing {
   const { goToStep } = useAuth()
   const connectors = useConnectors()
-  const wcConnector = connectors.find(
-    (c) => c.type === 'walletConnect' && 'zdWalletConnect' in c,
-  )
+  const wcConnector = connectors.find(isZeroDevWalletConnect)
   const { mutate: connect } = useConnect()
   // A restored WC session means the connector is already live — kicking
   // connect() on it would throw ConnectorAlreadyConnectedError.
