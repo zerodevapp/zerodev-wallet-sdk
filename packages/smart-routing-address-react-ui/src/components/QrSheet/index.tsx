@@ -28,17 +28,8 @@ export function QrSheet({ open, onOpenChange, address, onCopy }: QrSheetProps) {
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       <BottomSheetContent>
         <BottomSheetTitle>Your deposit address</BottomSheetTitle>
-        {/* Bottom-half gradient — light blue at bottom-left fading into
-            peach/orange at bottom-right — mirrors the "amorphic" image used
-            in the Figma design. Colors echo `MultiRadialBackground`. */}
-        <div
-          aria-hidden
-          className="zd:absolute zd:inset-0 zd:pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 78% 65% at 5% 105%, rgba(69,171,251,0.35) 0%, rgba(69,171,251,0) 72%), radial-gradient(ellipse 82% 65% at 100% 105%, rgba(250,200,172,0.65) 0%, rgba(250,200,172,0) 72%), radial-gradient(ellipse 58% 52% at 100% 100%, rgba(242,123,62,0.35) 0%, rgba(242,123,62,0) 72%)',
-          }}
-        />
+        {/* Accent gradient is baked into `BottomSheetContent`; content sits
+            above it via `zd:relative`. */}
         <div className="zd:relative zd:flex zd:flex-col zd:gap-6 zd:items-center zd:pt-6 zd:px-4 zd:pb-3">
           <div className="zd:flex zd:flex-col zd:gap-3 zd:items-center">
             <Text className="zd:text-h2 zd:text-center">

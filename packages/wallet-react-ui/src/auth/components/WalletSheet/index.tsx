@@ -154,12 +154,18 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
             <Text className="zd:text-center zd:text-red-500">{shownError}</Text>
             <Button action="secondary" text="Try again" onClick={retry} />
           </div>
-        ) : qrValue ? (
+        ) : (
           <>
             <div className="zd:bg-white zd:rounded-2xl zd:p-2 zd:border zd:border-greyScale/10">
-              <QrCode value={qrValue} size={176} />
+              {qrValue ? (
+                <QrCode value={qrValue} size={176} />
+              ) : (
+                <div className="zd:w-[176px] zd:h-[176px] zd:flex zd:items-center zd:justify-center">
+                  <div className="zd:w-8 zd:h-8 zd:border-2 zd:border-solarOrange zd:border-t-transparent zd:rounded-full zd:animate-spin" />
+                </div>
+              )}
             </div>
-            {wallet?.mobileLink && (
+            {qrValue && wallet?.mobileLink && (
               <a
                 href={qrValue}
                 className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
@@ -171,12 +177,9 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
               action="secondary"
               text={copied ? 'Copied' : 'Copy link'}
               onClick={copyUri}
+              disabled={!qrValue}
             />
           </>
-        ) : (
-          <Text className="zd:text-center zd:text-greyScale/50">
-            Generating connection link…
-          </Text>
         )
       ) : shownError ? (
         <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
