@@ -41,6 +41,24 @@ export const config = createConfig({
 })
 ```
 
+To let users pair mobile wallets over WalletConnect, also add the kit's
+preconfigured connector (one WalletConnect connector per app — the kit drives
+it, so don't run a separate WalletConnect UI of your own alongside it):
+
+```tsx
+import { zeroDevWallet, zeroDevWalletConnect } from '@zerodev/wallet-react-ui'
+
+connectors: [
+  zeroDevWallet({ ... }),
+  zeroDevWalletConnect({ projectId: 'your-reown-project-id' }), // https://dashboard.reown.com
+],
+```
+
+It wraps wagmi's `walletConnect` connector with `showQrModal: false` baked in
+— required so WalletConnect's own modal never pops over the kit's UI. Using
+the raw `walletConnect` connector instead works too, as long as you set that
+flag yourself.
+
 ### 2. Import the stylesheet once at app entry
 
 ```tsx
@@ -162,6 +180,7 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 | Export | Description |
 | --- | --- |
 | `zeroDevWallet` | wagmi connector with kit-specific auth extensions. |
+| `zeroDevWalletConnect` | WalletConnect connector preconfigured for the kit (`showQrModal: false`). |
 | `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `onClose`. |
 | `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Wallet`, `InstalledWallets`, `MoreWallets`, `Divider`). |
 | `useAuth` | Read / drive the auth flow state. |

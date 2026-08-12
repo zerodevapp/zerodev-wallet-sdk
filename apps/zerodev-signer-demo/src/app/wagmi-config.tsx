@@ -1,10 +1,9 @@
 'use client'
 
 import { type WalletMode } from '@zerodev/wallet-react'
-import { zeroDevWallet } from '@zerodev/wallet-react-ui'
+import { zeroDevWallet, zeroDevWalletConnect } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
-import { walletConnect } from 'wagmi/connectors'
 
 const rpcUrls: Record<number, string | undefined> = {
   [arbitrumSepolia.id]: process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL,
@@ -40,7 +39,7 @@ export const config = createConfig({
       ...(mode && { mode }),
     }),
     ...(wcProjectId
-      ? [walletConnect({ projectId: wcProjectId, showQrModal: false })]
+      ? [zeroDevWalletConnect({ projectId: wcProjectId })]
       : []),
   ],
   ssr: true,

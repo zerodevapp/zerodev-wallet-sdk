@@ -16,6 +16,7 @@ export type {
   ZeroDevKitConnectorParams,
 } from './connector.js'
 export { zeroDevWallet } from './connector.js'
+export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
 
 // History
 export {
