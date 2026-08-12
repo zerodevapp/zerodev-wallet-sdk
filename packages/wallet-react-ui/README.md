@@ -55,9 +55,10 @@ connectors: [
 ```
 
 It wraps wagmi's `walletConnect` connector with `showQrModal: false` baked in
-— required so WalletConnect's own modal never pops over the kit's UI. Using
-the raw `walletConnect` connector instead works too, as long as you set that
-flag yourself.
+— required so WalletConnect's own modal never pops over the kit's UI — and
+forwards any other WalletConnect parameters (e.g. `metadata`). The kit only
+pairs through connectors created by this factory; a raw `walletConnect()`
+connector in your config is ignored.
 
 ### 2. Import the stylesheet once at app entry
 
