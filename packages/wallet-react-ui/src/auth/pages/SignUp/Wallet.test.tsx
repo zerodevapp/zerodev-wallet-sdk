@@ -39,7 +39,22 @@ vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep }),
 }))
 
-type FakeConnector = { id: string; rdns?: string }
+type FakeConnector = {
+  id: string
+  rdns?: string
+  type?: string
+  zdWalletConnect?: boolean
+}
+// The root renders the single WalletSheet; probe its props instead of
+// pulling radix + the pairing hook into these tests.
+const sheetProps = vi.fn()
+vi.mock('../../components/WalletSheet', () => ({
+  WalletSheet: (props: { open: boolean }) => {
+    sheetProps(props)
+    return null
+  },
+}))
+
 const connect = vi.fn()
 let connectors: FakeConnector[] = []
 let connectPending = false
@@ -55,6 +70,27 @@ beforeEach(() => {
 })
 
 describe('SignUp.Wallet', () => {
+  it('opens the wallet sheet instead of connecting when WalletConnect is configured', () => {
+    const announced = { id: 'io.metamask' }
+    connectors = [
+      announced,
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" />
+      </SignUp>,
+    )
+    // Still badged — the sheet hub doesn't change the claim rules.
+    expect(screen.getByText('INSTALLED')).toBeDefined()
+
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(connect).not.toHaveBeenCalled()
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(true)
+    expect(lastSheet.wallet?.id).toBe('metamask')
+  })
+
   it('connects the claiming connector and closes the flow on success', () => {
     const announced = { id: 'io.metamask' }
     connectors = [announced]

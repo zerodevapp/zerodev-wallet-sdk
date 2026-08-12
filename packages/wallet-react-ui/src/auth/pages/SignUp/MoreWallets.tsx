@@ -7,6 +7,7 @@ import {
 } from '../../components/WalletGridSheet'
 import { useAuth } from '../../hooks/useAuth'
 import { isCancellationError } from '../../utils/isCancellationError'
+import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
 import { matchesWallet, WALLET_GUIDE } from '../../walletGuide'
 import { useReportPending, useSignUpContext } from './context'
 
@@ -17,7 +18,8 @@ export function SignUpMoreWallets({
   title?: string
 }) {
   const { goToStep } = useAuth()
-  const { authPending, guardAgreement, setError } = useSignUpContext()
+  const { authPending, guardAgreement, setError, openWalletSheet } =
+    useSignUpContext()
   const [open, setOpen] = useState(false)
   const connectors = useConnectors()
   const { mutate: connect, isPending } = useConnect()
@@ -50,8 +52,8 @@ export function SignUpMoreWallets({
     )
   }
 
-  // Claimed by a connector → connect it; otherwise the tile opens the
-  // vendor download page.
+  const wcEnabled = connectors.some(isZeroDevWalletConnect)
+
   const guideTiles: WalletTileData[] = WALLET_GUIDE.map((wallet) => {
     const installed = walletConnectors.find((c) => matchesWallet(c, wallet))
     return {
@@ -59,6 +61,13 @@ export function SignUpMoreWallets({
       name: wallet.name,
       icon: wallet.icon,
       onSelect: () => {
+        if (wcEnabled) {
+          if (authPending) return
+          if (!guardAgreement()) return
+          setOpen(false)
+          openWalletSheet(wallet)
+          return
+        }
         if (installed) {
           startConnect(installed)
           return

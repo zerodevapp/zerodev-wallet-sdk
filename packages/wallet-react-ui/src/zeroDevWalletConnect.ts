@@ -1,3 +1,4 @@
+import type { CreateConnectorFn } from 'wagmi'
 import { type WalletConnectParameters, walletConnect } from 'wagmi/connectors'
 
 /**
@@ -11,7 +12,7 @@ import { type WalletConnectParameters, walletConnect } from 'wagmi/connectors'
  */
 export function zeroDevWalletConnect(
   params: Omit<WalletConnectParameters, 'showQrModal'>,
-) {
+): CreateConnectorFn {
   if (!params.projectId) {
     throw new Error('zeroDevWalletConnect requires a WalletConnect projectId')
   }
@@ -19,8 +20,5 @@ export function zeroDevWalletConnect(
   // Stamp the connector instance so the kit's discovery can tell a
   // correctly-configured connector from a raw walletConnect(), where
   // showQrModal defaults to true.
-  return (config: Parameters<typeof create>[0]) => ({
-    ...create(config),
-    zdWalletConnect: true,
-  })
+  return (config) => Object.assign(create(config), { zdWalletConnect: true })
 }

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect } from 'react'
 import type { EmailAuthMethod } from '../../types'
+import type { WalletGuideEntry } from '../../walletGuide'
 
 export type SignUpContextValue = {
   /** True while any method's auth attempt is in flight — used to disable
@@ -21,6 +22,9 @@ export type SignUpContextValue = {
   registeredWallets: readonly string[]
   /** Returns the unregister function. */
   registerWallet: (walletId: string) => () => void
+  /** Opens the root's single WalletSheet — a wallet's connection paths, or
+   * the generic WalletConnect pairing when called without one. */
+  openWalletSheet: (wallet?: WalletGuideEntry) => void
 }
 
 export const SignUpContext = createContext<SignUpContextValue | null>(null)

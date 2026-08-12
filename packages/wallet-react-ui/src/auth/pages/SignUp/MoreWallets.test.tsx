@@ -66,7 +66,18 @@ type FakeConnector = {
   rdns?: string
   type?: string
   icon?: string
+  zdWalletConnect?: boolean
 }
+// The root renders the single WalletSheet; probe its props instead of
+// pulling radix + the pairing hook into these tests.
+const sheetProps = vi.fn()
+vi.mock('../../components/WalletSheet', () => ({
+  WalletSheet: (props: { open: boolean }) => {
+    sheetProps(props)
+    return null
+  },
+}))
+
 const connect = vi.fn()
 let connectors: FakeConnector[] = []
 let connectPending = false
@@ -94,6 +105,40 @@ const openSheet = () => {
 }
 
 describe('SignUp.MoreWallets', () => {
+  it('routes guide tiles to the wallet sheet and closes the grid when WalletConnect is configured', () => {
+    connectors = [
+      { id: 'io.metamask' },
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    renderMoreWallets()
+    openSheet()
+    fireEvent.click(screen.getByText('MetaMask'))
+
+    expect(connect).not.toHaveBeenCalled()
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(true)
+    expect(lastSheet.wallet?.id).toBe('metamask')
+    // The grid closed so the wallet sheet isn't stacked under it.
+    expect(screen.queryByTestId('wallet-sheet')).toBeNull()
+  })
+
+  it('unmatched connector tiles still connect directly with WalletConnect configured', () => {
+    const exotic = {
+      id: 'exotic',
+      uid: 'exotic-uid',
+      name: 'Example Wallet',
+      type: 'injected',
+    }
+    connectors = [
+      exotic,
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    renderMoreWallets()
+    openSheet()
+    fireEvent.click(screen.getByText('Example Wallet'))
+    expect(connect.mock.calls[0][0]).toEqual({ connector: exotic })
+  })
+
   it('opens the grid with every guide wallet and hides non-wallet connectors', () => {
     connectors = [
       { id: 'zerodev-wallet', name: 'ZeroDev' },

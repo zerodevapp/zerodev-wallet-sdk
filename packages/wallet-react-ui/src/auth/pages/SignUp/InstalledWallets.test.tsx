@@ -45,6 +45,16 @@ type FakeConnector = {
   type: string
   icon?: string
 }
+// The root renders the single WalletSheet; probe its props instead of
+// pulling radix + the pairing hook into these tests.
+const sheetProps = vi.fn()
+vi.mock('../../components/WalletSheet', () => ({
+  WalletSheet: (props: { open: boolean }) => {
+    sheetProps(props)
+    return null
+  },
+}))
+
 const connect = vi.fn()
 let connectors: FakeConnector[] = []
 let connectPending = false
@@ -68,6 +78,28 @@ beforeEach(() => {
 })
 
 describe('SignUp.InstalledWallets', () => {
+  it('routes guide-matched rows to the sheet when WalletConnect is configured, others connect directly', () => {
+    connectors = [
+      { id: 'io.metamask', type: 'injected' },
+      { id: 'com.unknown.wallet', type: 'injected', name: 'Unknown' },
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets />
+      </SignUp>,
+    )
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(connect).not.toHaveBeenCalled()
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(true)
+    expect(lastSheet.wallet?.id).toBe('metamask')
+
+    // No guide data → nothing for the sheet to offer (3b): direct connect.
+    fireEvent.click(screen.getByText('Unknown'))
+    expect(connect).toHaveBeenCalledTimes(1)
+  })
+
   it('renders a badged row per announced connector and nothing else', () => {
     connectors = [
       announced('io.metamask'),
