@@ -78,9 +78,15 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
 
   const copyUri = async () => {
     if (!uri) return
-    await navigator.clipboard.writeText(uri)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    // Clipboard access throws in insecure contexts (non-HTTPS) or when the
+    // user denies it — don't let that surface as an unhandled rejection.
+    try {
+      await navigator.clipboard.writeText(uri)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // No clipboard — the QR / deep link remain the primary paths.
+    }
   }
 
   const connectInstalled = () => {
@@ -175,6 +181,11 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
       ) : shownError ? (
         <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
           <Text className="zd:text-center zd:text-red-500">{shownError}</Text>
+          <Button
+            action="secondary"
+            text="Try again"
+            onClick={installed ? connectInstalled : retry}
+          />
         </div>
       ) : installed && wallet ? (
         <button
