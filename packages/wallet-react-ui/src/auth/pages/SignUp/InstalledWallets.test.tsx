@@ -44,6 +44,8 @@ type FakeConnector = {
   name: string
   type: string
   icon?: string
+  /** Set by the zeroDevWalletConnect factory; discovery gates on it. */
+  zdWalletConnect?: boolean
 }
 // The root renders the single WalletSheet; probe its props instead of
 // pulling radix + the pairing hook into these tests.
@@ -80,9 +82,15 @@ beforeEach(() => {
 describe('SignUp.InstalledWallets', () => {
   it('routes guide-matched rows to the sheet when WalletConnect is configured, others connect directly', () => {
     connectors = [
-      { id: 'io.metamask', type: 'injected' },
-      { id: 'com.unknown.wallet', type: 'injected', name: 'Unknown' },
-      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+      announced('io.metamask'),
+      announced('com.unknown.wallet', 'Unknown'),
+      {
+        uid: crypto.randomUUID(),
+        id: 'walletConnect',
+        name: 'WalletConnect',
+        type: 'walletConnect',
+        zdWalletConnect: true,
+      },
     ]
     render(
       <SignUp>
