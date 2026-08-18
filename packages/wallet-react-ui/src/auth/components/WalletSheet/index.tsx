@@ -7,7 +7,7 @@ import {
   QrCode,
   Text,
 } from '@zerodev/react-ui'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useConnect, useConnectors } from 'wagmi'
 import { walletConnectLogo } from '../../brandAssets'
 import { useAuth } from '../../hooks/useAuth'
@@ -21,15 +21,17 @@ export type WalletSheetProps = {
   /** Absent = generic WalletConnect mode (raw-URI QR, no tabs). */
   wallet?: WalletGuideEntry | undefined
   /** Page-level pairing (preloaded by the SignUp root) shared by every wallet
-   * surface — the sheet renders it and re-pairs it on expiry. */
+   * surface. Expiry is WalletConnect's own signal: the rejected connect()
+   * surfaces through `error` and the existing Try-again re-pairs. */
   pairing: WalletConnectPairing
 }
 
 /**
  * Bottom sheet with the connection paths for one wallet (or the generic
  * WalletConnect pairing). The pairing is preloaded at page level so the QR is
- * ready on open and mobile row taps can deep-link synchronously; while the
- * sheet is open the body re-pairs whenever the URI expires.
+ * ready on open and mobile row taps can deep-link synchronously; when the
+ * proposal expires, WalletConnect rejects the pending connect and the error
+ * branch offers Try again.
  */
 export function WalletSheet({
   open,
@@ -57,7 +59,7 @@ function SheetBody({
   pairing: WalletConnectPairing
 }) {
   const { goToStep } = useAuth()
-  const { uri, expiresAt, error, retry } = pairing
+  const { uri, error, retry } = pairing
   const connectors = useConnectors()
   const { mutate: connect } = useConnect()
 
@@ -71,20 +73,6 @@ function SheetBody({
   )
   const [connectError, setConnectError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-
-  // Re-pair when the URI expires while the sheet is open so the QR never goes
-  // dead in front of the user; a stale-on-open URI hits the immediate branch.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retry identity changes per render — the re-pair is keyed on expiry/error state only
-  useEffect(() => {
-    if (error || !expiresAt) return
-    const delay = expiresAt - Date.now()
-    if (delay <= 0) {
-      retry()
-      return
-    }
-    const id = setTimeout(retry, delay)
-    return () => clearTimeout(id)
-  }, [expiresAt, error])
 
   // Wallet-specific QR encodes the wallet's own deep link so phone cameras
   // route to THAT app (`wc:` is claimed by every wallet app). Generic mode

@@ -13,7 +13,6 @@ afterEach(cleanup)
 vi.mock('../../hooks/useWalletConnectPairing', () => ({
   useWalletConnectPairing: () => ({
     uri: null,
-    expiresAt: null,
     error: null,
     retry: () => {},
     deepLinkFor: () => null,

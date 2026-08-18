@@ -10,12 +10,11 @@ const fresh = () => ({
   wallet: metamask,
   connectors: [],
   uri: 'wc:abc@2',
-  expiresAt: Date.now() + 60_000,
   mobile: true,
 })
 
 describe('walletDeepLink', () => {
-  it('wraps the URI in the wallet deep link for a fresh mobile tap', () => {
+  it('wraps the URI in the wallet deep link for a mobile tap', () => {
     expect(walletDeepLink(fresh())).toBe(
       `${metamask.mobileLink}${encodeURIComponent('wc:abc@2')}`,
     )
@@ -27,13 +26,6 @@ describe('walletDeepLink', () => {
 
   it('is null before the URI arrives', () => {
     expect(walletDeepLink({ ...fresh(), uri: null })).toBeNull()
-  })
-
-  it('is null when the URI is stale or inside the freshness margin', () => {
-    expect(walletDeepLink({ ...fresh(), expiresAt: Date.now() - 1 })).toBeNull()
-    expect(
-      walletDeepLink({ ...fresh(), expiresAt: Date.now() + 5_000 }),
-    ).toBeNull()
   })
 
   it('is null when an installed connector claims the wallet', () => {

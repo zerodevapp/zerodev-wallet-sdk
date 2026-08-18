@@ -15,21 +15,13 @@ export type WalletConnectPairing = {
   /** Pairing URI from the connector's `display_uri` event; null until it
    * arrives (or after a retry reset). */
   uri: string | null
-  /** Epoch ms when `uri` stops being claimable (WC pairing TTL). */
-  expiresAt: number | null
   error: string | null
   retry: () => void
   /** Wrapped deep link for the one-tap mobile redirect into `wallet`'s app,
    * or null when the tap should just open the sheet (desktop, claiming
-   * installed connector, missing/stale URI). Checks freshness at call time. */
+   * installed connector, no usable URI). An errored pairing — including
+   * WalletConnect's own proposal expiry — never redirects. */
   deepLinkFor: (wallet: WalletGuideEntry) => string | null
-}
-
-/** WC v2 URIs carry `expiryTimestamp` (unix seconds); fall back to the
- * protocol's 5-minute pairing TTL when absent. */
-function parseUriExpiry(uri: string): number {
-  const match = /[?&]expiryTimestamp=(\d+)/.exec(uri)
-  return match ? Number(match[1]) * 1000 : Date.now() + 5 * 60_000
 }
 
 /**
@@ -49,14 +41,12 @@ export function useWalletConnectPairing(): WalletConnectPairing {
   )
 
   const [uri, setUri] = useState<string | null>(null)
-  const [expiresAt, setExpiresAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef(false)
 
   const startConnect = (target: Connector) => {
     setError(null)
     setUri(null)
-    setExpiresAt(null)
     connect(
       { connector: target },
       {
@@ -70,10 +60,7 @@ export function useWalletConnectPairing(): WalletConnectPairing {
   useEffect(() => {
     if (!wcConnector || wcConnected) return
     const onMessage = ({ type, data }: { type: string; data?: unknown }) => {
-      if (type === 'display_uri' && typeof data === 'string') {
-        setUri(data)
-        setExpiresAt(parseUriExpiry(data))
-      }
+      if (type === 'display_uri' && typeof data === 'string') setUri(data)
     }
     // Subscribe before the connect kick — `display_uri` fires mid-connect.
     wcConnector.emitter.on('message', onMessage)
@@ -86,7 +73,6 @@ export function useWalletConnectPairing(): WalletConnectPairing {
 
   return {
     uri,
-    expiresAt,
     error,
     retry: () => {
       if (wcConnector) startConnect(wcConnector)
@@ -95,8 +81,7 @@ export function useWalletConnectPairing(): WalletConnectPairing {
       walletDeepLink({
         wallet,
         connectors,
-        uri,
-        expiresAt,
+        uri: error ? null : uri,
         mobile: isMobile(),
       }),
   }

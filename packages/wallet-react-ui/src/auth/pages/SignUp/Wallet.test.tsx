@@ -15,7 +15,6 @@ const deepLink = vi.hoisted(() => ({ value: null as string | null }))
 vi.mock('../../hooks/useWalletConnectPairing', () => ({
   useWalletConnectPairing: () => ({
     uri: null,
-    expiresAt: null,
     error: null,
     retry: () => {},
     deepLinkFor: () => deepLink.value,

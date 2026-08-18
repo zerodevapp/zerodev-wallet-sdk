@@ -53,7 +53,6 @@ function fakePairing(
 ): WalletConnectPairing {
   return {
     uri: null,
-    expiresAt: null,
     error: null,
     retry: vi.fn(),
     deepLinkFor: () => null,
@@ -162,31 +161,5 @@ describe('WalletSheet', () => {
     })
     expect(writeText).toHaveBeenCalledWith('wc:copy@2')
     expect(screen.getByText('Copied')).toBeDefined()
-  })
-
-  it('re-pairs immediately when opened onto a stale URI', () => {
-    const pairing = fakePairing({
-      uri: 'wc:old@2',
-      expiresAt: Date.now() - 1,
-    })
-    render(<WalletSheet open onOpenChange={() => {}} pairing={pairing} />)
-    expect(pairing.retry).toHaveBeenCalledTimes(1)
-  })
-
-  it('re-pairs when the URI expires while the sheet is open', () => {
-    vi.useFakeTimers()
-    try {
-      const pairing = fakePairing({
-        uri: 'wc:live@2',
-        expiresAt: Date.now() + 30_000,
-      })
-      render(<WalletSheet open onOpenChange={() => {}} pairing={pairing} />)
-      expect(pairing.retry).not.toHaveBeenCalled()
-
-      act(() => vi.advanceTimersByTime(30_000))
-      expect(pairing.retry).toHaveBeenCalledTimes(1)
-    } finally {
-      vi.useRealTimers()
-    }
   })
 })

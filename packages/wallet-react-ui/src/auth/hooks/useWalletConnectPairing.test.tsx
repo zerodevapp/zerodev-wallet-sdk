@@ -165,43 +165,32 @@ describe('useWalletConnectPairing', () => {
     expect(wc.emitter.off).toHaveBeenCalledWith('message', handler)
   })
 
-  it('parses the URI expiryTimestamp into expiresAt', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    const { result } = renderHook(() => useWalletConnectPairing())
-    act(() =>
-      wc.emit({
-        type: 'display_uri',
-        data: 'wc:t@2?relay-protocol=irn&symKey=s&expiryTimestamp=1755500000',
-      }),
-    )
-    expect(result.current.expiresAt).toBe(1_755_500_000_000)
-  })
-
-  it('falls back to the 5-minute TTL when the URI carries no expiry', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    const { result } = renderHook(() => useWalletConnectPairing())
-    const before = Date.now()
-    act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
-    const ttl = 5 * 60_000
-    expect(result.current.expiresAt).toBeGreaterThanOrEqual(before + ttl)
-    expect(result.current.expiresAt).toBeLessThanOrEqual(Date.now() + ttl)
-  })
-
-  it('deepLinkFor wraps the fresh URI on mobile and stays null on desktop', () => {
+  it('deepLinkFor wraps the URI on mobile and stays null on desktop', () => {
     const metamask = WALLET_GUIDE.find((w) => w.id === 'metamask')
     if (!metamask) throw new Error('metamask missing from WALLET_GUIDE')
     const wc = fakeWcConnector()
     connectors = [wc]
     const { result } = renderHook(() => useWalletConnectPairing())
-    const uri = `wc:t@2?expiryTimestamp=${Math.floor((Date.now() + 60_000) / 1000)}`
-    act(() => wc.emit({ type: 'display_uri', data: uri }))
+    act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
 
     expect(result.current.deepLinkFor(metamask)).toBeNull() // desktop
     mobile.value = true
     expect(result.current.deepLinkFor(metamask)).toBe(
-      `${metamask.mobileLink}${encodeURIComponent(uri)}`,
+      `${metamask.mobileLink}${encodeURIComponent('wc:t@2?relay')}`,
     )
+  })
+
+  it('deepLinkFor goes null once the pairing errors — e.g. proposal expiry', () => {
+    const metamask = WALLET_GUIDE.find((w) => w.id === 'metamask')
+    if (!metamask) throw new Error('metamask missing from WALLET_GUIDE')
+    mobile.value = true
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
+    expect(result.current.deepLinkFor(metamask)).not.toBeNull()
+
+    act(() => connect.mock.calls[0][1].onError(new Error('Proposal expired')))
+    expect(result.current.deepLinkFor(metamask)).toBeNull()
   })
 })
