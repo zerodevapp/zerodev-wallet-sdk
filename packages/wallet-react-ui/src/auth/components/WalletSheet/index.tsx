@@ -7,13 +7,12 @@ import {
   QrCode,
   Text,
 } from '@zerodev/react-ui'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useConnect, useConnectors } from 'wagmi'
 import { walletConnectLogo } from '../../brandAssets'
 import { useAuth } from '../../hooks/useAuth'
-import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
+import type { WalletConnectPairing } from '../../hooks/useWalletConnectPairing'
 import { isCancellationError } from '../../utils/isCancellationError'
-import { isMobile } from '../../utils/isMobile'
 import { matchesWallet, type WalletGuideEntry } from '../../walletGuide'
 
 export type WalletSheetProps = {
@@ -21,30 +20,44 @@ export type WalletSheetProps = {
   onOpenChange: (open: boolean) => void
   /** Absent = generic WalletConnect mode (raw-URI QR, no tabs). */
   wallet?: WalletGuideEntry | undefined
+  /** Page-level pairing (preloaded by the SignUp root) shared by every wallet
+   * surface — the sheet renders it and re-pairs it on expiry. */
+  pairing: WalletConnectPairing
 }
 
 /**
  * Bottom sheet with the connection paths for one wallet (or the generic
- * WalletConnect pairing). The pairing lives in the sheet body, which Radix
- * mounts only while open — opening the sheet starts a fresh pairing,
- * closing it abandons it.
+ * WalletConnect pairing). The pairing is preloaded at page level so the QR is
+ * ready on open and mobile row taps can deep-link synchronously; while the
+ * sheet is open the body re-pairs whenever the URI expires.
  */
-export function WalletSheet({ open, onOpenChange, wallet }: WalletSheetProps) {
+export function WalletSheet({
+  open,
+  onOpenChange,
+  wallet,
+  pairing,
+}: WalletSheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       <BottomSheetContent className="zd:p-4">
         <BottomSheetTitle>
           {wallet ? `Connect ${wallet.name}` : 'WalletConnect'}
         </BottomSheetTitle>
-        <SheetBody wallet={wallet} />
+        <SheetBody wallet={wallet} pairing={pairing} />
       </BottomSheetContent>
     </BottomSheet>
   )
 }
 
-function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
+function SheetBody({
+  wallet,
+  pairing,
+}: {
+  wallet?: WalletGuideEntry | undefined
+  pairing: WalletConnectPairing
+}) {
   const { goToStep } = useAuth()
-  const { uri, error, retry } = useWalletConnectPairing()
+  const { uri, expiresAt, error, retry } = pairing
   const connectors = useConnectors()
   const { mutate: connect } = useConnect()
 
@@ -59,6 +72,20 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
   const [connectError, setConnectError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Re-pair when the URI expires while the sheet is open so the QR never goes
+  // dead in front of the user; a stale-on-open URI hits the immediate branch.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retry identity changes per render — the re-pair is keyed on expiry/error state only
+  useEffect(() => {
+    if (error || !expiresAt) return
+    const delay = expiresAt - Date.now()
+    if (delay <= 0) {
+      retry()
+      return
+    }
+    const id = setTimeout(retry, delay)
+    return () => clearTimeout(id)
+  }, [expiresAt, error])
+
   // Wallet-specific QR encodes the wallet's own deep link so phone cameras
   // route to THAT app (`wc:` is claimed by every wallet app). Generic mode
   // keeps the raw URI so any wallet's in-app scanner can claim the pairing.
@@ -66,15 +93,6 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
     uri && wallet?.mobileLink
       ? `${wallet.mobileLink}${encodeURIComponent(uri)}`
       : uri
-
-  // Route the phone straight into the wallet's app once the URI lands.
-  const firedRef = useRef(false)
-  useEffect(() => {
-    if (!firedRef.current && wallet?.mobileLink && uri && isMobile()) {
-      firedRef.current = true
-      window.location.href = `${wallet.mobileLink}${encodeURIComponent(uri)}`
-    }
-  }, [wallet, uri])
 
   const copyUri = async () => {
     if (!uri) return
