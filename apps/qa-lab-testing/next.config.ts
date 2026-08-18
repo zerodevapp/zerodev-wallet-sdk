@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
         __dirname,
         'node_modules/@tanstack/react-query',
       ),
+      // `wagmi/connectors` re-exports @wagmi/core's tempo module, which
+      // imports its optional `accounts` peer. It isn't installed (nothing
+      // here uses tempo), so stub the specifier out of the bundle.
+      accounts: false,
     }
     return config
   },
