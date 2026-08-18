@@ -7,6 +7,17 @@ import { SignUp } from './index'
 
 afterEach(cleanup)
 
+// The SignUp root preloads the page-level pairing — inert here.
+vi.mock('../../hooks/useWalletConnectPairing', () => ({
+  useWalletConnectPairing: () => ({
+    uri: null,
+    expiresAt: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => null,
+  }),
+}))
+
 const { authenticateOAuth } = vi.hoisted(() => ({
   authenticateOAuth: vi.fn().mockResolvedValue(undefined),
 }))

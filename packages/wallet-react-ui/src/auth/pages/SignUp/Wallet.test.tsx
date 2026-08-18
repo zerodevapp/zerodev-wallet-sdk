@@ -9,6 +9,19 @@ import { SignUp } from './index'
 
 afterEach(cleanup)
 
+// The SignUp root preloads the page-level pairing; `deepLink` drives what the
+// root's tap-time redirect sees.
+const deepLink = vi.hoisted(() => ({ value: null as string | null }))
+vi.mock('../../hooks/useWalletConnectPairing', () => ({
+  useWalletConnectPairing: () => ({
+    uri: null,
+    expiresAt: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => deepLink.value,
+  }),
+}))
+
 // Sibling units pull in wagmi/wallet-react hooks — replace them with stubs so
 // the tests exercise the Wallet unit against the real root (context, gate).
 vi.mock('./Passkey', () => ({ SignUpPasskey: () => null }))
@@ -67,6 +80,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
   connectPending = false
+  deepLink.value = null
 })
 
 describe('SignUp.Wallet', () => {
@@ -224,5 +238,25 @@ describe('SignUp.Wallet', () => {
       /Unknown walletId "nope"/,
     )
     consoleError.mockRestore()
+  })
+
+  it('fires the mobile deep link on the row tap and still opens the sheet', () => {
+    connectors = [
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    deepLink.value = 'https://metamask.app.link/wc?uri=wc%3Aabc%402'
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" />
+      </SignUp>,
+    )
+
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(window.location.href).toBe(
+      'https://metamask.app.link/wc?uri=wc%3Aabc%402',
+    )
+    // The sheet still opens behind the redirect as the fallback surface.
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(true)
   })
 })

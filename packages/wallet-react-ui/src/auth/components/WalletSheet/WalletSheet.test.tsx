@@ -4,6 +4,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { WalletConnectPairing } from '../../hooks/useWalletConnectPairing'
 import { WALLET_GUIDE } from '../../walletGuide'
 import { WalletSheet } from './index'
 
@@ -39,41 +40,24 @@ vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep }),
 }))
 
-// Not a mobile device unless a test overrides it — keeps the auto-deeplink
-// effect quiet.
-const mobile = vi.hoisted(() => ({ value: false }))
-vi.mock('../../utils/isMobile', () => ({
-  isMobile: () => mobile.value,
-}))
-
 const connect = vi.fn()
 let connectors: unknown[] = []
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
   useConnect: () => ({ mutate: connect }),
-  useConnections: () => [],
 }))
 
-type MessageHandler = (event: { type: string; data?: unknown }) => void
-
-function fakeWcConnector() {
-  const handlers = new Set<MessageHandler>()
+/** Prop double for the page-level pairing the SignUp root provides. */
+function fakePairing(
+  over: Partial<WalletConnectPairing> = {},
+): WalletConnectPairing {
   return {
-    uid: crypto.randomUUID(),
-    id: 'walletConnect',
-    type: 'walletConnect',
-    zdWalletConnect: true,
-    emitter: {
-      on: (_event: string, handler: MessageHandler) => {
-        handlers.add(handler)
-      },
-      off: (_event: string, handler: MessageHandler) => {
-        handlers.delete(handler)
-      },
-    },
-    emit: (event: { type: string; data?: unknown }) => {
-      for (const handler of handlers) handler(event)
-    },
+    uri: null,
+    expiresAt: null,
+    error: null,
+    retry: vi.fn(),
+    deepLinkFor: () => null,
+    ...over,
   }
 }
 
@@ -86,39 +70,33 @@ beforeEach(() => {
 })
 
 describe('WalletSheet', () => {
-  it('starts a fresh pairing per open and none while closed', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
+  it('generic mode: no tabs, spinner until the URI lands, then a raw-URI QR', () => {
     const { rerender } = render(
-      <WalletSheet open={false} onOpenChange={() => {}} />,
+      <WalletSheet open onOpenChange={() => {}} pairing={fakePairing()} />,
     )
-    expect(connect).not.toHaveBeenCalled()
-
-    rerender(<WalletSheet open onOpenChange={() => {}} />)
-    expect(connect).toHaveBeenCalledTimes(1)
-
-    rerender(<WalletSheet open={false} onOpenChange={() => {}} />)
-    rerender(<WalletSheet open onOpenChange={() => {}} />)
-    expect(connect).toHaveBeenCalledTimes(2)
-  })
-
-  it('generic mode: no tabs, raw-URI QR once the link arrives', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    render(<WalletSheet open onOpenChange={() => {}} />)
-    expect(screen.getByText('Generating connection link…')).toBeDefined()
     expect(screen.queryByText('Mobile')).toBeNull()
+    expect(screen.queryByTestId('qr')).toBeNull()
 
-    act(() => wc.emit({ type: 'display_uri', data: 'wc:raw@2' }))
+    rerender(
+      <WalletSheet
+        open
+        onOpenChange={() => {}}
+        pairing={fakePairing({ uri: 'wc:raw@2' })}
+      />,
+    )
     expect(screen.getByTestId('qr').getAttribute('data-value')).toBe('wc:raw@2')
   })
 
   it('per-wallet mobile tab wraps the URI in the wallet deep link', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    render(<WalletSheet open onOpenChange={() => {}} wallet={metamask} />)
+    render(
+      <WalletSheet
+        open
+        onOpenChange={() => {}}
+        wallet={metamask}
+        pairing={fakePairing({ uri: 'wc:abc@2' })}
+      />,
+    )
     // Not installed → Mobile preselected.
-    act(() => wc.emit({ type: 'display_uri', data: 'wc:abc@2' }))
     expect(screen.getByTestId('qr').getAttribute('data-value')).toBe(
       `${metamask.mobileLink}${encodeURIComponent('wc:abc@2')}`,
     )
@@ -126,10 +104,16 @@ describe('WalletSheet', () => {
   })
 
   it('defaults to the Browser tab when a connector claims the wallet', () => {
-    const wc = fakeWcConnector()
     const announced = { id: 'io.metamask', uid: crypto.randomUUID() }
-    connectors = [wc, announced]
-    render(<WalletSheet open onOpenChange={() => {}} wallet={metamask} />)
+    connectors = [announced]
+    render(
+      <WalletSheet
+        open
+        onOpenChange={() => {}}
+        wallet={metamask}
+        pairing={fakePairing()}
+      />,
+    )
 
     const button = screen.getByText(`Open in ${metamask.name}`)
     fireEvent.click(button)
@@ -139,38 +123,70 @@ describe('WalletSheet', () => {
   })
 
   it('Browser tab links to the download page when nothing claims the wallet', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    render(<WalletSheet open onOpenChange={() => {}} wallet={metamask} />)
+    render(
+      <WalletSheet
+        open
+        onOpenChange={() => {}}
+        wallet={metamask}
+        pairing={fakePairing()}
+      />,
+    )
     fireEvent.click(screen.getByText('Browser'))
     const link = screen.getByText(`Get ${metamask.name}`)
     expect(link.getAttribute('href')).toBe(metamask.downloadUrl)
   })
 
-  it('shows pairing errors with a retry that reconnects', () => {
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    render(<WalletSheet open onOpenChange={() => {}} />)
-    act(() => connect.mock.calls[0][1].onError(new Error('relay down')))
+  it('shows pairing errors with a retry', () => {
+    const pairing = fakePairing({ error: 'relay down' })
+    render(<WalletSheet open onOpenChange={() => {}} pairing={pairing} />)
     expect(screen.getByText('relay down')).toBeDefined()
 
     fireEvent.click(screen.getByText('Try again'))
-    expect(connect).toHaveBeenCalledTimes(2)
+    expect(pairing.retry).toHaveBeenCalledTimes(1)
   })
 
   it('copies the raw URI', async () => {
     const writeText = vi
       .spyOn(navigator.clipboard, 'writeText')
       .mockResolvedValue(undefined)
-    const wc = fakeWcConnector()
-    connectors = [wc]
-    render(<WalletSheet open onOpenChange={() => {}} />)
-    act(() => wc.emit({ type: 'display_uri', data: 'wc:copy@2' }))
+    render(
+      <WalletSheet
+        open
+        onOpenChange={() => {}}
+        pairing={fakePairing({ uri: 'wc:copy@2' })}
+      />,
+    )
 
     await act(async () => {
       fireEvent.click(screen.getByText('Copy link'))
     })
     expect(writeText).toHaveBeenCalledWith('wc:copy@2')
     expect(screen.getByText('Copied')).toBeDefined()
+  })
+
+  it('re-pairs immediately when opened onto a stale URI', () => {
+    const pairing = fakePairing({
+      uri: 'wc:old@2',
+      expiresAt: Date.now() - 1,
+    })
+    render(<WalletSheet open onOpenChange={() => {}} pairing={pairing} />)
+    expect(pairing.retry).toHaveBeenCalledTimes(1)
+  })
+
+  it('re-pairs when the URI expires while the sheet is open', () => {
+    vi.useFakeTimers()
+    try {
+      const pairing = fakePairing({
+        uri: 'wc:live@2',
+        expiresAt: Date.now() + 30_000,
+      })
+      render(<WalletSheet open onOpenChange={() => {}} pairing={pairing} />)
+      expect(pairing.retry).not.toHaveBeenCalled()
+
+      act(() => vi.advanceTimersByTime(30_000))
+      expect(pairing.retry).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

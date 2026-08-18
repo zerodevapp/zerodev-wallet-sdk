@@ -4,6 +4,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { WALLET_GUIDE } from '../walletGuide'
 import { useWalletConnectPairing } from './useWalletConnectPairing'
 
 afterEach(cleanup)
@@ -11,6 +12,11 @@ afterEach(cleanup)
 const goToStep = vi.fn()
 vi.mock('./useAuth', () => ({
   useAuth: () => ({ goToStep }),
+}))
+
+const mobile = vi.hoisted(() => ({ value: false }))
+vi.mock('../utils/isMobile', () => ({
+  isMobile: () => mobile.value,
 }))
 
 const connect = vi.fn()
@@ -51,6 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
   connections = []
+  mobile.value = false
 })
 
 describe('useWalletConnectPairing', () => {
@@ -156,5 +163,45 @@ describe('useWalletConnectPairing', () => {
     const handler = wc.emitter.on.mock.calls[0][1]
     unmount()
     expect(wc.emitter.off).toHaveBeenCalledWith('message', handler)
+  })
+
+  it('parses the URI expiryTimestamp into expiresAt', () => {
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    act(() =>
+      wc.emit({
+        type: 'display_uri',
+        data: 'wc:t@2?relay-protocol=irn&symKey=s&expiryTimestamp=1755500000',
+      }),
+    )
+    expect(result.current.expiresAt).toBe(1_755_500_000_000)
+  })
+
+  it('falls back to the 5-minute TTL when the URI carries no expiry', () => {
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    const before = Date.now()
+    act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
+    const ttl = 5 * 60_000
+    expect(result.current.expiresAt).toBeGreaterThanOrEqual(before + ttl)
+    expect(result.current.expiresAt).toBeLessThanOrEqual(Date.now() + ttl)
+  })
+
+  it('deepLinkFor wraps the fresh URI on mobile and stays null on desktop', () => {
+    const metamask = WALLET_GUIDE.find((w) => w.id === 'metamask')
+    if (!metamask) throw new Error('metamask missing from WALLET_GUIDE')
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    const uri = `wc:t@2?expiryTimestamp=${Math.floor((Date.now() + 60_000) / 1000)}`
+    act(() => wc.emit({ type: 'display_uri', data: uri }))
+
+    expect(result.current.deepLinkFor(metamask)).toBeNull() // desktop
+    mobile.value = true
+    expect(result.current.deepLinkFor(metamask)).toBe(
+      `${metamask.mobileLink}${encodeURIComponent(uri)}`,
+    )
   })
 })
