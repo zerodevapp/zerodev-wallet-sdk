@@ -4,7 +4,12 @@ import { useConnect, useConnectors } from 'wagmi'
 import { useAuth } from '../../hooks/useAuth'
 import { isCancellationError } from '../../utils/isCancellationError'
 import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
-import { matchesWallet, WALLET_GUIDE, type WalletId } from '../../walletGuide'
+import {
+  announcesWallet,
+  matchesWallet,
+  WALLET_GUIDE,
+  type WalletId,
+} from '../../walletGuide'
 import { useReportPending, useSignUpContext } from './context'
 
 /** Dedicated row for a single guide wallet: connects it directly when a live
@@ -33,10 +38,11 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
 
   // Same claim rule as the MoreWallets grid: a 6963 announcement or a
   // configured SDK connector both make the row connectable. Only an
-  // announcement (id === rdns) proves a live extension and earns the badge.
-  const installed = connectors.find((c) => matchesWallet(c, wallet))
-  const isAnnounced =
-    !!wallet.rdns && connectors.some((c) => c.id === wallet.rdns)
+  // announcement proves a live extension (or the wallet's own in-app
+  // browser) and earns the badge.
+  const announced = connectors.find((c) => announcesWallet(c, wallet))
+  const installed =
+    announced ?? connectors.find((c) => matchesWallet(c, wallet))
 
   const shared = {
     title: wallet.name,
@@ -44,11 +50,13 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     trailing: <ListItemChevron />,
   }
 
-  if (connectors.some(isZeroDevWalletConnect)) {
+  // An announcement means the wallet is right here (extension, or its own
+  // in-app browser) — connect it directly; WC pairing would bounce out of
+  // the very wallet the user is standing in.
+  if (!announced && connectors.some(isZeroDevWalletConnect)) {
     return (
       <ListItem
         {...shared}
-        {...(isAnnounced && { subtitle: <Badge text="INSTALLED" /> })}
         disabled={authPending}
         onClick={() => {
           if (authPending) return
@@ -94,7 +102,7 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
   return (
     <ListItem
       {...shared}
-      {...(isAnnounced && { subtitle: <Badge text="INSTALLED" /> })}
+      {...(!!announced && { subtitle: <Badge text="INSTALLED" /> })}
       disabled={authPending}
       onClick={handleClick}
     />

@@ -27,20 +27,52 @@ export type WalletGuideEntry = {
 }
 
 /**
- * A live connector "claims" a guide wallet by rdns: announced (6963)
- * connectors carry `id === rdns`, explicit ones (e.g. `metaMask()`) declare
- * `rdns` as a string or array.
+ * A live 6963 announcement claiming a guide wallet. Announced connectors
+ * carry `id === rdns`; wallets' in-app browsers announce a variant rdns
+ * (MetaMask mobile is `io.metamask.mobile`) but keep the wallet's exact
+ * name, so an announced connector matching the guide name also counts —
+ * the same fallback Reown AppKit and Dynamic use. The generic `injected()`
+ * connector (id "injected") and our embedded connector also claim type
+ * "injected" without being announcements.
  */
-export function matchesWallet(
-  connector: { id: string; rdns?: string | readonly string[] | undefined },
+export function announcesWallet(
+  connector: {
+    id: string
+    name?: string
+    type?: string
+    rdns?: string | readonly string[] | undefined
+  },
   wallet: WalletGuideEntry,
 ): boolean {
+  if (!!wallet.rdns && connector.id === wallet.rdns) return true
+  return (
+    connector.type === 'injected' &&
+    connector.id !== 'injected' &&
+    connector.id !== 'zerodev-wallet' &&
+    connector.name === wallet.name
+  )
+}
+
+/**
+ * A live connector "claims" a guide wallet: it announces it (see
+ * `announcesWallet`), or is an explicit connector (e.g. `metaMask()`)
+ * declaring the wallet's rdns as a string or array.
+ */
+export function matchesWallet(
+  connector: {
+    id: string
+    name?: string
+    type?: string
+    rdns?: string | readonly string[] | undefined
+  },
+  wallet: WalletGuideEntry,
+): boolean {
+  if (announcesWallet(connector, wallet)) return true
   return (
     !!wallet.rdns &&
-    (connector.id === wallet.rdns ||
-      (Array.isArray(connector.rdns)
-        ? connector.rdns.includes(wallet.rdns)
-        : connector.rdns === wallet.rdns))
+    (Array.isArray(connector.rdns)
+      ? connector.rdns.includes(wallet.rdns)
+      : connector.rdns === wallet.rdns)
   )
 }
 

@@ -90,7 +90,7 @@ beforeEach(() => {
 })
 
 describe('SignUp.InstalledWallets', () => {
-  it('routes guide-matched rows to the sheet when WalletConnect is configured, others connect directly', () => {
+  it('connects rows directly even when WalletConnect is configured', () => {
     connectors = [
       announced('io.metamask'),
       announced('com.unknown.wallet', 'Unknown'),
@@ -107,15 +107,15 @@ describe('SignUp.InstalledWallets', () => {
         <SignUp.InstalledWallets />
       </SignUp>,
     )
+    // Every row is a live announced provider — direct connect, never the
+    // sheet (a WC handoff bounces out of the wallet's own in-app browser).
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).not.toHaveBeenCalled()
-    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
-    expect(lastSheet.open).toBe(true)
-    expect(lastSheet.wallet?.id).toBe('metamask')
-
-    // No guide data → nothing for the sheet to offer (3b): direct connect.
-    fireEvent.click(screen.getByText('Unknown'))
     expect(connect).toHaveBeenCalledTimes(1)
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(false)
+
+    fireEvent.click(screen.getByText('Unknown'))
+    expect(connect).toHaveBeenCalledTimes(2)
   })
 
   it('renders a badged row per announced connector and nothing else', () => {
@@ -303,6 +303,24 @@ describe('SignUp.InstalledWallets', () => {
     // lists the un-pinned wallet.
     expect(screen.getAllByText('MetaMask')).toHaveLength(1)
     expect(screen.getByText('Rabby Wallet')).toBeDefined()
+  })
+
+  it('auto-dedupes an in-app browser variant-rdns announcement by name', () => {
+    // MetaMask's mobile browser announces io.metamask.mobile — still the
+    // pinned wallet, not a second row.
+    connectors = [announced('io.metamask.mobile', 'MetaMask')]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" />
+        <SignUp.InstalledWallets />
+      </SignUp>,
+    )
+
+    expect(screen.getAllByText('MetaMask')).toHaveLength(1)
+    // And the surviving pinned row connects it, instead of linking out to
+    // the download page.
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(connect).toHaveBeenCalledTimes(1)
   })
 
   it('auto-dedupes regardless of unit order', () => {

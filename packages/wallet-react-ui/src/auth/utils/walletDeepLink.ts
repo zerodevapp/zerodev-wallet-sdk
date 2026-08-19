@@ -9,6 +9,8 @@ export function walletDeepLink(params: {
   wallet: WalletGuideEntry
   connectors: readonly {
     id: string
+    name?: string
+    type?: string
     rdns?: string | readonly string[] | undefined
   }[]
   uri: string | null

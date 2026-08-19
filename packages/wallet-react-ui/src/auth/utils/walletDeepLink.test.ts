@@ -34,6 +34,17 @@ describe('walletDeepLink', () => {
     ).toBeNull()
   })
 
+  it("is null inside the wallet's in-app browser (variant rdns announcement)", () => {
+    expect(
+      walletDeepLink({
+        ...fresh(),
+        connectors: [
+          { id: 'io.metamask.mobile', name: 'MetaMask', type: 'injected' },
+        ],
+      }),
+    ).toBeNull()
+  })
+
   it('is null for a wallet without a mobile link', () => {
     const wallet: WalletGuideEntry = {
       id: 'nolink',
