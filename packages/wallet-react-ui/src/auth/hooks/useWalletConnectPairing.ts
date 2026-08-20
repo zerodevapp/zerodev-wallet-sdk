@@ -11,6 +11,14 @@ import { walletDeepLink } from '../utils/walletDeepLink'
 import type { WalletGuideEntry } from '../walletGuide'
 import { useAuth } from './useAuth'
 
+type WcExpiryEvents = {
+  on: (event: 'proposal_expire', listener: () => void) => unknown
+  off: (event: 'proposal_expire', listener: () => void) => unknown
+}
+type WcExpiryProvider = {
+  signer?: { client?: { events?: WcExpiryEvents } }
+}
+
 export type WalletConnectPairing = {
   /** Pairing URI from the connector's `display_uri` event; null until it
    * arrives (or after a retry reset). */
@@ -47,14 +55,14 @@ export function useWalletConnectPairing(): WalletConnectPairing {
   const startConnect = (target: Connector) => {
     setError(null)
     setUri(null)
-    connect(
-      { connector: target },
-      {
-        onSuccess: () => goToStep(null),
-        onError: (err) => setError(err.message),
-      },
-    )
+    connect({ connector: target }, { onError: (err) => setError(err.message) })
   }
+  const wasConnectedRef = useRef(wcConnected)
+  useEffect(() => {
+    // trigger on actual connection
+    if (wcConnected && !wasConnectedRef.current) goToStep(null)
+    wasConnectedRef.current = wcConnected
+  }, [wcConnected, goToStep])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only pairing setup — startConnect closes over kick-time callbacks (connect, goToStep), which must not retrigger the subscription
   useEffect(() => {
@@ -64,11 +72,26 @@ export function useWalletConnectPairing(): WalletConnectPairing {
     }
     // Subscribe before the connect kick — `display_uri` fires mid-connect.
     wcConnector.emitter.on('message', onMessage)
+    // Expiry comes from the sign-client's own event, not the connect
+    // mutation — this subscription is re-established every effect run, so it
+    // survives Strict Mode where the mutation's `onError` does not.
+    const onExpire = () => setError('Proposal expired')
+    let expiryEvents: WcExpiryEvents | undefined
+    let disposed = false
+    wcConnector.getProvider().then((provider) => {
+      expiryEvents = (provider as WcExpiryProvider).signer?.client?.events
+      if (disposed || !expiryEvents) return
+      expiryEvents.on('proposal_expire', onExpire)
+    })
     if (!startedRef.current) {
       startedRef.current = true
       startConnect(wcConnector)
     }
-    return () => wcConnector.emitter.off('message', onMessage)
+    return () => {
+      disposed = true
+      expiryEvents?.off('proposal_expire', onExpire)
+      wcConnector.emitter.off('message', onMessage)
+    }
   }, [wcConnector, wcConnected])
 
   return {
