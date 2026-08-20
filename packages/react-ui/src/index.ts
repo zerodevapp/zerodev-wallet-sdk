@@ -50,6 +50,7 @@ export {
   PillSkeleton,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
+export { QrCode, type QrCodeProps } from './components/QrCode'
 export {
   ProgressStep,
   type ProgressStepProps,
