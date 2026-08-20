@@ -172,7 +172,7 @@ describe('DataRow', () => {
     )
   })
 
-  it('warning variant uses the outline info glyph; default uses the filled one', () => {
+  it('renders the outline info glyph on both variants', () => {
     const { unmount } = render(
       <DataRow
         label="Minimum deposit"
@@ -185,7 +185,7 @@ describe('DataRow', () => {
     unmount()
 
     render(<DataRow label="Max slippage" value="1.00%" info />)
-    expect(screen.getByTestId('icon-info')).toBeDefined()
+    expect(screen.getByTestId('icon-infoOutline')).toBeDefined()
   })
 
   it('merges custom className onto the root element', () => {

@@ -20,7 +20,7 @@ const meta: Meta<typeof TxnItem> = {
   argTypes: {
     status: {
       control: 'select',
-      options: ['Routing', 'Detected', 'Received', 'Delivered', 'Failed'],
+      options: ['Routing', 'Detected', 'Delivered', 'Failed'],
     },
   },
 }
@@ -41,10 +41,9 @@ const BASE_ARGS = {
   destChainIconUrl: CHAIN_ICONS[8453], // base
 } as const
 
-/** Arrived on the active list — plain-ink label; green is reserved for the
- * terminal Delivered state on past deposits. */
-export const Received: Story = {
-  args: { ...BASE_ARGS, status: 'Received' },
+/** Terminal success state — green label. */
+export const Delivered: Story = {
+  args: { ...BASE_ARGS, status: 'Delivered' },
 }
 
 /** Deposit seen on the source chain, waiting to be picked up for routing. */
@@ -69,7 +68,7 @@ export const CrossToken: Story = {
     address: '0x88af…3c21',
     href: 'https://arbiscan.io/tx/0x88af',
     timestamp: '12 min ago',
-    status: 'Received',
+    status: 'Delivered',
     sourceTokenIconUrl: TOKEN_ICONS.WETH,
     sourceChainIconUrl: CHAIN_ICONS[10], // optimism
     destTokenIconUrl: TOKEN_ICONS.USDC,
@@ -84,7 +83,7 @@ export const NoExplorerLink: Story = {
     amount: '$248.00 USD',
     address: '0x4d2a…ba99',
     timestamp: '2 mo ago',
-    status: 'Received',
+    status: 'Delivered',
     sourceTokenIconUrl: TOKEN_ICONS.USDT,
     sourceChainIconUrl: CHAIN_ICONS[42161],
     destTokenIconUrl: TOKEN_ICONS.USDC,
@@ -100,7 +99,7 @@ export const NoIcons: Story = {
     address: '0x4d2a…ba99',
     href: 'https://arbiscan.io/tx/0x…',
     timestamp: '2 mo ago',
-    status: 'Received',
+    status: 'Delivered',
   },
 }
 
