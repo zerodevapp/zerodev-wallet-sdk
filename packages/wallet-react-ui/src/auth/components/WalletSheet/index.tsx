@@ -21,8 +21,7 @@ export type WalletSheetProps = {
   /** Absent = generic WalletConnect mode (raw-URI QR, no tabs). */
   wallet?: WalletGuideEntry | undefined
   /** Page-level pairing (preloaded by the SignUp root) shared by every wallet
-   * surface. Expiry is WalletConnect's own signal: the rejected connect()
-   * surfaces through `error` and the existing Try-again re-pairs. */
+   * surface. */
   pairing: WalletConnectPairing
 }
 
