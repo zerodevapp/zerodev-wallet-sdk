@@ -30,6 +30,8 @@ export function MockControls({
   setErrorMode,
   sponsored,
   setSponsored,
+  open,
+  setOpen,
 }: {
   destChainId: number
   regenerate: () => void
@@ -40,6 +42,10 @@ export function MockControls({
   setErrorMode: (mode: MockErrorMode) => void
   sponsored: boolean
   setSponsored: (value: boolean) => void
+  /** Open state lifted like the toggles above — an uncontrolled <details>
+   * snaps shut whenever an action bumps `mockNonce` and remounts us. */
+  open: boolean
+  setOpen: (open: boolean) => void
 }) {
   const { activeRoute } = useSmartRoutingAddress()
 
@@ -88,7 +94,13 @@ export function MockControls({
   // `pg__dev` panel; visually distinguishes the developer controls from the
   // wallet card above without being obtrusive.
   return (
-    <details className="group mt-2 overflow-hidden rounded-xl border border-[rgba(242,108,26,0.28)] bg-[rgba(255,250,245,0.6)]">
+    <details
+      open={open}
+      // The browser flips the DOM attribute on summary clicks; onToggle
+      // syncs that back into the lifted state so it survives remounts.
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      className="group mt-2 overflow-hidden rounded-xl border border-[rgba(242,108,26,0.28)] bg-[rgba(255,250,245,0.6)]"
+    >
       <summary className="flex cursor-pointer items-center gap-2 px-4 py-[13px] text-sm font-semibold text-ink group-open:border-b group-open:border-border-warm">
         Mock controls
         <span className="rounded-full bg-[rgba(242,108,26,0.15)] px-2 py-[3px] text-[11px] font-bold uppercase tracking-[0.04em] text-primary">
