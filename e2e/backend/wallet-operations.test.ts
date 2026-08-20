@@ -1,5 +1,5 @@
 /**
- * E2E integration test for wallet operations after authentication.
+ * Backend E2E test for wallet operations after authentication.
  *
  * After OTP login:
  * 1. Get user wallet addresses
