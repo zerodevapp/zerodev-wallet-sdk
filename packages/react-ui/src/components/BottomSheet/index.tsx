@@ -50,7 +50,15 @@ export function BottomSheetContent({
           className,
         )}
       >
-        {children}
+        <div
+          aria-hidden
+          className="zd:absolute zd:inset-0 zd:z-0 zd:pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse 78% 65% at 5% 105%, rgba(69,171,251,0.35) 0%, rgba(69,171,251,0) 72%), radial-gradient(ellipse 82% 65% at 100% 105%, rgba(250,200,172,0.65) 0%, rgba(250,200,172,0) 72%), radial-gradient(ellipse 58% 52% at 100% 100%, rgba(242,123,62,0.35) 0%, rgba(242,123,62,0) 72%)',
+          }}
+        />
+        <div className="zd:relative zd:z-10">{children}</div>
       </Dialog.Content>
     </Dialog.Portal>
   )
