@@ -216,3 +216,41 @@ export function FeeBreakdownRows({ breakdown }: { breakdown: FeeBreakdown }) {
     </div>
   )
 }
+
+/**
+ * The clickable fee value: wraps the summary (children) and the disclosure
+ * chevron in one button so the whole value toggles the breakdown, not just
+ * the arrow. The aria-label deliberately names the ACTION (it also keeps
+ * the e2e "Show fee details" role queries stable); the value itself remains
+ * visible beside it.
+ */
+export function FeeDisclosureButton({
+  open,
+  onToggle,
+  panelId,
+  children,
+}: {
+  open: boolean
+  onToggle: () => void
+  /** id of the panel this button controls, when the panel carries one. */
+  panelId?: string | undefined
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      {...(panelId && { 'aria-controls': panelId })}
+      aria-label={open ? 'Hide fee details' : 'Show fee details'}
+      className="zd:flex zd:cursor-pointer zd:items-center zd:gap-[5px]"
+    >
+      {children}
+      <Icon
+        name={open ? 'chevronUp' : 'chevronDown'}
+        className="zd:w-3.5 zd:h-3.5 zd:shrink-0 zd:text-greyScale"
+        aria-hidden
+      />
+    </button>
+  )
+}

@@ -24,8 +24,6 @@ import {
 const STAGE_TO_STATUS: Record<DepositStage, TxnStatus> = {
   pending: 'Detected',
   bridging: 'Routing',
-  // Past deposits use the terminal label — "Received" (plain ink) is the
-  // active list's arrival state; "Delivered" renders green.
   completed: 'Delivered',
   failed: 'Failed',
 }

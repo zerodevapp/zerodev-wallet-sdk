@@ -35,9 +35,9 @@ describe('ProgressStep', () => {
   })
 
   describe('status marker', () => {
-    it('done renders the check marker', () => {
+    it('done renders the done marker', () => {
       render(<ProgressStep label="Step" status="done" />)
-      expect(screen.getByTestId('icon-check')).toBeDefined()
+      expect(screen.getByTestId('icon-done')).toBeDefined()
     })
 
     it('active renders the spinner', () => {
@@ -55,7 +55,7 @@ describe('ProgressStep', () => {
 
     it('pending renders no icon marker', () => {
       render(<ProgressStep label="Step" status="pending" />)
-      expect(screen.queryByTestId('icon-check')).toBeNull()
+      expect(screen.queryByTestId('icon-done')).toBeNull()
       expect(screen.queryByTestId('progress-step-spinner')).toBeNull()
       expect(screen.queryByTestId('icon-warning')).toBeNull()
     })
