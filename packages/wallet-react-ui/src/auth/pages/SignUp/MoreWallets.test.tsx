@@ -164,6 +164,29 @@ describe('SignUp.MoreWallets', () => {
     expect(connect.mock.calls[0][0]).toEqual({ connector: exotic })
   })
 
+  it('shows a WalletConnect tile that opens the generic pairing sheet', () => {
+    connectors = [
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    renderMoreWallets()
+    openSheet()
+    fireEvent.click(screen.getByText('WalletConnect'))
+
+    expect(connect).not.toHaveBeenCalled()
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(true)
+    expect(lastSheet.wallet).toBeUndefined()
+    // The grid closed so the wallet sheet isn't stacked under it.
+    expect(screen.queryByTestId('wallet-sheet')).toBeNull()
+  })
+
+  it('hides the WalletConnect tile without a zeroDevWalletConnect connector', () => {
+    connectors = []
+    renderMoreWallets()
+    openSheet()
+    expect(screen.queryByText('WalletConnect')).toBeNull()
+  })
+
   it('opens the grid with every guide wallet and hides non-wallet connectors', () => {
     connectors = [
       { id: 'zerodev-wallet', name: 'ZeroDev' },
