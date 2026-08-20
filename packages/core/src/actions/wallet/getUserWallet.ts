@@ -41,8 +41,10 @@ export async function getUserWallet(
 
   // GET behind StampCheckUser: user is resolved from the stamped credential
   // (+ session JWT); no body sent. The stamp signs the X-Timestamp value.
+  // /wallets surfaces an expired session as a real 401 (RestRequestError);
+  // the deprecated /user-wallet route returned a 200 with a malformed address.
   return await client.request({
-    path: `${projectId}/user-wallet`,
+    path: `${projectId}/wallets`,
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
