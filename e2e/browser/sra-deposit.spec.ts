@@ -115,7 +115,7 @@ test.describe('SRA deposits', () => {
     })
 
     sra.advance()
-    await expect(pending.getByText('Received', { exact: true })).toBeVisible({
+    await expect(pending.getByText('Delivered', { exact: true })).toBeVisible({
       timeout: POLL_WINDOW_MS,
     })
 

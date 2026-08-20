@@ -36,7 +36,7 @@ export interface PendingDepositsProps {
 const STAGE_TO_STATUS: Record<DepositStage, TxnStatus> = {
   pending: 'Detected',
   bridging: 'Routing',
-  completed: 'Received',
+  completed: 'Delivered',
   failed: 'Failed',
 }
 
