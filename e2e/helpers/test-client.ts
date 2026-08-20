@@ -1,5 +1,5 @@
 /**
- * Creates a test SDK client configured for integration tests.
+ * Creates a test SDK client configured for the backend e2e tests.
  *
  * Sets up the transport with an Origin header to pass backend ACL checks,
  * and uses the TestStamper as the IndexedDB stamper.
@@ -61,7 +61,7 @@ function testTransport(baseUrl: string): Transport {
 }
 
 /**
- * Creates an SDK client configured for integration tests.
+ * Creates an SDK client configured for the backend e2e tests.
  * Includes Origin header for ACL checks and uses the provided stamper.
  */
 export function createTestClient(
