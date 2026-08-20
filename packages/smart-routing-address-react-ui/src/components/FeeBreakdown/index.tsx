@@ -141,8 +141,8 @@ function InfoMark({ info }: { info: string }) {
         className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-help zd:outline-none zd:bg-transparent"
       >
         <Icon
-          name="info"
-          className="zd:w-3 zd:h-3 zd:text-greyScale/50"
+          name="infoOutline"
+          className="zd:w-3.5 zd:h-3.5 zd:text-greyScale/50"
           aria-hidden
         />
       </button>
