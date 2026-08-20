@@ -162,10 +162,12 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   `WalletId` union (e.g. `'metamask'`, `'coinbase'`, `'rabby'`); the row
   connects the wallet when a live connector claims it (browser extension or a
   configured SDK connector) and is a link to the vendor's download page
-  otherwise.
+  otherwise. With WalletConnect configured, the row instead opens the pairing
+  sheet — phone pairing on one tab, the browser connect/download on the other.
 - `SignUp.InstalledWallets` auto-discovers installed wallets: one row with an
   INSTALLED badge per announced (EIP-6963) browser extension, and nothing when
-  none are installed. Wallets pinned via `SignUp.Wallet` are excluded
+  none are installed. With WalletConnect configured, rows of known wallets
+  open the pairing sheet; unknown extensions still connect directly. Wallets pinned via `SignUp.Wallet` are excluded
   automatically; `excludeWalletIds` hides further wallets by guide id or rdns,
   and `maxWallets` caps the list (default 4, known wallets ranked first).
 - `SignUp.WalletConnect` renders a "WalletConnect" row that opens a pairing
@@ -175,7 +177,9 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   your wagmi config.
 - `SignUp.MoreWallets` renders a row that opens an overlay sheet with the full
   wallet grid — every known wallet plus any other live connector; installed
-  ones connect, the rest link to the vendor's download page.
+  ones connect, the rest link to the vendor's download page. With
+  WalletConnect configured, known wallets' tiles open the pairing sheet
+  instead.
 - `SignUp.Default` is the canonical composition; it accepts the same props as
   the root and forwards them.
 - Auth success/failure surfaces through wagmi — await `connect`, or watch
@@ -188,7 +192,7 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 | `zeroDevWallet` | wagmi connector with kit-specific auth extensions. |
 | `zeroDevWalletConnect` | WalletConnect connector preconfigured for the kit (`showQrModal: false`). |
 | `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `onClose`. |
-| `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Wallet`, `InstalledWallets`, `MoreWallets`, `Divider`). |
+| `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Wallet`, `WalletConnect`, `InstalledWallets`, `MoreWallets`, `Divider`). |
 | `useAuth` | Read / drive the auth flow state. |
 
 ### Types

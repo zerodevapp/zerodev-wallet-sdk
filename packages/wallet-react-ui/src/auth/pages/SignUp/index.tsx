@@ -2,7 +2,9 @@ import { Button, Text } from '@zerodev/react-ui'
 import { type ReactNode, useCallback, useState } from 'react'
 import { SignUpFooter } from '../../../shared/components/SignUpFooter'
 import { BlobAnimation } from '../../components/BlobAnimation'
+import { WalletSheet } from '../../components/WalletSheet'
 import type { EmailAuthMethod } from '../../types'
+import type { WalletGuideEntry } from '../../walletGuide'
 import { SignUpContext } from './context'
 import { SignUpEmail } from './Email'
 import { SignUpGoogle } from './Google'
@@ -52,6 +54,13 @@ function SignUpRoot({
     }
   }, [])
 
+  // The page's single WalletSheet — every wallet surface opens it via
+  // `openWalletSheet` instead of mounting a sheet of its own. The box
+  // distinguishes open-without-a-wallet (generic pairing) from closed.
+  const [walletSheet, setWalletSheet] = useState<{
+    wallet?: WalletGuideEntry | undefined
+  } | null>(null)
+
   const requiresAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
   const needsAgreement = requiresAgreement && !agreedToTerms
 
@@ -72,6 +81,7 @@ function SignUpRoot({
         setError,
         registeredWallets,
         registerWallet,
+        openWalletSheet: (wallet) => setWalletSheet({ wallet }),
       }}
     >
       {error !== null && (
@@ -125,6 +135,13 @@ function SignUpRoot({
           />
         </div>
       </div>
+      <WalletSheet
+        open={walletSheet !== null}
+        onOpenChange={(open) => {
+          if (!open) setWalletSheet(null)
+        }}
+        wallet={walletSheet?.wallet}
+      />
     </SignUpContext.Provider>
   )
 }

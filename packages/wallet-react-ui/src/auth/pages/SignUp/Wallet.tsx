@@ -3,6 +3,7 @@ import { useLayoutEffect } from 'react'
 import { useConnect, useConnectors } from 'wagmi'
 import { useAuth } from '../../hooks/useAuth'
 import { isCancellationError } from '../../utils/isCancellationError'
+import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
 import { matchesWallet, WALLET_GUIDE, type WalletId } from '../../walletGuide'
 import { useReportPending, useSignUpContext } from './context'
 
@@ -18,8 +19,13 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
   }
 
   const { goToStep } = useAuth()
-  const { authPending, guardAgreement, setError, registerWallet } =
-    useSignUpContext()
+  const {
+    authPending,
+    guardAgreement,
+    setError,
+    registerWallet,
+    openWalletSheet,
+  } = useSignUpContext()
   const connectors = useConnectors()
   const { mutate: connect, isPending } = useConnect()
   useReportPending(isPending)
@@ -36,6 +42,21 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     title: wallet.name,
     icon: <img src={wallet.icon} alt="" className="zd:w-6 zd:h-6" />,
     trailing: <ListItemChevron />,
+  }
+
+  if (connectors.some(isZeroDevWalletConnect)) {
+    return (
+      <ListItem
+        {...shared}
+        {...(isAnnounced && { subtitle: <Badge text="INSTALLED" /> })}
+        disabled={authPending}
+        onClick={() => {
+          if (authPending) return
+          if (!guardAgreement()) return
+          openWalletSheet(wallet)
+        }}
+      />
+    )
   }
 
   if (!installed) {
