@@ -123,7 +123,13 @@ jobs:
   backend-e2e-test:
     name: Backend E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Needs the staging secrets, so skip wherever they are unavailable:
+    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
+    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository
+       && github.actor != 'dependabot[bot]')
     needs: [build]
     concurrency:
       group: integration-tests-staging
@@ -153,7 +159,13 @@ jobs:
   e2e-test:
     name: Browser E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Needs the staging secrets, so skip wherever they are unavailable:
+    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
+    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository
+       && github.actor != 'dependabot[bot]')
     needs: [build]
     concurrency:
       group: e2e-tests-staging
@@ -220,3 +232,61 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  ci-gate:
+    name: All checks passed
+    runs-on: ubuntu-latest
+    needs:
+      - lint-and-format
+      - typecheck
+      - build
+      - test
+      - backend-e2e-test
+      - e2e-test
+    if: always()
+    steps:
+      - name: Verify every job succeeded
+        env:
+          # Every job in `needs:` and its result, so this script never has to
+          # name them. Adding or removing a gated job is a one-line edit to
+          # `needs:` above and nothing else.
+          NEEDS: ${{ toJSON(needs) }}
+          # The ONLY per-job policy: jobs allowed to report `skipped`. Both are
+          # guarded off for PRs from forks, so a fork PR could never merge otherwise.
+          # Any other job that reports `skipped` fails the gate — a skip there
+          # means it silently did not run.
+          SKIPPABLE: backend-e2e-test e2e-test
+        run: |
+          fail=0
+
+          # `jq` is preinstalled on GitHub-hosted ubuntu runners.
+          while read -r job result; do
+            case "$result" in
+              success)
+                echo "ok       $job"
+                ;;
+              skipped)
+                case " $SKIPPABLE " in
+                  *" $job "*)
+                    echo "skipped  $job (allowed: guarded off for fork PRs)"
+                    ;;
+                  *)
+                    echo "::error::$job was skipped but is not allowed to skip"
+                    fail=1
+                    ;;
+                esac
+                ;;
+              *)
+                echo "::error::$job did not succeed (got '$result')"
+                fail=1
+                ;;
+            esac
+          done <<EOF
+          $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
+          EOF
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::CI gate failed — see the job results above."
+            exit 1
+          fi
+          echo "All gated jobs passed."
