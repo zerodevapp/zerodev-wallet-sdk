@@ -466,6 +466,7 @@ export function Deposit({
                     label={destChain.name}
                     {...(destChainLogo && { logoUri: destChainLogo })}
                     disabled
+                    loading={!tokenSymbol}
                   />
                 }
               />
