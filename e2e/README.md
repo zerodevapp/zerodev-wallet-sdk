@@ -26,13 +26,3 @@ no network is an **integration** test: name it `*.integration.test.ts` and put i
 beside the package source. That layer has no runner yet — it arrives with its
 first test. `e2e/` is the expensive layer, rate-limited by staging and slow, so a
 test lands here only because it genuinely cannot be written cheaper.
-
-**Trap for whoever adds the first one:** `vitest.config.ts`'s include glob
-(`packages/*/src/**/*.test.ts`) already matches `*.integration.test.ts`, so `pnpm
-test` will silently run it as a unit test. The integration config must claim the
-glob *and* the unit config must exclude it, or the layer has no separate
-existence.
-
-> `backend/` was called `integration/` until 2026-08-20. The name was wrong: the
-> suite needs live services, and it was occupying the name the in-process layer
-> needed.
