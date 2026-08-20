@@ -2,12 +2,7 @@ import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useConnect, useConnectors } from 'wagmi'
 import { useAuth } from '../../hooks/useAuth'
 import { isCancellationError } from '../../utils/isCancellationError'
-import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
-import {
-  matchesWallet,
-  WALLET_GUIDE,
-  type WalletGuideEntry,
-} from '../../walletGuide'
+import { matchesWallet, WALLET_GUIDE } from '../../walletGuide'
 import { useReportPending, useSignUpContext } from './context'
 
 /** Auto-discovered rows for installed wallets: one row per announced (6963)
@@ -25,13 +20,8 @@ export function SignUpInstalledWallets({
   maxWallets?: number
 }) {
   const { goToStep } = useAuth()
-  const {
-    authPending,
-    guardAgreement,
-    setError,
-    registeredWallets,
-    openWalletSheet,
-  } = useSignUpContext()
+  const { authPending, guardAgreement, setError, registeredWallets } =
+    useSignUpContext()
   const connectors = useConnectors()
   const { mutate: connect, isPending } = useConnect()
   useReportPending(isPending)
@@ -66,14 +56,6 @@ export function SignUpInstalledWallets({
     .sort((a, b) => a.rank - b.rank)
     .slice(0, maxWallets)
 
-  const wcEnabled = connectors.some(isZeroDevWalletConnect)
-
-  const openSheet = (wallet: WalletGuideEntry) => {
-    if (authPending) return
-    if (!guardAgreement()) return
-    openWalletSheet(wallet)
-  }
-
   const startConnect = (connector: (typeof connectors)[number]) => {
     if (authPending) return
     if (!guardAgreement()) return
@@ -105,11 +87,7 @@ export function SignUpInstalledWallets({
           subtitle={<Badge text="INSTALLED" />}
           trailing={<ListItemChevron />}
           disabled={authPending}
-          onClick={() => {
-            const wallet = WALLET_GUIDE.find((w) => matchesWallet(connector, w))
-            if (wcEnabled && wallet) openSheet(wallet)
-            else startConnect(connector)
-          }}
+          onClick={() => startConnect(connector)}
         />
       ))}
     </>

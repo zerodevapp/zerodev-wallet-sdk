@@ -8,7 +8,7 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import { isCancellationError } from '../../utils/isCancellationError'
 import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
-import { matchesWallet, WALLET_GUIDE } from '../../walletGuide'
+import { announcesWallet, matchesWallet, WALLET_GUIDE } from '../../walletGuide'
 import { useReportPending, useSignUpContext } from './context'
 
 /** "More wallets" row — opens the wallet grid sheet. */
@@ -55,12 +55,20 @@ export function SignUpMoreWallets({
   const wcEnabled = connectors.some(isZeroDevWalletConnect)
 
   const guideTiles: WalletTileData[] = WALLET_GUIDE.map((wallet) => {
-    const installed = walletConnectors.find((c) => matchesWallet(c, wallet))
+    const announced = walletConnectors.find((c) => announcesWallet(c, wallet))
+    const installed =
+      announced ?? walletConnectors.find((c) => matchesWallet(c, wallet))
     return {
       key: wallet.id,
       name: wallet.name,
       icon: wallet.icon,
       onSelect: () => {
+        // Announced = the wallet is live on this page (extension or its own
+        // in-app browser) — connect directly instead of a WC handoff.
+        if (announced) {
+          startConnect(announced)
+          return
+        }
         if (wcEnabled) {
           if (authPending) return
           if (!guardAgreement()) return

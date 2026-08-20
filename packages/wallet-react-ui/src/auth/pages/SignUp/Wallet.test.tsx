@@ -83,7 +83,7 @@ beforeEach(() => {
 })
 
 describe('SignUp.Wallet', () => {
-  it('opens the wallet sheet instead of connecting when WalletConnect is configured', () => {
+  it('connects an announced wallet directly even when WalletConnect is configured', () => {
     const announced = { id: 'io.metamask' }
     connectors = [
       announced,
@@ -94,14 +94,56 @@ describe('SignUp.Wallet', () => {
         <SignUp.Wallet walletId="metamask" />
       </SignUp>,
     )
-    // Still badged — the sheet hub doesn't change the claim rules.
     expect(screen.getByText('INSTALLED')).toBeDefined()
+
+    // The wallet is live on this page — direct connect, no WC handoff.
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(connect).toHaveBeenCalledTimes(1)
+    expect(connect.mock.calls[0][0]).toEqual({ connector: announced })
+    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    expect(lastSheet.open).toBe(false)
+  })
+
+  it('opens the wallet sheet for a non-announced wallet when WalletConnect is configured', () => {
+    connectors = [
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" />
+      </SignUp>,
+    )
+    expect(screen.queryByText('INSTALLED')).toBeNull()
 
     fireEvent.click(screen.getByText('MetaMask'))
     expect(connect).not.toHaveBeenCalled()
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(true)
     expect(lastSheet.wallet?.id).toBe('metamask')
+  })
+
+  it("connects the in-app browser's variant-rdns announcement directly", () => {
+    // MetaMask's mobile browser announces io.metamask.mobile with the
+    // extension's name — claimed by name, badged, no WC handoff.
+    const inApp = {
+      id: 'io.metamask.mobile',
+      name: 'MetaMask',
+      type: 'injected',
+    }
+    connectors = [
+      inApp,
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" />
+      </SignUp>,
+    )
+    expect(screen.getByText('INSTALLED')).toBeDefined()
+
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(connect).toHaveBeenCalledTimes(1)
+    expect(connect.mock.calls[0][0]).toEqual({ connector: inApp })
   })
 
   it('connects the claiming connector and closes the flow on success', () => {

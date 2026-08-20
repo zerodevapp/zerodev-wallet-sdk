@@ -50,12 +50,12 @@ export {
   PillSkeleton,
 } from './components/Pill'
 export { PoweredBy } from './components/PoweredBy'
-export { QrCode, type QrCodeProps } from './components/QrCode'
 export {
   ProgressStep,
   type ProgressStepProps,
   type ProgressStepStatus,
 } from './components/ProgressStep'
+export { QrCode, type QrCodeProps } from './components/QrCode'
 export { Screen } from './components/Screen'
 export { Section, type SectionProps } from './components/Section'
 export {

@@ -115,9 +115,24 @@ const openSheet = () => {
 }
 
 describe('SignUp.MoreWallets', () => {
-  it('routes guide tiles to the wallet sheet and closes the grid when WalletConnect is configured', () => {
+  it('connects an announced guide tile directly even when WalletConnect is configured', () => {
+    const metamask = { id: 'io.metamask' }
     connectors = [
-      { id: 'io.metamask' },
+      metamask,
+      { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
+    ]
+    renderMoreWallets()
+    openSheet()
+    fireEvent.click(screen.getByText('MetaMask'))
+
+    // The wallet is live on this page — direct connect, no WC handoff.
+    expect(connect).toHaveBeenCalledTimes(1)
+    expect(connect.mock.calls[0][0]).toEqual({ connector: metamask })
+    expect(screen.queryByTestId('wallet-sheet')).toBeNull()
+  })
+
+  it('routes non-announced guide tiles to the wallet sheet and closes the grid when WalletConnect is configured', () => {
+    connectors = [
       { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
     ]
     renderMoreWallets()
