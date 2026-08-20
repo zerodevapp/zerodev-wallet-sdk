@@ -120,8 +120,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  integration-test:
-    name: Integration Tests
+  backend-e2e-test:
+    name: Backend E2E Tests
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     needs: [build]
@@ -144,8 +144,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run integration tests
-        run: pnpm test:integration
+      - name: Run backend e2e tests
+        run: pnpm test:e2e:backend
         env:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
