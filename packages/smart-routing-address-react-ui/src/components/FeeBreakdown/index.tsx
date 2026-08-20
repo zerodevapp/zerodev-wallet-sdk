@@ -247,8 +247,13 @@ export function FeeDisclosureButton({
     >
       {children}
       <Icon
-        name={open ? 'chevronUp' : 'chevronDown'}
-        className="zd:w-3.5 zd:h-3.5 zd:shrink-0 zd:text-greyScale"
+        // One chevron rotated by state (matches SelectIcon) so open/close
+        // animates instead of swapping glyphs.
+        name="chevronDown"
+        className={cn(
+          'zd:w-3.5 zd:h-3.5 zd:shrink-0 zd:text-greyScale zd:transition-transform zd:duration-200',
+          open && 'zd:rotate-180',
+        )}
         aria-hidden
       />
     </button>

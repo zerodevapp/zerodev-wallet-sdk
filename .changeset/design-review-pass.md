@@ -15,8 +15,6 @@ react-ui:
 
 smart-routing-address-react-ui:
 
-- Completed deposits now read "Delivered" (green) everywhere; the
-  `'Received'` value is removed from `TxnStatus`.
 - Active-deposits card: retitled "Active Deposit", design paddings/row gaps,
   no more doubled left inset on tappable rows.
 - Past-deposits row became a ghost-Wrapper card with the orange `clock-fill`
