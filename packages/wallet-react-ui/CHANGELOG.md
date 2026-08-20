@@ -1,5 +1,17 @@
 # @zerodev/wallet-react-ui
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [118ad87]
+- Updated dependencies [a609a7d]
+- Updated dependencies [dfb4daa]
+- Updated dependencies [2757a61]
+  - @zerodev/react-ui@0.0.6
+  - @zerodev/wallet-react@1.0.0
+  - @zerodev/wallet-core@0.1.0
+
 ## 0.0.8
 
 ### Patch Changes
@@ -32,7 +44,7 @@
     <SignUp.MoreWallets />
   </SignUp>
   ```
-  
+
 ## 0.0.7
 
 ### Patch Changes

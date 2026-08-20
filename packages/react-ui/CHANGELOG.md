@@ -1,5 +1,43 @@
 # @zerodev/react-ui
 
+## 0.0.6
+
+### Patch Changes
+
+- 118ad87: feat(react-ui): promote `ProgressStep` to a shared primitive
+
+  `ProgressStep` — one row of a vertical progress trail (status marker,
+  connector line, label, info tooltip, trailing slot) — moves out of
+  smart-routing-address-react-ui's `TransactionDetails` page into react-ui.
+
+  - New exports: `ProgressStep`, `ProgressStepProps`, `ProgressStepStatus`.
+  - The private `done`/`failed` booleans become a single
+    `status: 'done' | 'active' | 'pending' | 'failed'` prop; `active` is new
+    and renders a spinner marker for in-flight steps.
+  - smart-routing-address-react-ui consumes the shared component; its
+    Transaction Progress section is visually unchanged.
+
+- a609a7d: design: SRA widget design-review pass
+
+  react-ui:
+
+  - `DataRow` warning variant keeps label/value in default ink — only the
+    card tint stays orange — and its info icon switches to the new thin
+    `info-outline` glyph (orange, half opacity).
+  - New icons: `info-outline`, `clock-fill`; `line-loading` replaced with the
+    design's rays glyph (the old hairline stroke was invisible at small sizes).
+
+  smart-routing-address-react-ui:
+
+  - Active-deposits card: retitled "Active Deposit", design paddings/row gaps,
+    no more doubled left inset on tappable rows.
+  - Past-deposits row became a ghost-Wrapper card with the orange `clock-fill`
+    icon, 18px title, and hover treatment.
+  - New full-width dark "Copy Address" button under the deposit address.
+  - "Watching for your deposit…" only renders once the address exists.
+  - Deposit page honours its bottom padding when content scrolls
+    (`h-full` → `min-h-full`).
+
 ## 0.0.5
 
 ### Patch Changes
