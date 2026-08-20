@@ -9,6 +9,16 @@ import { SignUp } from './index'
 
 afterEach(cleanup)
 
+// The SignUp root preloads the page-level pairing — inert here.
+vi.mock('../../hooks/useWalletConnectPairing', () => ({
+  useWalletConnectPairing: () => ({
+    uri: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => null,
+  }),
+}))
+
 // Sibling units pull in wallet-react hooks — replace them with stubs so the
 // tests exercise the MoreWallets unit against the real root (context, gate).
 vi.mock('./Passkey', () => ({ SignUpPasskey: () => null }))

@@ -4,6 +4,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { WALLET_GUIDE } from '../walletGuide'
 import { useWalletConnectPairing } from './useWalletConnectPairing'
 
 afterEach(cleanup)
@@ -11,6 +12,11 @@ afterEach(cleanup)
 const goToStep = vi.fn()
 vi.mock('./useAuth', () => ({
   useAuth: () => ({ goToStep }),
+}))
+
+const mobile = vi.hoisted(() => ({ value: false }))
+vi.mock('../utils/isMobile', () => ({
+  isMobile: () => mobile.value,
 }))
 
 const connect = vi.fn()
@@ -51,6 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
   connections = []
+  mobile.value = false
 })
 
 describe('useWalletConnectPairing', () => {
@@ -156,5 +163,34 @@ describe('useWalletConnectPairing', () => {
     const handler = wc.emitter.on.mock.calls[0][1]
     unmount()
     expect(wc.emitter.off).toHaveBeenCalledWith('message', handler)
+  })
+
+  it('deepLinkFor wraps the URI on mobile and stays null on desktop', () => {
+    const metamask = WALLET_GUIDE.find((w) => w.id === 'metamask')
+    if (!metamask) throw new Error('metamask missing from WALLET_GUIDE')
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
+
+    expect(result.current.deepLinkFor(metamask)).toBeNull() // desktop
+    mobile.value = true
+    expect(result.current.deepLinkFor(metamask)).toBe(
+      `${metamask.mobileLink}${encodeURIComponent('wc:t@2?relay')}`,
+    )
+  })
+
+  it('deepLinkFor goes null once the pairing errors — e.g. proposal expiry', () => {
+    const metamask = WALLET_GUIDE.find((w) => w.id === 'metamask')
+    if (!metamask) throw new Error('metamask missing from WALLET_GUIDE')
+    mobile.value = true
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
+    expect(result.current.deepLinkFor(metamask)).not.toBeNull()
+
+    act(() => connect.mock.calls[0][1].onError(new Error('Proposal expired')))
+    expect(result.current.deepLinkFor(metamask)).toBeNull()
   })
 })

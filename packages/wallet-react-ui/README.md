@@ -172,9 +172,11 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   and `maxWallets` caps the list (default 4, known wallets ranked first).
 - `SignUp.WalletConnect` renders a "WalletConnect" row that opens a pairing
   sheet: a QR code any mobile wallet can scan, plus a copy-link fallback. The
-  pairing starts when the sheet opens and a fresh link is generated per open.
-  The row renders nothing unless a `zeroDevWalletConnect` connector is in
-  your wagmi config.
+  pairing preloads when the sign-up page mounts so the QR is ready on open;
+  when it expires, WalletConnect's own error shows in the sheet with a
+  one-tap Try again. On phones, tapping a known wallet's row deep-links
+  straight into its app; the sheet opens behind it as the fallback. The row renders nothing unless a `zeroDevWalletConnect`
+  connector is in your wagmi config.
 - `SignUp.MoreWallets` renders a row that opens an overlay sheet with the full
   wallet grid — every known wallet plus any other live connector; installed
   ones connect, the rest link to the vendor's download page. With

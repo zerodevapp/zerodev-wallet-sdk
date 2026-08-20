@@ -5,7 +5,10 @@ import {
   useConnections,
   useConnectors,
 } from 'wagmi'
+import { isMobile } from '../utils/isMobile'
 import { isZeroDevWalletConnect } from '../utils/isZeroDevWalletConnect'
+import { walletDeepLink } from '../utils/walletDeepLink'
+import type { WalletGuideEntry } from '../walletGuide'
 import { useAuth } from './useAuth'
 
 export type WalletConnectPairing = {
@@ -14,6 +17,11 @@ export type WalletConnectPairing = {
   uri: string | null
   error: string | null
   retry: () => void
+  /** Wrapped deep link for the one-tap mobile redirect into `wallet`'s app,
+   * or null when the tap should just open the sheet (desktop, claiming
+   * installed connector, no usable URI). An errored pairing — including
+   * WalletConnect's own proposal expiry — never redirects. */
+  deepLinkFor: (wallet: WalletGuideEntry) => string | null
 }
 
 /**
@@ -69,5 +77,12 @@ export function useWalletConnectPairing(): WalletConnectPairing {
     retry: () => {
       if (wcConnector) startConnect(wcConnector)
     },
+    deepLinkFor: (wallet) =>
+      walletDeepLink({
+        wallet,
+        connectors,
+        uri: error ? null : uri,
+        mobile: isMobile(),
+      }),
   }
 }

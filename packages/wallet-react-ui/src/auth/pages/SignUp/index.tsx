@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useState } from 'react'
 import { SignUpFooter } from '../../../shared/components/SignUpFooter'
 import { BlobAnimation } from '../../components/BlobAnimation'
 import { WalletSheet } from '../../components/WalletSheet'
+import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
 import type { EmailAuthMethod } from '../../types'
 import type { WalletGuideEntry } from '../../walletGuide'
 import { SignUpContext } from './context'
@@ -60,6 +61,10 @@ function SignUpRoot({
   const [walletSheet, setWalletSheet] = useState<{
     wallet?: WalletGuideEntry | undefined
   } | null>(null)
+  // Pairing preloads at page mount so the sheet's QR is ready on open and the
+  // mobile deep link below fires synchronously inside the tap — iOS only
+  // hands a universal link to the app for gesture-qualified navigations.
+  const pairing = useWalletConnectPairing()
 
   const requiresAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
   const needsAgreement = requiresAgreement && !agreedToTerms
@@ -81,7 +86,13 @@ function SignUpRoot({
         setError,
         registeredWallets,
         registerWallet,
-        openWalletSheet: (wallet) => setWalletSheet({ wallet }),
+        openWalletSheet: (wallet) => {
+          const deepLink = wallet && pairing.deepLinkFor(wallet)
+          if (deepLink) window.location.href = deepLink
+          // Sheet opens either way — it's the fallback surface when the
+          // redirect doesn't take (and the only surface on desktop).
+          setWalletSheet({ wallet })
+        },
       }}
     >
       {error !== null && (
@@ -136,6 +147,7 @@ function SignUpRoot({
         </div>
       </div>
       <WalletSheet
+        pairing={pairing}
         open={walletSheet !== null}
         onOpenChange={(open) => {
           if (!open) setWalletSheet(null)

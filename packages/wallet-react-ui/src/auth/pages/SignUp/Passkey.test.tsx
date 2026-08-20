@@ -7,6 +7,16 @@ import { SignUp } from './index'
 
 afterEach(cleanup)
 
+// The SignUp root preloads the page-level pairing — inert here.
+vi.mock('../../hooks/useWalletConnectPairing', () => ({
+  useWalletConnectPairing: () => ({
+    uri: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => null,
+  }),
+}))
+
 const { registerPasskey, loginPasskey } = vi.hoisted(() => ({
   registerPasskey: vi.fn(),
   loginPasskey: vi.fn(),

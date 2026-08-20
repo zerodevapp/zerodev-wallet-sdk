@@ -7,13 +7,12 @@ import {
   QrCode,
   Text,
 } from '@zerodev/react-ui'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useConnect, useConnectors } from 'wagmi'
 import { walletConnectLogo } from '../../brandAssets'
 import { useAuth } from '../../hooks/useAuth'
-import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
+import type { WalletConnectPairing } from '../../hooks/useWalletConnectPairing'
 import { isCancellationError } from '../../utils/isCancellationError'
-import { isMobile } from '../../utils/isMobile'
 import { matchesWallet, type WalletGuideEntry } from '../../walletGuide'
 
 export type WalletSheetProps = {
@@ -21,30 +20,45 @@ export type WalletSheetProps = {
   onOpenChange: (open: boolean) => void
   /** Absent = generic WalletConnect mode (raw-URI QR, no tabs). */
   wallet?: WalletGuideEntry | undefined
+  /** Page-level pairing (preloaded by the SignUp root) shared by every wallet
+   * surface. */
+  pairing: WalletConnectPairing
 }
 
 /**
  * Bottom sheet with the connection paths for one wallet (or the generic
- * WalletConnect pairing). The pairing lives in the sheet body, which Radix
- * mounts only while open — opening the sheet starts a fresh pairing,
- * closing it abandons it.
+ * WalletConnect pairing). The pairing is preloaded at page level so the QR is
+ * ready on open and mobile row taps can deep-link synchronously; when the
+ * proposal expires, WalletConnect rejects the pending connect and the error
+ * branch offers Try again.
  */
-export function WalletSheet({ open, onOpenChange, wallet }: WalletSheetProps) {
+export function WalletSheet({
+  open,
+  onOpenChange,
+  wallet,
+  pairing,
+}: WalletSheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       <BottomSheetContent className="zd:p-4">
         <BottomSheetTitle>
           {wallet ? `Connect ${wallet.name}` : 'WalletConnect'}
         </BottomSheetTitle>
-        <SheetBody wallet={wallet} />
+        <SheetBody wallet={wallet} pairing={pairing} />
       </BottomSheetContent>
     </BottomSheet>
   )
 }
 
-function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
+function SheetBody({
+  wallet,
+  pairing,
+}: {
+  wallet?: WalletGuideEntry | undefined
+  pairing: WalletConnectPairing
+}) {
   const { goToStep } = useAuth()
-  const { uri, error, retry } = useWalletConnectPairing()
+  const { uri, error, retry } = pairing
   const connectors = useConnectors()
   const { mutate: connect } = useConnect()
 
@@ -66,15 +80,6 @@ function SheetBody({ wallet }: { wallet?: WalletGuideEntry | undefined }) {
     uri && wallet?.mobileLink
       ? `${wallet.mobileLink}${encodeURIComponent(uri)}`
       : uri
-
-  // Route the phone straight into the wallet's app once the URI lands.
-  const firedRef = useRef(false)
-  useEffect(() => {
-    if (!firedRef.current && wallet?.mobileLink && uri && isMobile()) {
-      firedRef.current = true
-      window.location.href = `${wallet.mobileLink}${encodeURIComponent(uri)}`
-    }
-  }, [wallet, uri])
 
   const copyUri = async () => {
     if (!uri) return

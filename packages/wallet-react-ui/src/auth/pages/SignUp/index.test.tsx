@@ -8,6 +8,16 @@ import { SignUp } from './index'
 
 afterEach(cleanup)
 
+// The SignUp root preloads the page-level pairing — inert here.
+vi.mock('../../hooks/useWalletConnectPairing', () => ({
+  useWalletConnectPairing: () => ({
+    uri: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => null,
+  }),
+}))
+
 // Units pull in wagmi/wallet-react hooks — replace them with markers so the
 // tests exercise only the page logic (composition, registry, guard).
 vi.mock('./Passkey', () => ({
