@@ -1,7 +1,7 @@
 'use client'
 
 import { type WalletMode } from '@zerodev/wallet-react'
-import { zeroDevWallet } from '@zerodev/wallet-react-ui'
+import { zeroDevWallet, zeroDevWalletConnect } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
 import { arbitrumSepolia, sepolia } from 'wagmi/chains'
 
@@ -14,6 +14,10 @@ const rpcUrls: Record<number, string | undefined> = {
 // Set NEXT_PUBLIC_WALLET_MODE to 'EOA' | '4337' | '7702' to override; leave
 // unset for the SDK default ('7702').
 const mode = process.env.NEXT_PUBLIC_WALLET_MODE as WalletMode | undefined
+
+// Reown Cloud project id (public client identifier). Unset → no WalletConnect
+// connector registers and the kit hides all WalletConnect flows.
+const wcProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 
 export const config = createConfig({
   chains: [arbitrumSepolia, sepolia],
@@ -34,6 +38,9 @@ export const config = createConfig({
       }),
       ...(mode && { mode }),
     }),
+    ...(wcProjectId
+      ? [zeroDevWalletConnect({ projectId: wcProjectId })]
+      : []),
   ],
   ssr: true,
   transports: {

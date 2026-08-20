@@ -26,6 +26,7 @@ export default defineConfig({
         '@tanstack/react-query',
         'viem',
         'wagmi',
+        /^wagmi\//,
         'zustand',
         /^zustand\//,
       ],
