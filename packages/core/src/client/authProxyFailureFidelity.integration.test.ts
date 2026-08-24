@@ -19,6 +19,14 @@ function client() {
   return createAuthProxyClient({ authProxyConfigId: 'cfg-1' })
 }
 
+/**
+ * `typeof t === 'string'` alone would accept `''`, so a `?? ''` in the client
+ * would flip the hollow-token tests red as though the defect were fixed.
+ */
+function isUsableToken(token: unknown) {
+  return typeof token === 'string' && token.length > 0
+}
+
 /** Stubs `fetch` to answer once with the given status, body and content type. */
 function respondWith(
   status: number,
@@ -96,7 +104,7 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
       const usable = await client()
         .verifyOtp(ATTEMPT)
         .then(
-          (r) => typeof r.verificationToken === 'string',
+          (r) => isUsableToken(r.verificationToken),
           () => true, // rejecting is a perfectly good remedy
         )
 
@@ -112,7 +120,7 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
       const usable = await client()
         .verifyOtp(ATTEMPT)
         .then(
-          (r) => typeof r.verificationToken === 'string',
+          (r) => isUsableToken(r.verificationToken),
           () => true,
         )
 
