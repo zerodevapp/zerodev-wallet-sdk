@@ -76,6 +76,12 @@ export default function Home() {
   // producing a UI ↔ mock mismatch).
   const [mockErrorMode, setMockErrorMode] = useState<MockErrorMode>('none')
   const [mockSponsored, setMockSponsored] = useState(false)
+  // Shows the widget's "Buy with card" (Transak) entry. Defaults on when a
+  // real partner key is configured; toggleable from Mock controls otherwise
+  // so the entry's UX is previewable with a placeholder key.
+  const [mockOnramp, setMockOnramp] = useState(
+    !!process.env.NEXT_PUBLIC_TRANSAK_API_KEY,
+  )
   // Lifted for the same reason as the toggles above: the mock-controls
   // <details> would otherwise reset to closed every time an action bumps
   // `mockNonce` and remounts the subtree.
@@ -157,8 +163,25 @@ export default function Home() {
   }
 
   const config = useMemo<SmartRoutingAddressConfig>(
-    () => ({ targetChainId, slippage }),
-    [targetChainId, slippage],
+    () => ({
+      targetChainId,
+      slippage,
+      // Fiat onramp is partner-gated (needs a KYB'd Transak key). With a key
+      // in env the entry is always on against Transak; without one the Mock
+      // controls toggle previews it with a placeholder key (the sheet then
+      // shows Transak's invalid-key screen — the entry UX is what's demoed).
+      ...(mockOnramp && {
+        onramp: {
+          transakApiKey:
+            process.env.NEXT_PUBLIC_TRANSAK_API_KEY ?? 'demo-placeholder',
+          environment:
+            process.env.NEXT_PUBLIC_TRANSAK_ENV === 'PRODUCTION'
+              ? ('PRODUCTION' as const)
+              : ('STAGING' as const),
+        },
+      }),
+    }),
+    [targetChainId, slippage, mockOnramp],
   )
 
   const recipientReady = isAddress(recipient)
@@ -252,6 +275,8 @@ export default function Home() {
                 setMockErrorMode={setMockErrorMode}
                 mockSponsored={mockSponsored}
                 setMockSponsored={setMockSponsored}
+                mockOnramp={mockOnramp}
+                setMockOnramp={setMockOnramp}
                 controlsOpen={mockControlsOpen}
                 setControlsOpen={setMockControlsOpen}
               />

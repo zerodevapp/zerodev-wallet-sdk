@@ -19,6 +19,7 @@ import {
 import type { DepositedToken, TOKEN_TYPE } from '@zerodev/smart-routing-address'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
+import { BuyWithCardButton } from '../components/BuyWithCardButton'
 import { ErrorRetryCard } from '../components/ErrorRetryCard'
 import {
   FeeBreakdownRows,
@@ -28,6 +29,7 @@ import {
 } from '../components/FeeBreakdown'
 import { FEE_INFO } from '../components/FeeBreakdown/feeInfo'
 import { LoadingCard } from '../components/LoadingCard'
+import { OnrampSheet } from '../components/OnrampSheet'
 import { PendingDeposits } from '../components/PendingDeposits'
 import { DEFAULT_FILL_TIME_SECONDS } from '../constants'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
@@ -49,6 +51,7 @@ import {
   formatSlippage,
 } from '../utils/format'
 import { buildFeeBreakdown } from '../utils/providerFees'
+import { buildTransakUrl } from '../utils/transak'
 
 export interface DepositProps {
   onQrClick?: () => void
@@ -79,6 +82,7 @@ export function Deposit({
     useSmartRoutingAddressContext()
   const [feeOpen, setFeeOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
+  const [onrampOpen, setOnrampOpen] = useState(false)
 
   const success = addressState.status === 'success' ? addressState : null
   const address = success?.address
@@ -288,6 +292,30 @@ export function Deposit({
     // bottom padding is honoured.
     <div className="zd:flex zd:min-h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
       <Text className="zd:w-full zd:text-center">{SUBTITLE}</Text>
+
+      {/* Fiat onramp entry (Figma 20400:2504) — config-gated: only partners
+          with a KYB-approved Transak key show it, and it stays visually
+          secondary to the core copy-address flow. Disabled until the deposit
+          address exists since that's where the purchase is delivered. */}
+      {config.onramp && (
+        <>
+          <BuyWithCardButton
+            onClick={() => setOnrampOpen(true)}
+            disabled={!address}
+          />
+          <OnrampSheet
+            open={onrampOpen}
+            onOpenChange={setOnrampOpen}
+            src={buildTransakUrl({
+              apiKey: config.onramp.transakApiKey,
+              environment: config.onramp.environment,
+              walletAddress: address,
+              cryptoCurrencyCode: tokenSymbol,
+              chainId: source?.chain.id,
+            })}
+          />
+        </>
+      )}
 
       <div className="zd:relative zd:flex zd:w-full zd:flex-1 zd:flex-col zd:gap-2">
         <ArrowCardPair

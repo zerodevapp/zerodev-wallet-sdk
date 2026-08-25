@@ -30,6 +30,8 @@ export function MockControls({
   setErrorMode,
   sponsored,
   setSponsored,
+  onramp,
+  setOnramp,
   open,
   setOpen,
 }: {
@@ -42,6 +44,10 @@ export function MockControls({
   setErrorMode: (mode: MockErrorMode) => void
   sponsored: boolean
   setSponsored: (value: boolean) => void
+  /** Shows the widget's "Buy with card" (Transak onramp) entry. Pure config
+   * state — no mock module involvement, so no regenerate needed. */
+  onramp: boolean
+  setOnramp: (value: boolean) => void
   /** Open state lifted like the toggles above — an uncontrolled <details>
    * snaps shut whenever an action bumps `mockNonce` and remounts us. */
   open: boolean
@@ -169,6 +175,22 @@ export function MockControls({
             />
             <span>
               <b>Sponsored fees</b> — all fees waived (shows the pill)
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2 text-[13px]">
+            <input
+              type="checkbox"
+              checked={onramp}
+              onChange={() => setOnramp(!onramp)}
+              className="mt-0.5 accent-ink"
+            />
+            <span className="flex flex-col">
+              <b>Fiat onramp — shows the "Buy with card" entry</b>
+              <span className="text-xs text-muted">
+                Opens Transak in-widget. Real purchases need a partner key via{' '}
+                <code>NEXT_PUBLIC_TRANSAK_API_KEY</code>; without one the sheet
+                shows Transak's invalid-key screen.
+              </span>
             </span>
           </label>
           <p className="m-0 text-xs text-muted">

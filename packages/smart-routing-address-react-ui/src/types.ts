@@ -49,6 +49,18 @@ export type SmartRoutingAddressConfig = {
    * appended to it
    */
   baseUrl?: string
+  /**
+   * Optional fiat onramp (Transak). When set, the deposit screen shows a
+   * "Buy with card" entry that opens the Transak on-ramp in-widget,
+   * pre-filled with the selected route and the deposit address. Omit it to
+   * hide the entry — access requires a KYB-approved Transak partner key.
+   */
+  onramp?: {
+    /** Transak partner API key */
+    transakApiKey: string
+    /** Transak environment the key belongs to; defaults to `PRODUCTION` */
+    environment?: 'STAGING' | 'PRODUCTION'
+  }
 }
 
 export type AddressState =
