@@ -110,6 +110,28 @@ describe('KMS boundary: HTTP failures stay distinguishable', () => {
       transport().request({ path: 'whoami', stamp: false }),
     ).resolves.toMatchObject({ userId: 'user-1' })
   })
+
+  it.fails(
+    'does not hand a non-JSON success body back as though it were the payload',
+    async () => {
+      // A gateway or CDN interstitial arriving with a 200. Today the text
+      // fallback returns the HTML string as `data`, so callers treat it as a
+      // response body: `auth({type:'oauth'})` reads `!data.session`, finds
+      // nothing, and reports a legitimate sessionless login. The sibling client
+      // `createAuthProxyClient` has the same gap, which is why neither checks
+      // content-type before trusting a 200.
+      respondWith(200, '<html>gateway timeout</html>', 'text/html')
+
+      const outcome = await transport()
+        .request({ path: 'whoami', stamp: false })
+        .then(
+          (data) => data,
+          () => 'REJECTED' as const,
+        )
+
+      expect(outcome).toBe('REJECTED')
+    },
+  )
 })
 
 describe('KMS boundary: timeout is its own failure class', () => {
