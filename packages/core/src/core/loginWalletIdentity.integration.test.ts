@@ -14,7 +14,7 @@
  * Each wallet in the double is backed by a real private key, so the SDK's two owner
  * checks run against real signatures rather than canned ones.
  */
-import { type Hex, hashMessage } from 'viem'
+import { type Hex, hashMessage, recoverMessageAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
@@ -282,9 +282,14 @@ describe('the wallet a login lands on', () => {
     const account = await core.toAccount()
 
     expect(account.address).toBe(WALLETS[0].signer.address)
-    await expect(account.signMessage({ message: 'hello' })).resolves.toMatch(
-      /^0x[0-9a-f]+$/i,
-    )
+    const signature = await account.signMessage({ message: 'hello' })
+
+    expect(signature).toMatch(/^0x[0-9a-f]{130}$/i)
+    // `account.address` alone only proves Core resolved the right address; this
+    // proves the wallet it resolved is the one that can actually sign for it.
+    await expect(
+      recoverMessageAddress({ message: 'hello', signature }),
+    ).resolves.toBe(WALLETS[0].signer.address)
   })
 
   it('signs under the sub-organization of the session, not the parent org it authenticated against', async () => {
@@ -376,6 +381,9 @@ describe('an account object that outlives the wallet it was built for', () => {
     expect(`0x${sign.body.turnkeyPayload.parameters.payload}`).toBe(
       hashMessage('hello'),
     )
-    expect(signature).toMatch(/^0x[0-9a-f]+$/i)
+    expect(signature).toMatch(/^0x[0-9a-f]{130}$/i)
+    await expect(
+      recoverMessageAddress({ message: 'hello', signature }),
+    ).resolves.toBe(WALLETS[1].signer.address)
   })
 })
