@@ -1,19 +1,18 @@
 /**
- * Boundary: Wallet Core <-> KMS, across the TWO calls passkey registration makes
- * (the `passkey`/`register` branch of `auth()` in `createZeroDevWalletCore`).
+ * Boundary between Wallet Core and KMS across the two calls passkey registration
+ * makes, in the `passkey`/`register` branch of `auth()`.
  *
  * `client.registerWithPasskey` creates the account and its wallet remotely, then
- * `client.loginWithStamp` obtains a session, with a key rotation between them —
- * and the REST transport has no retry, so a 503/429/stall on the second call
- * throws straight out with the account already created.
+ * `client.loginWithStamp` obtains a session, with a key rotation between them. The
+ * REST transport has no retry, so a 503/429/stall on the second call throws
+ * straight out with the account already created.
  *
- * The `catch` calls `discardKeyRotation()` and rethrows, which is narrower than
- * it looks: `commitKeyRotation()` has already run one line after the create
- * succeeded, so the key store keeps an active API key from the abandoned attempt.
- * Session storage is genuinely empty.
- *
- * Registering again creates a second wallet as intended. Not tested here: the
- * cost of that path, which is an ambiguous login picker rather than a lost wallet.
+ * The `catch` calls `discardKeyRotation()` and rethrows, which is narrower than it
+ * looks: `commitKeyRotation()` has already run one line after the create
+ * succeeded, so the key store keeps an active API key from the abandoned attempt
+ * while session storage is genuinely empty. Registering again creates a second
+ * wallet as intended, and the cost of that path is an ambiguous login picker
+ * rather than a lost wallet, which is not tested here.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'

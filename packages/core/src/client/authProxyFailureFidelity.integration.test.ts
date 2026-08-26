@@ -1,10 +1,9 @@
 /**
- * Boundary: Wallet Core <-> Turnkey's Auth Proxy.
+ * Boundary between Wallet Core and Turnkey's Auth Proxy.
  *
- * `createAuthProxyClient` talks to a hardcoded `https://authproxy.turnkey.com`,
- * with its own request function that shares none of `rest.ts`'s behaviour
- *
- * The unit under test is the client itself rather than `auth()`
+ * `createAuthProxyClient` talks to a hardcoded `https://authproxy.turnkey.com`
+ * through its own request function, sharing none of `rest.ts`'s behaviour, so
+ * the unit under test is that client rather than `auth()`.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAuthProxyClient } from './authProxy.js'
@@ -89,10 +88,11 @@ describe('auth proxy: the contract that must keep holding', () => {
 })
 
 describe('auth proxy: what a caller is left with when the response is wrong', () => {
-  // The assertions below are shaped to hold under ANY remedy — rejecting is one,
-  // returning something actionable is another — so they check "did I end up with
-  // a usable token" rather than "did it throw". Asserting rejection would turn a
-  // legitimate fix red.
+  // The two token tests are shaped to hold under any remedy, rejecting or
+  // returning something actionable, so they check "did I end up with a usable
+  // token" rather than "did it throw". The non-JSON test is a narrower bet on
+  // purpose: it requires an attributable rejection, since a 200 carrying HTML is
+  // a transport failure wearing the shape of success.
 
   it.fails(
     'does not report success when the response carries no verification token',
@@ -143,12 +143,23 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
   })
 
   it.fails('does not wait forever on a proxy that never answers', async () => {
-    // A fetch that never settles, with fake timers so the clock is advanced
-    // rather than waited on. Today nothing aborts it, so `settled` stays false.
+    // A fetch that never settles on its own; it rejects only once the caller's
+    // own abort signal fires, so a timeout is the only thing that can end it.
+    // A stub ignoring the signal would stay pending under an AbortController
+    // remedy too, leaving this expected-fail forever.
     vi.useFakeTimers()
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => new Promise<Response>(() => {})),
+      vi.fn(
+        (_url: string | URL | Request, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              const error = new Error('The operation was aborted')
+              error.name = 'AbortError'
+              reject(error)
+            })
+          }),
+      ),
     )
 
     let settled = false
@@ -163,7 +174,9 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
         },
       )
 
-    await vi.advanceTimersByTimeAsync(60_000)
+    // Ten minutes, well past any sane timeout, so the number is not itself a
+    // ceiling a slower remedy could fall outside.
+    await vi.advanceTimersByTimeAsync(600_000)
     // Deliberately not awaited — awaiting a request with no timeout IS the hang
     // under test.
     expect(pending).toBeInstanceOf(Promise)

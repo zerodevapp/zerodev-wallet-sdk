@@ -3,7 +3,6 @@
  *
  * Two remote steps run before anything local is erased: `getAuthenticators` to
  * find the Turnkey id of the key currently held, then `logout` to revoke it.
- *
  * The invariant every case points at: the local API key is the only thing that
  * can sign, so erasing it on an unconfirmed revocation strands the user in a
  * session that is still live remotely. Keep local state unless sure.

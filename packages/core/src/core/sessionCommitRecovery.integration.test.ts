@@ -1,13 +1,13 @@
 /**
- * Boundary: Wallet Core <-> the key store and session storage, inside
- * `commitReplacementSession` — the two-phase commit all five authenticated flows
+ * Boundary between Wallet Core and the key store plus session storage, inside
+ * `commitReplacementSession`, the two-phase commit all five authenticated flows
  * share.
  *
- * Order is: stage a journal entry, promote the pending key, commit the journal.
+ * The order is: stage a journal entry, promote the pending key, commit the journal.
  * Both later steps recover through `recoverSessionTransition`, which honours a
- * journal only if its `publicKey` is the key now active — that comparison is how
- * "the rotation happened, the error was cosmetic" is told from "it did not". The
- * same journal is crash recovery, completed on the next construction.
+ * journal only if its `publicKey` is the key now active. That comparison is how
+ * "the rotation happened, the error was cosmetic" is told apart from "it did not".
+ * The same journal is crash recovery, completed on the next construction.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'

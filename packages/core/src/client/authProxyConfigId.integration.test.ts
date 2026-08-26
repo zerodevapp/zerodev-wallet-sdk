@@ -3,15 +3,9 @@
  *
  * Two units in one file because the id passes through both:
  * `getAuthProxyConfigId` fetches it and `createAuthProxyClient` sends it as an
- * `X-Auth-Proxy-Config-Id` header.
- * `authProxyFailureFidelity` covers the proxy's responses using a valid id, so
- * this file covers the id itself.
- *
- * Both are driven directly because `auth()` cannot reach them. In the
- * `verifyOtp` branch `encryptOtpAttempt` runs first, pinned to the production
- * enclave key. That leaves one behaviour unasserted: `cachedAuthProxyConfigId`
- * is only assigned when truthy, so a degenerate id stays uncached and the next
- * attempt refetches.
+ * `X-Auth-Proxy-Config-Id` header. Both are driven directly, since `auth()`
+ * reaches them only through the `verifyOtp` branch, where `encryptOtpAttempt`
+ * runs first against a pinned enclave key.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getAuthProxyConfigId } from '../actions/auth/getAuthProxyConfigId.js'
@@ -155,13 +149,6 @@ describe('auth proxy config id: a 200 that carries no usable id', () => {
 })
 
 describe('auth proxy config id: addressing the proxy with a bad one', () => {
-  // The call site passes the fetched value straight into
-  // `createAuthProxyClient`, so these are the inputs it would hand over.
-  //
-  // Asserted on the raw `init.headers` object Core built, not on a `Headers`
-  // instance. `Headers` normalises so under happy-dom `undefined`, `null`
-  // and `''` all flatten to `''` so reading it back that way measures the
-  // runtime's coercion instead of the value Core produced.
   const badIds: [string, unknown][] = [
     ['undefined', undefined],
     ['null', null],

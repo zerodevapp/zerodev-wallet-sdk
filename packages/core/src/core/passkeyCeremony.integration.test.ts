@@ -1,21 +1,18 @@
 /**
- * Boundary: Wallet Core <-> the platform authenticator, reached through the
- * injected `passkeyStamper` — `register()` on the register branch of `auth()`,
+ * Boundary between Wallet Core and the platform authenticator, reached through
+ * the injected `passkeyStamper`: `register()` on the register branch of `auth()`,
  * and `stamp()` on the login branch via `loginWithStamp`.
  *
- * A cancelled ceremony must reach the caller still recognisable as one:
+ * A cancelled ceremony must reach the caller still recognisable as one, because
  * `@zerodev/wallet-react-ui`'s `isCancellationError` keys on `err.name` being
- * `AbortError` or `NotAllowedError`, so rewrapping either turns "I changed my
- * mind" into a full-screen error takeover. The inverse costs as much — a real
- * authenticator failure relabelled as a cancellation gets filtered out, leaving
- * the user with no wallet and no error at all.
+ * `AbortError` or `NotAllowedError`. Rewrapping either turns "I changed my mind"
+ * into an error takeover, and the inverse costs as much: a real authenticator
+ * failure relabelled as a cancellation is filtered out, leaving the user with no
+ * wallet and no error. Whether Core should translate a cancellation into
+ * something friendlier is a product call and is not asserted.
  *
- * Whether Core should translate a cancellation into something friendlier is a
- * product call and is deliberately not asserted. Only pass-through is.
- *
- * This seam is HEALTHY as probed — no defect, so no `it.fails` here. The tests
- * exist because the pass-through is one `throw error` that a later refactor can
- * quietly wrap.
+ * No defect found; no `it.fails` here. The tests exist because the propagation is
+ * one `throw error` that a later refactor can quietly wrap.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper, Stamp } from '../stampers/types.js'

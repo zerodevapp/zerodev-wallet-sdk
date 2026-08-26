@@ -1,11 +1,11 @@
 /**
- * Boundary: Wallet Core <-> the Turnkey DIRECT API (B2).
+ * Boundary between Wallet Core and the Turnkey direct API.
  *
  * `exportWallet` and `exportPrivateKey` bypass `client/transports/rest.ts`
- * entirely and call `https://api.turnkey.com/public/v1/…` with raw `fetch` — so
- * none of the transport's behaviour applies: no timeout, no typed error, no
- * status preserved. What crosses this seam is key material, so a wrong answer
- * here is worse than a wrong address.
+ * entirely and call `https://api.turnkey.com/public/v1/…` with raw `fetch`, so
+ * none of the transport's behaviour applies: no timeout, no typed error, no status
+ * preserved. What crosses this boundary is key material, so a wrong answer here is
+ * worse than a wrong address.
  *
  * The two siblings disagree with each other, and that is the argument running
  * through this file: `exportPrivateKey` reports `<status> <body>` and dumps the

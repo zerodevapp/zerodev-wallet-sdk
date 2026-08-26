@@ -8,8 +8,6 @@
  * `assertOwner` recovers a second time, so the owner check is redundant by
  * design. `loginWalletIdentity` covers a well-formed signature from the wrong
  * wallet, so this file covers responses carrying no usable signature at all.
- *
- * Seam is HEALTHY as probed; no `it.fails` here.
  */
 import {
   type Hex,

@@ -1,14 +1,15 @@
 /**
- * Boundary: Wallet Core <-> KMS, at the point where a KMS response becomes the
+ * Boundary: Wallet Core to KMS, at the point where a KMS response becomes the
  * address a user's funds go to (`toViemAccount` in `adapters/viem.ts`).
  *
- * The highest-consequence boundary in the SDK, and the same shape as the pre-#365
- * defect: a degenerate KMS answer became a wrong address and the SDK used it
- * without complaint. #365's zero/malformed/missing guards are asserted here as
- * regression cover; the rest of the file looks for what they do NOT catch.
+ * The boundary with the most at stake in the SDK. The failure shape it guards
+ * against is a degenerate KMS answer becoming a wrong address that the SDK then
+ * uses without complaint. The zero, malformed and missing address guards are
+ * asserted here as regression cover, and the rest of the file looks for what
+ * those guards do NOT catch.
  *
- * `walletAddresses` is a plural `Hex[]` — `getUserWallet`'s own docstring shows
- * two entries — but `toViemAccount` takes `[0]` and nothing disambiguates.
+ * `walletAddresses` is a plural `Hex[]`, and `getUserWallet`'s own docstring
+ * shows two entries, but `toViemAccount` takes `[0]`.
  */
 import type { Hex } from 'viem'
 import { describe, expect, it, vi } from 'vitest'

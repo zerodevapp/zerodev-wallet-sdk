@@ -1,16 +1,15 @@
 /**
- * Boundary: Wallet Core <-> the two local stateful stores it must keep in
- * agreement — the key store (B5, `ApiKeyStamper`) and session storage (B6,
- * `StorageAdapter`).
+ * Boundary between Wallet Core and the two local stateful stores it must keep in
+ * agreement: the key store (`ApiKeyStamper`) and session storage
+ * (`StorageAdapter`).
  *
  * `createZeroDevWalletCore` reconciles them on EVERY construction, before the SDK
  * object is returned: it replays any staged transition, then compares the restored
  * session's bound public key against the live signing key and clears sessions if
- * they disagree. The two stores fail independently — eviction, a partial device
- * restore, a half-done rotation — so this decides whether a returning user keeps
- * their login or is silently signed out.
- *
- * Construction makes no network call; the org-id lookup is lazy.
+ * they disagree. The two stores fail independently, through eviction, a partial
+ * device restore or a rotation left half finished, so this decides whether a
+ * returning user keeps their login or is silently signed out. Construction makes
+ * no network call; the org id lookup is lazy.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper } from '../stampers/types.js'

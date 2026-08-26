@@ -1,15 +1,15 @@
 /**
- * Boundary: Wallet Core <-> session storage (B6).
+ * Boundary between Wallet Core and session storage.
  *
- * The storage adapter is injected and external — IndexedDB on web,
- * expo-secure-store / AsyncStorage on native — so it can fail mid-write, be
+ * The storage adapter is injected and external, IndexedDB on web or
+ * expo-secure-store and AsyncStorage on native, so it can fail while writing, be
  * evicted, or come back from a device restore holding stale data.
  *
  * The contract: a staged transition is applied ONLY when the live signing key
  * matches the key it was staged for. Every other case discards the journal and
  * leaves existing state alone.
  *
- * `mem.store` is read directly in places — that is the record of what the manager
+ * `mem.store` is read directly in places. That is the record of what the manager
  * wrote, not a fact about the double, which is a bare `Map`.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'

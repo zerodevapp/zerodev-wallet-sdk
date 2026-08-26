@@ -6,13 +6,6 @@
  * as designed. So this is not a duplication defect; the question is what follows
  * from it: when a login lands on one of them, does Core resolve, scope and sign
  * under exactly that one?
- *
- * Which one it lands on is not Core's choice today. No sub-org is sent (the endpoint
- * resolves the user from the stamped credential) and no credential selector is
- * passed, so the double models the landed wallet as an input it is TOLD (`picks()`).
- *
- * Each wallet in the double is backed by a real private key, so the SDK's two owner
- * checks run against real signatures rather than canned ones.
  */
 import { type Hex, hashMessage, recoverMessageAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -256,8 +249,6 @@ afterEach(() => {
 
 describe('what a login is able to ask for', () => {
   it('sends only targetPublicKey, timestamp and stamp', async () => {
-    // The REQUEST only. The response does carry the sub-org, as the session
-    // token's `organization_id` claim.
     const kms = stubKms()
     const core = await buildCore()
 
@@ -309,8 +300,6 @@ describe('the wallet a login lands on', () => {
   })
 
   it('lands on a different wallet across a logout and a fresh login, with no error either time', async () => {
-    // `picks()` tells the double which credential the authenticator offers, so
-    // the two logins land on different wallets with nothing else changed.
     const kms = stubKms()
     const core = await buildCore()
 
@@ -338,10 +327,6 @@ describe('the wallet a login lands on', () => {
 
 describe('an account object that outlives the wallet it was built for', () => {
   it('refuses to sign with an account built before the switch rather than signing as the wrong wallet', async () => {
-    // A `LocalAccount` captures its address and sub-org at build time but fetches
-    // the token fresh per signature, so this stale one presents wallet A's
-    // address with wallet B's session. The double then answers the worst
-    // plausible way: it SIGNS, using the session's wallet.
     const kms = stubKms()
     const core = await buildCore()
 

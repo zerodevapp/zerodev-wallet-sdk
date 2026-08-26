@@ -1,24 +1,22 @@
 /**
- * Boundary: Wallet Core <-> KMS, at the one field every authenticated flow
- * depends on — `data.session` in a 200 response.
+ * Boundary between Wallet Core and KMS at the one field every authenticated flow
+ * depends on: `data.session` in a 200 response.
  *
  * Five flows commit a session through the same two-phase path
  * (`createReplacementSession` then `commitReplacementSession`), and they do NOT
- * agree on whether the field is checked first. `oauth` and `otp` verify guard it
- * (`if (!data.session)` → discard the rotation and return); passkey **register**,
- * passkey **login** and **refreshSession** pass it straight in. That asymmetry
- * inside one file is the argument that the guard is expected rather than a
- * design choice — three paths deref an absent session into a raw `TypeError`.
+ * agree on whether the field is checked first. `oauth` and `otp` verify guard it,
+ * discarding the rotation and returning; passkey register, passkey login and
+ * `refreshSession` pass it straight in, dereferencing an absent session into a raw
+ * `TypeError`. That asymmetry inside one file is the argument that the guard is
+ * expected rather than a design choice.
  *
- * The assertion holds under either remedy: rejecting attributably, and resolving
+ * The assertions hold under either remedy: rejecting attributably, and resolving
  * without committing a session the way `oauth` already does, both pass. Only an
- * unattributable throw fails — so a fix in either direction turns these green
- * rather than red.
+ * unattributable throw fails.
  *
- * `otp`/`magicLink` verify is the fifth path and is NOT covered here: it cannot
- * be driven in-process. `encryptOtpAttempt` pins the HPKE envelope against
- * `TURNKEY_TLS_FETCHER_SIGN_PUBLIC_KEY` and Core passes no override, so the flow
- * fails closed before any request. It is guarded like `oauth` by reading.
+ * `otp`/`magicLink` verify is the fifth path and is NOT covered here, since
+ * `encryptOtpAttempt` pins the HPKE envelope and Core passes no override, so the
+ * flow fails closed before any request.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'

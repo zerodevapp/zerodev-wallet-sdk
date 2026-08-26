@@ -1,15 +1,13 @@
 /**
- * Boundary: Wallet Core <-> KMS, at `sign/7702-authorization` — the fourth
+ * Boundary: Wallet Core <-> KMS, at `sign/7702-authorization` - the fourth
  * signing method on the account.
  *
  * `signAuthorization` builds the EIP-7702 pre-image by hand while hashing the
  * same authorization with viem's `hashAuthorization`, then returns a tuple
- * assembled from `parameters` rather than from what the signature covered — so
- * what Core signs can drift from what it reports, and the caller broadcasts the
- * report. `recoverAuthorizationAddress` recomputes the hash from the returned
+ * assembled from `parameters` rather than from what the signature covered and
+ * what Core signs can drift from what it reports, and the caller broadcasts
+ * the report. `recoverAuthorizationAddress` recomputes the hash from the returned
  * tuple, which is why it is the assertion this file leans on.
- *
- * Seam is HEALTHY as probed; no `it.fails` here.
  */
 import { type Hex, keccak256 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'

@@ -5,9 +5,6 @@
  * signing actions go through it. One `fetch`, no retry, a 10 s default timeout,
  * and either `RestRequestError` (status + url + parsed body) or
  * `RestTimeoutError`.
- *
- * What these protect is failure fidelity: a caller has to tell a throttle from a
- * rejection from an outage, because the right response differs.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RestRequestError, RestTimeoutError } from '../errors/request.js'

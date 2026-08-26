@@ -1,14 +1,13 @@
 /**
- * Boundary: Wallet Core <-> KMS at `auth/init/otp` — the `sendOtp` branch of
- * `auth()`, and the only auth branch with no `withKeyTransition`, no try/catch
- * and no key rotation. That absence is CORRECT (verify prepares its own key, so
- * there is nothing to roll back) and is asserted rather than assumed.
+ * Boundary between Wallet Core and KMS at `auth/init/otp`, the `sendOtp` branch
+ * of `auth()`, and the only auth branch with no `withKeyTransition`, no
+ * try/catch and no key rotation. That absence is correct, since verify prepares
+ * its own key, so it is asserted rather than assumed.
  *
- * The branch is a bare pass-through returning `data`, while its declared return
- * type promises `{otpId, otpEncryptionTargetBundle}` — both of which the CALLER
- * must carry to verify. `rest.ts` returns `data as any`, so neither is checked.
- *
- * ONE defect, in the `it.fails` block.
+ * The branch simply returns `data`, while its declared return type promises
+ * `{otpId, otpEncryptionTargetBundle}`, both of which the caller must carry to
+ * verify, and `rest.ts` returns `data as any` so neither is checked. One defect,
+ * in the `it.fails` block.
  */
 import type { Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'

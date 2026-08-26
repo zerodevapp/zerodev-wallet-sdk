@@ -1,16 +1,12 @@
 /**
- * Boundary: Wallet Core <-> KMS, at the `oauth` branch's sessionless success.
+ * Boundary between Wallet Core and KMS at the `oauth` branch's sessionless
+ * success.
  *
- * A 200 with no `session` is guarded rather than deref'd: the rotation is
- * discarded and the payload is returned, so `auth()` **resolves and the user is
- * not logged in**. Whether that should instead reject is an open product
- * question, so nothing here asserts it either way — only what holds under both
- * answers: no session is committed, the pending key does not survive, and the
- * returned payload is intact, since it is the caller's only signal.
- *
- * `otp` verify has the same guard but cannot be driven in-process —
- * `encryptOtpAttempt` pins the HPKE envelope against a production key — so it is
- * covered by reading, not from here.
+ * A 200 with no `session` is guarded rather than dereferenced: the rotation is
+ * discarded and the payload returned, so `auth()` resolves and the user is not
+ * logged in. Whether it should reject instead is an open product question, so
+ * nothing here asserts either answer. `otp` verify shares the guard but cannot
+ * be driven in this layer, since `encryptOtpAttempt` pins the HPKE envelope.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
