@@ -4,7 +4,7 @@
  * `toAccount` splits what it captures. `organizationId` and the resolved
  * `address` are frozen when the handle is built, while `getToken` re-reads the
  *  active session on every call. Callers hold these handles for a long time so a
- *. handle outlives refreshes, logouts and user switches. `getUserWallet` ignores
+ *  handle outlives refreshes, logouts and user switches. `getUserWallet` ignores
  *  the `organizationId` it is passed and resolves the wallet from the bearer token
  *  instead.
  */
