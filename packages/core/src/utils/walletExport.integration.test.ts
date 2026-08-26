@@ -315,13 +315,24 @@ describe('wallet export: what a caller can tell about a failure', () => {
   )
 
   it.fails('does not wait forever on an unanswered export', async () => {
-    // A fetch that never settles, with fake timers so the clock is advanced
-    // rather than waited on. Neither export helper passes an abort signal, where
-    // `rest.ts` aborts a KMS call after 10 s.
+    // A fetch that never settles on its own; it rejects only once the caller's
+    // own abort signal fires, so a timeout is the only thing that can end it.
+    // A stub ignoring the signal would stay pending under an AbortController
+    // remedy too, leaving this expected-fail forever. Neither export helper
+    // passes a signal today, where `rest.ts` aborts a KMS call after 10 s.
     vi.useFakeTimers()
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => new Promise<Response>(() => {})),
+      vi.fn(
+        (_url: string | URL | Request, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              const error = new Error('The operation was aborted')
+              error.name = 'AbortError'
+              reject(error)
+            })
+          }),
+      ),
     )
 
     let settled = false
@@ -339,7 +350,7 @@ describe('wallet export: what a caller can tell about a failure', () => {
       },
     )
 
-    await vi.advanceTimersByTimeAsync(60_000)
+    await vi.advanceTimersByTimeAsync(600_000)
 
     expect(pending).toBeInstanceOf(Promise)
     expect(settled).toBe(true)
