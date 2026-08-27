@@ -16,11 +16,15 @@ react-ui:
 
 smart-routing-address-react-ui:
 
-- New optional `onramp` config (`{ transakApiKey, environment? }`). When
-  set, the deposit screen shows a "Buy with card" button (Figma
-  `20400:2514`) above the Send card that opens the Transak on-ramp in an
-  in-widget bottom sheet, pre-filled with the selected token/network and
-  locked to the deposit address. Omitted → nothing renders, keeping the
-  entry invisible for partners without Transak access.
+- New optional `onramp` config (`{ getWidgetUrl }`). When set, the deposit
+  screen shows a "Buy with card" button (Figma `20400:2514`) above the Send
+  card that opens the Transak on-ramp in an in-widget bottom sheet,
+  pre-filled with the selected token/network and locked to the deposit
+  address. Omitted → nothing renders, keeping the entry invisible for
+  partners without Transak access. `getWidgetUrl` is called on every press:
+  Transak requires widget URLs minted by its server-side session API (the
+  partner secret can't ship to browsers, and session URLs are single-use
+  with a 5-minute expiry), so the host implements the mint on its backend —
+  the sra-demo `app/api/transak-session` route is the reference recipe.
 - The deposit screen's "Copy Address" button now reuses react-ui's small
   `Button` instead of hand-rolled styling.

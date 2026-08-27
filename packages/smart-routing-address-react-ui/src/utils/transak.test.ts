@@ -1,45 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { buildTransakUrl } from './transak'
+import { TRANSAK_NETWORKS } from './transak'
 
-describe('buildTransakUrl', () => {
-  it('targets production by default and staging when asked', () => {
-    expect(buildTransakUrl({ apiKey: 'k' })).toBe(
-      'https://global.transak.com/?apiKey=k',
-    )
-    expect(buildTransakUrl({ apiKey: 'k', environment: 'STAGING' })).toContain(
-      'https://global-stg.transak.com/',
-    )
+describe('TRANSAK_NETWORKS', () => {
+  it('maps the major SRA source chains to Transak slugs', () => {
+    expect(TRANSAK_NETWORKS[1]).toBe('ethereum')
+    expect(TRANSAK_NETWORKS[8453]).toBe('base')
+    expect(TRANSAK_NETWORKS[42161]).toBe('arbitrum')
   })
 
-  it('identifies the embedding origin via referrerDomain', () => {
-    const url = new URL(
-      buildTransakUrl({ apiKey: 'k', referrerDomain: 'http://localhost:8004' }),
-    )
-    expect(url.searchParams.get('referrerDomain')).toBe('http://localhost:8004')
-  })
-
-  it('locks the wallet address form when an address is set', () => {
-    const url = new URL(
-      buildTransakUrl({ apiKey: 'k', walletAddress: '0xabc' }),
-    )
-    expect(url.searchParams.get('walletAddress')).toBe('0xabc')
-    expect(url.searchParams.get('disableWalletAddressForm')).toBe('true')
-  })
-
-  it('pre-fills the selected token and network', () => {
-    const url = new URL(
-      buildTransakUrl({
-        apiKey: 'k',
-        cryptoCurrencyCode: 'USDC',
-        chainId: 8453,
-      }),
-    )
-    expect(url.searchParams.get('cryptoCurrencyCode')).toBe('USDC')
-    expect(url.searchParams.get('network')).toBe('base')
-  })
-
-  it('omits the network param for chains Transak has no slug for', () => {
-    const url = new URL(buildTransakUrl({ apiKey: 'k', chainId: 999999 }))
-    expect(url.searchParams.has('network')).toBe(false)
+  it('has no slug for unknown chains (param is omitted, not wrong)', () => {
+    expect(TRANSAK_NETWORKS[999999]).toBeUndefined()
   })
 })

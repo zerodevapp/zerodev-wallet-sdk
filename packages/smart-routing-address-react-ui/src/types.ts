@@ -56,11 +56,30 @@ export type SmartRoutingAddressConfig = {
    * hide the entry — access requires a KYB-approved Transak partner key.
    */
   onramp?: {
-    /** Transak partner API key */
-    transakApiKey: string
-    /** Transak environment the key belongs to; defaults to `PRODUCTION` */
-    environment?: 'STAGING' | 'PRODUCTION'
+    /**
+     * Mint a fresh Transak widget URL for the given route. Transak requires
+     * the URL to come from its server-side session API (the partner API
+     * secret must never reach the browser), so the host implements this
+     * against its own backend: exchange the secret for an access token,
+     * `POST /api/v2/auth/session` with the params, return `widgetUrl`. See
+     * the sra-demo `app/api/transak-session` route for a working recipe.
+     * Called on every "Buy with card" press — session URLs are single-use
+     * and expire after 5 minutes, so they can't be pre-built or cached.
+     */
+    getWidgetUrl: (params: OnrampWidgetParams) => Promise<string>
   }
+}
+
+/** Route context the widget passes to `onramp.getWidgetUrl` so the Transak
+ * session can be pre-filled. All fields are optional pass-throughs of
+ * Transak's widget params. */
+export type OnrampWidgetParams = {
+  /** The SRA deposit address purchases should be delivered to. */
+  walletAddress?: string | undefined
+  /** Selected token symbol (e.g. "USDC"). */
+  cryptoCurrencyCode?: string | undefined
+  /** Selected source chain as a Transak network slug (e.g. "base"). */
+  network?: string | undefined
 }
 
 export type AddressState =

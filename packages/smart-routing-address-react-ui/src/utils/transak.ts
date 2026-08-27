@@ -9,17 +9,13 @@ import {
   scroll,
 } from 'viem/chains'
 
-/** Transak widget hosts per environment (docs.transak.com). */
-const TRANSAK_HOSTS = {
-  PRODUCTION: 'https://global.transak.com',
-  STAGING: 'https://global-stg.transak.com',
-} as const
-
 /**
- * Chain id → Transak `network` query-param slug, for the chains both SRA
- * and Transak support. Chains missing here simply omit the param, so
- * Transak falls back to its own network picker instead of erroring on an
- * unknown slug.
+ * Chain id → Transak `network` param slug, for the chains both SRA and
+ * Transak support. Chains missing here simply omit the param, so Transak
+ * falls back to its own network picker instead of erroring on an unknown
+ * slug. The widget URL itself is minted server-side by the host (see
+ * `SmartRoutingAddressConfig.onramp`); this map only shapes the params the
+ * widget hands to that callback.
  */
 export const TRANSAK_NETWORKS: Record<number, string> = {
   [mainnet.id]: 'ethereum',
@@ -30,47 +26,4 @@ export const TRANSAK_NETWORKS: Record<number, string> = {
   [bsc.id]: 'bsc',
   [linea.id]: 'linea',
   [scroll.id]: 'scroll',
-}
-
-export type TransakUrlParams = {
-  /** Transak partner API key */
-  apiKey: string
-  /** Defaults to `PRODUCTION` */
-  environment?: 'STAGING' | 'PRODUCTION' | undefined
-  /** Origin embedding the widget (`window.location.origin`). Transak pairs
-   * it with the apiKey to authorize framing — without it (or with a domain
-   * missing from the partner dashboard's whitelist) the iframe is refused
-   * with a 403 + X-Frame-Options. */
-  referrerDomain?: string | undefined
-  /** Address purchases are delivered to (the SRA deposit address). Locks
-   * Transak's wallet-address form so users can't misroute the buy. */
-  walletAddress?: string | undefined
-  /** Crypto symbol to preselect (e.g. "USDC") */
-  cryptoCurrencyCode?: string | undefined
-  /** Chain id to preselect; mapped via `TRANSAK_NETWORKS` */
-  chainId?: number | undefined
-}
-
-/** Build the Transak on-ramp widget URL, pre-filled with the SRA route. */
-export function buildTransakUrl({
-  apiKey,
-  environment,
-  referrerDomain,
-  walletAddress,
-  cryptoCurrencyCode,
-  chainId,
-}: TransakUrlParams): string {
-  const url = new URL(TRANSAK_HOSTS[environment ?? 'PRODUCTION'])
-  url.searchParams.set('apiKey', apiKey)
-  if (referrerDomain) url.searchParams.set('referrerDomain', referrerDomain)
-  if (walletAddress) {
-    url.searchParams.set('walletAddress', walletAddress)
-    url.searchParams.set('disableWalletAddressForm', 'true')
-  }
-  if (cryptoCurrencyCode) {
-    url.searchParams.set('cryptoCurrencyCode', cryptoCurrencyCode)
-  }
-  const network = chainId !== undefined ? TRANSAK_NETWORKS[chainId] : undefined
-  if (network) url.searchParams.set('network', network)
-  return url.toString()
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  type OnrampWidgetParams,
   SmartRoutingAddress,
   type SmartRoutingAddressConfig,
   SmartRoutingAddressProvider,
@@ -166,18 +167,23 @@ export default function Home() {
     () => ({
       targetChainId,
       slippage,
-      // Fiat onramp is partner-gated (needs a KYB'd Transak key). With a key
-      // in env the entry is always on against Transak; without one the Mock
-      // controls toggle previews it with a placeholder key (the sheet then
-      // shows Transak's invalid-key screen — the entry UX is what's demoed).
+      // Fiat onramp is partner-gated (needs a KYB'd Transak key + secret).
+      // Widget URLs must be minted server-side (Transak refuses plain
+      // apiKey iframes), so the widget calls our /api/transak-session route
+      // — the same recipe a real host implements on their backend. Without
+      // env credentials the route 501s and the sheet shows its error state.
       ...(mockOnramp && {
         onramp: {
-          transakApiKey:
-            process.env.NEXT_PUBLIC_TRANSAK_API_KEY ?? 'demo-placeholder',
-          environment:
-            process.env.NEXT_PUBLIC_TRANSAK_ENV === 'PRODUCTION'
-              ? ('PRODUCTION' as const)
-              : ('STAGING' as const),
+          getWidgetUrl: async (params: OnrampWidgetParams) => {
+            const res = await fetch('/api/transak-session', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(params),
+            })
+            if (!res.ok) throw new Error(`transak session: ${res.status}`)
+            const { widgetUrl } = (await res.json()) as { widgetUrl: string }
+            return widgetUrl
+          },
         },
       }),
     }),
