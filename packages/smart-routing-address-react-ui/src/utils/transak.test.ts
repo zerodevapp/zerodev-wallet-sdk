@@ -11,6 +11,13 @@ describe('buildTransakUrl', () => {
     )
   })
 
+  it('identifies the embedding origin via referrerDomain', () => {
+    const url = new URL(
+      buildTransakUrl({ apiKey: 'k', referrerDomain: 'http://localhost:8004' }),
+    )
+    expect(url.searchParams.get('referrerDomain')).toBe('http://localhost:8004')
+  })
+
   it('locks the wallet address form when an address is set', () => {
     const url = new URL(
       buildTransakUrl({ apiKey: 'k', walletAddress: '0xabc' }),

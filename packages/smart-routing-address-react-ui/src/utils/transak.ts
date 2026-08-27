@@ -37,6 +37,11 @@ export type TransakUrlParams = {
   apiKey: string
   /** Defaults to `PRODUCTION` */
   environment?: 'STAGING' | 'PRODUCTION' | undefined
+  /** Origin embedding the widget (`window.location.origin`). Transak pairs
+   * it with the apiKey to authorize framing — without it (or with a domain
+   * missing from the partner dashboard's whitelist) the iframe is refused
+   * with a 403 + X-Frame-Options. */
+  referrerDomain?: string | undefined
   /** Address purchases are delivered to (the SRA deposit address). Locks
    * Transak's wallet-address form so users can't misroute the buy. */
   walletAddress?: string | undefined
@@ -50,12 +55,14 @@ export type TransakUrlParams = {
 export function buildTransakUrl({
   apiKey,
   environment,
+  referrerDomain,
   walletAddress,
   cryptoCurrencyCode,
   chainId,
 }: TransakUrlParams): string {
   const url = new URL(TRANSAK_HOSTS[environment ?? 'PRODUCTION'])
   url.searchParams.set('apiKey', apiKey)
+  if (referrerDomain) url.searchParams.set('referrerDomain', referrerDomain)
   if (walletAddress) {
     url.searchParams.set('walletAddress', walletAddress)
     url.searchParams.set('disableWalletAddressForm', 'true')

@@ -309,6 +309,12 @@ export function Deposit({
             src={buildTransakUrl({
               apiKey: config.onramp.transakApiKey,
               environment: config.onramp.environment,
+              // SSR-safe: undefined on the server, resolved by hydration —
+              // the sheet (and its iframe) only mounts on click anyway.
+              referrerDomain:
+                typeof window !== 'undefined'
+                  ? window.location.origin
+                  : undefined,
               walletAddress: address,
               cryptoCurrencyCode: tokenSymbol,
               chainId: source?.chain.id,
