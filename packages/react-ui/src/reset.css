@@ -16,13 +16,13 @@
    reset here.
 
    `:where()` keeps element-selector specificity at zero, so each rule costs
-   only the `.zd-scope` class (0,1,0), the same as a utility. styles.css
-   imports this file before the utilities, so utilities win the source-order
-   tiebreak. Unlayered on purpose; styles.css explains why. */
+   only the `.zd-scope` class (0,1,0) — the same as a utility. styles.css
+   imports this file BEFORE the utilities, so utilities win the source-order
+   tiebreak. Unlayered on purpose: see styles.css. */
 /* The html-level rules from preflight, moved to the boundary element. The
    descendant rule below skips the boundary element itself, so the
    universal reset props repeat here. */
-.zd-scope {
+:where(.zd-scope) {
   font-family: var(--zd-default-font-family, ui-sans-serif, system-ui, sans-serif);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
@@ -56,6 +56,13 @@
   color: inherit;
   background: transparent;
   border-radius: 0;
+  appearance: none;
+}
+/* The blanket `appearance: none` above is for text-like fields; native
+   checkbox/radio chrome must survive (preflight never stripped it either).
+   Same zero specificity, so source order lets this win. */
+.zd-scope :where(input[type="checkbox"], input[type="radio"]) {
+  appearance: auto;
 }
 .zd-scope :where(input, textarea)::placeholder {
   opacity: 1;
@@ -69,8 +76,8 @@
   color: inherit;
   text-decoration: inherit;
 }
-/* Bare lists, e.g. the SRA deposit rows. Preflight removed the markers
-   globally; the universal rule above already zeroes margins and padding. */
+/* Bare lists (e.g. the SRA deposit rows) — preflight killed the markers
+   globally; margins/padding are already zeroed by the universal rule. */
 .zd-scope :where(ol, ul) {
   list-style: none;
 }

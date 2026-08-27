@@ -1,11 +1,11 @@
-/* We do not import preflight. It is a global element reset that would
+/* Preflight is not imported — it is a global element reset that would
    restyle the host app; react-ui's reset.css holds the scoped replacement
-   under `.zd-scope`. Nothing sits in @layer. Unlayered author CSS beats all
-   layered CSS, so the SDK's styling wins over a Tailwind host's layers (its
-   preflight in `@layer base` in particular) regardless of stylesheet import
-   order. With named layers, whichever sheet the bundler emitted first would
-   lose. The import order below matters. reset.css comes before utilities.css
-   so a utility beats the reset on equal specificity.
+   under `.zd-scope`. Nothing is wrapped in @layer: unlayered author CSS
+   beats ALL layered CSS, so the SDK's styling wins over a Tailwind host's
+   layers (its preflight in `@layer base` in particular) regardless of
+   stylesheet import order — with named layers, whichever sheet the bundler
+   emitted first would lose. Import order is load-bearing: reset.css before
+   utilities.css, so a utility beats the reset on equal specificity.
    Mirrors react-ui/src/styles.css. */
 @import "tailwindcss/theme.css" prefix(zd);
 /* The scoped preflight replacement. One copy, kept in react-ui next to the

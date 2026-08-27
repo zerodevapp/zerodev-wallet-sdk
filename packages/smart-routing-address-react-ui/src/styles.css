@@ -1,15 +1,17 @@
-/* Layers use our own names instead of theme/base/utilities, so they never
-   merge with a Tailwind consumer's layers of the same name, and import order
-   stops deciding cascade ties. Preflight is not imported. It is a global
-   element reset that would restyle the host app; react-ui's reset.css holds
-   the scoped replacement under `.zd-scope`. Mirrors
-   wallet-react-ui/src/styles.css. */
-@layer zd-theme, zd-base, zd-utilities;
-@import "tailwindcss/theme.css" layer(zd-theme) prefix(zd);
-@import "tailwindcss/utilities.css" layer(zd-utilities) prefix(zd);
+/* Preflight is not imported — it is a global element reset that would
+   restyle the host app; react-ui's reset.css holds the scoped replacement
+   under `.zd-scope`. Nothing is wrapped in @layer: unlayered author CSS
+   beats ALL layered CSS, so the SDK's styling wins over a Tailwind host's
+   layers (its preflight in `@layer base` in particular) regardless of
+   stylesheet import order — with named layers, whichever sheet the bundler
+   emitted first would lose. Import order is load-bearing: reset.css before
+   utilities.css, so a utility beats the reset on equal specificity.
+   Mirrors react-ui/src/styles.css. */
+@import "tailwindcss/theme.css" prefix(zd);
 /* The scoped preflight replacement. One copy, kept in react-ui next to the
    components whose element list it encodes. */
 @import "../../react-ui/src/reset.css";
+@import "tailwindcss/utilities.css" prefix(zd);
 /* Tokens are single-sourced in @zerodev/react-ui. */
 @config "../../react-ui/tailwind.config.ts";
 /* Scan both packages' sources so the built CSS serves apps with one stylesheet. */
