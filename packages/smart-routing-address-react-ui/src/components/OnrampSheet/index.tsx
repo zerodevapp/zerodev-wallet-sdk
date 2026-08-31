@@ -48,6 +48,11 @@ export function OnrampSheet({
             // capture) and payment; matches the allow-list Transak's own SDK
             // sets on its iframe.
             allow="camera;microphone;fullscreen;payment"
+            // Transak validates the browser's Referer header against the
+            // session's referrerDomain. This is the browser default, but set
+            // it explicitly so a host page's stricter Referrer-Policy (e.g.
+            // no-referrer) can't break that validation.
+            referrerPolicy="strict-origin-when-cross-origin"
             className="zd:h-140 zd:max-h-full zd:w-full zd:rounded-2xl zd:border-0 zd:bg-white"
           />
         ) : (

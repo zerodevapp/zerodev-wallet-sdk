@@ -107,12 +107,15 @@ export async function POST(req: Request) {
     const accessToken = await getAccessToken(hosts, apiKey, apiSecret)
     // Transak binds the session to the END USER's IP — mint with the wrong
     // one and the widget 401s on its own sessions/me check. Behind a proxy
-    // it's the first x-forwarded-for hop; on localhost dev there is none,
-    // so fall back to this machine's public egress IP (same NAT as the
-    // browser, so it matches).
-    const userIp =
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      (await getEgressIp())
+    // it's the first x-forwarded-for hop; on localhost dev Next's server
+    // fills that header with the loopback address (::1 / 127.0.0.1), which
+    // Transak rejects, so treat loopback as "no proxy" and fall back to
+    // this machine's public egress IP (same NAT as the browser, so it
+    // matches).
+    const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    const isLoopback =
+      !forwarded || ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(forwarded)
+    const userIp = isLoopback ? await getEgressIp() : forwarded
     const referrerDomain =
       referrerOverride ?? req.headers.get('origin') ?? new URL(req.url).origin
 
