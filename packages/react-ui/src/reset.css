@@ -16,9 +16,9 @@
    reset here.
 
    `:where()` keeps element-selector specificity at zero, so each rule costs
-   only the `.zd-scope` class (0,1,0) — the same as a utility. styles.css
-   imports this file BEFORE the utilities, so utilities win the source-order
-   tiebreak. Unlayered on purpose: see styles.css. */
+   only the `.zd-scope` class (0,1,0), the same as a utility. styles.css
+   imports this file before the utilities, so utilities win the source-order
+   tiebreak. Unlayered on purpose; styles.css explains why. */
 /* The html-level rules from preflight, moved to the boundary element. The
    descendant rule below skips the boundary element itself, so the
    universal reset props repeat here. */
@@ -76,8 +76,8 @@
   color: inherit;
   text-decoration: inherit;
 }
-/* Bare lists (e.g. the SRA deposit rows) — preflight killed the markers
-   globally; margins/padding are already zeroed by the universal rule. */
+/* Bare lists, e.g. the SRA deposit rows. Preflight removed the markers
+   globally; the universal rule above already zeroes margins and padding. */
 .zd-scope :where(ol, ul) {
   list-style: none;
 }
