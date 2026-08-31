@@ -106,15 +106,24 @@ export function zeroDevWallet(
       },
 
       async setup() {
+        // Restore a persisted OTP session BEFORE base setup so an email flow
+        // survives a reload. The restore is a synchronous localStorage read;
+        // base setup does async work (wallet creation, session validation)
+        // that can be slow or fail. Magic-link verification races on this —
+        // `Verifying` reads the session once on mount, and gating the restore
+        // behind base setup made it see an empty session and strip the code
+        // from the URL. Restoring first runs synchronously inside wagmi's
+        // createConfig, before any React effect can observe the store.
+        if (typeof window !== 'undefined') {
+          store.getState().auth.initialize()
+        }
+
         await connector.setup?.()
 
         // Everything below is browser-only. Skip during SSR — getProvider()
         // touches `window` for EIP-6963 discovery and would crash on the
-        // server, and the session restore reads localStorage.
+        // server.
         if (typeof window === 'undefined') return
-
-        // Restore a persisted OTP session so an email flow survives a reload.
-        store.getState().auth.initialize()
 
         // Signing is pinned to background mode: the prompt-mode confirmation UI
         // is not part of this package's public surface, so requests always pass
