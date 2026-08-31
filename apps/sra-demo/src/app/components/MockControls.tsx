@@ -186,13 +186,6 @@ export function MockControls({
             />
             <span className="flex flex-col">
               <b>Fiat onramp — shows the "Buy with card" entry</b>
-              <span className="text-xs text-muted">
-                Opens Transak in-widget via a server-minted session (see{' '}
-                <code>/api/transak-session</code>). Needs{' '}
-                <code>NEXT_PUBLIC_TRANSAK_API_KEY</code> +{' '}
-                <code>TRANSAK_API_SECRET</code> in env; without them the sheet
-                shows its error state.
-              </span>
             </span>
           </label>
           <p className="m-0 text-xs text-muted">
