@@ -15,6 +15,7 @@ export function Verifying() {
     useAuth()
   const [code] = useState<string | null>(getCodeFromUrl)
   const [error, setError] = useState<Error | null>(null)
+  const [sessionMissing, setSessionMissing] = useState(false)
 
   // ref to prevent useEffect firing twice in dev's StrictMode
   const hasVerifiedRef = useRef(false)
@@ -35,14 +36,15 @@ export function Verifying() {
     if (hasVerifiedRef.current || !code) return
     hasVerifiedRef.current = true
 
-    // No active OTP session — most commonly the user tapped the same
-    // magic link again after a successful verify, which cleared the
-    // session. Skip the (doomed) mutation, clean the URL, and drop
-    // back to step=null so the host app's own routing handles the
-    // already-authenticated user without flashing an error.
+    // No active OTP session — the link was already used, expired, or opened
+    // in a browser that never started the email flow. Skip the (doomed)
+    // mutation and show the expired-link error below instead of silently
+    // dropping the step: a blank screen gives the user nothing to act on.
+    // The already-authenticated re-tap case is covered too — hosts route
+    // connected users away on their own (wagmi reconnect), so the error only
+    // stays up for users who genuinely can't be verified.
     if (!otpId || !otpEncryptionTargetBundle) {
-      stripMagicLinkCodeFromUrl()
-      goToStep(null)
+      setSessionMissing(true)
       return
     }
 
@@ -58,7 +60,25 @@ export function Verifying() {
           </StatusScreen>
         )}
 
-        {!error && !code && !isVerificationLoading && (
+        {!error && sessionMissing && (
+          <>
+            <StatusScreen imageName="error" title="Link Expired">
+              This verification link has expired or was already used.
+              <br />
+              Please sign in again to request a new one.
+            </StatusScreen>
+            <Button
+              action="primary"
+              onClick={() => {
+                stripMagicLinkCodeFromUrl()
+                goToStep('sign-up')
+              }}
+              text="Choose another sign-in method"
+            />
+          </>
+        )}
+
+        {!error && !sessionMissing && !code && !isVerificationLoading && (
           <>
             <StatusScreen imageName="error" title="Invalid Link">
               This verification link is invalid or incomplete.
