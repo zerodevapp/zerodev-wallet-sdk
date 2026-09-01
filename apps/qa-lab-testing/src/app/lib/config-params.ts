@@ -58,6 +58,8 @@ export const isConfigParam = (key: string) =>
 export interface ResolvedWalletConfig {
   kmsProxyBaseUrl: string | undefined;
   aaHost: string | undefined;
+  /** Env-only private-preview endpoint; deliberately not URL-overridable. */
+  dataApiBaseUrl: string | undefined;
   chains: readonly [Chain, ...Chain[]];
   rpcUrls: Record<number, string | undefined>;
   /** Provenance per chain, so `/environment` can show where a transport came from. */
@@ -77,6 +79,7 @@ export interface ResolvedWalletConfig {
 const DEFAULTS = {
   kms: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL,
   aaHost: process.env.NEXT_PUBLIC_ZERODEV_AA_HOST,
+  dataApi: process.env.NEXT_PUBLIC_DATA_API_BASE_URL,
 };
 
 const isHttpUrl = (value: string) => {
@@ -233,6 +236,7 @@ export function resolveWalletConfig(
   return {
     kmsProxyBaseUrl,
     aaHost,
+    dataApiBaseUrl: DEFAULTS.dataApi,
     chains,
     rpcUrls,
     rpcSources,

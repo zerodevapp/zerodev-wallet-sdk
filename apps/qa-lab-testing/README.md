@@ -32,6 +32,7 @@ Every feature we ship gets a surface here. Two levels of grouping:
 | `/`                    | Overview — every feature and its status. Auth gate: renders the `ConnectWallet` login when disconnected, swapping in place with no redirect. |
 | `/tx-signing/<area>`   | A Tx Signing area: `signing`｜`transactions`｜`contracts`｜`rpc`｜`session`. Unknown area → 404. |
 | `/tx-signing`          | Redirects to the first area.                                 |
+| `/transaction-history` | Live stamped Data API request and pagination diagnostics.    |
 | `/sra`                 | Placeholder until the SRA PR lands.                          |
 | `/verify`              | Magic-link callback. Pushes to `/` once wagmi connects.      |
 | `/environment`         | Diagnostics. Env-var checks (pass/fail, values never shown) plus the **effective** wallet config after URL overrides. Not auth-gated. |
@@ -120,11 +121,43 @@ edit the source of that default:
 | Anvil's RPC | `src/app/lib/wallet-config.ts` → `ANVIL_RPC_URL` | |
 | KMS proxy base URL | `.env` → `NEXT_PUBLIC_KMS_PROXY_BASE_URL` | |
 | AA host | `.env` → `NEXT_PUBLIC_ZERODEV_AA_HOST` | |
+| Data API origin | `.env` → `NEXT_PUBLIC_DATA_API_BASE_URL` | Env-only; intentionally not URL-overridable. |
 | Project id | `.env` → `NEXT_PUBLIC_ZD_PROJECT_ID` / `NEXT_PUBLIC_ZD_OTP_PROJECT_ID` | also feeds the default transport URL |
 | Arb-Sepolia / Sepolia RPC | `.env` → `NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL`, `NEXT_PUBLIC_SEPOLIA_RPC_URL` | these win over the default template |
 
 **`.env` changes need a dev-server restart** — Next inlines `NEXT_PUBLIC_*` at build time.
 Changes to `wallet-config.ts` hot-reload like any other source file.
+
+### Trying stamped transaction history locally
+
+The QA Lab and Data API both default to port `3000`, so run the API on `3001`.
+Its `apps/api/.env` still needs a valid `ZERION_API_KEY`:
+
+```sh
+cd ../zerodev-data-api
+PORT=3001 pnpm --filter @zerodev/data-api dev
+```
+
+Point the QA Lab connector at that origin in
+`apps/qa-lab-testing/.env.local`:
+
+```sh
+NEXT_PUBLIC_DATA_API_BASE_URL=http://127.0.0.1:3001
+```
+
+Then restart the lab and open `/transaction-history` after logging in:
+
+```sh
+cd ../zerodev-wallet-sdk
+pnpm --filter @zerodev/qa-lab-testing dev
+```
+
+The page imports `useTransactionHistory` from the optional
+`@zerodev/wallet-data` package and passes the configured URL directly to the
+hook. A successful empty page still proves that the request stamp was accepted.
+Use the mainnet/testnet toggle to change the explicitly signed environment, and
+use the browser Network panel to inspect `X-Wallet-Address`, `X-Timestamp`,
+`X-Stamp`, and `X-Env`.
 
 Because everything else derives from `wallet-config.ts`, editing a default there updates
 the app, the `/config` builder and the `/environment` readout together — there is no

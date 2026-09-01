@@ -73,6 +73,10 @@ export default async function EnvironmentPage({
       variable: "NEXT_PUBLIC_ZERODEV_AA_HOST",
       result: containsStaging(process.env.NEXT_PUBLIC_ZERODEV_AA_HOST),
     },
+    {
+      variable: "NEXT_PUBLIC_DATA_API_BASE_URL",
+      result: isSet(process.env.NEXT_PUBLIC_DATA_API_BASE_URL),
+    },
   ];
 
   return (
