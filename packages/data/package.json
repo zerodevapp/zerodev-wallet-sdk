@@ -1,0 +1,85 @@
+{
+  "name": "@zerodev/wallet-data",
+  "version": "0.0.0",
+  "description": "Signed ZeroDev Data API queries and React hooks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zerodevapp/zerodev-wallet-sdk.git",
+    "directory": "packages/data"
+  },
+  "sideEffects": false,
+  "main": "./dist/_cjs/index.js",
+  "module": "./dist/_esm/index.js",
+  "types": "./dist/_types/index.d.ts",
+  "exports": {
+    ".": {
+      "react-native": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      },
+      "browser": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      },
+      "import": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      },
+      "require": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_cjs/index.js"
+      },
+      "default": {
+        "types": "./dist/_types/index.d.ts",
+        "default": "./dist/_esm/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "./src/**/*.ts",
+    "!dist/**/*.tsbuildinfo",
+    "!./**/*.test.ts",
+    "!./**/*.test.tsx"
+  ],
+  "scripts": {
+    "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --moduleResolution node --outDir ./dist/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./dist/_cjs/package.json",
+    "build:esm": "tsc --project ./tsconfig.build.json --outDir ./dist/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./dist/_esm/package.json",
+    "build:types": "tsc --project ./tsconfig.build.json --outDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepack": "pnpm run build"
+  },
+  "keywords": [
+    "zerodev",
+    "wallet",
+    "data-api",
+    "transaction-history",
+    "tanstack-query"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@zerodev/data-api-contract": "file:/var/folders/zv/twr1jh0j3gv3bpq5x69d88tm0000gn/T/tmp.xSSAZxs18c/zerodev-data-api-contract-0.1.0.tgz",
+    "@zerodev/data-api-stamp": "file:/var/folders/zv/twr1jh0j3gv3bpq5x69d88tm0000gn/T/tmp.xSSAZxs18c/zerodev-data-api-stamp-0.1.0.tgz"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@wagmi/core": "^2.22.0 || ^3.0.0",
+    "@zerodev/wallet-core": "workspace:*",
+    "@zerodev/wallet-react": "workspace:*",
+    "react": "^18.0.0 || ^19.0.0",
+    "wagmi": "^2.19.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "5.101.2",
+    "@types/react": "19.2.17",
+    "@wagmi/core": "3.6.0",
+    "react": "19.2.3",
+    "typescript": "5.9.3",
+    "wagmi": "3.7.0"
+  },
+  "type": "module"
+}
