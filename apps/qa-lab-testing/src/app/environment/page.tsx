@@ -78,6 +78,10 @@ export default async function EnvironmentPage({
       variable: "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
       result: isSet(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID),
     },
+    {
+      variable: "NEXT_PUBLIC_DATA_API_BASE_URL",
+      result: isSet(process.env.NEXT_PUBLIC_DATA_API_BASE_URL),
+    },
   ];
 
   return (
