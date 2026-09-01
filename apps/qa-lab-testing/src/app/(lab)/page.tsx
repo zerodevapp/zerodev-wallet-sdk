@@ -29,7 +29,8 @@ export default function OverviewPage() {
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {LAB_FEATURES.map((feature) => {
-          const Icon = feature.areas[0]?.icon ?? FALLBACK_FEATURE_ICON;
+          const Icon =
+            feature.icon ?? feature.areas[0]?.icon ?? FALLBACK_FEATURE_ICON;
 
           return (
             <ConfigLink

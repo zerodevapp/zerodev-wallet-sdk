@@ -48,7 +48,7 @@ function FeatureLink({
   feature: LabFeature;
   active: boolean;
 }) {
-  const Icon = feature.areas[0]?.icon ?? FALLBACK_FEATURE_ICON;
+  const Icon = feature.icon ?? feature.areas[0]?.icon ?? FALLBACK_FEATURE_ICON;
 
   return (
     <ConfigLink
