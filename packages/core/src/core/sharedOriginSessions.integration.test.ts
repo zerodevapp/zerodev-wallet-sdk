@@ -136,7 +136,7 @@ function stubKms(
       if (path.includes('/auth/login/stamp')) {
         return json({ session: token(body.targetPublicKey, state.org) })
       }
-      if (path.includes('/user-wallet')) {
+      if (path.includes('/wallets')) {
         return json({ walletAddresses: [walletOf(orgOf(bearer)).address] })
       }
       if (path.includes('auth/logout')) return json({ ok: true })

@@ -151,7 +151,7 @@ function stubKms(options: KmsOptions) {
         current = token(body.targetPublicKey, options.state.org, ++issued)
         return json({ session: current })
       }
-      if (path.includes('/user-wallet')) {
+      if (path.includes('/wallets')) {
         const wallet = orgOf(bearer) === ORG_B ? WALLET_B : WALLET_A
         return json({ walletAddresses: [wallet.address] })
       }
