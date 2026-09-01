@@ -123,7 +123,7 @@ async function loggedIn(answer: (correct: Hex) => Answer) {
       if (path.includes('/auth/login/stamp')) {
         return json({ session: token(body.targetPublicKey) })
       }
-      if (path.includes('/user-wallet')) {
+      if (path.includes('/wallets')) {
         return json({ walletAddresses: [OWNER.address] })
       }
       if (path.includes('/sign/')) {

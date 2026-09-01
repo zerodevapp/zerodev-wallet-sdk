@@ -178,8 +178,8 @@ function stubKms() {
         return json({})
       }
 
-      if (target.includes('/user-wallet')) {
-        requests.push({ path: 'user-wallet', body, subOrg })
+      if (target.includes('/wallets')) {
+        requests.push({ path: 'wallets', body, subOrg })
         const wallet = walletFor(subOrg)
         if (!wallet) return json({ error: 'unauthenticated' }, 401)
         return json({
