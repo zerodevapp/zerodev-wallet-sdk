@@ -73,7 +73,7 @@ describe('getTransactionHistory', () => {
     ).resolves.toEqual({ items: [], next: 'cursor-2' })
 
     expect(stamper.stamp).toHaveBeenCalledWith(
-      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","path":"/v1/me/transaction-history","query":{},"ts":1787688000000,"walletAddress":"0x1111111111111111111111111111111111111111"}',
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","requestTarget":"/v1/me/transaction-history","ts":1787688000000,"walletAddress":"0x1111111111111111111111111111111111111111"}',
     )
 
     const call = fetchMock.mock.calls[0]
@@ -95,6 +95,8 @@ describe('getTransactionHistory', () => {
 
   it('round-trips the same opaque cursor through the stamp and URL', async () => {
     const next = 'https://api.zerion.io/page?after=a&label=é/雪'
+    const requestTarget =
+      '/v1/me/transaction-history?next=https%3A%2F%2Fapi.zerion.io%2Fpage%3Fafter%3Da%26label%3D%C3%A9%2F%E9%9B%AA'
 
     await getTransactionHistory(config, {
       baseUrl: 'https://data.example',
@@ -106,9 +108,10 @@ describe('getTransactionHistory', () => {
     expect(payload).toBeDefined()
     expect(JSON.parse(payload ?? '{}')).toMatchObject({
       environment: 'testnet',
-      query: { next },
+      requestTarget,
     })
     const [url, init] = fetchMock.mock.calls[0] ?? []
+    expect(`${url.pathname}${url.search}`).toBe(requestTarget)
     expect(url.searchParams.get('next')).toBe(next)
     expect(new Headers(init.headers).get('X-Env')).toBe('testnet')
   })

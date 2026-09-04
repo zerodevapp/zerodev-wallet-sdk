@@ -56,18 +56,20 @@ async function parseResponseBody(response: Response): Promise<unknown> {
 export async function requestDataApiGet(
   parameters: DataApiGetParameters,
 ): Promise<unknown> {
-  const url = new URL(parameters.path, normalizeBaseUrl(parameters.baseUrl))
-  url.search = new URLSearchParams(parameters.query).toString()
+  const baseUrl = normalizeBaseUrl(parameters.baseUrl)
+  const query = new URLSearchParams(parameters.query).toString()
+  const requestTarget =
+    query === '' ? parameters.path : `${parameters.path}?${query}`
 
   const ts = Date.now()
   const payload = buildDataApiPayload({
     method: 'GET',
-    path: url.pathname,
-    query: parameters.query,
+    requestTarget,
     walletAddress: parameters.walletAddress,
     environment: parameters.environment,
     ts,
   })
+  const url = new URL(requestTarget, baseUrl)
   const stamp = await parameters.stamper.stamp(payload)
 
   const headers = new Headers({
