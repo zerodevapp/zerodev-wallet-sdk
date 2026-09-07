@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import {
   matchesWallet,
@@ -80,38 +80,43 @@ function useResolvedWalletInfo(): WalletInfo | undefined {
     }
   }, [connector, isWalletConnect])
 
-  if (!isConnected || !connector) return undefined
+  // Memoized so the identity is reference-stable across renders: consumers
+  // put `walletInfo` in effect deps (analytics on wallet change), and a fresh
+  // object every render would fire those on every render instead.
+  return useMemo((): WalletInfo | undefined => {
+    if (!isConnected || !connector) return undefined
 
-  if (connector.id === 'zerodev-wallet') {
+    if (connector.id === 'zerodev-wallet') {
+      return {
+        name: connector.name,
+        icon: connector.icon,
+        source: 'embedded',
+      }
+    }
+
+    if (isWalletConnect) {
+      const entry = peerMetadata?.name
+        ? guideEntryForPeerName(peerMetadata.name)
+        : undefined
+      return {
+        name: peerMetadata?.name ?? undefined,
+        icon: peerMetadata?.icons?.[0] ?? entry?.icon,
+        walletId: entry?.id as WalletId | undefined,
+        // Identity is about the session, so a raw walletConnect() connector
+        // resolves here too — unlike pairing, which is kit-connector-only.
+        source: 'walletconnect',
+      }
+    }
+
+    const entry = guideEntryForConnector(connector)
+
     return {
       name: connector.name,
-      icon: connector.icon,
-      source: 'embedded',
-    }
-  }
-
-  if (isWalletConnect) {
-    const entry = peerMetadata?.name
-      ? guideEntryForPeerName(peerMetadata.name)
-      : undefined
-    return {
-      name: peerMetadata?.name ?? undefined,
-      icon: peerMetadata?.icons?.[0] ?? entry?.icon,
+      icon: connector.icon ?? entry?.icon,
       walletId: entry?.id as WalletId | undefined,
-      // Identity is about the session, so a raw walletConnect() connector
-      // resolves here too — unlike pairing, which is kit-connector-only.
-      source: 'walletconnect',
+      source: connector.type === 'injected' ? 'injected' : 'other',
     }
-  }
-
-  const entry = guideEntryForConnector(connector)
-
-  return {
-    name: connector.name,
-    icon: connector.icon ?? entry?.icon,
-    walletId: entry?.id as WalletId | undefined,
-    source: connector.type === 'injected' ? 'injected' : 'other',
-  }
+  }, [connector, isConnected, isWalletConnect, peerMetadata])
 }
 
 /**
@@ -133,5 +138,8 @@ function useResolvedWalletInfo(): WalletInfo | undefined {
 export function useWalletInfo(_namespace?: string): {
   walletInfo: WalletInfo | undefined
 } {
-  return { walletInfo: useResolvedWalletInfo() }
+  const walletInfo = useResolvedWalletInfo()
+  // The wrapper is memoized too, so the returned object is stable for
+  // consumers that depend on it whole rather than destructuring.
+  return useMemo(() => ({ walletInfo }), [walletInfo])
 }

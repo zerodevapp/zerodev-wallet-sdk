@@ -2,6 +2,7 @@
  * @vitest-environment happy-dom
  */
 import { act, cleanup, renderHook } from '@testing-library/react'
+import { useEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WALLET_GUIDE } from '../walletGuide'
 import { useWalletInfo } from './useWalletInfo'
@@ -138,6 +139,73 @@ describe('useWalletInfo', () => {
       walletId: undefined,
       source: 'walletconnect',
     })
+  })
+
+  // Consumers put `walletInfo` in effect deps (e.g. one analytics event per
+  // wallet connection), so a fresh object per render would fire those on
+  // every render.
+  it('keeps the same reference across rerenders', () => {
+    account.connector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+      type: 'injected',
+      icon: 'data:image/png;base64,announced',
+    }
+    account.isConnected = true
+
+    const { result, rerender } = renderHook(() => useWalletInfo())
+    const first = result.current
+    rerender()
+    rerender()
+
+    // Both the wrapper and the info object survive rerenders unchanged.
+    expect(result.current).toBe(first)
+    expect(result.current.walletInfo).toBe(first.walletInfo)
+  })
+
+  it('runs a walletInfo-dependent effect once across rerenders', () => {
+    account.connector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+      type: 'injected',
+      icon: undefined,
+    }
+    account.isConnected = true
+
+    const onWalletChange = vi.fn()
+    const { rerender } = renderHook(() => {
+      const { walletInfo } = useWalletInfo()
+      useEffect(() => {
+        if (walletInfo) onWalletChange(walletInfo.name)
+      }, [walletInfo])
+    })
+
+    rerender()
+    rerender()
+
+    expect(onWalletChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns a new reference when the connector changes', () => {
+    account.connector = {
+      id: 'io.metamask',
+      name: 'MetaMask',
+      type: 'injected',
+    }
+    account.isConnected = true
+
+    const { result, rerender } = renderHook(() => useWalletInfo().walletInfo)
+    const first = result.current
+
+    account.connector = {
+      id: 'io.rabby',
+      name: 'Rabby Wallet',
+      type: 'injected',
+    }
+    rerender()
+
+    expect(result.current).not.toBe(first)
+    expect(result.current?.name).toBe('Rabby Wallet')
   })
 
   it('labels non-injected vendor connectors as other', () => {
