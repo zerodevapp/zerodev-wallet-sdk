@@ -1,5 +1,64 @@
 # @zerodev/wallet-react-ui
 
+## 0.0.12
+
+### Patch Changes
+
+- 2fe1800: feat: WalletConnect pairing for external wallets
+
+  wallet-react-ui:
+
+  - New export `zeroDevWalletConnect` — WalletConnect connector preconfigured
+    for the kit.
+  - New sign-up unit `SignUp.WalletConnect` — generic pairing row with a QR
+    sheet.
+  - `SignUp.Wallet` and `SignUp.MoreWallets` open a WalletConnect pairing
+    sheet (QR + deep link) for wallets not present in the browser; on mobile,
+    signing requests deep-link into the connected wallet app.
+  - fix: duplicate wallet entries in wallet in-app browsers; expired pairing
+    proposals now surface an error with retry.
+
+  ```tsx
+  connectors: [
+    zeroDevWallet({ ... }),
+    zeroDevWalletConnect({ projectId: 'your-reown-project-id' }),
+  ]
+
+  <SignUp>
+    <SignUp.InstalledWallets />
+    <SignUp.WalletConnect />
+    <SignUp.MoreWallets />
+  </SignUp>
+  ```
+
+  react-ui:
+
+  - New export: `QrCode` (+ `QrCodeProps`). Adds the `uqr` dependency.
+
+- b3eaf7c: feat: `useWalletInfo` + WalletConnect compat fixes
+
+  - New `useWalletInfo` hook: identity of the wallet behind the active wagmi
+    connection. Call-compatible with AppKit's `useWalletInfo` (same name, same
+    `{ walletInfo }` return shape, optional ignored namespace arg), so
+    migrating from AppKit is an import swap. `walletInfo` carries
+    `{ name, icon, walletId, source }`, or is `undefined` while disconnected.
+    Injected wallets resolve from the
+    connector, WalletConnect connections from the session's peer metadata
+    (the actual wallet on the other end, resolved asynchronously), the
+    embedded wallet reports `source: 'embedded'`.
+  - `zustand` moved from peerDependencies to dependencies in both packages.
+    The kit's store never crosses into host code, so there is no singleton to
+    share — as a peer it only produced unmet-peer warnings for hosts on
+    zustand 4.
+  - Test mocks for wagmi's `useConnect` now match its real return shape
+    (`connect`, not `mutate`), keeping the suite valid on wagmi v2 and v3.
+
+- Updated dependencies [2fe1800]
+- Updated dependencies [2fe1800]
+- Updated dependencies [b3eaf7c]
+  - @zerodev/react-ui@0.0.8
+  - @zerodev/wallet-react@0.0.8
+
 ## 0.0.11
 
 ### Patch Changes
