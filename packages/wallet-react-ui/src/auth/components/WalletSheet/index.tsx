@@ -60,7 +60,7 @@ function SheetBody({
   const { goToStep } = useAuth()
   const { uri, error, retry } = pairing
   const connectors = useConnectors()
-  const { mutate: connect } = useConnect()
+  const { connect } = useConnect()
 
   // Installed (announced/configured) connector for the selected wallet —
   // drives the Browser tab: connect directly instead of "get the extension".

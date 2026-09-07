@@ -23,7 +23,7 @@ export function SignUpMoreWallets({
     useSignUpContext()
   const [open, setOpen] = useState(false)
   const connectors = useConnectors()
-  const { mutate: connect, isPending } = useConnect()
+  const { connect, isPending } = useConnect()
   useReportPending(isPending)
 
   // Our own connector is the embedded wallet, and walletConnect-type

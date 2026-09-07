@@ -32,7 +32,7 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     openWalletSheet,
   } = useSignUpContext()
   const connectors = useConnectors()
-  const { mutate: connect, isPending } = useConnect()
+  const { connect, isPending } = useConnect()
   useReportPending(isPending)
   useLayoutEffect(() => registerWallet(wallet.id), [registerWallet, wallet.id])
 

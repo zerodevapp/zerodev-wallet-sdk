@@ -23,7 +23,7 @@ export function SignUpInstalledWallets({
   const { authPending, guardAgreement, setError, registeredWallets } =
     useSignUpContext()
   const connectors = useConnectors()
-  const { mutate: connect, isPending } = useConnect()
+  const { connect, isPending } = useConnect()
   useReportPending(isPending)
 
   // Same rule that earns the INSTALLED badge elsewhere: only a 6963

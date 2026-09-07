@@ -25,7 +25,7 @@ let connections: unknown[] = []
 let reconnecting = false
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ mutate: connect }),
+  useConnect: () => ({ connect }),
   useConnections: () => connections,
   useAccount: () => ({ isReconnecting: reconnecting }),
 }))

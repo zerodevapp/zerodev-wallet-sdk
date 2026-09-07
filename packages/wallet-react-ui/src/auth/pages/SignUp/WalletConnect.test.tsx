@@ -58,7 +58,7 @@ vi.mock('../../hooks/useAuth', () => ({
 let connectors: unknown[] = []
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ mutate: vi.fn(), isPending: false }),
+  useConnect: () => ({ connect: vi.fn(), isPending: false }),
 }))
 
 const stampedWc = () => ({

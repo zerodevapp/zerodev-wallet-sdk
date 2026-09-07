@@ -72,7 +72,7 @@ let connectors: FakeConnector[] = []
 let connectPending = false
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ mutate: connect, isPending: connectPending }),
+  useConnect: () => ({ connect, isPending: connectPending }),
 }))
 
 const announced = (id: string, name = id): FakeConnector => ({

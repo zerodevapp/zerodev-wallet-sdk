@@ -44,7 +44,7 @@ const connect = vi.fn()
 let connectors: unknown[] = []
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ mutate: connect }),
+  useConnect: () => ({ connect }),
 }))
 
 /** Prop double for the page-level pairing the SignUp root provides. */

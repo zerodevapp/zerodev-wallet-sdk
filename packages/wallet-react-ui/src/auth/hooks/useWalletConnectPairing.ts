@@ -48,7 +48,7 @@ export function useWalletConnectPairing(): WalletConnectPairing {
   const { goToStep } = useAuth()
   const connectors = useConnectors()
   const wcConnector = connectors.find(isZeroDevWalletConnect)
-  const { mutate: connect } = useConnect()
+  const { connect } = useConnect()
   // A restored WC session means the connector is already live — kicking
   // connect() on it would throw ConnectorAlreadyConnectedError.
   const connections = useConnections()
