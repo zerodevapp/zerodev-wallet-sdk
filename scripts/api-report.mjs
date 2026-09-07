@@ -63,18 +63,38 @@ function reportFor(entryFile) {
     const kind = decl ? ts.SyntaxKind[decl.kind].replace(/Declaration$/, '') : 'Unknown'
     let typeText = ''
     try {
-      const type = checker.getTypeOfSymbolAtLocation(resolved, decl ?? source)
-      typeText = checker.typeToString(
-        type,
-        undefined,
-        ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.WriteArrowStyleSignature,
-      )
+      // Type-only exports don't have a *value* type — `getTypeOfSymbolAtLocation`
+      // returns the symbol's own name for them, which records nothing and
+      // hides shape changes (dropping a union member, adding an interface
+      // field) that are breaking for consumers. Read the declared type for
+      // aliases, and the members for interfaces.
+      if (decl && ts.isTypeAliasDeclaration(decl)) {
+        typeText = checker.typeToString(
+          checker.getTypeAtLocation(decl.type),
+          undefined,
+          ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.InTypeAlias,
+        )
+      } else if (decl && ts.isInterfaceDeclaration(decl)) {
+        const members = checker
+          .getPropertiesOfType(checker.getDeclaredTypeOfSymbol(resolved))
+          .map((p) => {
+            const t = checker.getTypeOfSymbolAtLocation(p, decl)
+            const optional = p.flags & ts.SymbolFlags.Optional ? '?' : ''
+            return `${p.name}${optional}: ${checker.typeToString(t)}`
+          })
+          .sort()
+        typeText = `{ ${members.join('; ')} }`
+      } else {
+        typeText = checker.typeToString(
+          checker.getTypeOfSymbolAtLocation(resolved, decl ?? source),
+          undefined,
+          ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.WriteArrowStyleSignature,
+        )
+      }
     } catch {
       typeText = '(unresolved)'
     }
     if (typeText.length > TYPE_TEXT_LIMIT) typeText = `${typeText.slice(0, TYPE_TEXT_LIMIT)}…`
-    // Type-only exports (interfaces, type aliases) stringify as their own
-    // name, which carries no information — record just name + kind for those.
     const entry =
       typeText === symbol.name || typeText === 'any'
         ? `- \`${symbol.name}\` — ${kind}`

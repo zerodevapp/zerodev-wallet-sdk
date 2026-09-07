@@ -4,57 +4,57 @@
      Regenerate with: pnpm build && node scripts/api-report.mjs -->
 
 - `ArrowCardPair` — Function: `({ topCard, bottomCard }: ArrowCardPairProps) => Element`
-- `ArrowCardPairProps` — Interface
+- `ArrowCardPairProps` — Interface: `{ bottomCard: ReactNode; topCard: ReactNode }`
 - `ArrowView` — Function: `({ className }: { className?: string; }) => Element`
 - `Badge` — Function: `({ text, variant, leadingIcon, trailingIcon, className, }: BadgeProps) => Element`
-- `BadgeProps` — Interface
+- `BadgeProps` — Interface: `{ className?: string; leadingIcon?: string; text: string; trailingIcon?: string; variant?: "primary" | "secondary" }`
 - `BottomSheet` — Variable: `FC<DialogProps>`
 - `BottomSheetClose` — Variable: `ForwardRefExoticComponent<DialogCloseProps & RefAttributes<HTMLButtonElement>>`
 - `BottomSheetContent` — Function: `({ children, className, }: { children: ReactNode; className?: string; }) => Element`
 - `BottomSheetTitle` — Function: `({ className, ...props }: DialogTitleProps & RefAttributes<HTMLHeadingElement>) => Element`
 - `Button` — Function: `({ text, className, iconName, trailIcon, disabled, action, ...rest }: ButtonProps) => Element`
-- `ButtonProps` — Interface
+- `ButtonProps` — Interface: `{ about?: string; accessKey?: string; action?: "primary" | "secondary"; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish; aria-checked?: boolean …`
 - `Callout` — Function: `({ title, description }: CalloutProps) => Element`
-- `CalloutProps` — Interface
+- `CalloutProps` — Interface: `{ description: string; title: string }`
 - `camelCaseToTitle` — Function: `(str: string) => string`
 - `cn` — Function: `(...inputs: ClassValue[]) => string`
 - `DataRow` — Function: `({ label, value, info, onInfoClick, infoTooltip, leading, trailing, variant, className, }: DataRowProps) => Element`
-- `DataRowProps` — Interface
+- `DataRowProps` — Interface: `{ className?: string; info?: boolean; infoTooltip?: string; label: string; leading?: ReactNode; onInfoClick?: () => void; trailing?: ReactNode; value: ReactNode; variant?: "default" | "warning" }`
 - `DataRowSkeleton` — Function: `({ label, className }: DataRowSkeletonProps) => Element`
-- `DataRowSkeletonProps` — Interface
+- `DataRowSkeletonProps` — Interface: `{ className?: string; label?: string }`
 - `Icon` — Function: `({ name, className, ...props }: IconProps) => Element`
 - `IconButton` — Function: `({ iconName, className, ...rest }: IconButtonProps) => Element`
-- `IconButtonProps` — Interface
-- `IconName` — TypeAlias
-- `IconProps` — Interface
+- `IconButtonProps` — Interface: `{ about?: string; accessKey?: string; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish; aria-checked?: boolean | "true" | "false" | "mixed"; aria…`
+- `IconName` — TypeAlias: `string`
+- `IconProps` — Interface: `{ accentHeight?: string | number; accumulate?: "none" | "sum"; additive?: "sum" | "replace"; alignmentBaseline?: "inherit" | "auto" | "baseline" | "before-edge" | "text-before-edge" | "middle" | "central" | "after-edge" | "text-after-edge" | "ideographic" | "alphabetic" | "hanging" | "mathematical";…`
 - `icons` — Variable: `Record<string, FC<SVGProps<SVGSVGElement>>>`
 - `InfoCard` — Function: `({ title, subtitle, imageSource, chainIconUrl, imageStyle, rightElement, className, }: InfoCardProps) => Element`
-- `InfoCardImageStyle` — TypeAlias
-- `InfoCardProps` — Interface
+- `InfoCardImageStyle` — TypeAlias: `"contained" | "filled"`
+- `InfoCardProps` — Interface: `{ chainIconUrl?: string; className?: string; imageSource?: string; imageStyle?: InfoCardImageStyle; rightElement?: ReactNode; subtitle?: string; title: string }`
 - `Input` — Function: `({ variant, multiline, iconName, children, className, containerClassName, onFocus, onBlur, ...inputProps }: InputProps) => Element`
-- `InputProps` — Interface
+- `InputProps` — Interface: `{ about?: string; accept?: string; accessKey?: string; alt?: string; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish; aria-checked?: boolean | "…`
 - `ListItem` — Function: `({ icon, title, subtitle, trailing, asChild, children, className, ...rest }: ListItemProps) => Element`
 - `ListItemChevron` — Function: `() => Element`
 - `ListItemIcon` — Function: `({ name, className }: ListItemIconProps) => Element`
-- `ListItemIconProps` — Interface
-- `ListItemProps` — TypeAlias
+- `ListItemIconProps` — Interface: `{ className?: string; name: string }`
+- `ListItemProps` — TypeAlias: `ListItemBaseProps & ListItemAsChildProps`
 - `ListItemSkeleton` — Function: `({ className }: ListItemSkeletonProps) => Element`
-- `LockupTone` — TypeAlias
-- `MarkTone` — TypeAlias
+- `LockupTone` — TypeAlias: `"black" | "offwhite"`
+- `MarkTone` — TypeAlias: `"color" | "black" | "offwhite" | "orange"`
 - `MessageDetails` — Function: `({ details }: MessageDetailsProps) => Element`
-- `MessageDetailsProps` — Interface
+- `MessageDetailsProps` — Interface: `{ details: Record<string, string> }`
 - `Pill` — Function: `({ label, logoUri, onClick, disabled, loading, trailingIcon, className, ref, ...rest }: PillProps) => Element`
-- `PillProps` — Interface
+- `PillProps` — Interface: `{ about?: string; accessKey?: string; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish; aria-checked?: boolean | "true" | "false" | "mixed"; aria…`
 - `PillSkeleton` — Function: `({ className, disabled, }: { className?: string; disabled?: boolean; }) => Element`
 - `PoweredBy` — Function: `({ className, style, }: { className?: string; style?: CSSProperties; }) => Element`
 - `ProgressStep` — Function: `({ label, status, info, right, isLast, className, }: ProgressStepProps) => Element`
-- `ProgressStepProps` — Interface
-- `ProgressStepStatus` — TypeAlias
+- `ProgressStepProps` — Interface: `{ className?: string; info?: string; isLast?: boolean; label: string; right?: ReactNode; status: ProgressStepStatus }`
+- `ProgressStepStatus` — TypeAlias: `"done" | "active" | "pending" | "failed"`
 - `QrCode` — Function: `({ value, size, errorCorrectionLevel, eyeRadius, }: QrCodeProps) => Element`
-- `QrCodeProps` — Interface
+- `QrCodeProps` — Interface: `{ errorCorrectionLevel?: "L" | "M" | "Q" | "H"; eyeRadius?: number; size: number; value: string }`
 - `Screen` — Function: `({ children, className, contentClassName, size, style, topNav, footer, overlay, }: { children: ReactNode; className?: string; contentClassName?: string; size?: "sm" | "md" | "lg"; style?: CSSProperties; topNav?: ReactNode; footer?: ReactNode; overlay?: ReactNode; }) => Element`
 - `Section` — Function: `({ title, iconName, collapsible, children, }: SectionProps) => Element`
-- `SectionProps` — Interface
+- `SectionProps` — Interface: `{ children: ReactNode; collapsible?: boolean; iconName?: string; title: string }`
 - `Select` — Variable: `FC<SelectProps>`
 - `SelectContent` — Function: `({ ref, className, children, position, sideOffset, style, ...props }: SelectContentProps & RefAttributes<HTMLDivElement> & { ref?: Ref<HTMLDivElement>; }) => Element`
 - `SelectGroup` — Variable: `ForwardRefExoticComponent<SelectGroupProps & RefAttributes<HTMLDivElement>>`
@@ -65,26 +65,26 @@
 - `SelectTrigger` — Function: `({ ref, className, children, ...props }: SelectTriggerProps & RefAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement>; }) => Element`
 - `SelectValue` — Variable: `ForwardRefExoticComponent<SelectValueProps & RefAttributes<HTMLSpanElement>>`
 - `Switch` — Function: `({ value, onValueChange }: SwitchProps) => Element`
-- `SwitchProps` — Interface
+- `SwitchProps` — Interface: `{ onValueChange?: () => void; value?: boolean }`
 - `Text` — Function: `({ as: Tag, className, ...props }: TextProps) => Element`
-- `TextProps` — TypeAlias
+- `TextProps` — TypeAlias: `({ as?: "label" | "p" | "span"; } & HTMLAttributes<HTMLElement>) | ({ as: "a"; } & AnchorHTMLAttributes<HTMLAnchorElement>)`
 - `TokenListItem` — Function: `({ symbol, subtitle, iconName, imageSource, subtitleIcon, value, change, iconVariant, loading, className, onClick, ...rest }: TokenListItemProps) => Element`
-- `TokenListItemIconVariant` — TypeAlias
-- `TokenListItemProps` — TypeAlias
+- `TokenListItemIconVariant` — TypeAlias: `"token" | "network"`
+- `TokenListItemProps` — TypeAlias: `CommonProps & (({ onClick: MouseEventHandler<HTMLButtonElement>; } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | keyof CommonProps>) | ({ onClick?: undefined; } & Omit<HTMLAttributes<HTMLDivElement>, "children" | keyof CommonProps>))`
 - `Tooltip` — Function: `({ children, content, delayDuration, side, align, }: TooltipProps) => Element`
 - `TooltipContent` — Function: `({ ref, className, sideOffset, ...props }: TooltipContentProps) => Element`
-- `TooltipContentProps` — Interface
+- `TooltipContentProps` — Interface: `{ about?: string; accessKey?: string; align?: "center" | "start" | "end"; alignOffset?: number; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish;…`
 - `TooltipPortal` — Function: `({ container, ...props }: TooltipPortalProps) => Element`
-- `TooltipProps` — Interface
+- `TooltipProps` — Interface: `{ align?: "center" | "start" | "end"; children: ReactNode; content?: ReactNode; delayDuration?: number; side?: "top" | "right" | "bottom" | "left" }`
 - `TooltipProvider` — Variable: `FC<TooltipProviderProps>`
 - `TooltipRoot` — Variable: `FC<TooltipProps>`
 - `TooltipTrigger` — Variable: `ForwardRefExoticComponent<TooltipTriggerProps & RefAttributes<HTMLButtonElement>>`
 - `TopNav` — Function: `({ onLeftButtonClick, onRightButtonClick, leftButtonIcon, rightButtonIcon, title, logo, className, }: TopNavProps) => Element`
-- `TopNavProps` — Interface
+- `TopNavProps` — Interface: `{ className?: string; leftButtonIcon?: string; logo?: ReactNode; onLeftButtonClick?: () => void; onRightButtonClick?: () => void; rightButtonIcon?: string; title?: string }`
 - `WrappedPressable` — Function: `({ className, children, onMouseEnter, onMouseLeave, ...rest }: WrappedPressableProps) => Element`
-- `WrappedPressableProps` — Interface
+- `WrappedPressableProps` — Interface: `{ about?: string; accessKey?: string; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish; aria-checked?: boolean | "true" | "false" | "mixed"; aria…`
 - `Wrapper` — Function: `({ className, children, variant, ref, ...rest }: PropsWithChildren<WrapperProps>) => Element`
-- `WrapperProps` — Interface
-- `WrapperVariant` — TypeAlias
+- `WrapperProps` — Interface: `{ about?: string; accessKey?: string; aria-activedescendant?: string; aria-atomic?: Booleanish; aria-autocomplete?: "none" | "list" | "inline" | "both"; aria-braillelabel?: string; aria-brailleroledescription?: string; aria-busy?: Booleanish; aria-checked?: boolean | "true" | "false" | "mixed"; aria…`
+- `WrapperVariant` — TypeAlias: `"ghost" | "soft" | "solid"`
 - `ZeroDevLogo` — Function: `({ variant, tone, ...props }: ZeroDevLogoProps) => Element`
-- `ZeroDevLogoProps` — TypeAlias
+- `ZeroDevLogoProps` — TypeAlias: `SVGProps<SVGSVGElement> & ({ variant?: "mark"; tone?: MarkTone; } | { variant: "lockup"; tone?: LockupTone; })`

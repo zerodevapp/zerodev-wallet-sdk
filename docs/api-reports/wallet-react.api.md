@@ -5,14 +5,14 @@
 
 - `createZeroDevWalletStore` — Variable: `(options?: CreateStoreOptions) => UseBoundStore<Omit<Omit<StoreApi<ZeroDevWalletState>, "subscribe"> & { subscribe: { (listener: (selectedState: ZeroDevWalletState, previousSelectedState: ZeroDevWalletState) => void): () => void; <U>(selector: (state: ZeroDevWalletState) => U, listener: (selectedSta…`
 - `generateOAuthNonce` — Function: `(publicKey: string) => string`
-- `GetOAuthSessionIdFn` — TypeAlias
+- `GetOAuthSessionIdFn` — TypeAlias: `(params: { oauthUrl: string; provider: "google"; }) => Promise<string>`
 - `getZeroDevConnector` — Function: `(config: Config) => ZeroDevConnector`
 - `getZeroDevStore` — Function: `(connector: Connector) => Promise<UseBoundStore<Omit<Omit<StoreApi<ZeroDevWalletState>, "subscribe"> & { subscribe: { (listener: (selectedState: ZeroDevWalletState, previousSelectedState: ZeroDevWalletState) => void): () => void; <U>(selector: (state: ZeroDevWalletState) => U, listener: (selectedSta…`
 - `getZeroDevWallet` — Function: `(store: UseBoundStore<Omit<Omit<StoreApi<ZeroDevWalletState>, "subscribe"> & { subscribe: { (listener: (selectedState: ZeroDevWalletState, previousSelectedState: ZeroDevWalletState) => void): () => void; <U>(selector: (state: ZeroDevWalletState) => U, listener: (selectedState: U, previousSelectedSta…`
 - `isClientError` — Function: `(error: unknown) => boolean`
 - `NotAuthenticatedError` — Class: `typeof NotAuthenticatedError`
 - `OAUTH_PROVIDERS` — Variable: `{ readonly GOOGLE: "google"; }`
-- `OAuthProvider` — TypeAlias
+- `OAuthProvider` — TypeAlias: `"google"`
 - `shouldRetryRequest` — Function: `(failureCount: number, error: unknown) => boolean`
 - `useAuthenticateOAuth` — Function: `<config extends Config = Config, context = unknown>(parameters?: Parameters<config, context>) => ReturnType<context>`
 - `useAuthenticators` — Function: `<config extends Config = Config>(parameters?: Parameters<config>) => ReturnType`
@@ -26,8 +26,8 @@
 - `useVerifyMagicLink` — Function: `<config extends Config = Config, context = unknown>(parameters?: Parameters<config, context>) => ReturnType<context>`
 - `useVerifyOTP` — Function: `<config extends Config = Config, context = unknown>(parameters?: Parameters<config, context>) => ReturnType<context>`
 - `verifyGoogleLoginUrl` — Function: `(loginUrl: string, publicKey: string) => void`
-- `WalletMode` — TypeAlias
-- `ZeroDevProvider` — TypeAlias
+- `WalletMode` — TypeAlias: `"EOA" | "4337" | "7702"`
+- `ZeroDevProvider` — TypeAlias: `{ eventNames: () => string[]; listeners: <T extends string>(event: T) => ((...args: ArgumentMap<EventMap<Record<string, unknown>>>[Extract<T, string>]) => void)[]; listenerCount: (event: string) => number; emit: <T extends string>(event: T, ...args: ArgumentMap<EventMap<Record<string, unknown>>>[Ext…`
 - `zeroDevWallet` — Function: `(params: ZeroDevWalletConnectorParams) => CreateConnectorFn`
-- `ZeroDevWalletConnectorParams` — TypeAlias
-- `ZeroDevWalletState` — TypeAlias
+- `ZeroDevWalletConnectorParams` — TypeAlias: `{ projectId: string; organizationId?: string; proxyBaseUrl?: string; aaHost?: string; chains: readonly Chain[]; rpId?: string; sessionStorage?: StorageAdapter; persistStorage?: StateStorage<void>; apiKeyStamper?: ApiKeyStamper | Promise<ApiKeyStamper>; passkeyStamper?: PasskeyStamper | Promise<Passk…`
+- `ZeroDevWalletState` — TypeAlias: `{ wallet: ZeroDevWalletSDK; eoaAccount: { address: `0x${string}`; nonceManager?: NonceManager; sign?: (parameters: { hash: `0x${string}`; }) => Promise<`0x${string}`>; signAuthorization?: (parameters: AuthorizationRequest) => Promise<SignAuthorizationReturnType>; signMessage: ({ message }: { message…`

@@ -4,12 +4,12 @@
      Regenerate with: pnpm build && node scripts/api-report.mjs -->
 
 - `SmartRoutingAddress` — Function: `({ recipient, onClose, className, size, }: SmartRoutingAddressProps) => Element`
-- `SmartRoutingAddressConfig` — TypeAlias
-- `SmartRoutingAddressProps` — Interface
+- `SmartRoutingAddressConfig` — TypeAlias: `{ projectId?: string; targetChainId: number; version?: SmartRoutingAddressVersion; actions?: { ERC20?: { action: CALL[]; fallBack: CALL[]; }; NATIVE?: { action: CALL[]; fallBack: CALL[]; }; USDC?: { action: CALL[]; fallBack: CALL[]; }; WRAPPED_NATIVE?: { action: CALL[]; fallBack: CALL[]; }; USDT?: {…`
+- `SmartRoutingAddressProps` — Interface: `{ className?: string; onClose: () => void; recipient: `0x${string}`; size?: "sm" | "md" | "lg" }`
 - `SmartRoutingAddressProvider` — Function: `({ config, children, }: SmartRoutingAddressProviderProps) => Element`
-- `SmartRoutingAddressProviderProps` — TypeAlias
-- `SmartRoutingAddressStep` — TypeAlias
+- `SmartRoutingAddressProviderProps` — TypeAlias: `{ config: SmartRoutingAddressConfig; children: ReactNode; }`
+- `SmartRoutingAddressStep` — TypeAlias: `"deposit" | "past" | "transaction"`
 - `useCreateSmartRoutingAddress` — Function: `() => UseCreateSmartRoutingAddressResult`
-- `UseCreateSmartRoutingAddressResult` — TypeAlias
+- `UseCreateSmartRoutingAddressResult` — TypeAlias: `{ getOrCreateAddress: (recipient: `0x${string}`) => Promise<`0x${string}`>; }`
 - `useSmartRoutingAddress` — Function: `() => UseSmartRoutingAddressResult`
-- `UseSmartRoutingAddressResult` — TypeAlias
+- `UseSmartRoutingAddressResult` — TypeAlias: `{ addressState: AddressState; activeRoute: ActiveRoute; }`
