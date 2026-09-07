@@ -1,0 +1,18 @@
+# Applies review:* labels from the path rules in .github/labeler.yml.
+name: review-routing
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          # recompute on every push, so removing a risky file drops the label
+          sync-labels: true
