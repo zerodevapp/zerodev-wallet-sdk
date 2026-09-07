@@ -34,5 +34,3 @@ export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
 // export type { PendingRequest, Request, RequestMethod } from './types.js'
 
 // review-demo: touch
-
-export const REVIEW_DEMO_VERSION = 2
