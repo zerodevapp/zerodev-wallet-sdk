@@ -7,3 +7,5 @@ export function isMobile() {
     )
   )
 }
+
+// template check
