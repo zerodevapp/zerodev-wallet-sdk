@@ -1,6 +1,6 @@
 'use client'
 
-import { ConnectWallet } from '@zerodev/wallet-react-ui'
+import { ConnectWallet, useAuth } from '@zerodev/wallet-react-ui'
 import { useRouter } from 'next/navigation'
 import { Suspense, useEffect } from 'react'
 import { useAccount } from 'wagmi'
@@ -18,12 +18,25 @@ export default function VerifyPage() {
 function VerifyPageInner() {
   const router = useRouter()
   const { isConnected } = useAccount()
+  const { step, reset } = useAuth()
 
   useEffect(() => {
     if (isConnected) {
       router.push('/dashboard')
     }
   }, [isConnected, router])
+
+  // "Choose another sign-in method" on the verify error screens moves the
+  // step to 'sign-up' — nothing else does on /verify (reconnect rethrows
+  // without touching the step). Hand the flow back to the home login screen
+  // instead of restarting sign-up inside /verify: reset first so the home
+  // page's auto-connect reopens the widget through the normal connect path.
+  useEffect(() => {
+    if (step === 'sign-up') {
+      reset()
+      router.push('/')
+    }
+  }, [step, reset, router])
 
   return (
     <div className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">
