@@ -1,17 +1,26 @@
-# Review-routing path rules. Globs → risk tier.
-# review:human wins on conflict (enforced by the gate, not here).
+# Review-routing path rules — the single source of truth for the human tier.
+# `scripts/review-attention.mjs` reads the review:human globs from this file,
+# so a path added here shows up in both the label and the attention map.
+#
+# What belongs in review:human: changes whose *decision* a person has to own,
+# or whose blast radius is unbounded. Not "changes that look complicated".
 review:human:
   - changed-files:
       - any-glob-to-any-file:
-          # deps, peers, versioning
-          - "packages/*/package.json"
-          - "pnpm-lock.yaml"
-          - ".changeset/**"
-          # public API surface
+          # published API surface — permanent contract once released
           - "packages/*/src/index.ts"
-          # auth / signing / keys
+          # key handling, signing, session lifecycle
           - "packages/core/src/**"
           - "packages/*/src/connector.ts"
+          # auth flows: OTP / magic link / passkey. A silent break here locks
+          # users out, and no test drives the real provider.
+          - "packages/*/src/auth/**"
+          # dependency and version strategy
+          - "packages/*/package.json"
+          - "pnpm-lock.yaml"
+          # the machinery that decides what may merge
+          - ".github/**"
+          - "scripts/**"
 
 review:ai-first:
   - changed-files:
@@ -20,3 +29,6 @@ review:ai-first:
           - "apps/**"
           - "**/*.md"
           - "**/*.stories.tsx"
+          # release notes are prose; the only decision is the bump tier,
+          # which the attention map escalates when it isn't `patch`.
+          - ".changeset/**"
