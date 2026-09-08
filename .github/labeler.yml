@@ -22,9 +22,18 @@ review:human:
           - ".github/**"
           - "scripts/**"
 
+# `any-glob-to-all-files`, not `any-glob-to-any-file`: the tier applies only
+# when EVERY changed file is low-risk. With "any file", a PR that touched auth
+# code plus one test picked up both labels, which is a contradiction — the two
+# are tiers, not tags. This makes them mutually exclusive by construction
+# instead of by a cleanup step.
+#
+# A PR whose files are neither low-risk nor a known decision surface gets no
+# label. That reads as "not routed — see the attention map", which is honest;
+# calling it ai-first would claim CI has it covered when it doesn't.
 review:ai-first:
   - changed-files:
-      - any-glob-to-any-file:
+      - any-glob-to-all-files:
           - "**/*.test.*"
           - "apps/**"
           - "**/*.md"
