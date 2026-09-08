@@ -37,7 +37,10 @@ jobs:
           BASE=$(git merge-base "origin/$BASE_REF" HEAD)
           node scripts/review-attention.mjs "$BASE"
 
-      - name: Post/update the attention map comment
+      # Two sticky comments, posted map-first so the author checklist sits
+      # below it on the PR. Each is keyed by its own HTML-comment marker, so
+      # a push updates them in place instead of stacking.
+      - name: Post/update the attention map and self-review comments
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -45,18 +48,29 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           BASE=$(git merge-base "origin/$BASE_REF" HEAD)
-          MARKER="<!-- review-attention-map -->"
-          {
-            echo "$MARKER"
-            node scripts/review-attention.mjs "$BASE" --markdown
-          } > map.md
 
-          # Sticky: update the existing map instead of stacking a new
-          # comment on every push.
-          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
-            --jq "[.[] | select(.body | contains(\"$MARKER\"))] | first | .id // empty")
-          if [ -n "$id" ]; then
-            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@map.md --jq .html_url
+          post_sticky() { # $1 = marker, $2 = body file
+            local marker="$1" file="$2" id
+            id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+              --jq "[.[] | select(.body | contains(\"$marker\"))] | first | .id // empty")
+            if [ -n "$id" ]; then
+              gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@"$file" --jq .html_url
+            else
+              gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@"$file" --jq .html_url
+            fi
+          }
+
+          MAP_MARKER="<!-- review-attention-map -->"
+          { echo "$MAP_MARKER"; node scripts/review-attention.mjs "$BASE" --markdown; } > map.md
+          post_sticky "$MAP_MARKER" map.md
+
+          # Only exists when the PR has 🔴 files; skip rather than post an
+          # empty checklist.
+          SR_MARKER="<!-- author-self-review -->"
+          node scripts/review-attention.mjs "$BASE" --self-review > self-review.body
+          if [ -s self-review.body ]; then
+            { echo "$SR_MARKER"; cat self-review.body; } > self-review.md
+            post_sticky "$SR_MARKER" self-review.md
           else
-            gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@map.md --jq .html_url
+            echo "no human-tier files — skipping the self-review comment"
           fi
