@@ -1,0 +1,43 @@
+# Review-routing path rules — the single source of truth for the human tier.
+# `scripts/review-attention.mjs` reads the review:human globs from this file,
+# so a path added here shows up in both the label and the attention map.
+#
+# What belongs in review:human: changes whose *decision* a person has to own,
+# or whose blast radius is unbounded. Not "changes that look complicated".
+review:human:
+  - changed-files:
+      - any-glob-to-any-file:
+          # published API surface — permanent contract once released
+          - "packages/*/src/index.ts"
+          # key handling, signing, session lifecycle
+          - "packages/core/src/**"
+          - "packages/*/src/connector.ts"
+          # auth flows: OTP / magic link / passkey. A silent break here locks
+          # users out, and no test drives the real provider.
+          - "packages/*/src/auth/**"
+          # dependency and version strategy
+          - "packages/*/package.json"
+          - "pnpm-lock.yaml"
+          # the machinery that decides what may merge
+          - ".github/**"
+          - "scripts/**"
+
+# `any-glob-to-all-files`, not `any-glob-to-any-file`: the tier applies only
+# when EVERY changed file is low-risk. With "any file", a PR that touched auth
+# code plus one test picked up both labels, which is a contradiction — the two
+# are tiers, not tags. This makes them mutually exclusive by construction
+# instead of by a cleanup step.
+#
+# A PR whose files are neither low-risk nor a known decision surface gets no
+# label. That reads as "not routed — see the attention map", which is honest;
+# calling it ai-first would claim CI has it covered when it doesn't.
+review:ai-first:
+  - changed-files:
+      - any-glob-to-all-files:
+          - "**/*.test.*"
+          - "apps/**"
+          - "**/*.md"
+          - "**/*.stories.tsx"
+          # release notes are prose; the only decision is the bump tier,
+          # which the attention map escalates when it isn't `patch`.
+          - ".changeset/**"
