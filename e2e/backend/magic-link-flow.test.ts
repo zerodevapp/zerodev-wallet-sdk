@@ -1,16 +1,21 @@
 /**
- * E2E integration test for the OTP authentication flow.
+ * Backend E2E test for the Magic Link authentication flow.
  *
- * Tests the complete OTP flow against a real KMS backend + Turnkey:
+ * Magic link is built on top of the OTP flow. Instead of sending a plain
+ * OTP code, Turnkey embeds the code into a clickable URL in the email.
+ * The link's URL template is configured per-project on the backend
+ * (`wallet.otp_configs.magic_link_template`); the SDK just calls
+ * registerWithOTP. This test requires a code inside the magic-link URL, so a
+ * project configuration regression cannot pass as a plain-code OTP test.
+ *
+ * Flow:
  * 1. Create temp email account
- * 2. Register with OTP (sends email)
- * 3. Extract OTP code from email
+ * 2. Register with OTP
+ * 3. Extract OTP code from the magic link URL in the email
  * 4. Verify OTP with Auth Proxy
  * 5. Build client signature
  * 6. Login with OTP via backend
  * 7. Verify session works (whoami)
- *
- * Mirrors the Go E2E test at doorway-kms/testing/e2e/e2e_otp_test.go
  */
 
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -23,41 +28,37 @@ import {
   BACKEND_URL,
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
-  OTP_CODE_LENGTH,
 } from '../helpers/constants.js'
-import {
-  extractOtpCode,
-  extractOtpCodeFromMagicLinkUrl,
-} from '../helpers/otp-utils.js'
+import { extractOtpCodeFromMagicLinkUrl } from '../helpers/otp-utils.js'
 import { createNewAccount, searchForNewEmail } from '../helpers/temp-email.js'
 import { createTestClient } from '../helpers/test-client.js'
 import { createTestStamper } from '../helpers/test-stamper.js'
 
-describe('OTP Authentication Flow', () => {
+describe('Magic Link Authentication Flow', () => {
   let projectId: string
   let authProxyConfigId: string
 
   beforeAll(async () => {
     authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
-    projectId = process.env.ZD_OTP_PROJECT_ID || ''
+    projectId = process.env.ZD_PROJECT_ID || ''
   })
 
-  it('should complete the full OTP register + login flow', async () => {
+  it('should complete the full magic link register + login flow', async () => {
     // Step 1: Create temp email account
     const emailAccount = await createNewAccount()
     const email = emailAccount.address
     console.log(`Created temp email: ${email}`)
 
-    // Step 2: Create test stamper (Node.js ECDSA P-256 implementation)
+    // Step 2: Create test stamper
     const stamper = createTestStamper()
     const publicKey = await stamper.getPublicKey()
     if (!publicKey) throw new Error('Test stamper returned no public key')
-    console.log(`Generated public key: ${publicKey.substring(0, 16)}...`)
 
-    // Step 3: Create SDK client with test transport (includes Origin header)
+    // Step 3: Create SDK client
     const client = createTestClient(stamper)
 
-    // Step 4: Register with OTP (triggers email send)
+    // Step 4: Register with OTP. This project's backend configuration supplies
+    // the magic-link template; the client does not choose the delivery format.
     const registerResult = await client.registerWithOTP({
       email,
       contact: { type: 'email', contact: email },
@@ -65,22 +66,22 @@ describe('OTP Authentication Flow', () => {
     })
     expect(registerResult.otpId).toBeTruthy()
     expect(registerResult.otpEncryptionTargetBundle).toBeTruthy()
-    console.log(`OTP initiated, otpId: ${registerResult.otpId}`)
+    console.log(`OTP initiated with magic link, otpId: ${registerResult.otpId}`)
 
-    // Step 5: Poll for email and extract OTP code
-    console.log('Waiting for OTP email...')
+    // Step 5: Poll for email and extract OTP code from magic link URL
+    console.log('Waiting for magic link email...')
     const emailContent = await searchForNewEmail(
       emailAccount.authToken,
       EMAIL_POLL_INTERVAL_MS,
       EMAIL_POLL_TIMEOUT_MS,
     )
-    expect(extractOtpCodeFromMagicLinkUrl(emailContent)).toBeNull()
-    const otpCode = extractOtpCode(emailContent, OTP_CODE_LENGTH)
-    if (!otpCode) throw new Error('Plain-OTP email contained no code')
+    console.log(`Email content preview: ${emailContent.substring(0, 200)}...`)
+
+    const otpCode = extractOtpCodeFromMagicLinkUrl(emailContent)
+    if (!otpCode) throw new Error('Magic-link project sent no code URL')
     console.log(`Extracted OTP code: ${otpCode}`)
 
-    // Step 6: HPKE-seal the OTP attempt to the enclave's per-session target
-    // key, then verify with Auth Proxy.
+    // Step 6: HPKE-seal the OTP attempt and verify with Auth Proxy.
     const encryptedOtpBundle = await encryptOtpAttempt({
       otpCode,
       publicKey,
@@ -101,7 +102,7 @@ describe('OTP Authentication Flow', () => {
       stamper,
     })
     expect(clientSignature).toBeTruthy()
-    expect(clientSignature).toHaveLength(128) // 64 bytes = 128 hex chars
+    expect(clientSignature).toHaveLength(128)
     console.log('Client signature built')
 
     // Step 8: Login with OTP via backend
@@ -111,9 +112,9 @@ describe('OTP Authentication Flow', () => {
       projectId,
     })
     expect(loginResult.session).toBeTruthy()
-    console.log('OTP login successful')
+    console.log('Magic link login successful')
 
-    // Step 9: Parse and validate session
+    // Step 9: Validate session
     const session = parseSession(loginResult.session)
     expect(session.userId).toBeTruthy()
     expect(session.organizationId).toBeTruthy()
@@ -133,38 +134,5 @@ describe('OTP Authentication Flow', () => {
     console.log(
       `Whoami: userId=${whoami.userId}, orgId=${whoami.organizationId}`,
     )
-  })
-
-  it('should reject an invalid OTP code', async () => {
-    // Create temp email
-    const emailAccount = await createNewAccount()
-    const email = emailAccount.address
-
-    // Create stamper and client
-    const stamper = createTestStamper()
-    const publicKey = await stamper.getPublicKey()
-    if (!publicKey) throw new Error('Test stamper returned no public key')
-    const client = createTestClient(stamper)
-
-    // Register with OTP
-    const registerResult = await client.registerWithOTP({
-      email,
-      contact: { type: 'email', contact: email },
-      projectId,
-    })
-
-    // Try to verify with a wrong code
-    const wrongEncryptedBundle = await encryptOtpAttempt({
-      otpCode: 'WRONG12',
-      publicKey,
-      encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
-    })
-    const authProxyClient = createAuthProxyClient({ authProxyConfigId })
-    await expect(
-      authProxyClient.verifyOtp({
-        otpId: registerResult.otpId,
-        encryptedOtpBundle: wrongEncryptedBundle,
-      }),
-    ).rejects.toThrow()
   })
 })

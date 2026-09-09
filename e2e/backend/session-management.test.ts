@@ -1,5 +1,5 @@
 /**
- * E2E integration test for session management.
+ * Backend E2E test for session management.
  *
  * After OTP login, seed that real session into Core, refresh it, restore it,
  * and prove the replacement key can still sign.
