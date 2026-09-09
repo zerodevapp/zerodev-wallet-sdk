@@ -86,6 +86,16 @@ function Root() {
 }
 ```
 
+> **Page-load reconnect and `status`.** On load, wagmi's `reconnect()` sweeps
+> every connector — including each wallet extension it discovers via
+> EIP-6963 — and only flips `status` to `'connected'` after the whole sweep.
+> A locked or idle extension can hold that for 10–15 seconds even though this
+> connector reconnected in under one. The connection is in wagmi's store the
+> moment it lands: `useAccount().address` is set while `status` is still
+> `'connecting'` / `'reconnecting'` (wagmi's "reconnecting with a known
+> account" state). Gate your UI on `address` rather than `isConnected` and it
+> renders as soon as the wallet is back.
+
 ## Usage
 
 Mount `<ConnectWallet />` to render the active sign-in screen. Connecting via the

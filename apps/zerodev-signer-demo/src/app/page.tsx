@@ -44,24 +44,27 @@ function LandingPageInner() {
   const [settings, setSettings] = useState<PlaygroundSettings>(DEFAULT_SETTINGS)
 
   const {connect, connectors, status: connectStatus} = useConnect()
-  const {isConnected, status: accountStatus} = useAccount()
+  const {address, status: accountStatus} = useAccount()
+  // See dashboard/page.tsx: `address` lands before wagmi's reconnect sweep
+  // finishes; `isConnected` waits for every discovered extension.
+  const hasWallet = !!address
   const {step: authStep} = useAuth()
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
-  // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
+  // wagmi hasn't exposed the account yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
   // loading screen so the page doesn't sit blank and then jump.
-  const isRedirecting = isConnected || authStep === 'authenticated'
+  const isRedirecting = hasWallet || authStep === 'authenticated'
   // wagmi failed to (re)connect — offer a manual Reconnect instead of a
   // misleading CTA.
   const showReconnect =
-    !isConnected && authStep === null && connectStatus === 'error'
+    !hasWallet && authStep === null && connectStatus === 'error'
   // ConnectWallet renders nothing until it has a `step`, so any time we're not
   // connected and have no step yet — initial session probe, auto-connect in
   // flight, or landing back here right after logout — show the loader instead
   // of a blank column. Keeps the login <-> dashboard transition smooth in
   // both directions.
   const showLoading =
-    isRedirecting || (!isConnected && authStep === null && !showReconnect)
+    isRedirecting || (!hasWallet && authStep === null && !showReconnect)
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
@@ -77,7 +80,7 @@ function LandingPageInner() {
   }, [])
 
   useEffect(() => {
-    if (isConnected) {
+    if (hasWallet) {
       router.push('/dashboard')
       return
     }
@@ -89,7 +92,7 @@ function LandingPageInner() {
       connect({connector: connectors[0]})
     }
   }, [
-    isConnected,
+    hasWallet,
     accountStatus,
     connectStatus,
     router,

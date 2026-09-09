@@ -117,6 +117,15 @@ export default function DashboardPage() {
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
+  // Readiness is "we have a wallet", not "wagmi finished reconnecting".
+  // On page load wagmi's reconnect() sweeps every connector — including each
+  // wallet extension discovered via EIP-6963 — and only flips `status` to
+  // 'connected' after the whole sweep. A locked or idle extension can hold
+  // that for 10–15s even though our connector reconnected in under a second.
+  // The connection itself is in wagmi's store the moment it lands, exposed
+  // as `address` while `status` is still 'connecting'/'reconnecting' (wagmi's
+  // "reconnecting with a known account" state). Gate on that.
+  const hasWallet = !!address;
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
@@ -211,10 +220,10 @@ export default function DashboardPage() {
   // Use a delay to avoid redirecting during initial reconnection
   const [hasConnected, setHasConnected] = useState(false);
   useEffect(() => {
-    if (status === 'connected') {
+    if (hasWallet) {
       setHasConnected(true);
     }
-  }, [status]);
+  }, [hasWallet]);
   useEffect(() => {
     if (status === 'disconnected' && hasConnected) {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
@@ -233,7 +242,7 @@ export default function DashboardPage() {
     return () => window.clearTimeout(timeout);
   }, [status, isLoggingOut]);
 
-  if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
+  if (isLoggingOut || !hasWallet) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2">
