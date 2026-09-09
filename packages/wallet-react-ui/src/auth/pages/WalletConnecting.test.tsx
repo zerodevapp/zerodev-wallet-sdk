@@ -30,10 +30,58 @@ let store = createStore()
 const connect = vi.fn()
 type FakeConnector = { uid: string; name: string; icon?: string }
 let connectors: FakeConnector[] = []
+// Minimal wagmi config store: useKitStore reads the kit connector off it, and
+// the page subscribes to it for the connection signal that outlives React.
+type FakeState = {
+  status: 'connected' | 'disconnected'
+  current: string | null
+  connections: Map<string, { connector: FakeConnector }>
+}
+type Sub = {
+  selector: (s: FakeState) => unknown
+  listener: (v: unknown, p: unknown) => void
+  prev: unknown
+}
+const fakeConfig = {
+  connectors: [{ id: 'zerodev-wallet', getKitStore: () => store }],
+  state: {
+    status: 'disconnected',
+    current: null,
+    connections: new Map(),
+  } as FakeState,
+  subs: new Set<Sub>(),
+  subscribe(selector: Sub['selector'], listener: Sub['listener']) {
+    const sub: Sub = { selector, listener, prev: selector(fakeConfig.state) }
+    fakeConfig.subs.add(sub)
+    return () => fakeConfig.subs.delete(sub)
+  },
+  /** What wagmi does to its store when a connector's connect() succeeds. */
+  connectAs(connector: FakeConnector) {
+    fakeConfig.state = {
+      status: 'connected',
+      current: connector.uid,
+      connections: new Map([[connector.uid, { connector }]]),
+    }
+    for (const sub of fakeConfig.subs) {
+      const next = sub.selector(fakeConfig.state)
+      if (next !== sub.prev) {
+        const prev = sub.prev
+        sub.prev = next
+        sub.listener(next, prev)
+      }
+    }
+  },
+  reset() {
+    fakeConfig.state = {
+      status: 'disconnected',
+      current: null,
+      connections: new Map(),
+    }
+    fakeConfig.subs.clear()
+  },
+}
 vi.mock('wagmi', () => ({
-  useConfig: () => ({
-    connectors: [{ id: 'zerodev-wallet', getKitStore: () => store }],
-  }),
+  useConfig: () => fakeConfig,
   useConnectors: () => connectors,
   useConnect: () => ({ connect }),
 }))
@@ -49,6 +97,7 @@ const callbacks = () =>
 beforeEach(() => {
   vi.clearAllMocks()
   store = createStore()
+  fakeConfig.reset()
   connectors = [metamask]
   // The state a wallet button leaves behind.
   auth().goToStep('sign-up')
@@ -141,5 +190,49 @@ describe('WalletConnecting', () => {
     expect(screen.getByTestId('body').textContent).toContain(
       'no longer available',
     )
+  })
+
+  describe('host unmounts the widget the moment wagmi connects', () => {
+    // The demo (and most hosts) redirect on `isConnected`, unmounting the
+    // widget in that same render — the mutation callbacks never fire.
+    it('still closes the flow via the wagmi store, so the next mount does not re-prompt the wallet', () => {
+      const { unmount } = render(<WalletConnecting />)
+      unmount()
+      act(() => fakeConfig.connectAs(metamask))
+
+      expect(auth().step).toBeNull()
+      expect(auth().pendingWallet).toBeNull()
+      // Remounting later (e.g. after logout) must not fire connect() again.
+      connect.mockClear()
+      render(<WalletConnecting />)
+      expect(connect).not.toHaveBeenCalled()
+    })
+
+    it('ignores a connection to some other connector', () => {
+      const { unmount } = render(<WalletConnecting />)
+      unmount()
+      act(() => fakeConfig.connectAs({ uid: 'other', name: 'Other' }))
+
+      expect(auth().step).toBe('wallet-connecting')
+      expect(auth().pendingWallet).toMatchObject({ connectorUid: 'mm' })
+    })
+
+    it('keeps watching after Cancel, so a late approval closes the widget', () => {
+      render(<WalletConnecting />)
+      fireEvent.click(screen.getByText('Cancel'))
+      expect(auth().step).toBe('sign-up')
+
+      act(() => fakeConfig.connectAs(metamask))
+      expect(auth().step).toBeNull()
+      expect(auth().pendingWallet).toBeNull()
+    })
+
+    it('stops watching once the wallet rejects', () => {
+      render(<WalletConnecting />)
+      const rejection = new Error('User rejected the request.')
+      rejection.name = 'UserRejectedRequestError'
+      act(() => callbacks().onError(rejection))
+      expect(fakeConfig.subs.size).toBe(0)
+    })
   })
 })

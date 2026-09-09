@@ -1,6 +1,5 @@
 import { Screen, TopNav } from '@zerodev/react-ui'
 import { type ReactNode, useEffect } from 'react'
-import { useAccount } from 'wagmi'
 import { StatusScreen } from '../shared/components/StatusScreen'
 import { useAuth } from './hooks/useAuth'
 import { EmailVerification } from './pages/EmailVerification'
@@ -74,29 +73,7 @@ export function ConnectWallet({
    * independently. */
   logo?: ReactNode | undefined
 } = {}) {
-  const { step, goToStep, goBack, reset, pendingWallet, clearPendingWallet } =
-    useAuth()
-  const { connector: activeConnector, isConnected } = useAccount()
-
-  // Late approval: the user cancelled the wallet-connecting step (the wallet
-  // never answered), then approved the still-open request in the wallet.
-  // The connecting page is unmounted by then, so its callbacks are gone —
-  // this is the only place still watching. Keyed on the exact connector the
-  // user picked, so a host that is connected to some other wallet and opens
-  // the widget on purpose is left alone.
-  useEffect(() => {
-    if (step === null || !pendingWallet || !isConnected) return
-    if (activeConnector?.uid !== pendingWallet.connectorUid) return
-    clearPendingWallet()
-    goToStep(null)
-  }, [
-    step,
-    pendingWallet,
-    isConnected,
-    activeConnector,
-    clearPendingWallet,
-    goToStep,
-  ])
+  const { step, goToStep, goBack, reset } = useAuth()
 
   useEffect(() => {
     if (step === null && hasMagicLinkCodeInUrl()) {

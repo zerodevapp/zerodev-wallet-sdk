@@ -9,7 +9,6 @@ import type { AuthStep } from './types'
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  mockAccount = { isConnected: false }
   mockPendingWallet = null
 })
 
@@ -58,14 +57,6 @@ vi.mock('../shared/components/StatusScreen', () => ({
       <div data-testid="status-content">{children}</div>
     </div>
   ),
-}))
-
-// ConnectWallet watches wagmi for the late-approval case.
-let mockAccount: { isConnected: boolean; connector?: { uid: string } } = {
-  isConnected: false,
-}
-vi.mock('wagmi', () => ({
-  useAccount: () => mockAccount,
 }))
 
 // Mock useAuth hook. Typed against the real hook so field drift (renamed or
@@ -157,40 +148,6 @@ describe('ConnectWallet', () => {
 
     expect(screen.getByTestId('verifying')).toBeDefined()
     expect(screen.getByText('Verifying Page')).toBeDefined()
-  })
-
-  describe('late approval after the user cancelled the connecting step', () => {
-    it('closes when the wallet the user picked comes up connected', () => {
-      // Cancel returned to sign-up; the wallet then approved the still-open
-      // request. The connecting page (and its callbacks) are long gone.
-      mockStep = 'sign-up'
-      mockPendingWallet = { connectorUid: 'mm', name: 'MetaMask' }
-      mockAccount = { isConnected: true, connector: { uid: 'mm' } }
-      render(<ConnectWallet />)
-
-      expect(clearPendingWallet).toHaveBeenCalledTimes(1)
-      expect(goToStep).toHaveBeenCalledWith(null)
-    })
-
-    it('leaves the widget alone when some other wallet is connected', () => {
-      // A host connected to another wallet that opens sign-up on purpose.
-      mockStep = 'sign-up'
-      mockPendingWallet = { connectorUid: 'mm', name: 'MetaMask' }
-      mockAccount = { isConnected: true, connector: { uid: 'other' } }
-      render(<ConnectWallet />)
-
-      expect(clearPendingWallet).not.toHaveBeenCalled()
-      expect(goToStep).not.toHaveBeenCalledWith(null)
-    })
-
-    it('does nothing once the record is cleared, even with the wallet connected', () => {
-      mockStep = 'sign-up'
-      mockPendingWallet = null
-      mockAccount = { isConnected: true, connector: { uid: 'mm' } }
-      render(<ConnectWallet />)
-
-      expect(goToStep).not.toHaveBeenCalledWith(null)
-    })
   })
 
   it('renders wallet-connecting page', () => {

@@ -28,10 +28,17 @@ const nextConfig: NextConfig = {
         __dirname,
         'node_modules/@tanstack/react-query',
       ),
-      // `wagmi/connectors` re-exports @wagmi/core's tempo module, which
-      // imports its optional `accounts` peer. It isn't installed (nothing
-      // here uses tempo), so stub the specifier out of the bundle.
+      // `wagmi/connectors` re-exports every connector, and several import an
+      // optional peer that isn't installed because nothing here uses that
+      // connector: @wagmi/core's tempo module (`accounts`), baseAccount()
+      // (`@base-org/account`), metaMask() (`@metamask/connect-evm`). pino,
+      // pulled in by WalletConnect's logger, guards `pino-pretty` in a
+      // try/catch. webpack still reports each as a "Module not found"
+      // warning on every compile, so stub the specifiers out of the bundle.
       accounts: false,
+      '@base-org/account': false,
+      '@metamask/connect-evm': false,
+      'pino-pretty': false,
     }
     return config
   },

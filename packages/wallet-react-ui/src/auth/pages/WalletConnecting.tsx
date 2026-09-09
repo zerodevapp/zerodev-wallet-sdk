@@ -1,10 +1,17 @@
 import { Button, PoweredBy } from '@zerodev/react-ui'
 import { useEffect, useRef } from 'react'
-import { useConnect, useConnectors } from 'wagmi'
+import { useConfig, useConnect, useConnectors } from 'wagmi'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
 import { isRequestPendingError } from '../utils/isRequestPendingError'
+
+/**
+ * The one live wagmi-store watcher for the current attempt. Module-level on
+ * purpose: it has to outlive the component (see `attempt`), and a new attempt
+ * replaces rather than stacks.
+ */
+let stopWatching: (() => void) | undefined
 
 function describeConnectError(err: unknown, walletName: string): string {
   if (isCancellationError(err)) {
@@ -42,6 +49,7 @@ export function WalletConnecting() {
   } = useAuth()
   const connectors = useConnectors()
   const { connect } = useConnect()
+  const config = useConfig()
 
   const connector = pendingWallet
     ? connectors.find((c) => c.uid === pendingWallet.connectorUid)
@@ -56,19 +64,51 @@ export function WalletConnecting() {
       return
     }
     setConnectError(null)
+
+    // Close the flow the moment wagmi reports THIS connector connected —
+    // watching wagmi's store directly, not through React. Hosts typically
+    // redirect as soon as `isConnected` flips and unmount the widget in that
+    // same render, which drops the mutation's onSuccess below and any effect
+    // in this tree. Without a signal that survives unmount, the store was
+    // left at `wallet-connecting`, and the next time the widget mounted
+    // (e.g. after logout) this page re-ran connect() and re-prompted the
+    // wallet. Deliberately kept alive through Cancel, so a late approval
+    // still closes the widget; released on success, rejection, or the next
+    // attempt.
+    stopWatching?.()
+    const unsubscribe = config.subscribe(
+      (state) => (state.status === 'connected' ? state.current : null),
+      (current) => {
+        if (!current) return
+        const connected = config.state.connections.get(current)?.connector
+        if (connected?.uid !== connector.uid) return
+        release()
+        clearPendingWallet()
+        goToStep(null)
+      },
+    )
+    const release = () => {
+      unsubscribe()
+      if (stopWatching === unsubscribe) stopWatching = undefined
+    }
+    stopWatching = unsubscribe
+
     connect(
       { connector },
       {
-        // The external wallet is now the active wagmi connection — the
-        // embedded-wallet flow is done, so close the widget. Forget the
-        // record too, or reopening the widget later while this wallet is
-        // still connected would close it on sight (see ConnectWallet).
+        // Fast path while this page is still mounted; the watcher above is
+        // the one that's guaranteed. Forgetting the record matters too, or
+        // reopening the widget later with this wallet still connected would
+        // close it on sight.
         onSuccess: () => {
+          release()
           clearPendingWallet()
           goToStep(null)
         },
-        onError: (err) =>
-          setConnectError(describeConnectError(err, walletName)),
+        onError: (err) => {
+          release()
+          setConnectError(describeConnectError(err, walletName))
+        },
       },
     )
   }
