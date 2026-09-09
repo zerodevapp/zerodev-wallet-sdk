@@ -1,8 +1,7 @@
 import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useLayoutEffect } from 'react'
-import { useConnect, useConnectors } from 'wagmi'
+import { useConnectors } from 'wagmi'
 import { useAuth } from '../../hooks/useAuth'
-import { isCancellationError } from '../../utils/isCancellationError'
 import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
 import {
   announcesWallet,
@@ -10,7 +9,7 @@ import {
   WALLET_GUIDE,
   type WalletId,
 } from '../../walletGuide'
-import { useReportPending, useSignUpContext } from './context'
+import { useSignUpContext } from './context'
 
 /** Dedicated row for a single guide wallet: connects it directly when a live
  * connector claims it, and is a download link for the vendor page otherwise. */
@@ -23,17 +22,10 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     )
   }
 
-  const { goToStep } = useAuth()
-  const {
-    authPending,
-    guardAgreement,
-    setError,
-    registerWallet,
-    openWalletSheet,
-  } = useSignUpContext()
+  const { startWalletConnect } = useAuth()
+  const { authPending, guardAgreement, registerWallet, openWalletSheet } =
+    useSignUpContext()
   const connectors = useConnectors()
-  const { connect, isPending } = useConnect()
-  useReportPending(isPending)
   useLayoutEffect(() => registerWallet(wallet.id), [registerWallet, wallet.id])
 
   // Only a 6963 announcement proves a live extension (or the wallet's own
@@ -81,23 +73,16 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     )
   }
 
+  // Hand off to the `wallet-connecting` step, which owns the connect() call
+  // and stays usable however the wallet responds (mirrors the other units).
   const handleClick = () => {
     if (authPending) return
     if (!guardAgreement()) return
-    setError(null)
-    connect(
-      { connector: claimed },
-      {
-        // The external wallet is now the active wagmi connection — the
-        // embedded-wallet flow is done, so close it (mirrors SignUp.MoreWallets).
-        onSuccess: () => goToStep(null),
-        onError: (err) => {
-          if (!isCancellationError(err)) {
-            setError(err instanceof Error ? err.message : String(err))
-          }
-        },
-      },
-    )
+    startWalletConnect({
+      connectorUid: claimed.uid,
+      name: wallet.name,
+      icon: wallet.icon,
+    })
   }
 
   return (

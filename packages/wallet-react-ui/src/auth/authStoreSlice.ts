@@ -42,6 +42,13 @@ function clearStoredOtpSession(): void {
   }
 }
 
+export type PendingWallet = {
+  /** wagmi connector uid — the connecting page resolves it via useConnectors. */
+  connectorUid: string
+  name: string
+  icon?: string | undefined
+}
+
 export interface AuthStoreSlice {
   auth: {
     // State
@@ -62,6 +69,26 @@ export interface AuthStoreSlice {
     }) => void
     /** Clear the persisted OTP session after a successful verify. */
     clearOtpSession: () => void
+
+    /**
+     * External wallet the `wallet-connecting` step is driving. The step's
+     * page owns the wagmi `connect()` call (per-call mutation callbacks are
+     * dropped if the component that issued them unmounts, and the sign-up
+     * page unmounts on the step change), so the button only records intent.
+     */
+    pendingWallet: PendingWallet | null
+    /** Rejection / failure shown on the connecting page. */
+    connectError: string | null
+    /** Record the wallet and move to `wallet-connecting`. */
+    startWalletConnect: (wallet: PendingWallet) => void
+    setConnectError: (message: string | null) => void
+    /**
+     * Forget the pending wallet. Deliberately NOT called when the user
+     * cancels: the wallet's request is still open, and if it is approved
+     * later `ConnectWallet` uses this record to recognise the connection and
+     * close. Called on success, and by `reset()`.
+     */
+    clearPendingWallet: () => void
 
     // Actions
     /** Restore a persisted OTP session (survives reloads mid-email-flow). */
@@ -85,6 +112,8 @@ export const createAuthStoreSlice: StateCreator<
     email: null,
     otpId: null,
     otpEncryptionTargetBundle: null,
+    pendingWallet: null,
+    connectError: null,
 
     // Actions
     initialize: () => {
@@ -104,10 +133,16 @@ export const createAuthStoreSlice: StateCreator<
         auth: {
           ...state.auth,
           step,
+          // `null` ends the flow, so there is nothing to go back to. Without
+          // this, an external-wallet success left ['sign-up', …] behind: the
+          // external connector's disconnect never runs our reset(), and the
+          // next open showed a back arrow into a stale history.
           stepHistory:
-            state.auth.step === null
-              ? state.auth.stepHistory
-              : [...state.auth.stepHistory, state.auth.step],
+            step === null
+              ? []
+              : state.auth.step === null
+                ? state.auth.stepHistory
+                : [...state.auth.stepHistory, state.auth.step],
         },
       }))
     },
@@ -136,7 +171,36 @@ export const createAuthStoreSlice: StateCreator<
           email: null,
           otpId: null,
           otpEncryptionTargetBundle: null,
+          pendingWallet: null,
+          connectError: null,
         },
+      }))
+    },
+
+    startWalletConnect: (wallet) => {
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          pendingWallet: wallet,
+          connectError: null,
+          step: 'wallet-connecting',
+          stepHistory:
+            state.auth.step === null
+              ? state.auth.stepHistory
+              : [...state.auth.stepHistory, state.auth.step],
+        },
+      }))
+    },
+
+    setConnectError: (message) => {
+      set((state) => ({
+        auth: { ...state.auth, connectError: message },
+      }))
+    },
+
+    clearPendingWallet: () => {
+      set((state) => ({
+        auth: { ...state.auth, pendingWallet: null, connectError: null },
       }))
     },
 

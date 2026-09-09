@@ -2,8 +2,8 @@
  * @vitest-environment happy-dom
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useReportPending } from './context'
 import { SignUp } from './index'
 
 afterEach(cleanup)
@@ -44,8 +44,9 @@ vi.mock('../../../shared/components/SignUpFooter', () => ({
 }))
 
 const goToStep = vi.fn()
+const startWalletConnect = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ goToStep }),
+  useAuth: () => ({ goToStep, startWalletConnect }),
 }))
 
 type FakeConnector = {
@@ -67,12 +68,9 @@ vi.mock('../../components/WalletSheet', () => ({
   },
 }))
 
-const connect = vi.fn()
 let connectors: FakeConnector[] = []
-let connectPending = false
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ connect, isPending: connectPending }),
 }))
 
 const announced = (id: string, name = id): FakeConnector => ({
@@ -86,7 +84,6 @@ const announced = (id: string, name = id): FakeConnector => ({
 beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
-  connectPending = false
 })
 
 describe('SignUp.InstalledWallets', () => {
@@ -110,12 +107,12 @@ describe('SignUp.InstalledWallets', () => {
     // Every row is a live announced provider — direct connect, never the
     // sheet (a WC handoff bounces out of the wallet's own in-app browser).
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(false)
 
     fireEvent.click(screen.getByText('Unknown'))
-    expect(connect).toHaveBeenCalledTimes(2)
+    expect(startWalletConnect).toHaveBeenCalledTimes(2)
   })
 
   it('renders a badged row per announced connector and nothing else', () => {
@@ -237,7 +234,7 @@ describe('SignUp.InstalledWallets', () => {
     expect(screen.queryByText('Example Wallet')).toBeNull()
   })
 
-  it('connects the clicked connector and closes the flow on success', () => {
+  it('connects the clicked connector into the connecting step', () => {
     const metamask = announced('io.metamask')
     connectors = [metamask, announced('io.rabby')]
     render(
@@ -247,11 +244,10 @@ describe('SignUp.InstalledWallets', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
-    expect(connect.mock.calls[0][0]).toEqual({ connector: metamask })
-
-    act(() => connect.mock.calls[0][1].onSuccess())
-    expect(goToStep).toHaveBeenCalledWith(null)
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+      connectorUid: metamask.uid,
+    })
   })
 
   it('blocks connect until terms are accepted', () => {
@@ -263,31 +259,11 @@ describe('SignUp.InstalledWallets', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).not.toHaveBeenCalled()
+    expect(startWalletConnect).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByTestId('footer-agree'))
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
-  })
-
-  it('surfaces connect failures through the error takeover, except user rejection', () => {
-    connectors = [announced('io.metamask')]
-    render(
-      <SignUp>
-        <SignUp.InstalledWallets />
-      </SignUp>,
-    )
-
-    fireEvent.click(screen.getByText('MetaMask'))
-    const rejection = new Error('User rejected the request.')
-    rejection.name = 'UserRejectedRequestError'
-    act(() => connect.mock.calls[0][1].onError(rejection))
-    expect(screen.queryByText('Error occurred')).toBeNull()
-
-    fireEvent.click(screen.getByText('MetaMask'))
-    act(() => connect.mock.calls[1][1].onError(new Error('boom')))
-    expect(screen.getByText('Error occurred')).toBeDefined()
-    expect(screen.getByText('boom')).toBeDefined()
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
   })
 
   it('auto-dedupes a wallet pinned via SignUp.Wallet', () => {
@@ -320,7 +296,7 @@ describe('SignUp.InstalledWallets', () => {
     // And the surviving pinned row connects it, instead of linking out to
     // the download page.
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
   })
 
   it('auto-dedupes regardless of unit order', () => {
@@ -368,15 +344,20 @@ describe('SignUp.InstalledWallets', () => {
   })
 
   it('disables rows while another method is in flight', () => {
+    function SiblingPending() {
+      useReportPending(true)
+      return null
+    }
+
     connectors = [announced('io.metamask')]
-    connectPending = true
     render(
       <SignUp>
         <SignUp.InstalledWallets />
+        <SiblingPending />
       </SignUp>,
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).not.toHaveBeenCalled()
+    expect(startWalletConnect).not.toHaveBeenCalled()
   })
 })

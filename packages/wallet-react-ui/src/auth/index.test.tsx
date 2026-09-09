@@ -8,6 +8,9 @@ import type { AuthStep } from './types'
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
+  mockAccount = { isConnected: false }
+  mockPendingWallet = null
 })
 
 // Mock all page components. ConnectWallet renders `SignUp.Default` by default,
@@ -32,6 +35,12 @@ vi.mock('./pages/Verifying', () => ({
   Verifying: () => <div data-testid="verifying">Verifying Page</div>,
 }))
 
+vi.mock('./pages/WalletConnecting', () => ({
+  WalletConnecting: () => (
+    <div data-testid="wallet-connecting">WalletConnecting Page</div>
+  ),
+}))
+
 vi.mock('./pages/ErrorScreen', () => ({
   ErrorScreen: () => <div data-testid="error">Error Page</div>,
 }))
@@ -51,21 +60,37 @@ vi.mock('../shared/components/StatusScreen', () => ({
   ),
 }))
 
+// ConnectWallet watches wagmi for the late-approval case.
+let mockAccount: { isConnected: boolean; connector?: { uid: string } } = {
+  isConnected: false,
+}
+vi.mock('wagmi', () => ({
+  useAccount: () => mockAccount,
+}))
+
 // Mock useAuth hook. Typed against the real hook so field drift (renamed or
 // removed members) fails the typecheck instead of accumulating silently.
 let mockStep: AuthStep | null = null
+let mockPendingWallet: { connectorUid: string; name: string } | null = null
+const goToStep = vi.fn()
+const clearPendingWallet = vi.fn()
 vi.mock('./hooks/useAuth', () => ({
   useAuth: (): ReturnType<typeof import('./hooks/useAuth')['useAuth']> => ({
     step: mockStep,
     email: null,
     otpId: null,
     otpEncryptionTargetBundle: null,
-    goToStep: vi.fn(),
+    goToStep,
     goBack: null,
     reset: vi.fn(),
     setEmail: vi.fn(),
     setOtpSession: vi.fn(),
     clearOtpSession: vi.fn(),
+    pendingWallet: mockPendingWallet,
+    connectError: null,
+    startWalletConnect: vi.fn(),
+    setConnectError: vi.fn(),
+    clearPendingWallet,
   }),
 }))
 
@@ -132,6 +157,48 @@ describe('ConnectWallet', () => {
 
     expect(screen.getByTestId('verifying')).toBeDefined()
     expect(screen.getByText('Verifying Page')).toBeDefined()
+  })
+
+  describe('late approval after the user cancelled the connecting step', () => {
+    it('closes when the wallet the user picked comes up connected', () => {
+      // Cancel returned to sign-up; the wallet then approved the still-open
+      // request. The connecting page (and its callbacks) are long gone.
+      mockStep = 'sign-up'
+      mockPendingWallet = { connectorUid: 'mm', name: 'MetaMask' }
+      mockAccount = { isConnected: true, connector: { uid: 'mm' } }
+      render(<ConnectWallet />)
+
+      expect(clearPendingWallet).toHaveBeenCalledTimes(1)
+      expect(goToStep).toHaveBeenCalledWith(null)
+    })
+
+    it('leaves the widget alone when some other wallet is connected', () => {
+      // A host connected to another wallet that opens sign-up on purpose.
+      mockStep = 'sign-up'
+      mockPendingWallet = { connectorUid: 'mm', name: 'MetaMask' }
+      mockAccount = { isConnected: true, connector: { uid: 'other' } }
+      render(<ConnectWallet />)
+
+      expect(clearPendingWallet).not.toHaveBeenCalled()
+      expect(goToStep).not.toHaveBeenCalledWith(null)
+    })
+
+    it('does nothing once the record is cleared, even with the wallet connected', () => {
+      mockStep = 'sign-up'
+      mockPendingWallet = null
+      mockAccount = { isConnected: true, connector: { uid: 'mm' } }
+      render(<ConnectWallet />)
+
+      expect(goToStep).not.toHaveBeenCalledWith(null)
+    })
+  })
+
+  it('renders wallet-connecting page', () => {
+    mockStep = 'wallet-connecting'
+    render(<ConnectWallet />)
+
+    expect(screen.getByTestId('wallet-connecting')).toBeDefined()
+    expect(screen.getByText('WalletConnecting Page')).toBeDefined()
   })
 
   it('renders oauth-in-progress state', () => {
