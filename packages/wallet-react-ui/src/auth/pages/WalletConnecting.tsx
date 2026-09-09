@@ -103,9 +103,8 @@ export function WalletConnecting() {
     // left at `wallet-connecting`, and the next time the widget mounted
     // (e.g. after logout) this page re-ran connect() and re-prompted the
     // wallet. Deliberately kept alive after the user leaves this screen, so a
-    // late approval
-    // still closes the widget; released on success, rejection, or the next
-    // attempt.
+    // late approval still closes the widget; released on success, rejection,
+    // or the next attempt.
     stopWatching?.()
     const unsubscribe = config.subscribe(
       (state) => (state.status === 'connected' ? state.current : null),

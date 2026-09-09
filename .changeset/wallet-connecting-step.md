@@ -8,17 +8,24 @@ Picking an external wallet now moves to a `wallet-connecting` step instead of
 disabling every sign-up button while wagmi's `connect()` is pending. A wallet
 that is locked, or whose popup the user closed without answering, never
 answers — the old design left the page frozen with no error and no way out.
-The new step shows which wallet is being connected, lets the user cancel or
-try again whatever the wallet does, explains a user rejection, and translates
-MetaMask's `-32002` "request already pending" into what to do about it.
+The new step shows which wallet it is waiting on and always offers a way
+back to the other sign-in methods, whatever the wallet does.
 
-The connecting page owns the `connect()` call: React Query drops per-call
-mutation callbacks when the component that issued them unmounts, and the
-sign-up page unmounts on the step change.
+Outcomes are reported for what they are: a user rejection reads "Request
+declined"; MetaMask's `-32002` "request already pending" (popup closed, then
+clicked again) is rendered as a waiting state — "Request waiting in MetaMask",
+with the instruction to finish it from the extension — since nothing failed
+and the wallet will not show a second prompt until the first is answered.
+Wallets throw that error as a raw JSON-RPC object, not an `Error`; it no
+longer renders as `[object Object]`.
 
-If the user cancels and the wallet is approved later anyway, `ConnectWallet`
-recognises the connection (keyed on the exact connector the user picked) and
-closes, instead of leaving the widget open on sign-up.
+The connecting page owns the `connect()` call and watches wagmi's store
+directly for the connection: hosts typically redirect the moment
+`isConnected` flips and unmount the widget in that same render, which drops
+React-side callbacks. Without a signal that survives unmount the flow was left
+at `wallet-connecting`, and the next time the widget mounted (e.g. after
+logout) it re-prompted the wallet. A late approval after the user has left
+the screen still closes the widget for the same reason.
 
 Also fixes the back arrow that appeared on reopening the widget after
 connect → disconnect: `goToStep(null)` now clears the step history, since a
