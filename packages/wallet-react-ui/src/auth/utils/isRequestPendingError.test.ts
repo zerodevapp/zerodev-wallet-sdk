@@ -10,6 +10,16 @@ describe('isRequestPendingError', () => {
     ).toBe(true)
   })
 
+  it("matches the wallet's raw JSON-RPC object, which wagmi's injected connector rethrows unwrapped", () => {
+    expect(
+      isRequestPendingError({
+        code: -32002,
+        message:
+          'Request of type wallet_requestPermissions already pending for origin http://localhost:3000. Please wait.',
+      }),
+    ).toBe(true)
+  })
+
   it("matches viem's ResourceUnavailableRpcError by name", () => {
     const err = new Error('Resource unavailable')
     err.name = 'ResourceUnavailableRpcError'

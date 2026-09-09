@@ -30,7 +30,7 @@ let store = createStore()
 /** Deferred for the in-flight @wagmi/core connect(); one per attempt. */
 let settle: { resolve: () => void; reject: (err: unknown) => void }
 const connect = vi.fn(
-  () =>
+  (..._args: unknown[]) =>
     new Promise<void>((resolve, reject) => {
       settle = { resolve: () => resolve(), reject }
     }),
@@ -130,9 +130,7 @@ describe('WalletConnecting', () => {
     // A second connect() would trip the wallet's "request already pending".
     expect(connect).toHaveBeenCalledTimes(1)
     expect(connect.mock.calls[0][1]).toEqual({ connector: metamask })
-    expect(screen.getByTestId('title').textContent).toBe(
-      'Connecting to MetaMask',
-    )
+    expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
   })
 
   it('closes the widget and forgets the wallet when it approves', async () => {
@@ -144,17 +142,17 @@ describe('WalletConnecting', () => {
     expect(auth().pendingWallet).toBeNull()
   })
 
-  it('keeps the wallet record after Cancel, so a late approval can still close the widget', () => {
+  it('keeps the wallet record after leaving the screen, so a late approval can still close the widget', () => {
     render(<WalletConnecting />)
-    fireEvent.click(screen.getByText('Cancel'))
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
     expect(auth().step).toBe('sign-up')
     expect(auth().pendingWallet).toMatchObject({ connectorUid: 'mm' })
   })
 
-  it('stays usable when the wallet never answers: Cancel returns to sign-up', () => {
+  it('stays usable when the wallet never answers: the user can choose another method', () => {
     // Locked wallet, or the user closed the popup: no callback ever fires.
     render(<WalletConnecting />)
-    fireEvent.click(screen.getByText('Cancel'))
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
     expect(auth().step).toBe('sign-up')
   })
 
@@ -167,6 +165,7 @@ describe('WalletConnecting', () => {
     const rejection = new Error('User rejected the request.')
     rejection.name = 'UserRejectedRequestError'
     await rejectWith(rejection)
+    expect(screen.getByTestId('title').textContent).toBe('Request declined')
     expect(screen.getByTestId('body').textContent).toContain(
       'declined the connection request in MetaMask',
     )
@@ -189,8 +188,35 @@ describe('WalletConnecting', () => {
     )
     await rejectWith(wrapped)
     expect(screen.getByTestId('body').textContent).toContain(
-      'already has a connection request open',
+      'still has your connection request open',
     )
+  })
+
+  it("handles MetaMask's raw -32002 object (closed popup, clicked again) without printing [object Object]", async () => {
+    // wagmi's injected connector rethrows the wallet's JSON-RPC error object
+    // unwrapped for -32002 — not an Error instance.
+    render(<WalletConnecting />)
+    await rejectWith({
+      code: -32002,
+      message:
+        'Request of type wallet_requestPermissions already pending for origin http://localhost:3000.',
+    })
+    // A waiting state, not a failure.
+    expect(screen.getByTestId('title').textContent).toBe(
+      'Request waiting in MetaMask',
+    )
+    const body = screen.getByTestId('body').textContent ?? ''
+    expect(body).toContain('still has your connection request open')
+    expect(body).toContain("browser's toolbar")
+    expect(body).not.toContain('[object Object]')
+  })
+
+  it("shows a raw error object's message rather than [object Object]", async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32603, message: 'Internal JSON-RPC error.' })
+    const body = screen.getByTestId('body').textContent ?? ''
+    expect(body).toContain('Internal JSON-RPC error.')
+    expect(body).not.toContain('[object Object]')
   })
 
   it('surfaces other failures verbatim', async () => {
@@ -233,9 +259,9 @@ describe('WalletConnecting', () => {
       expect(auth().pendingWallet).toMatchObject({ connectorUid: 'mm' })
     })
 
-    it('keeps watching after Cancel, so a late approval closes the widget', () => {
+    it('keeps watching after the user leaves the screen, so a late approval closes the widget', () => {
       render(<WalletConnecting />)
-      fireEvent.click(screen.getByText('Cancel'))
+      fireEvent.click(screen.getByText('Choose another sign-in method'))
       expect(auth().step).toBe('sign-up')
 
       act(() => fakeConfig.connectAs(metamask))

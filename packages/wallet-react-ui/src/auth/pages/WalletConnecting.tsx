@@ -3,6 +3,7 @@ import { Button, PoweredBy } from '@zerodev/react-ui'
 import { useEffect, useRef } from 'react'
 import { useConfig, useConnectors } from 'wagmi'
 import { StatusScreen } from '../../shared/components/StatusScreen'
+import type { ConnectFailure } from '../authStoreSlice'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
 import { isRequestPendingError } from '../utils/isRequestPendingError'
@@ -14,17 +15,43 @@ import { isRequestPendingError } from '../utils/isRequestPendingError'
  */
 let stopWatching: (() => void) | undefined
 
-function describeConnectError(err: unknown, walletName: string): string {
+function describeConnectError(
+  err: unknown,
+  walletName: string,
+): ConnectFailure {
   if (isCancellationError(err)) {
-    return `You declined the connection request in ${walletName}.`
+    return {
+      title: 'Request declined',
+      message: `You declined the connection request in ${walletName}.`,
+      pending: false,
+    }
   }
   if (isRequestPendingError(err)) {
-    return (
-      `${walletName} already has a connection request open. ` +
-      'Approve or dismiss it in the wallet, then try again.'
-    )
+    // Not a failure: the first request is still open inside the wallet, which
+    // won't show a second prompt until it's answered — the user has to go to
+    // the extension. Rendered as a waiting state, not an error.
+    return {
+      title: `Request waiting in ${walletName}`,
+      message:
+        `${walletName} still has your connection request open. ` +
+        `Open ${walletName} from your browser's toolbar to approve or dismiss ` +
+        'it, then try again.',
+      pending: true,
+    }
   }
-  return err instanceof Error ? err.message : String(err)
+  // Never render "[object Object]": wallets throw plain JSON-RPC error
+  // objects, viem throws Errors with a friendlier `shortMessage`.
+  let message: string | undefined
+  if (typeof err === 'object' && err !== null) {
+    const e = err as { shortMessage?: unknown; message?: unknown }
+    const text = e.shortMessage ?? e.message
+    if (typeof text === 'string' && text.length > 0) message = text
+  }
+  return {
+    title: 'Couldn’t connect',
+    message: message ?? (err instanceof Error ? err.message : String(err)),
+    pending: false,
+  }
 }
 
 /**
@@ -58,9 +85,12 @@ export function WalletConnecting() {
 
   const attempt = () => {
     if (!connector) {
-      setConnectError(
-        'This wallet is no longer available. Choose another sign-in method.',
-      )
+      setConnectError({
+        title: 'Couldn’t connect',
+        message:
+          'This wallet is no longer available. Choose another sign-in method.',
+        pending: false,
+      })
       return
     }
     setConnectError(null)
@@ -72,7 +102,8 @@ export function WalletConnecting() {
     // in this tree. Without a signal that survives unmount, the store was
     // left at `wallet-connecting`, and the next time the widget mounted
     // (e.g. after logout) this page re-ran connect() and re-prompted the
-    // wallet. Deliberately kept alive through Cancel, so a late approval
+    // wallet. Deliberately kept alive after the user leaves this screen, so a
+    // late approval
     // still closes the widget; released on success, rejection, or the next
     // attempt.
     stopWatching?.()
@@ -132,19 +163,29 @@ export function WalletConnecting() {
           <>
             <StatusScreen
               imageName="loading"
-              title={`Connecting to ${walletName}`}
+              title={`Waiting for ${walletName}`}
             >
-              Approve the connection request in your wallet.
+              Approve or reject the request in your wallet.
               <br />
-              Nothing showing? Open the wallet — the request may be waiting
+              Nothing showing? Open the wallet, the request may be waiting
               behind its unlock screen.
             </StatusScreen>
-            <Button action="secondary" text="Cancel" onClick={chooseAnother} />
+            {/* Leaves this screen only — a pending wallet request can't be
+                cancelled from the page (EIP-1193 has no cancel), so the label
+                says what it does rather than promising to close the wallet. */}
+            <Button
+              action="secondary"
+              text="Choose another sign-in method"
+              onClick={chooseAnother}
+            />
           </>
         ) : (
           <>
-            <StatusScreen imageName="error" title="Couldn’t connect">
-              {connectError}
+            <StatusScreen
+              imageName={connectError.pending ? 'loading' : 'error'}
+              title={connectError.title}
+            >
+              {connectError.message}
             </StatusScreen>
             <div className="zd:flex zd:flex-col zd:gap-1">
               <Button action="primary" text="Try again" onClick={attempt} />

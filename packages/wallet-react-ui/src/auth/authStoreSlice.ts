@@ -42,6 +42,19 @@ function clearStoredOtpSession(): void {
   }
 }
 
+/**
+ * Why the `wallet-connecting` step stopped waiting. Carries its own title
+ * because not every outcome is a failure: a request the wallet is still
+ * holding (EIP-1193 `-32002`) is a waiting state, and the page renders it as
+ * one rather than as "Couldn't connect".
+ */
+export type ConnectFailure = {
+  title: string
+  message: string
+  /** True when the wallet still has the request open — render as waiting. */
+  pending: boolean
+}
+
 export type PendingWallet = {
   /** wagmi connector uid — the connecting page resolves it via useConnectors. */
   connectorUid: string
@@ -77,11 +90,11 @@ export interface AuthStoreSlice {
      * page unmounts on the step change), so the button only records intent.
      */
     pendingWallet: PendingWallet | null
-    /** Rejection / failure shown on the connecting page. */
-    connectError: string | null
+    /** Rejection / failure / still-pending state shown on the connecting page. */
+    connectError: ConnectFailure | null
     /** Record the wallet and move to `wallet-connecting`. */
     startWalletConnect: (wallet: PendingWallet) => void
-    setConnectError: (message: string | null) => void
+    setConnectError: (failure: ConnectFailure | null) => void
     /**
      * Forget the pending wallet. Deliberately NOT called when the user
      * cancels: the wallet's request is still open, and if it is approved
@@ -193,9 +206,9 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
-    setConnectError: (message) => {
+    setConnectError: (failure) => {
       set((state) => ({
-        auth: { ...state.auth, connectError: message },
+        auth: { ...state.auth, connectError: failure },
       }))
     },
 
