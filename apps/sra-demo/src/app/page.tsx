@@ -76,6 +76,10 @@ export default function Home() {
   // producing a UI ↔ mock mismatch).
   const [mockErrorMode, setMockErrorMode] = useState<MockErrorMode>('none')
   const [mockSponsored, setMockSponsored] = useState(false)
+  // Lifted for the same reason as the toggles above: the mock-controls
+  // <details> would otherwise reset to closed every time an action bumps
+  // `mockNonce` and remounts the subtree.
+  const [mockControlsOpen, setMockControlsOpen] = useState(false)
 
   const [draftRecipient, setDraftRecipient] = useState<string>(
     SIMULATED_DEFAULT_RECIPIENT,
@@ -248,6 +252,8 @@ export default function Home() {
                 setMockErrorMode={setMockErrorMode}
                 mockSponsored={mockSponsored}
                 setMockSponsored={setMockSponsored}
+                controlsOpen={mockControlsOpen}
+                setControlsOpen={setMockControlsOpen}
               />
             )}
 

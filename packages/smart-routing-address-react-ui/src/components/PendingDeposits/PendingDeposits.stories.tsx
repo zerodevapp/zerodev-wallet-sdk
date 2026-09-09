@@ -96,7 +96,7 @@ const deposits = [
     error: null,
     createdAt: iso(12 * 60 * 1000), // 12 m ago
   },
-  // Execution done → "Received".
+  // Execution done → "Delivered".
   {
     deposit: {
       chainId: optimism.id,
@@ -153,7 +153,7 @@ const meta: Meta<typeof PendingDeposits> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-/** Full section with one row per stage (Detected → Routing → Received → Failed). */
+/** Full section with one row per stage (Detected → Routing → Delivered → Failed). */
 export const AllStages: Story = {
   args: {
     deposits,

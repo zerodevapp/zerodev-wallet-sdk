@@ -1,15 +1,19 @@
 import {
-  ArrowCardPair,
   cn,
   DataRow,
   Icon,
-  InfoCard,
   ProgressStep,
   Section,
   Text,
+  TokenSummary,
+  Wrapper,
 } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { FeeBreakdownRows, FeeSummary } from '../components/FeeBreakdown'
+import {
+  FeeBreakdownRows,
+  FeeDisclosureButton,
+  FeeSummary,
+} from '../components/FeeBreakdown'
 import { FEE_INFO } from '../components/FeeBreakdown/feeInfo'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
 import { useDepositStatus } from '../hooks/useDepositStatus'
@@ -72,9 +76,10 @@ function formatDate(iso?: string): string | null {
 }
 
 /**
- * Transaction details view (Figma `17634:105049`) — token hero pair via
- * `ArrowCardPair` + `InfoCard`, a "Transaction details" `Section` with the
- * route metadata, and a "Transaction Progress" `Section` with the step trail.
+ * Transaction details view (Figma `20002:37994`) — delivered-amount hero via
+ * `TokenSummary`, a "From" row with the deposited amount, a "Transaction
+ * details" `Section` with the route metadata, and a "Transaction Progress"
+ * `Section` with the step trail.
  */
 export function TransactionDetails({
   deposit: initialDeposit,
@@ -117,11 +122,11 @@ export function TransactionDetails({
   const outAmountRaw = execution?.outputAmount
   const failed = stage === 'failed'
 
-  // Headline reads as "how much you sent" — round down so we never overstate
-  // the deposit. `formatDisplayAmount` (magnitude-aware) also prevents the
+  // "From" row amount — round down so we never overstate what was sent.
+  // `formatDisplayAmount` (magnitude-aware) also prevents the
   // 18-decimal fractional tail that `formatTokenAmount` produces for ETH.
-  const sourceHeadline = feeData
-    ? `${formatDisplayAmount(amount, feeData.decimal, 'down')} ${sourceSymbol}`
+  const sourceAmount = feeData
+    ? formatDisplayAmount(amount, feeData.decimal, 'down')
     : String(amount)
 
   // NOTE: `feeData.decimal` is the source token's decimals — the SRA fee
@@ -164,22 +169,35 @@ export function TransactionDetails({
     // Screen's scroll container can activate scrolling when the fee
     // breakdown is expanded and content exceeds the viewport.
     <div className="zd:flex zd:w-full zd:flex-col zd:gap-3 zd:pt-4 zd:pb-6">
-      <ArrowCardPair
-        topCard={
-          <InfoCard
-            title={sourceHeadline}
-            {...(sourceTokenLogo && { imageSource: sourceTokenLogo })}
-            {...(sourceChainLogo && { chainIconUrl: sourceChainLogo })}
-          />
-        }
-        bottomCard={
-          <InfoCard
-            title={destHeadline}
-            {...(destTokenLogo && { imageSource: destTokenLogo })}
-            {...(destChainLogo && { chainIconUrl: destChainLogo })}
-          />
-        }
+      {/* Delivered hero (Figma 20002:38000): the received amount headlines
+          the card, destination-token tile with chain badge overhanging the
+          top. The design's fiat secondary line is omitted — the SRA fee
+          estimates carry no USD pricing, and a fabricated conversion would
+          be worse than none. */}
+      <TokenSummary
+        primaryValue={destHeadline}
+        {...(destTokenLogo && { tokenLogoUrl: destTokenLogo })}
+        {...(destChainLogo && { badgeLogoUrl: destChainLogo })}
       />
+
+      {/* Deposited-side row (Figma 20002:38012). */}
+      {/* py-1.5, not the node's declared p-16: Figma pins this row to
+          ~33px total height, which crushes the vertical padding to ~6px —
+          honouring p-16 literally renders a ~53px row. */}
+      <Wrapper className="zd:flex zd:w-full zd:items-center zd:justify-between zd:rounded-xl zd:px-4 zd:py-1.5">
+        <Text className="zd:text-body1">From</Text>
+        <span className="zd:flex zd:items-center zd:gap-1">
+          <Text className="zd:text-body2">{sourceAmount}</Text>
+          {sourceTokenLogo && (
+            <img
+              src={sourceTokenLogo}
+              alt=""
+              className="zd:size-4 zd:rounded-full zd:border zd:border-offWhite zd:object-cover"
+            />
+          )}
+          <Text className="zd:text-body2">{sourceSymbol}</Text>
+        </span>
+      </Wrapper>
 
       <Section title="Transaction details">
         <DataRow
@@ -204,24 +222,19 @@ export function TransactionDetails({
         {breakdown && (
           <DataRow
             label="Total fee"
-            value={<FeeSummary breakdown={breakdown} />}
+            value={
+              // The whole value (summary + chevron) toggles the breakdown,
+              // not just the arrow.
+              <FeeDisclosureButton
+                open={feeOpen}
+                onToggle={() => setFeeOpen((prev) => !prev)}
+                panelId={FEE_PANEL_ID}
+              >
+                <FeeSummary breakdown={breakdown} />
+              </FeeDisclosureButton>
+            }
             info
             infoTooltip={FEE_INFO.estimatedFee}
-            trailing={
-              <button
-                type="button"
-                onClick={() => setFeeOpen((prev) => !prev)}
-                aria-expanded={feeOpen}
-                aria-controls={FEE_PANEL_ID}
-                aria-label={feeOpen ? 'Hide fee details' : 'Show fee details'}
-                className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-pointer"
-              >
-                <Icon
-                  name={feeOpen ? 'chevronUp' : 'chevronDown'}
-                  className="zd:w-3.5 zd:h-3.5 zd:text-greyScale"
-                />
-              </button>
-            }
           />
         )}
         {feeOpen && breakdown && (
@@ -301,7 +314,7 @@ function NetworkValue({ name, logoUrl }: { name: string; logoUrl?: string }) {
     <span className="zd:inline-flex zd:items-center zd:gap-1.5">
       <Text className="zd:whitespace-nowrap zd:font-medium">{name}</Text>
       {logoUrl && (
-        <img src={logoUrl} alt="" className="zd:size-4 zd:rounded-full" />
+        <img src={logoUrl} alt="" className="zd:size-4.5 zd:rounded-full" />
       )}
     </span>
   )
@@ -323,11 +336,8 @@ function TxLink({ label, href }: { label: string; href?: string | undefined }) {
       className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-greyScale zd:hover:text-solarOrange"
     >
       {label}
-      <Icon
-        name="export"
-        className="zd:size-3 zd:text-solarOrange"
-        aria-hidden
-      />
+      {/* Inherits the link's ink color (Figma 20002:38055) — no orange. */}
+      <Icon name="export" className="zd:size-3" aria-hidden />
     </a>
   )
 }

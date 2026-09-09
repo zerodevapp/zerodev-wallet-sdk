@@ -47,6 +47,8 @@ export function MockPanel({
   setMockErrorMode,
   mockSponsored,
   setMockSponsored,
+  controlsOpen,
+  setControlsOpen,
 }: {
   destChainId: number
   regenerate: () => void
@@ -54,6 +56,8 @@ export function MockPanel({
   setMockErrorMode: (mode: MockErrorMode) => void
   mockSponsored: boolean
   setMockSponsored: (value: boolean) => void
+  controlsOpen: boolean
+  setControlsOpen: (open: boolean) => void
 }) {
   const { addressState, activeRoute } = useSmartRoutingAddress()
   const route = activeRoute ?? FALLBACK
@@ -258,6 +262,8 @@ export function MockPanel({
             setErrorMode={setMockErrorMode}
             sponsored={mockSponsored}
             setSponsored={setMockSponsored}
+            open={controlsOpen}
+            setOpen={setControlsOpen}
           />
         </div>
       </li>

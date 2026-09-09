@@ -52,7 +52,13 @@ export function SelectIcon({
   return (
     <SelectPrimitive.Icon
       ref={ref}
-      className={cn('zd:shrink-0', className)}
+      // Radix sets data-state on the trigger; the `in-*` variant reads it
+      // from this descendant, so the chevron turns to face up while the
+      // panel is open and animates back down on close.
+      className={cn(
+        'zd:shrink-0 zd:transition-transform zd:duration-200 zd:in-data-[state=open]:rotate-180',
+        className,
+      )}
       {...props}
     >
       {children ?? (

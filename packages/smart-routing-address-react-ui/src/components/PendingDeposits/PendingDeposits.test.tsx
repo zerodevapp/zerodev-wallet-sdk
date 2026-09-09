@@ -108,7 +108,7 @@ describe('PendingDeposits', () => {
   it.each([
     { name: 'pending', deposit: detectedDeposit, label: 'Detected' },
     { name: 'bridging', deposit: bridgingDeposit, label: 'Routing' },
-    { name: 'completed', deposit: completedDeposit, label: 'Received' },
+    { name: 'completed', deposit: completedDeposit, label: 'Delivered' },
     { name: 'failed (error field)', deposit: failedDeposit, label: 'Failed' },
   ])('maps $name stage to "$label" status', ({ deposit, label }) => {
     render(

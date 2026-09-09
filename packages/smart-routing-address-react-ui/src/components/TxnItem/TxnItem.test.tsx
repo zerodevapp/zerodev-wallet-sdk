@@ -15,7 +15,7 @@ const BASE = {
 
 describe('TxnItem', () => {
   it('renders amount, address, and timestamp', () => {
-    render(<TxnItem {...BASE} status="Received" />)
+    render(<TxnItem {...BASE} status="Delivered" />)
     expect(screen.getByText('$248.00 USD')).toBeDefined()
     expect(screen.getByText('0x4d2a…ba99')).toBeDefined()
     expect(screen.getByText('2 mo ago')).toBeDefined()
@@ -26,16 +26,13 @@ describe('TxnItem', () => {
     expect(screen.getByText('Routing')).toBeDefined()
   })
 
-  it.each<TxnStatus>([
-    'Routing',
-    'Detected',
-    'Received',
-    'Delivered',
-    'Failed',
-  ])('accepts %s status without crashing', (status) => {
-    render(<TxnItem {...BASE} status={status} />)
-    expect(screen.getByText(status)).toBeDefined()
-  })
+  it.each<TxnStatus>(['Routing', 'Detected', 'Delivered', 'Failed'])(
+    'accepts %s status without crashing',
+    (status) => {
+      render(<TxnItem {...BASE} status={status} />)
+      expect(screen.getByText(status)).toBeDefined()
+    },
+  )
 
   it('shows the spinner marker only while Routing', () => {
     const { container, unmount } = render(
@@ -47,10 +44,7 @@ describe('TxnItem', () => {
     expect(done.querySelector('.zd\\:animate-spin')).toBeNull()
   })
 
-  it('renders Received in plain ink and Delivered in green', () => {
-    const { unmount } = render(<TxnItem {...BASE} status="Received" />)
-    expect(screen.getByText('Received').className).not.toContain('positive')
-    unmount()
+  it('renders Delivered in green', () => {
     render(<TxnItem {...BASE} status="Delivered" />)
     expect(screen.getByText('Delivered').className).toContain('positive')
   })
@@ -59,7 +53,7 @@ describe('TxnItem', () => {
     render(
       <TxnItem
         {...BASE}
-        status="Received"
+        status="Delivered"
         href="https://arbiscan.io/tx/0xabc"
       />,
     )
@@ -70,7 +64,7 @@ describe('TxnItem', () => {
   })
 
   it('renders the address as plain text (no link) when href is omitted', () => {
-    render(<TxnItem {...BASE} status="Received" />)
+    render(<TxnItem {...BASE} status="Delivered" />)
     expect(screen.queryByRole('link')).toBeNull()
   })
 
@@ -78,7 +72,7 @@ describe('TxnItem', () => {
     const { container } = render(
       <TxnItem
         {...BASE}
-        status="Received"
+        status="Delivered"
         sourceTokenIconUrl="data:image/svg+xml;base64,c3JjLXRvaw=="
         sourceChainIconUrl="data:image/svg+xml;base64,c3JjLWNoIQ=="
         destTokenIconUrl="data:image/svg+xml;base64,ZHN0LXRvaw=="

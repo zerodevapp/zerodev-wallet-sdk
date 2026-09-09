@@ -21,6 +21,7 @@ import { AddressDisplay } from '../components/AddressDisplay'
 import { ErrorRetryCard } from '../components/ErrorRetryCard'
 import {
   FeeBreakdownRows,
+  FeeDisclosureButton,
   FeeSummary,
   LiveValue,
 } from '../components/FeeBreakdown'
@@ -417,12 +418,19 @@ export function Deposit({
                   label="Estimated fee"
                   value={
                     breakdown ? (
-                      <LiveValue
-                        loading={providerFees.loading}
-                        flashKey={feeFlashKey}
+                      // The whole value (summary + chevron) toggles the
+                      // breakdown, not just the arrow.
+                      <FeeDisclosureButton
+                        open={feeOpen}
+                        onToggle={() => setFeeOpen((prev) => !prev)}
                       >
-                        <FeeSummary breakdown={breakdown} />
-                      </LiveValue>
+                        <LiveValue
+                          loading={providerFees.loading}
+                          flashKey={feeFlashKey}
+                        >
+                          <FeeSummary breakdown={breakdown} />
+                        </LiveValue>
+                      </FeeDisclosureButton>
                     ) : (
                       // Match Min deposit's skeleton so both loading
                       // affordances share one visual language.
@@ -431,24 +439,6 @@ export function Deposit({
                   }
                   info
                   infoTooltip={FEE_INFO.estimatedFee}
-                  trailing={
-                    breakdown ? (
-                      <button
-                        type="button"
-                        onClick={() => setFeeOpen((prev) => !prev)}
-                        aria-expanded={feeOpen}
-                        aria-label={
-                          feeOpen ? 'Hide fee details' : 'Show fee details'
-                        }
-                        className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-pointer"
-                      >
-                        <Icon
-                          name={feeOpen ? 'chevronUp' : 'chevronDown'}
-                          className="zd:w-3.5 zd:h-3.5 zd:text-greyScale"
-                        />
-                      </button>
-                    ) : null
-                  }
                 />
                 {feeOpen && breakdown && (
                   <FeeBreakdownRows breakdown={breakdown} />
@@ -476,6 +466,7 @@ export function Deposit({
                     label={destChain.name}
                     {...(destChainLogo && { logoUri: destChainLogo })}
                     disabled
+                    loading={!tokenSymbol}
                   />
                 }
               />

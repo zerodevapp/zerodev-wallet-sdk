@@ -46,7 +46,7 @@ export function ProgressStep({
           <div
             className={cn(
               'zd:mt-1 zd:h-4 zd:w-px',
-              done ? 'zd:bg-solarOrange/60' : 'zd:bg-greyScale/20',
+              done ? 'zd:bg-solarOrange' : 'zd:bg-greyScale/20',
             )}
           />
         )}
@@ -75,8 +75,8 @@ export function ProgressStep({
               className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-help zd:outline-none zd:bg-transparent"
             >
               <Icon
-                name="info"
-                className="zd:w-3 zd:h-3 zd:text-greyScale/50"
+                name="infoOutline"
+                className="zd:w-3.5 zd:h-3.5 zd:text-greyScale/50"
                 aria-hidden
               />
             </button>
@@ -94,28 +94,32 @@ function StatusMark({ status }: { status: ProgressStepStatus }) {
       return (
         <Icon
           name="warning"
-          className="zd:size-4 zd:text-negative"
+          className="zd:size-4.5 zd:text-negative"
           aria-hidden
         />
       )
     case 'done':
       return (
-        <span className="zd:inline-flex zd:size-4 zd:items-center zd:justify-center zd:rounded-full zd:bg-solarOrange">
-          <Icon name="check" className="zd:size-3 zd:text-white" aria-hidden />
-        </span>
+        // The `done` glyph IS the Figma "Done" mark (20002:38086): a
+        // 30%-opacity disc + solid check, both tinted via currentColor.
+        <Icon
+          name="done"
+          className="zd:size-4.5 zd:text-solarOrange"
+          aria-hidden
+        />
       )
     case 'active':
       return (
         <Icon
           name="loading"
-          className="zd:size-4 zd:animate-spin zd:text-solarOrange"
+          className="zd:size-4.5 zd:animate-spin zd:text-solarOrange"
           aria-hidden
           data-testid="progress-step-spinner"
         />
       )
     default:
       return (
-        <span className="zd:inline-block zd:size-4 zd:rounded-full zd:border zd:border-greyScale/30" />
+        <span className="zd:inline-block zd:size-4.5 zd:rounded-full zd:border zd:border-greyScale/30" />
       )
   }
 }
