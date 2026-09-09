@@ -3,32 +3,33 @@ name: Preview
 # Publishes throwaway preview packages for each PR via pkg.pr.new, installable
 # from its CDN (e.g. `npm i https://pkg.pr.new/@zerodev/wallet-react@<sha>`).
 #
-# SECURITY (public repo): uses `pull_request` — NOT `pull_request_target` — and
-# NO secrets. Fork PRs run with a read-only token and cannot access anything
-# sensitive. pkg.pr.new publishes to its own CDN (never npm) using the Actions
-# OIDC identity; its GitHub App posts the PR comment. No NPM_TOKEN is involved.
+# SECURITY (public repo): the only caller triggers on `pull_request`, not
+# `pull_request_target`, so fork PRs get a read-only token and no secrets.
+# pkg.pr.new publishes to its own CDN, never npm — no NPM_TOKEN involved.
 
 on:
-  pull_request:
-    branches: [main]
+  workflow_call:
+    outputs:
+      sha:
+        description: >-
+          The ref pkg.pr.new keyed its URLs on, parsed from its own output. Install
+          by this rather than formatting one from the commit sha.
+        value: ${{ jobs.preview.outputs.sha }}
 
 permissions:
   contents: read
-
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
 jobs:
   preview:
     name: Publish preview packages
     runs-on: ubuntu-latest
-    # Previews are advisory — a hiccup (or the pkg.pr.new app not yet installed)
-    # must never block a PR from merging.
-    continue-on-error: true
+    outputs:
+      sha: ${{ steps.publish.outputs.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
@@ -45,11 +46,50 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      # Only the four publishable packages (skips react-kit / native-kit / apps).
+      # Package list derived rather than hardcoded, and captured first so a script
+      # failure cannot become an empty argument list that publishes nothing.
+      # `sha` is parsed out of pkg-pr-new's own URLs: the keys are short shas, and
+      # a full one gave ERR_PNPM_FETCH_404 in run 33178618160.
       - name: Publish previews
-        run: >
-          pnpm dlx pkg-pr-new publish --pnpm
-          './packages/core'
-          './packages/react'
-          './packages/react-ui'
-          './packages/wallet-react-ui'
+        id: publish
+        shell: bash
+        run: |
+          pkgs=$(node scripts/check-publishable.mjs --list | sed 's|^|./|')
+          if [ -z "$pkgs" ]; then
+            echo "check-publishable produced no packages — refusing to publish nothing" >&2
+            exit 1
+          fi
+          echo "Publishing previews for:" $pkgs
+          pnpm dlx pkg-pr-new publish --pnpm $pkgs 2>&1 | tee "$RUNNER_TEMP/publish.log"
+
+          urls=$(sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/publish.log" \
+            | grep -oE 'https://pkg\.pr\.new/@[^ ]+' | sort -u || true)
+          if [ -z "$urls" ]; then
+            echo "pkg-pr-new printed no install URLs — nothing to hand to the E2E job" >&2
+            exit 1
+          fi
+          refs=$(printf '%s\n' "$urls" | sed 's/.*@//' | sort -u)
+          if [ "$(printf '%s\n' "$refs" | wc -l)" -ne 1 ]; then
+            echo "packages were published under more than one ref: $refs" >&2
+            exit 1
+          fi
+          echo "sha=$refs" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$urls" > "$RUNNER_TEMP/preview-urls.txt"
+
+      # "Published" and "installable" are not the same instant, and E2E's `needs:`
+      # trusts this job. Bounded, because the publish already succeeded.
+      - name: Verify previews are installable
+        shell: bash
+        run: |
+          while read -r url; do
+            for _ in $(seq 1 12); do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 20 "$url" || echo 000)
+              [ "$code" = 200 ] && break
+              sleep 5
+            done
+            if [ "$code" != 200 ]; then
+              echo "published but not installable after 60s: $url (HTTP $code)" >&2
+              exit 1
+            fi
+            echo "ok $url"
+          done < "$RUNNER_TEMP/preview-urls.txt"
