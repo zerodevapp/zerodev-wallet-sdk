@@ -1,6 +1,7 @@
+import { connect } from '@wagmi/core'
 import { Button, PoweredBy } from '@zerodev/react-ui'
 import { useEffect, useRef } from 'react'
-import { useConfig, useConnect, useConnectors } from 'wagmi'
+import { useConfig, useConnectors } from 'wagmi'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
@@ -48,7 +49,6 @@ export function WalletConnecting() {
     goToStep,
   } = useAuth()
   const connectors = useConnectors()
-  const { connect } = useConnect()
   const config = useConfig()
 
   const connector = pendingWallet
@@ -93,22 +93,21 @@ export function WalletConnecting() {
     }
     stopWatching = unsubscribe
 
-    connect(
-      { connector },
-      {
-        // Fast path while this page is still mounted; the watcher above is
-        // the one that's guaranteed. Forgetting the record matters too, or
-        // reopening the widget later with this wallet still connected would
-        // close it on sight.
-        onSuccess: () => {
-          release()
-          clearPendingWallet()
-          goToStep(null)
-        },
-        onError: (err) => {
-          release()
-          setConnectError(describeConnectError(err, walletName))
-        },
+    // The @wagmi/core action, not useConnect's mutate: React Query drops
+    // per-call callbacks when the issuing observer remounts — Strict Mode's
+    // simulated remount does exactly that, and the mount guard below stops
+    // the re-kick — which left a rejection spinning on this screen forever.
+    // A plain promise cannot lose its handlers, and the kit store is safe to
+    // write to even after this page unmounts.
+    connect(config, { connector }).then(
+      () => {
+        release()
+        clearPendingWallet()
+        goToStep(null)
+      },
+      (err) => {
+        release()
+        setConnectError(describeConnectError(err, walletName))
       },
     )
   }

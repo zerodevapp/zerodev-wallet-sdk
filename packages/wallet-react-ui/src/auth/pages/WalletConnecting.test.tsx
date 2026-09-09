@@ -27,7 +27,14 @@ vi.mock('../../shared/components/StatusScreen', () => ({
 // A real kit store behind useAuth (useKitStore reads it off the wagmi
 // config), so step / error transitions are asserted on real state.
 let store = createStore()
-const connect = vi.fn()
+/** Deferred for the in-flight @wagmi/core connect(); one per attempt. */
+let settle: { resolve: () => void; reject: (err: unknown) => void }
+const connect = vi.fn(
+  () =>
+    new Promise<void>((resolve, reject) => {
+      settle = { resolve: () => resolve(), reject }
+    }),
+)
 type FakeConnector = { uid: string; name: string; icon?: string }
 let connectors: FakeConnector[] = []
 // Minimal wagmi config store: useKitStore reads the kit connector off it, and
@@ -83,16 +90,21 @@ const fakeConfig = {
 vi.mock('wagmi', () => ({
   useConfig: () => fakeConfig,
   useConnectors: () => connectors,
-  useConnect: () => ({ connect }),
+}))
+vi.mock('@wagmi/core', () => ({
+  connect: (...args: unknown[]) => connect(...args),
 }))
 
 const metamask: FakeConnector = { uid: 'mm', name: 'MetaMask', icon: 'data:mm' }
 const auth = () => store.getState().auth
-const callbacks = () =>
-  connect.mock.calls.at(-1)?.[1] as {
-    onSuccess: () => void
-    onError: (err: unknown) => void
-  }
+const approve = () =>
+  act(async () => {
+    settle.resolve()
+  })
+const rejectWith = (err: unknown) =>
+  act(async () => {
+    settle.reject(err)
+  })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -117,15 +129,15 @@ describe('WalletConnecting', () => {
     )
     // A second connect() would trip the wallet's "request already pending".
     expect(connect).toHaveBeenCalledTimes(1)
-    expect(connect.mock.calls[0][0]).toEqual({ connector: metamask })
+    expect(connect.mock.calls[0][1]).toEqual({ connector: metamask })
     expect(screen.getByTestId('title').textContent).toBe(
       'Connecting to MetaMask',
     )
   })
 
-  it('closes the widget and forgets the wallet when it approves', () => {
+  it('closes the widget and forgets the wallet when it approves', async () => {
     render(<WalletConnecting />)
-    act(() => callbacks().onSuccess())
+    await approve()
     expect(auth().step).toBeNull()
     // Otherwise reopening the widget later, with this wallet still
     // connected, would close it on sight.
@@ -146,11 +158,15 @@ describe('WalletConnecting', () => {
     expect(auth().step).toBe('sign-up')
   })
 
-  it('explains a user rejection and offers retry or another method', () => {
-    render(<WalletConnecting />)
+  it('explains a user rejection and offers retry or another method, under Strict Mode too', async () => {
+    render(
+      <StrictMode>
+        <WalletConnecting />
+      </StrictMode>,
+    )
     const rejection = new Error('User rejected the request.')
     rejection.name = 'UserRejectedRequestError'
-    act(() => callbacks().onError(rejection))
+    await rejectWith(rejection)
     expect(screen.getByTestId('body').textContent).toContain(
       'declined the connection request in MetaMask',
     )
@@ -159,27 +175,27 @@ describe('WalletConnecting', () => {
     expect(connect).toHaveBeenCalledTimes(2)
     expect(auth().connectError).toBeNull()
 
-    act(() => callbacks().onError(rejection))
+    await rejectWith(rejection)
     fireEvent.click(screen.getByText('Choose another sign-in method'))
     expect(auth().step).toBe('sign-up')
   })
 
-  it("translates MetaMask's -32002 'already pending' into an actionable message", () => {
+  it("translates MetaMask's -32002 'already pending' into an actionable message", async () => {
     render(<WalletConnecting />)
     const wrapped = new Error('Connector error')
     ;(wrapped as { cause?: unknown }).cause = Object.assign(
       new Error('Request of type wallet_requestPermissions already pending'),
       { code: -32002 },
     )
-    act(() => callbacks().onError(wrapped))
+    await rejectWith(wrapped)
     expect(screen.getByTestId('body').textContent).toContain(
       'already has a connection request open',
     )
   })
 
-  it('surfaces other failures verbatim', () => {
+  it('surfaces other failures verbatim', async () => {
     render(<WalletConnecting />)
-    act(() => callbacks().onError(new Error('boom')))
+    await rejectWith(new Error('boom'))
     expect(screen.getByTestId('body').textContent).toContain('boom')
   })
 
@@ -227,11 +243,11 @@ describe('WalletConnecting', () => {
       expect(auth().pendingWallet).toBeNull()
     })
 
-    it('stops watching once the wallet rejects', () => {
+    it('stops watching once the wallet rejects', async () => {
       render(<WalletConnecting />)
       const rejection = new Error('User rejected the request.')
       rejection.name = 'UserRejectedRequestError'
-      act(() => callbacks().onError(rejection))
+      await rejectWith(rejection)
       expect(fakeConfig.subs.size).toBe(0)
     })
   })

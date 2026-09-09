@@ -85,8 +85,9 @@ export interface AuthStoreSlice {
     /**
      * Forget the pending wallet. Deliberately NOT called when the user
      * cancels: the wallet's request is still open, and if it is approved
-     * later `ConnectWallet` uses this record to recognise the connection and
-     * close. Called on success, and by `reset()`.
+     * later the `wallet-connecting` page's pending connect promise and wagmi
+     * store watcher recognise the connection and close the flow. Called on
+     * success, and by `reset()`.
      */
     clearPendingWallet: () => void
 
