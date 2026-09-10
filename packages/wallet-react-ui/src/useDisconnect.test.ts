@@ -31,17 +31,31 @@ const disconnectAsync = vi.fn(async (..._args: unknown[]) => {
   await provider.request({ method: 'wallet_revokePermissions' })
   await provider.request({ method: 'eth_chainId' })
 })
+/** What each wagmi hook was called with, per render. */
+const hookCalls: { useConfig: unknown[]; useDisconnect: unknown[] } = {
+  useConfig: [],
+  useDisconnect: [],
+}
 vi.mock('wagmi', () => ({
-  useConfig: () => fakeConfig,
-  useDisconnect: () => ({
-    disconnect: vi.fn(),
-    disconnectAsync: (...args: unknown[]) => disconnectAsync(...args),
-    isPending: false,
-  }),
+  useConfig: (params?: unknown) => {
+    hookCalls.useConfig.push(params)
+    return fakeConfig
+  },
+  useDisconnect: (params?: unknown) => {
+    hookCalls.useDisconnect.push(params)
+    return {
+      disconnect: vi.fn(),
+      disconnectAsync: (...args: unknown[]) => disconnectAsync(...args),
+      isPending: false,
+    }
+  },
 }))
 
 beforeEach(() => {
   rpcLog.length = 0
+  hookCalls.useConfig.length = 0
+  hookCalls.useDisconnect.length = 0
+  fakeConfig.state.current = 'mm'
 })
 
 describe('useDisconnect', () => {
@@ -73,13 +87,51 @@ describe('useDisconnect', () => {
     const options = { onSuccess: vi.fn(), onError: vi.fn() }
 
     await result.current.disconnectAsync(undefined, options)
-    expect(disconnectAsync).toHaveBeenLastCalledWith(undefined, options)
+    // Options pass through; the connector is pinned (see the test below).
+    expect(disconnectAsync).toHaveBeenLastCalledWith({ connector }, options)
 
     const variables = { connector: connector as never }
     result.current.disconnect(variables, options)
     await vi.waitFor(() =>
       expect(disconnectAsync).toHaveBeenLastCalledWith(variables, options),
     )
+  })
+
+  it('forwards its own parameters to both wagmi hooks', () => {
+    const parameters = {
+      config: fakeConfig as never,
+      mutation: { onError: vi.fn() },
+    }
+    renderHook(() => useDisconnect(parameters))
+    // `mutation` reaches wagmi's hook; `config` also drives the connector
+    // lookup, so the provider patched belongs to the config disconnected.
+    expect(hookCalls.useDisconnect[0]).toBe(parameters)
+    expect(hookCalls.useConfig[0]).toBe(parameters)
+  })
+
+  it('pins the connector it patched, even if `current` moves during the await', async () => {
+    const other = {
+      uid: 'other',
+      id: 'other',
+      getProvider: async () => ({ request: async () => null }),
+    }
+    fakeConfig.state.connections.set('other', { connector: other as never })
+    // A late approval lands while we await getProvider(): wagmi's `current`
+    // now points at the other connector.
+    const getProvider = vi
+      .spyOn(connector, 'getProvider')
+      .mockImplementationOnce(async () => {
+        fakeConfig.state.current = 'other'
+        return provider
+      })
+
+    const { result } = renderHook(() => useDisconnect())
+    await result.current.disconnectAsync()
+
+    // wagmi is told to disconnect the connector we patched, not `current`.
+    expect(disconnectAsync).toHaveBeenLastCalledWith({ connector }, undefined)
+    getProvider.mockRestore()
+    fakeConfig.state.connections.delete('other')
   })
 
   it('restores the provider request even when disconnect rejects', async () => {

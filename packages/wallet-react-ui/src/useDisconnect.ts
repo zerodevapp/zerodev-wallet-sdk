@@ -62,10 +62,21 @@ function acquirePatch(provider: Eip1193Provider): () => void {
  * it there — the norm before wagmi 2.10 added the revoke.
  */
 type WagmiDisconnect = ReturnType<typeof useWagmiDisconnect>
+type WagmiDisconnectParameters = Parameters<typeof useWagmiDisconnect>[0]
 
-export function useDisconnect(): WagmiDisconnect {
-  const { disconnect: _drop, disconnectAsync, ...rest } = useWagmiDisconnect()
-  const config = useConfig()
+export function useDisconnect(
+  parameters: WagmiDisconnectParameters = {},
+): WagmiDisconnect {
+  // Same parameters as wagmi's, handed to both hooks: `mutation` options
+  // reach wagmi, and a custom `config` is the one we read connectors from —
+  // otherwise we would patch a provider from a different config than the one
+  // being disconnected.
+  const {
+    disconnect: _drop,
+    disconnectAsync,
+    ...rest
+  } = useWagmiDisconnect(parameters)
+  const config = useConfig(parameters)
 
   const currentConnector = (): Connector | undefined => {
     const current = config.state.current
@@ -78,19 +89,25 @@ export function useDisconnect(): WagmiDisconnect {
   // (`disconnect(vars, { onSuccess, onError })`), which are forwarded as-is —
   // this is a drop-in replacement, so it must not narrow the public surface.
   const disconnectAsyncQuietly: WagmiDisconnect['disconnectAsync'] = async (
-    ...args
+    variables,
+    options,
   ) => {
-    const [variables] = args
+    // Resolve the connector once and pin it. Without an explicit connector
+    // wagmi would resolve `current` again inside disconnectAsync — after the
+    // getProvider() await below — and a late wallet approval landing in that
+    // gap would move `current`: we'd have patched the old provider while
+    // wagmi disconnects the new connector, whose revoke reaches the wallet.
     const connector = variables?.connector ?? currentConnector()
+    const pinned = connector ? { ...variables, connector } : variables
     const provider = (await connector?.getProvider().catch(() => undefined)) as
       | Eip1193Provider
       | undefined
 
-    if (!provider?.request) return disconnectAsync(...args)
+    if (!provider?.request) return disconnectAsync(pinned, options)
 
     const release = acquirePatch(provider)
     try {
-      return await disconnectAsync(...args)
+      return await disconnectAsync(pinned, options)
     } finally {
       release()
     }
