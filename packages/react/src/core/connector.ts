@@ -159,15 +159,11 @@ export function zeroDevWalletCore(
 
       const publicClient = createPublicClient({ chain, transport })
 
-      // Name the endpoint: with no RPC URL configured, viem silently falls
-      // back to the chain's public one, which is where slow reconnects come
-      // from — worth seeing in the console next to the timing below.
-      const rpcUrl =
-        transport({ chain, retryCount: 0 }).value?.url ??
-        chain.rpcUrls.default.http[0]
-      console.log(
-        `Creating kernel account for chain ${chainId} via ${rpcUrl}...`,
-      )
+      // Chain id and timing only — never the RPC URL. Provider URLs carry
+      // API keys in the path or query, and this runs on every uncached chain
+      // setup, so logging it would write credentials to the console and any
+      // attached log collector.
+      console.log(`Creating kernel account for chain ${chainId}...`)
       const kernelStartedAt = Date.now()
       // For 4337, the kernel needs an ECDSA validator plugin keyed off the
       // EOA so it can authorize userOps. 7702 uses `eip7702Account` instead

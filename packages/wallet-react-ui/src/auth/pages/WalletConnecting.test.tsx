@@ -39,6 +39,8 @@ type FakeConnector = { uid: string; name: string; icon?: string }
 let connectors: FakeConnector[] = []
 // Minimal wagmi config store: useKitStore reads the kit connector off it, and
 // the page subscribes to it for the connection signal that outlives React.
+// A factory so a test can stand up two provider trees (two configs, two kit
+// stores) side by side.
 type FakeState = {
   status: 'connected' | 'disconnected'
   current: string | null
@@ -49,44 +51,41 @@ type Sub = {
   listener: (v: unknown, p: unknown) => void
   prev: unknown
 }
-const fakeConfig = {
-  connectors: [{ id: 'zerodev-wallet', getKitStore: () => store }],
-  state: {
-    status: 'disconnected',
-    current: null,
-    connections: new Map(),
-  } as FakeState,
-  subs: new Set<Sub>(),
-  subscribe(selector: Sub['selector'], listener: Sub['listener']) {
-    const sub: Sub = { selector, listener, prev: selector(fakeConfig.state) }
-    fakeConfig.subs.add(sub)
-    return () => fakeConfig.subs.delete(sub)
-  },
-  /** What wagmi does to its store when a connector's connect() succeeds. */
-  connectAs(connector: FakeConnector) {
-    fakeConfig.state = {
-      status: 'connected',
-      current: connector.uid,
-      connections: new Map([[connector.uid, { connector }]]),
-    }
-    for (const sub of fakeConfig.subs) {
-      const next = sub.selector(fakeConfig.state)
-      if (next !== sub.prev) {
-        const prev = sub.prev
-        sub.prev = next
-        sub.listener(next, prev)
-      }
-    }
-  },
-  reset() {
-    fakeConfig.state = {
+function makeFakeConfig(kitStore: ReturnType<typeof createStore>) {
+  const config = {
+    connectors: [{ id: 'zerodev-wallet', getKitStore: () => kitStore }],
+    state: {
       status: 'disconnected',
       current: null,
       connections: new Map(),
-    }
-    fakeConfig.subs.clear()
-  },
+    } as FakeState,
+    subs: new Set<Sub>(),
+    subscribe(selector: Sub['selector'], listener: Sub['listener']) {
+      const sub: Sub = { selector, listener, prev: selector(config.state) }
+      config.subs.add(sub)
+      return () => config.subs.delete(sub)
+    },
+    /** What wagmi does to its store when a connector's connect() succeeds. */
+    connectAs(connector: FakeConnector) {
+      config.state = {
+        status: 'connected',
+        current: connector.uid,
+        connections: new Map([[connector.uid, { connector }]]),
+      }
+      for (const sub of config.subs) {
+        const next = sub.selector(config.state)
+        if (next !== sub.prev) {
+          const prev = sub.prev
+          sub.prev = next
+          sub.listener(next, prev)
+        }
+      }
+    },
+  }
+  return config
 }
+/** The config `useConfig()` hands the page; swapped per test where needed. */
+let fakeConfig = makeFakeConfig(store)
 vi.mock('wagmi', () => ({
   useConfig: () => fakeConfig,
   useConnectors: () => connectors,
@@ -109,7 +108,7 @@ const rejectWith = (err: unknown) =>
 beforeEach(() => {
   vi.clearAllMocks()
   store = createStore()
-  fakeConfig.reset()
+  fakeConfig = makeFakeConfig(store)
   connectors = [metamask]
   // The state a wallet button leaves behind.
   auth().goToStep('sign-up')
@@ -275,6 +274,42 @@ describe('WalletConnecting', () => {
       rejection.name = 'UserRejectedRequestError'
       await rejectWith(rejection)
       expect(fakeConfig.subs.size).toBe(0)
+    })
+
+    // Watchers are keyed by wagmi config, not held in one module variable: a
+    // page with two WagmiProvider trees must not have the second tree's
+    // attempt tear down the first tree's watcher.
+    it('keeps one watcher per wagmi config, so a second provider tree does not cancel the first', () => {
+      // Tree A: the beforeEach state — start its connect and leave.
+      const configA = fakeConfig
+      const storeA = store
+      const { unmount: unmountA } = render(<WalletConnecting />)
+      unmountA()
+      expect(configA.subs.size).toBe(1)
+
+      // Tree B: its own wagmi config and kit store, same wallet.
+      const storeB = createStore()
+      const configB = makeFakeConfig(storeB)
+      storeB.getState().auth.goToStep('sign-up')
+      storeB.getState().auth.startWalletConnect({
+        connectorUid: 'mm',
+        name: 'MetaMask',
+      })
+      fakeConfig = configB
+      store = storeB
+      render(<WalletConnecting />)
+
+      // B's attempt left A's watcher alone.
+      expect(configA.subs.size).toBe(1)
+      expect(configB.subs.size).toBe(1)
+
+      // A late approval in tree A closes A's flow, and only A's.
+      act(() => configA.connectAs(metamask))
+      expect(storeA.getState().auth.step).toBeNull()
+      expect(storeA.getState().auth.pendingWallet).toBeNull()
+      expect(configA.subs.size).toBe(0)
+      expect(storeB.getState().auth.step).toBe('wallet-connecting')
+      expect(configB.subs.size).toBe(1)
     })
   })
 })

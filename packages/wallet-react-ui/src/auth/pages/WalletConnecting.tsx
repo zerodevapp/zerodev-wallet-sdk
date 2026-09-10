@@ -1,4 +1,4 @@
-import { connect } from '@wagmi/core'
+import { type Config, connect } from '@wagmi/core'
 import { Button, PoweredBy } from '@zerodev/react-ui'
 import { useEffect, useRef } from 'react'
 import { useConfig, useConnectors } from 'wagmi'
@@ -9,11 +9,15 @@ import { isCancellationError } from '../utils/isCancellationError'
 import { isRequestPendingError } from '../utils/isRequestPendingError'
 
 /**
- * The one live wagmi-store watcher for the current attempt. Module-level on
+ * The one live wagmi-store watcher per wagmi config. Held outside React on
  * purpose: it has to outlive the component (see `attempt`), and a new attempt
- * replaces rather than stacks.
+ * on the same config replaces rather than stacks. Keyed by config, not a
+ * single module variable, so two WagmiProvider trees on one page each keep
+ * their own watcher — otherwise the second tree's attempt would tear down the
+ * first tree's, and a late approval there would leave its pending state set
+ * and re-prompt the wallet on the next mount.
  */
-let stopWatching: (() => void) | undefined
+const watchers = new WeakMap<Config, () => void>()
 
 function describeConnectError(
   err: unknown,
@@ -105,7 +109,7 @@ export function WalletConnecting() {
     // wallet. Deliberately kept alive after the user leaves this screen, so a
     // late approval still closes the widget; released on success, rejection,
     // or the next attempt.
-    stopWatching?.()
+    watchers.get(config)?.()
     const unsubscribe = config.subscribe(
       (state) => (state.status === 'connected' ? state.current : null),
       (current) => {
@@ -119,9 +123,9 @@ export function WalletConnecting() {
     )
     const release = () => {
       unsubscribe()
-      if (stopWatching === unsubscribe) stopWatching = undefined
+      if (watchers.get(config) === unsubscribe) watchers.delete(config)
     }
-    stopWatching = unsubscribe
+    watchers.set(config, unsubscribe)
 
     // The @wagmi/core action, not useConnect's mutate: React Query drops
     // per-call callbacks when the issuing observer remounts — Strict Mode's
