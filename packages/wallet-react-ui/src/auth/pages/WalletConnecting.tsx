@@ -15,6 +15,8 @@ type Attempt = {
   connectorUid: string
   /** The wallet answered (either way) — its request is no longer open. */
   settled: boolean
+  /** Still holding connect() until wagmi's page-load reconnect settles. */
+  awaitingReconnect: boolean
 }
 
 /**
@@ -149,22 +151,23 @@ export function WalletConnecting() {
       })
       return
     }
-    // A persisted session can already be live for this wallet: wagmi restores
-    // connections on mount, and a host may open the auth widget regardless.
-    // The watcher below only reacts to future store changes, and calling
-    // connect() on a connected connector throws ConnectorAlreadyConnectedError
-    // — so close the flow as the success it already is. Mirrors the guard in
-    // useWalletConnectPairing.
-    const alreadyConnected = [...config.state.connections.values()].some(
-      (connection) => connection.connector.uid === connector.uid,
-    )
-    if (alreadyConnected) {
-      clearPendingWallet()
-      goToStep(null)
-      return
-    }
-
     setConnectError(null)
+
+    const stops: Array<() => void> = []
+    const thisAttempt: Attempt = {
+      stopWatching: () => {
+        for (const stop of stops) stop()
+      },
+      connectorUid: connector.uid,
+      settled: false,
+      awaitingReconnect: false,
+    }
+    const isCurrent = () => current.get(config) === thisAttempt
+    const release = () => {
+      thisAttempt.stopWatching()
+      if (isCurrent()) current.delete(config)
+    }
+    current.set(config, thisAttempt)
 
     // Close the flow the moment wagmi reports THIS connector connected —
     // watching wagmi's store directly, not through React. Hosts typically
@@ -176,55 +179,95 @@ export function WalletConnecting() {
     // wallet. Deliberately kept alive after the user leaves this screen, so a
     // late approval still closes the widget; released on success, rejection,
     // or the next attempt.
-    const unsubscribe = config.subscribe(
-      (state) => (state.status === 'connected' ? state.current : null),
-      (current) => {
-        if (!current) return
-        const connected = config.state.connections.get(current)?.connector
-        if (connected?.uid !== connector.uid) return
-        thisAttempt.settled = true
-        release()
-        clearPendingWallet()
-        goToStep(null)
-      },
+    stops.push(
+      config.subscribe(
+        (state) => (state.status === 'connected' ? state.current : null),
+        (current) => {
+          if (!current) return
+          const connected = config.state.connections.get(current)?.connector
+          if (connected?.uid !== connector.uid) return
+          thisAttempt.settled = true
+          release()
+          clearPendingWallet()
+          goToStep(null)
+        },
+      ),
     )
-    const thisAttempt: Attempt = {
-      stopWatching: unsubscribe,
-      connectorUid: connector.uid,
-      settled: false,
-    }
-    const isCurrent = () => current.get(config) === thisAttempt
-    const release = () => {
-      unsubscribe()
-      if (isCurrent()) current.delete(config)
-    }
-    current.set(config, thisAttempt)
 
-    // The @wagmi/core action, not useConnect's mutate: React Query drops
-    // per-call callbacks when the issuing observer remounts — Strict Mode's
-    // simulated remount does exactly that, and the mount guard below stops
-    // the re-kick — which left a rejection spinning on this screen forever.
-    // A plain promise cannot lose its handlers, and the kit store is safe to
-    // write to even after this page unmounts.
-    connect(config, { connector }).then(
-      () => {
+    const proceed = () => {
+      thisAttempt.awaitingReconnect = false
+
+      // A session can already be live for this wallet: wagmi restores
+      // connections on mount, and a host may open the auth widget regardless.
+      // The watcher above only reacts to future store changes, and calling
+      // connect() on a connected connector throws
+      // ConnectorAlreadyConnectedError — so close the flow as the success it
+      // already is. Mirrors the guard in useWalletConnectPairing. Only run
+      // once wagmi has left 'reconnecting' (see below): before that, the map
+      // holds sessions hydrated from storage that no connector has verified.
+      const alreadyConnected = [...config.state.connections.values()].some(
+        (connection) => connection.connector.uid === connector.uid,
+      )
+      if (alreadyConnected) {
         thisAttempt.settled = true
         release()
         clearPendingWallet()
         goToStep(null)
-      },
-      (err) => {
-        thisAttempt.settled = true
-        // A superseded attempt stays silent. The user left wallet A pending,
-        // chose another method and started wallet B; A's promise outlived
-        // that, and its late rejection would otherwise overwrite B's waiting
-        // screen with an error about A. (A late *approval* is not gated: wagmi
-        // is then connected, so closing the widget is the right outcome.)
-        if (!isCurrent()) return
-        release()
-        setConnectError(describeConnectError(err, walletName))
+        return
+      }
+
+      // The @wagmi/core action, not useConnect's mutate: React Query drops
+      // per-call callbacks when the issuing observer remounts — Strict Mode's
+      // simulated remount does exactly that, and the mount guard below stops
+      // the re-kick — which left a rejection spinning on this screen forever.
+      // A plain promise cannot lose its handlers, and the kit store is safe to
+      // write to even after this page unmounts.
+      connect(config, { connector }).then(
+        () => {
+          thisAttempt.settled = true
+          release()
+          clearPendingWallet()
+          goToStep(null)
+        },
+        (err) => {
+          thisAttempt.settled = true
+          // A superseded attempt stays silent. The user left wallet A
+          // pending, chose another method and started wallet B; A's promise
+          // outlived that, and its late rejection would otherwise overwrite
+          // B's waiting screen with an error about A. (A late *approval* is
+          // not gated: wagmi is then connected, so closing the widget is the
+          // right outcome.)
+          if (!isCurrent()) return
+          release()
+          setConnectError(describeConnectError(err, walletName))
+        },
+      )
+    }
+
+    if (config.state.status !== 'reconnecting') {
+      proceed()
+      return
+    }
+
+    // Page-load reconnect is still sweeping. Hold until it settles: the store
+    // still holds the sessions hydrated from storage, unverified, so the
+    // already-connected check above would take an expired session for a live
+    // one; wagmi may be about to call this very connector's connect() itself,
+    // and a second request races it (-32002 on MetaMask); and wagmi's connect
+    // action marks the store 'connected' even on a *failed* connect while a
+    // hydrated `current` exists, which would trip the success watcher. If the
+    // sweep reconnects this connector, that watcher closes the flow and
+    // `proceed` never runs.
+    thisAttempt.awaitingReconnect = true
+    const stopWaiting = config.subscribe(
+      (state) => state.status,
+      (status) => {
+        if (status === 'reconnecting') return
+        stopWaiting()
+        if (isCurrent()) proceed()
       },
     )
+    stops.push(stopWaiting)
   }
 
   // Kick the request once on mount. The ref guards Strict Mode's double
@@ -244,7 +287,18 @@ export function WalletConnecting() {
   // sign-up a back arrow that remounts this page and calls connect() again
   // while the original wallet request is still open (-32002). The fallback
   // is defensive only — the history is never empty here in practice.
-  const chooseAnother = goBack ?? (() => goToStep('sign-up'))
+  const chooseAnother = () => {
+    // Still waiting on the reconnect sweep means no request has reached the
+    // wallet, so there is nothing a late approval could come from: drop the
+    // attempt and the wallet record rather than prompt after the user left.
+    const active = current.get(config)
+    if (active?.awaitingReconnect) {
+      active.stopWatching()
+      current.delete(config)
+      clearPendingWallet()
+    }
+    ;(goBack ?? (() => goToStep('sign-up')))()
+  }
 
   return (
     <>

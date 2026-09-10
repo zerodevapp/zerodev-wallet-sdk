@@ -23,11 +23,14 @@ const patches = new WeakMap<
 function acquirePatch(provider: Eip1193Provider): () => void {
   let entry = patches.get(provider)
   if (!entry) {
-    const original = provider.request.bind(provider)
+    // The exact original function, not a bound copy: release() puts this
+    // back, and integrations that compare, wrap, or restore `request`
+    // themselves must see the provider exactly as it was.
+    const original = provider.request
     provider.request = (args) =>
       args?.method === 'wallet_revokePermissions'
         ? Promise.resolve(null)
-        : original(args)
+        : original.call(provider, args)
     entry = { original, count: 0 }
     patches.set(provider, entry)
   }
@@ -58,7 +61,9 @@ function acquirePatch(provider: Eip1193Provider): () => void {
  * shim), and the site remains authorized in the wallet until the user revokes
  * it there — the norm before wagmi 2.10 added the revoke.
  */
-export function useDisconnect() {
+type WagmiDisconnect = ReturnType<typeof useWagmiDisconnect>
+
+export function useDisconnect(): WagmiDisconnect {
   const { disconnect: _drop, disconnectAsync, ...rest } = useWagmiDisconnect()
   const config = useConfig()
 
@@ -69,31 +74,37 @@ export function useDisconnect() {
       : undefined
   }
 
-  const disconnectAsyncQuietly = async (variables?: {
-    connector?: Connector
-  }) => {
+  // Same signature as wagmi's, including the per-call mutation options
+  // (`disconnect(vars, { onSuccess, onError })`), which are forwarded as-is —
+  // this is a drop-in replacement, so it must not narrow the public surface.
+  const disconnectAsyncQuietly: WagmiDisconnect['disconnectAsync'] = async (
+    ...args
+  ) => {
+    const [variables] = args
     const connector = variables?.connector ?? currentConnector()
     const provider = (await connector?.getProvider().catch(() => undefined)) as
       | Eip1193Provider
       | undefined
 
-    if (!provider?.request) return disconnectAsync(variables)
+    if (!provider?.request) return disconnectAsync(...args)
 
     const release = acquirePatch(provider)
     try {
-      return await disconnectAsync(variables)
+      return await disconnectAsync(...args)
     } finally {
       release()
     }
   }
 
+  const disconnectQuietly: WagmiDisconnect['disconnect'] = (...args) => {
+    disconnectAsyncQuietly(...args).catch(() => {
+      // wagmi surfaces the failure through the mutation state in `rest`.
+    })
+  }
+
   return {
     ...rest,
-    disconnect: (variables?: { connector?: Connector }) => {
-      disconnectAsyncQuietly(variables).catch(() => {
-        // wagmi surfaces the failure through the mutation state in `rest`.
-      })
-    },
+    disconnect: disconnectQuietly,
     disconnectAsync: disconnectAsyncQuietly,
   }
 }

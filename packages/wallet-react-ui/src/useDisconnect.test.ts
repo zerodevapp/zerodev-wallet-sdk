@@ -27,7 +27,7 @@ const fakeConfig = {
 }
 // wagmi's injected connector: revoke, then shim. The wrapped hook must let
 // everything through except the revoke.
-const disconnectAsync = vi.fn(async () => {
+const disconnectAsync = vi.fn(async (..._args: unknown[]) => {
   await provider.request({ method: 'wallet_revokePermissions' })
   await provider.request({ method: 'eth_chainId' })
 })
@@ -35,7 +35,7 @@ vi.mock('wagmi', () => ({
   useConfig: () => fakeConfig,
   useDisconnect: () => ({
     disconnect: vi.fn(),
-    disconnectAsync: (v?: unknown) => disconnectAsync(v),
+    disconnectAsync: (...args: unknown[]) => disconnectAsync(...args),
     isPending: false,
   }),
 }))
@@ -57,6 +57,29 @@ describe('useDisconnect', () => {
     await result.current.disconnectAsync()
     await provider.request({ method: 'wallet_revokePermissions' })
     expect(rpcLog).toEqual(['eth_chainId', 'wallet_revokePermissions'])
+  })
+
+  it('restores the exact original request function, not a bound copy', async () => {
+    const originalRequest = provider.request
+    const { result } = renderHook(() => useDisconnect())
+    await result.current.disconnectAsync()
+    // Integrations that compare, wrap, or restore `request` themselves must
+    // see the provider exactly as it was before the disconnect.
+    expect(provider.request).toBe(originalRequest)
+  })
+
+  it('forwards the per-call mutation options to wagmi, from both functions', async () => {
+    const { result } = renderHook(() => useDisconnect())
+    const options = { onSuccess: vi.fn(), onError: vi.fn() }
+
+    await result.current.disconnectAsync(undefined, options)
+    expect(disconnectAsync).toHaveBeenLastCalledWith(undefined, options)
+
+    const variables = { connector: connector as never }
+    result.current.disconnect(variables, options)
+    await vi.waitFor(() =>
+      expect(disconnectAsync).toHaveBeenLastCalledWith(variables, options),
+    )
   })
 
   it('restores the provider request even when disconnect rejects', async () => {

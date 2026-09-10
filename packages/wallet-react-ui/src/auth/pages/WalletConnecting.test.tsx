@@ -42,7 +42,7 @@ let connectors: FakeConnector[] = []
 // A factory so a test can stand up two provider trees (two configs, two kit
 // stores) side by side.
 type FakeState = {
-  status: 'connected' | 'disconnected'
+  status: 'connected' | 'disconnected' | 'reconnecting'
   current: string | null
   connections: Map<string, { connector: FakeConnector }>
 }
@@ -65,14 +65,9 @@ function makeFakeConfig(kitStore: ReturnType<typeof createStore>) {
       config.subs.add(sub)
       return () => config.subs.delete(sub)
     },
-    /** What wagmi does to its store when a connector's connect() succeeds. */
-    connectAs(connector: FakeConnector) {
-      config.state = {
-        status: 'connected',
-        current: connector.uid,
-        connections: new Map([[connector.uid, { connector }]]),
-      }
-      for (const sub of config.subs) {
+    notify() {
+      for (const sub of [...config.subs]) {
+        if (!config.subs.has(sub)) continue
         const next = sub.selector(config.state)
         if (next !== sub.prev) {
           const prev = sub.prev
@@ -80,6 +75,19 @@ function makeFakeConfig(kitStore: ReturnType<typeof createStore>) {
           sub.listener(next, prev)
         }
       }
+    },
+    /** What wagmi does to its store when a connector's connect() succeeds. */
+    connectAs(connector: FakeConnector) {
+      config.state = {
+        status: 'connected',
+        current: connector.uid,
+        connections: new Map([[connector.uid, { connector }]]),
+      }
+      config.notify()
+    },
+    setStatus(status: FakeState['status']) {
+      config.state = { ...config.state, status }
+      config.notify()
     },
   }
   return config
@@ -314,6 +322,67 @@ describe('WalletConnecting', () => {
     expect(screen.getByTestId('body').textContent).toContain(
       'no longer available',
     )
+  })
+
+  describe('picked during the page-load reconnect sweep', () => {
+    // While wagmi is 'reconnecting' the store holds sessions hydrated from
+    // storage that no connector has verified, and wagmi may be about to call
+    // this connector's connect() itself.
+    beforeEach(() => {
+      fakeConfig.state.status = 'reconnecting'
+    })
+
+    it('holds connect() until the sweep settles, then sends exactly one request', () => {
+      render(<WalletConnecting />)
+      expect(connect).not.toHaveBeenCalled()
+      expect(screen.getByTestId('title').textContent).toBe(
+        'Waiting for MetaMask',
+      )
+
+      act(() => fakeConfig.setStatus('disconnected'))
+      expect(connect).toHaveBeenCalledTimes(1)
+      // Settled: later status changes must not send another.
+      act(() => fakeConfig.setStatus('connected'))
+      expect(connect).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not take a hydrated, unverified session for a live one', () => {
+      // The persisted MetaMask session wagmi restored before verifying it.
+      fakeConfig.state.connections = new Map([['mm', { connector: metamask }]])
+      fakeConfig.state.current = 'mm'
+      render(<WalletConnecting />)
+      // Not closed as a success on the strength of the stored entry.
+      expect(auth().step).toBe('wallet-connecting')
+
+      // The sweep finds the session expired and drops it.
+      fakeConfig.state.connections = new Map()
+      fakeConfig.state.current = null
+      act(() => fakeConfig.setStatus('disconnected'))
+      expect(connect).toHaveBeenCalledTimes(1)
+      expect(auth().step).toBe('wallet-connecting')
+    })
+
+    it('closes the flow with no request at all when the sweep reconnects this wallet', () => {
+      render(<WalletConnecting />)
+      act(() => fakeConfig.connectAs(metamask))
+
+      expect(connect).not.toHaveBeenCalled()
+      expect(auth().step).toBeNull()
+      expect(auth().pendingWallet).toBeNull()
+      expect(fakeConfig.subs.size).toBe(0)
+    })
+
+    it('does not prompt later if the user leaves before the sweep settles', () => {
+      render(<WalletConnecting />)
+      fireEvent.click(screen.getByText('Choose another sign-in method'))
+      expect(auth().step).toBe('sign-up')
+      // Nothing reached the wallet, so there is no record to keep alive.
+      expect(auth().pendingWallet).toBeNull()
+
+      act(() => fakeConfig.setStatus('disconnected'))
+      expect(connect).not.toHaveBeenCalled()
+      expect(fakeConfig.subs.size).toBe(0)
+    })
   })
 
   describe('host unmounts the widget the moment wagmi connects', () => {
