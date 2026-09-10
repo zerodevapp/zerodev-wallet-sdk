@@ -24,8 +24,15 @@ const patches = new WeakMap<
   }
 >()
 
-/** Install the revoke-suppressing wrapper; returns the paired release. */
-function acquirePatch(provider: Eip1193Provider): () => void {
+/**
+ * Install the revoke-suppressing wrapper; returns the paired release, or
+ * `undefined` when this provider cannot be patched (frozen object,
+ * non-configurable or getter-only `request`, a Proxy that swallows defines).
+ * EIP-1193 does not require `request` to be writable, and a failed patch
+ * must never block the disconnect itself — the caller falls back to a plain
+ * disconnect, prompt risk and all.
+ */
+function acquirePatch(provider: Eip1193Provider): (() => void) | undefined {
   let entry = patches.get(provider)
   if (!entry) {
     // The exact original function, not a bound copy: release() puts this
@@ -38,10 +45,26 @@ function acquirePatch(provider: Eip1193Provider): () => void {
     // shadow behind — pinning the provider to the old method if its prototype
     // later changes. Restored with the recorded descriptor, or deleted.
     const ownDescriptor = Object.getOwnPropertyDescriptor(provider, 'request')
-    provider.request = (args) =>
+    const wrapper: Eip1193Provider['request'] = (args) =>
       args?.method === 'wallet_revokePermissions'
         ? Promise.resolve(null)
         : original.call(provider, args)
+    // defineProperty rather than assignment: assignment throws in strict mode
+    // on a frozen provider or a getter-only `request`, and defineProperty
+    // also handles the getter case. Configurable, so release can always undo
+    // it. If even that fails, or a Proxy quietly ignored it, report
+    // unpatchable instead of throwing.
+    try {
+      Object.defineProperty(provider, 'request', {
+        value: wrapper,
+        writable: true,
+        configurable: true,
+        enumerable: ownDescriptor?.enumerable ?? true,
+      })
+    } catch {
+      return undefined
+    }
+    if (provider.request !== wrapper) return undefined
     entry = { original, ownDescriptor, count: 0 }
     patches.set(provider, entry)
   }
@@ -120,7 +143,10 @@ export function useDisconnect(
 
     if (!provider?.request) return disconnectAsync(pinned, options)
 
+    // Unpatchable provider: disconnect anyway. Logging out must not be the
+    // thing that fails; the worst case is the prompt this hook usually hides.
     const release = acquirePatch(provider)
+    if (!release) return disconnectAsync(pinned, options)
     try {
       return await disconnectAsync(pinned, options)
     } finally {

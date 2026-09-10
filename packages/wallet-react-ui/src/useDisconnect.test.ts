@@ -129,6 +129,63 @@ describe('useDisconnect', () => {
     fakeConfig.state.connections.delete('inh')
   })
 
+  it('still disconnects when the provider cannot be patched (frozen), prompt or not', async () => {
+    const frozen = Object.freeze({
+      request: async ({ method }: { method: string }) => {
+        rpcLog.push(method)
+        return null
+      },
+    })
+    const frozenConnector = {
+      uid: 'frz',
+      id: 'frozen',
+      getProvider: async () => frozen,
+    }
+    fakeConfig.state.connections.set('frz', {
+      connector: frozenConnector as never,
+    })
+    fakeConfig.state.current = 'frz'
+
+    const { result } = renderHook(() => useDisconnect())
+    // Must not throw before wagmi's disconnect runs.
+    await expect(result.current.disconnectAsync()).resolves.toBeUndefined()
+    expect(disconnectAsync).toHaveBeenCalledTimes(1)
+    // Best effort only: with no patch possible the revoke goes through.
+    expect(rpcLog).toEqual(['wallet_revokePermissions', 'eth_chainId'])
+
+    fakeConfig.state.connections.delete('frz')
+  })
+
+  it('patches a provider whose prototype exposes request as a getter', async () => {
+    class GetterProto {
+      get request() {
+        return async ({ method }: { method: string }) => {
+          rpcLog.push(method)
+          return null
+        }
+      }
+    }
+    const getterProvider = new GetterProto()
+    const getterConnector = {
+      uid: 'get',
+      id: 'getter',
+      getProvider: async () => getterProvider,
+    }
+    fakeConfig.state.connections.set('get', {
+      connector: getterConnector as never,
+    })
+    fakeConfig.state.current = 'get'
+
+    const { result } = renderHook(() => useDisconnect())
+    await result.current.disconnectAsync()
+    // Plain assignment would have thrown (no setter); defineProperty works,
+    // the revoke is suppressed, and the instance is clean afterwards.
+    expect(rpcLog).toEqual(['eth_chainId'])
+    expect(Object.hasOwn(getterProvider, 'request')).toBe(false)
+
+    fakeConfig.state.connections.delete('get')
+  })
+
   it('forwards the per-call mutation options to wagmi, from both functions', async () => {
     const { result } = renderHook(() => useDisconnect())
     const options = { onSuccess: vi.fn(), onError: vi.fn() }
