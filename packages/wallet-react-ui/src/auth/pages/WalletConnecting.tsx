@@ -9,29 +9,21 @@ import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
 import { isRequestPendingError } from '../utils/isRequestPendingError'
 
-/** One in-flight connect: its wagmi-store watcher, and its identity. */
+/** One in-flight connect() and its wagmi-store watchers. */
 type Attempt = {
   stopWatching: () => void
-  /** wagmi connector uid this attempt is asking. */
   connectorUid: string
-  /** The wallet answered (either way) — its request is no longer open. */
+  /** The wallet answered; its request is no longer open. */
   settled: boolean
-  /** Still holding connect() until wagmi's page-load reconnect settles. */
+  /** connect() is held until wagmi's page-load reconnect settles. */
   awaitingReconnect: boolean
 }
 
 /**
- * The current attempt per wagmi config. Held outside React on purpose: it has
- * to outlive the component (see `attempt`), and a new attempt on the same
- * config replaces rather than stacks. Keyed by config, not a single module
- * variable, so two WagmiProvider trees on one page each keep their own —
- * otherwise the second tree's attempt would tear down the first tree's, and a
- * late approval there would leave its pending state set and re-prompt the
- * wallet on the next mount.
- *
- * The record doubles as the attempt's identity: a connect() promise can't be
- * cancelled, so a wallet the user walked away from can still reject later.
- * Only the attempt that is still current may report a failure.
+ * Current attempt per wagmi config. Lives outside React because it must
+ * outlive this component; keyed by config so two WagmiProvider trees don't
+ * cancel each other. The record is also the attempt's identity: a connect()
+ * promise can't be cancelled, so only the current attempt may report failure.
  */
 const current = new WeakMap<Config, Attempt>()
 
@@ -47,9 +39,8 @@ function describeConnectError(
     }
   }
   if (isRequestPendingError(err)) {
-    // Not a failure: the first request is still open inside the wallet, which
-    // won't show a second prompt until it's answered — the user has to go to
-    // the extension. Rendered as a waiting state, not an error.
+    // Not a failure: the wallet still has the first request open and won't
+    // prompt again until it's answered there.
     return {
       title: `Request waiting in ${walletName}`,
       message:
@@ -59,11 +50,8 @@ function describeConnectError(
       pending: true,
     }
   }
-  // Never render "[object Object]": wallets throw plain JSON-RPC error
-  // objects, viem throws Errors with a friendlier `shortMessage`. A string
-  // thrown as-is is shown as-is. Anything else — an object with no usable
-  // message, such as `{ code: -32603 }` — gets a fixed sentence, with the
-  // numeric code appended since it is the only actionable detail there.
+  // Wallets throw raw JSON-RPC objects, viem throws Errors with `shortMessage`.
+  // Never render "[object Object]": fall back to a fixed sentence plus the code.
   let message: string | undefined
   let code: number | undefined
   if (typeof err === 'string' && err.length > 0) {
@@ -89,17 +77,13 @@ function describeConnectError(
 }
 
 /**
- * The `wallet-connecting` step: shown from the moment the user picks an
- * external wallet until it answers. Exists because a wallet that is locked,
- * or whose popup the user simply closed, never answers — and the previous
- * design (disable every button while wagmi's connect is pending) left the
- * page frozen with no error and no way out. Here the user can always cancel
- * or try again, whatever the wallet does.
+ * The `wallet-connecting` step: shown from picking an external wallet until it
+ * answers. A locked wallet, or a popup the user closed, never answers, so the
+ * user must always be able to leave or retry.
  *
- * This page owns the `connect()` call. React Query drops per-call mutation
- * callbacks when the component that issued them unmounts, and the sign-up
- * page unmounts on the step change — so the button that started the flow
- * only records intent (`startWalletConnect`) and this page does the work.
+ * This page owns the connect() call: React Query drops per-call callbacks when
+ * the issuing component unmounts, and the sign-up page unmounts on the step
+ * change. The wallet button only records intent (`startWalletConnect`).
  */
 export function WalletConnecting() {
   const {
@@ -120,12 +104,9 @@ export function WalletConnecting() {
   const walletName = pendingWallet?.name ?? 'your wallet'
 
   const attempt = () => {
-    // Single-flight per wallet: if this wallet's request is still open (the
-    // user cancelled and picked it again), do NOT send another connect() —
-    // wallets queue connection requests, approving one leaves the rest
-    // queued, and the leftovers resurface later (e.g. right after logout).
-    // Re-adopt the open attempt instead: its promise and watcher are alive
-    // and will close the flow or surface the error here.
+    // Single-flight per wallet: if its request is still open, re-adopt the
+    // attempt instead of sending another connect() — wallets queue requests,
+    // and the leftovers resurface later as ghost prompts.
     const existing = current.get(config)
     if (
       connector &&
@@ -137,10 +118,8 @@ export function WalletConnecting() {
       return
     }
 
-    // Starting an attempt ends the previous one on this config, whatever
-    // happens next — including the early return below. Otherwise a wallet the
-    // user left pending would stay current, and its late rejection would
-    // overwrite the "no longer available" screen shown for the new one.
+    // A new attempt ends the previous one, even on the early return below;
+    // otherwise its late rejection could overwrite this one's error.
     existing?.stopWatching()
     current.delete(config)
 
@@ -171,16 +150,11 @@ export function WalletConnecting() {
     }
     current.set(config, thisAttempt)
 
-    // Close the flow the moment wagmi reports THIS connector connected —
-    // watching wagmi's store directly, not through React. Hosts typically
-    // redirect as soon as `isConnected` flips and unmount the widget in that
-    // same render, which drops the mutation's onSuccess below and any effect
-    // in this tree. Without a signal that survives unmount, the store was
-    // left at `wallet-connecting`, and the next time the widget mounted
-    // (e.g. after logout) this page re-ran connect() and re-prompted the
-    // wallet. Deliberately kept alive after the user leaves this screen, so a
-    // late approval still closes the widget; released on success, rejection,
-    // or the next attempt.
+    // Close the flow when wagmi reports THIS connector connected, via the
+    // store rather than React: hosts redirect on `isConnected` and unmount the
+    // widget in the same render, dropping React-side callbacks. Kept alive
+    // after the user leaves this screen so a late approval still closes the
+    // widget; released on success, rejection, or the next attempt.
     stops.push(
       config.subscribe(
         (state) => (state.status === 'connected' ? state.current : null),
@@ -199,14 +173,9 @@ export function WalletConnecting() {
     const proceed = () => {
       thisAttempt.awaitingReconnect = false
 
-      // A session can already be live for this wallet: wagmi restores
-      // connections on mount, and a host may open the auth widget regardless.
-      // The watcher above only reacts to future store changes, and calling
-      // connect() on a connected connector throws
-      // ConnectorAlreadyConnectedError — so close the flow as the success it
-      // already is. Mirrors the guard in useWalletConnectPairing. Only run
-      // once wagmi has left 'reconnecting' (see below): before that, the map
-      // holds sessions hydrated from storage that no connector has verified.
+      // Already connected (wagmi restored a session, or the sweep just did):
+      // connect() would throw ConnectorAlreadyConnectedError, so close as a
+      // success. Only trustworthy after 'reconnecting' — see below.
       const alreadyConnected = [...config.state.connections.values()].some(
         (connection) => connection.connector.uid === connector.uid,
       )
@@ -218,12 +187,9 @@ export function WalletConnecting() {
         return
       }
 
-      // The @wagmi/core action, not useConnect's mutate: React Query drops
-      // per-call callbacks when the issuing observer remounts — Strict Mode's
-      // simulated remount does exactly that, and the mount guard below stops
-      // the re-kick — which left a rejection spinning on this screen forever.
-      // A plain promise cannot lose its handlers, and the kit store is safe to
-      // write to even after this page unmounts.
+      // @wagmi/core's connect(), not useConnect's mutate: a promise can't lose
+      // its handlers on remount (Strict Mode), and the kit store is safe to
+      // write after unmount.
       connect(config, { connector }).then(
         () => {
           thisAttempt.settled = true
@@ -233,12 +199,9 @@ export function WalletConnecting() {
         },
         (err) => {
           thisAttempt.settled = true
-          // A superseded attempt stays silent. The user left wallet A
-          // pending, chose another method and started wallet B; A's promise
-          // outlived that, and its late rejection would otherwise overwrite
-          // B's waiting screen with an error about A. (A late *approval* is
-          // not gated: wagmi is then connected, so closing the widget is the
-          // right outcome.)
+          // Only the current attempt reports failure: a wallet the user
+          // walked away from may reject after another one was picked.
+          // (A late approval is not gated — wagmi is then connected.)
           if (!isCurrent()) return
           release()
           setConnectError(describeConnectError(err, walletName))
@@ -251,15 +214,10 @@ export function WalletConnecting() {
       return
     }
 
-    // Page-load reconnect is still sweeping. Hold until it settles: the store
-    // still holds the sessions hydrated from storage, unverified, so the
-    // already-connected check above would take an expired session for a live
-    // one; wagmi may be about to call this very connector's connect() itself,
-    // and a second request races it (-32002 on MetaMask); and wagmi's connect
-    // action marks the store 'connected' even on a *failed* connect while a
-    // hydrated `current` exists, which would trip the success watcher. If the
-    // sweep reconnects this connector, that watcher closes the flow and
-    // `proceed` never runs.
+    // Page-load reconnect still sweeping: the store holds unverified sessions
+    // hydrated from storage, and wagmi may call this connector's connect()
+    // itself (a second request would race it). Hold until it settles; if the
+    // sweep reconnects this connector, the watcher above closes the flow.
     thisAttempt.awaitingReconnect = true
     const stopWaiting = config.subscribe(
       (state) => state.status,
@@ -267,13 +225,9 @@ export function WalletConnecting() {
         if (status === 'reconnecting') return
         stopWaiting()
         if (!isCurrent()) return
-        // The user may have left while we waited — "Choose another", the
-        // header back arrow (goBack), or close (reset) — and only the first
-        // of those passes through this page. So decide from the kit store,
-        // not from which control was used: proceed only if the flow is still
-        // on this page for this wallet. Otherwise nothing has reached the
-        // wallet, so there is nothing to keep alive for a late approval; drop
-        // the attempt rather than open a prompt after the user has gone.
+        // The user may have left meanwhile via back/close, which bypass this
+        // page — so check the kit store. Nothing reached the wallet yet, so
+        // drop the attempt rather than prompt after they've gone.
         const { step, pendingWallet: wanted } = store.getState().auth
         if (
           step !== 'wallet-connecting' ||
@@ -289,9 +243,7 @@ export function WalletConnecting() {
     stops.push(stopWaiting)
   }
 
-  // Kick the request once on mount. The ref guards Strict Mode's double
-  // effect run — a second connect() would trip the wallet's "request already
-  // pending" error before the user has seen the first prompt.
+  // Once on mount; the ref guards Strict Mode's double effect run.
   const started = useRef(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only kick; `attempt` is intentionally the mount-time closure
   useEffect(() => {
@@ -300,12 +252,8 @@ export function WalletConnecting() {
     attempt()
   }, [])
 
-  // Pop back to sign-up rather than pushing it: every way onto this page is
-  // a wallet button on sign-up, so `sign-up` is what's under us in the
-  // history. A push would leave `wallet-connecting` in the history, giving
-  // sign-up a back arrow that remounts this page and calls connect() again
-  // while the original wallet request is still open (-32002). The fallback
-  // is defensive only — the history is never empty here in practice.
+  // Pop, don't push: pushing would leave `wallet-connecting` in the history,
+  // and sign-up's back arrow would remount this page and connect() again.
   const chooseAnother = goBack ?? (() => goToStep('sign-up'))
 
   return (
@@ -322,9 +270,8 @@ export function WalletConnecting() {
               Nothing showing? Open the wallet, the request may be waiting
               behind its unlock screen.
             </StatusScreen>
-            {/* Leaves this screen only — a pending wallet request can't be
-                cancelled from the page (EIP-1193 has no cancel), so the label
-                says what it does rather than promising to close the wallet. */}
+            {/* A pending wallet request can't be cancelled (EIP-1193), so the
+                label promises only what it does. */}
             <Button
               action="secondary"
               text="Choose another sign-in method"

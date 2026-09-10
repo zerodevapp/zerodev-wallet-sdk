@@ -7,53 +7,38 @@ type Eip1193Provider = {
 }
 
 /**
- * Per-provider patch bookkeeping, reference-counted across overlapping
- * disconnects. An unconditional install/restore pair would break under
- * concurrency: the first disconnect to finish would restore the real
- * `request` while a second is still running (its revoke then reaches the
- * wallet — the exact prompt this hook suppresses), and the second's restore
- * would reinstall the first's wrapper permanently.
+ * Per-provider patch, reference-counted: overlapping disconnects must not
+ * restore `request` while another is still running.
  */
 const patches = new WeakMap<
   Eip1193Provider,
   {
     original: Eip1193Provider['request']
-    /** Own-property descriptor of `request` before the patch; undefined if inherited. */
+    /** Own descriptor of `request` before patching; undefined if inherited. */
     ownDescriptor: PropertyDescriptor | undefined
     count: number
   }
 >()
 
 /**
- * Install the revoke-suppressing wrapper; returns the paired release, or
- * `undefined` when this provider cannot be patched (frozen object,
- * non-configurable or getter-only `request`, a Proxy that swallows defines).
- * EIP-1193 does not require `request` to be writable, and a failed patch
- * must never block the disconnect itself — the caller falls back to a plain
- * disconnect, prompt risk and all.
+ * Install the revoke-suppressing wrapper; returns its release, or `undefined`
+ * if the provider can't be patched (frozen, non-configurable, Proxy). A
+ * failed patch must never block the disconnect itself.
  */
 function acquirePatch(provider: Eip1193Provider): (() => void) | undefined {
   let entry = patches.get(provider)
   if (!entry) {
-    // The exact original function, not a bound copy: release() puts this
-    // back, and integrations that compare, wrap, or restore `request`
-    // themselves must see the provider exactly as it was.
+    // The original function itself (not a bound copy) and the own descriptor,
+    // so release restores the exact value and shape. `request` usually lives
+    // on the prototype (MetaMask); an own shadow must not be left behind.
     const original = provider.request
-    // Remember the property's *shape* too. EIP-1193 providers commonly define
-    // `request` on the prototype (MetaMask's does); the assignment below then
-    // creates an own property, and restoring by assignment would leave that
-    // shadow behind — pinning the provider to the old method if its prototype
-    // later changes. Restored with the recorded descriptor, or deleted.
     const ownDescriptor = Object.getOwnPropertyDescriptor(provider, 'request')
     const wrapper: Eip1193Provider['request'] = (args) =>
       args?.method === 'wallet_revokePermissions'
         ? Promise.resolve(null)
         : original.call(provider, args)
-    // defineProperty rather than assignment: assignment throws in strict mode
-    // on a frozen provider or a getter-only `request`, and defineProperty
-    // also handles the getter case. Configurable, so release can always undo
-    // it. If even that fails, or a Proxy quietly ignored it, report
-    // unpatchable instead of throwing.
+    // defineProperty, not assignment: assignment throws on frozen providers
+    // and getter-only `request`. Configurable so release can undo it.
     try {
       Object.defineProperty(provider, 'request', {
         value: wrapper,
@@ -85,30 +70,24 @@ function acquirePatch(provider: Eip1193Provider): (() => void) | undefined {
   }
 }
 
-/**
- * wagmi's `useDisconnect`, guaranteed to never surface a wallet prompt.
- *
- * wagmi's injected connector sends `wallet_revokePermissions` on disconnect.
- * If the wallet still holds an unanswered connection request for this origin
- * (the user ignored a prompt and reloaded — pending confirmations live in the
- * extension and survive reloads), that request sits dormant while the origin
- * is permitted; revoking re-arms it, and the wallet pops its connect view the
- * moment the user logs out. EIP-1193 has no way to inspect or clear a
- * wallet's queue, so the only page-side guarantee is to not touch wallet
- * permissions at all: disconnect stays app-side (wagmi state + reconnect
- * shim), and the site remains authorized in the wallet until the user revokes
- * it there — the norm before wagmi 2.10 added the revoke.
- */
 type WagmiDisconnect = ReturnType<typeof useWagmiDisconnect>
 type WagmiDisconnectParameters = Parameters<typeof useWagmiDisconnect>[0]
 
+/**
+ * wagmi's `useDisconnect`, minus the wallet prompt.
+ *
+ * wagmi's injected connector sends `wallet_revokePermissions` on disconnect.
+ * If the wallet still holds an unanswered connection request for this origin
+ * (ignored prompt, then reload), revoking re-arms it and the wallet pops up at
+ * logout. EIP-1193 can't inspect or clear that queue, so the revoke is
+ * suppressed: disconnect stays app-side, and the site stays authorized in the
+ * wallet until the user revokes it there (the norm before wagmi 2.10).
+ */
 export function useDisconnect(
   parameters: WagmiDisconnectParameters = {},
 ): WagmiDisconnect {
-  // Same parameters as wagmi's, handed to both hooks: `mutation` options
-  // reach wagmi, and a custom `config` is the one we read connectors from —
-  // otherwise we would patch a provider from a different config than the one
-  // being disconnected.
+  // Same parameters as wagmi's: `mutation` options reach wagmi, and a custom
+  // `config` is the one we read connectors from.
   const {
     disconnect: _drop,
     disconnectAsync,
@@ -123,18 +102,14 @@ export function useDisconnect(
       : undefined
   }
 
-  // Same signature as wagmi's, including the per-call mutation options
-  // (`disconnect(vars, { onSuccess, onError })`), which are forwarded as-is —
-  // this is a drop-in replacement, so it must not narrow the public surface.
+  // Same signature as wagmi's; per-call mutation options pass through.
   const disconnectAsyncQuietly: WagmiDisconnect['disconnectAsync'] = async (
     variables,
     options,
   ) => {
-    // Resolve the connector once and pin it. Without an explicit connector
-    // wagmi would resolve `current` again inside disconnectAsync — after the
-    // getProvider() await below — and a late wallet approval landing in that
-    // gap would move `current`: we'd have patched the old provider while
-    // wagmi disconnects the new connector, whose revoke reaches the wallet.
+    // Pin the connector: wagmi would otherwise re-resolve `current` after the
+    // getProvider() await, and a late approval could move it — patching one
+    // provider while disconnecting another.
     const connector = variables?.connector ?? currentConnector()
     const pinned = connector ? { ...variables, connector } : variables
     const provider = (await connector?.getProvider().catch(() => undefined)) as
@@ -143,8 +118,7 @@ export function useDisconnect(
 
     if (!provider?.request) return disconnectAsync(pinned, options)
 
-    // Unpatchable provider: disconnect anyway. Logging out must not be the
-    // thing that fails; the worst case is the prompt this hook usually hides.
+    // Unpatchable provider: disconnect anyway; logout must not fail.
     const release = acquirePatch(provider)
     if (!release) return disconnectAsync(pinned, options)
     try {
