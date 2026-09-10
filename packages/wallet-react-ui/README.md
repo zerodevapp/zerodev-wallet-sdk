@@ -90,11 +90,11 @@ function Root() {
 > every connector — including each wallet extension it discovers via
 > EIP-6963 — and only flips `status` to `'connected'` after the whole sweep.
 > A locked or idle extension can hold that for 10–15 seconds even though this
-> connector reconnected in under one. The connection is in wagmi's store the
-> moment it lands: `useAccount().address` is set while `status` is still
-> `'connecting'` / `'reconnecting'` (wagmi's "reconnecting with a known
-> account" state). Gate your UI on `address` rather than `isConnected` and it
-> renders as soon as the wallet is back.
+> connector reconnected in under one. During that window `useAccount()` already
+> reports an `address` (and `isConnected`), but it is the connection wagmi
+> hydrated from storage, not yet verified — an expired session shows a stale
+> account whose requests fail. Gate signed-in UI on `status === 'connected'`,
+> and show a loading state while `status` is `'reconnecting'`.
 
 ## Usage
 

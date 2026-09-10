@@ -117,15 +117,17 @@ export default function DashboardPage() {
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
-  // Readiness is "we have a wallet", not "wagmi finished reconnecting".
-  // On page load wagmi's reconnect() sweeps every connector — including each
-  // wallet extension discovered via EIP-6963 — and only flips `status` to
-  // 'connected' after the whole sweep. A locked or idle extension can hold
-  // that for 10–15s even though our connector reconnected in under a second.
-  // The connection itself is in wagmi's store the moment it lands, exposed
-  // as `address` while `status` is still 'connecting'/'reconnecting' (wagmi's
-  // "reconnecting with a known account" state). Gate on that.
-  const hasWallet = !!address;
+  // Wait for wagmi to confirm the account. While `status` is 'reconnecting',
+  // `address` (and `isConnected`) come from the persisted connection wagmi
+  // hydrates from storage before any connector has been verified — an
+  // expired session would render a stale account whose actions fail. Only
+  // `status === 'connected'` means our connector actually reconnected.
+  //
+  // This can take a while: wagmi's page-load reconnect() sweeps every
+  // connector, including each wallet extension discovered via EIP-6963, and
+  // a locked or idle extension can hold `status` for 10–15s even though our
+  // connector was back in under a second. That is the loading spinner below.
+  const hasWallet = status === 'connected' && !!address;
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})

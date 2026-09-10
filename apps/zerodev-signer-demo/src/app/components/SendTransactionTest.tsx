@@ -92,10 +92,10 @@ export function SendTransactionTest({
   const [isBatchSubmitting, setIsBatchSubmitting] = useState(false);
 
   // Wagmi hooks
-  const { address, chain } = useAccount();
-  // Same readiness signal as the dashboard: a wallet is present. See
-  // dashboard/page.tsx for why this is not `isConnected`.
-  const hasWallet = !!address;
+  const { address, chain, status } = useAccount();
+  // Same readiness signal as the dashboard — see dashboard/page.tsx for why
+  // `address` alone is not enough.
+  const hasWallet = status === 'connected' && !!address;
   const publicClient = usePublicClient({chainId: chain?.id});
   const config = useConfig();
   const { sendCallsAsync, error: sendCallsError, reset: resetSendCalls } = useSendCalls();

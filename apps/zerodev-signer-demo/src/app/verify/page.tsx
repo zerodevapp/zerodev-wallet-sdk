@@ -17,9 +17,9 @@ export default function VerifyPage() {
 
 function VerifyPageInner() {
   const router = useRouter()
-  const { address } = useAccount()
-  // A wallet is present — see dashboard/page.tsx for why not `isConnected`.
-  const hasWallet = !!address
+  const { address, status } = useAccount()
+  // See dashboard/page.tsx for why `address` alone is not enough.
+  const hasWallet = status === 'connected' && !!address
 
   useEffect(() => {
     if (hasWallet) {

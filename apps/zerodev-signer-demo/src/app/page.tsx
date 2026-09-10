@@ -45,9 +45,9 @@ function LandingPageInner() {
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {address, status: accountStatus} = useAccount()
-  // See dashboard/page.tsx: `address` lands before wagmi's reconnect sweep
-  // finishes; `isConnected` waits for every discovered extension.
-  const hasWallet = !!address
+  // See dashboard/page.tsx: `address` alone is the persisted, unverified
+  // connection until wagmi's reconnect sweep confirms it.
+  const hasWallet = accountStatus === 'connected' && !!address
   const {step: authStep} = useAuth()
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't exposed the account yet, so the redirect to /dashboard is
