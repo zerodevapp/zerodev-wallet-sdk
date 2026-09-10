@@ -9,7 +9,13 @@ import { isCancellationError } from '../utils/isCancellationError'
 import { isRequestPendingError } from '../utils/isRequestPendingError'
 
 /** One in-flight connect: its wagmi-store watcher, and its identity. */
-type Attempt = { stopWatching: () => void }
+type Attempt = {
+  stopWatching: () => void
+  /** wagmi connector uid this attempt is asking. */
+  connectorUid: string
+  /** The wallet answered (either way) — its request is no longer open. */
+  settled: boolean
+}
 
 /**
  * The current attempt per wagmi config. Held outside React on purpose: it has
@@ -110,11 +116,28 @@ export function WalletConnecting() {
   const walletName = pendingWallet?.name ?? 'your wallet'
 
   const attempt = () => {
+    // Single-flight per wallet: if this wallet's request is still open (the
+    // user cancelled and picked it again), do NOT send another connect() —
+    // wallets queue connection requests, approving one leaves the rest
+    // queued, and the leftovers resurface later (e.g. right after logout).
+    // Re-adopt the open attempt instead: its promise and watcher are alive
+    // and will close the flow or surface the error here.
+    const existing = current.get(config)
+    if (
+      connector &&
+      existing &&
+      !existing.settled &&
+      existing.connectorUid === connector.uid
+    ) {
+      setConnectError(null)
+      return
+    }
+
     // Starting an attempt ends the previous one on this config, whatever
     // happens next — including the early return below. Otherwise a wallet the
     // user left pending would stay current, and its late rejection would
     // overwrite the "no longer available" screen shown for the new one.
-    current.get(config)?.stopWatching()
+    existing?.stopWatching()
     current.delete(config)
 
     if (!connector) {
@@ -144,12 +167,17 @@ export function WalletConnecting() {
         if (!current) return
         const connected = config.state.connections.get(current)?.connector
         if (connected?.uid !== connector.uid) return
+        thisAttempt.settled = true
         release()
         clearPendingWallet()
         goToStep(null)
       },
     )
-    const thisAttempt: Attempt = { stopWatching: unsubscribe }
+    const thisAttempt: Attempt = {
+      stopWatching: unsubscribe,
+      connectorUid: connector.uid,
+      settled: false,
+    }
     const isCurrent = () => current.get(config) === thisAttempt
     const release = () => {
       unsubscribe()
@@ -165,11 +193,13 @@ export function WalletConnecting() {
     // write to even after this page unmounts.
     connect(config, { connector }).then(
       () => {
+        thisAttempt.settled = true
         release()
         clearPendingWallet()
         goToStep(null)
       },
       (err) => {
+        thisAttempt.settled = true
         // A superseded attempt stays silent. The user left wallet A pending,
         // chose another method and started wallet B; A's promise outlived
         // that, and its late rejection would otherwise overwrite B's waiting

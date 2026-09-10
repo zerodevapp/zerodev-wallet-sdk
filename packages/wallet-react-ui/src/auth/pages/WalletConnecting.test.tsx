@@ -132,6 +132,32 @@ describe('WalletConnecting', () => {
     expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
   })
 
+  it('re-picking the same wallet while its request is open re-adopts it instead of firing a second connect()', async () => {
+    // Wallets queue connection requests: a second connect() while the first
+    // is unanswered leaves an extra prompt queued in the wallet, which
+    // resurfaces later (e.g. right after logout).
+    const { unmount } = render(<WalletConnecting />)
+    expect(connect).toHaveBeenCalledTimes(1)
+
+    // User cancels (record intentionally kept), then picks the wallet again.
+    unmount()
+    act(() =>
+      auth().startWalletConnect({
+        connectorUid: 'mm',
+        name: 'MetaMask',
+        icon: 'data:mm',
+      }),
+    )
+    render(<WalletConnecting />)
+    expect(connect).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
+
+    // The adopted attempt still settles the flow end to end.
+    await approve()
+    expect(auth().step).toBeNull()
+    expect(auth().pendingWallet).toBeNull()
+  })
+
   it('closes the widget and forgets the wallet when it approves', async () => {
     render(<WalletConnecting />)
     await approve()
