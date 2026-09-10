@@ -94,7 +94,7 @@ export function SendTransactionTest({
   // Wagmi hooks
   const { address, chain } = useAccount();
   // Same readiness signal as the dashboard: a wallet is present. See
-  // dashboard/page.tsx for why this is not `hasWallet`.
+  // dashboard/page.tsx for why this is not `isConnected`.
   const hasWallet = !!address;
   const publicClient = usePublicClient({chainId: chain?.id});
   const config = useConfig();

@@ -148,6 +148,22 @@ describe('WalletConnecting', () => {
     expect(auth().pendingWallet).toMatchObject({ connectorUid: 'mm' })
   })
 
+  it('returns to sign-up by popping history, so the back arrow cannot remount this page and re-prompt the wallet', () => {
+    // A wallet button on sign-up pushed 'sign-up' under us (see beforeEach).
+    expect(auth().stepHistory).toEqual(['sign-up'])
+    render(<WalletConnecting />)
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+
+    expect(auth().step).toBe('sign-up')
+    // Nothing left to go back into: sign-up shows no back arrow, and there is
+    // no path that remounts this page against the still-open request.
+    expect(auth().stepHistory).toEqual([])
+    connect.mockClear()
+    auth().goBack()
+    expect(auth().step).toBe('sign-up')
+    expect(connect).not.toHaveBeenCalled()
+  })
+
   it('stays usable when the wallet never answers: the user can choose another method', () => {
     // Locked wallet, or the user closed the popup: no callback ever fires.
     render(<WalletConnecting />)
@@ -176,6 +192,17 @@ describe('WalletConnecting', () => {
     await rejectWith(rejection)
     fireEvent.click(screen.getByText('Choose another sign-in method'))
     expect(auth().step).toBe('sign-up')
+  })
+
+  it("shows 'Request declined' for a wallet's own ProviderRpcError (Error with code 4001, generic name)", async () => {
+    render(<WalletConnecting />)
+    // MetaMask's provider error: extends Error, carries `code`, name 'Error'.
+    await rejectWith(
+      Object.assign(new Error('User rejected the request.'), { code: 4001 }),
+    )
+
+    expect(screen.getByTestId('title').textContent).toBe('Request declined')
+    expect(auth().connectError).toMatchObject({ pending: false })
   })
 
   it("translates MetaMask's -32002 'already pending' into an actionable message", async () => {
@@ -274,6 +301,45 @@ describe('WalletConnecting', () => {
       rejection.name = 'UserRejectedRequestError'
       await rejectWith(rejection)
       expect(fakeConfig.subs.size).toBe(0)
+    })
+
+    // connect() can't be cancelled, so the wallet the user walked away from
+    // can still answer later. Its rejection must not land on the screen of the
+    // wallet they picked next.
+    it("ignores a late rejection from a wallet the user already left, so it can't overwrite the next wallet's screen", async () => {
+      const rabby: FakeConnector = { uid: 'rabby', name: 'Rabby Wallet' }
+      connectors = [metamask, rabby]
+
+      // MetaMask: start, leave it pending, choose another method.
+      const { unmount } = render(<WalletConnecting />)
+      const settleMetaMask = settle
+      fireEvent.click(screen.getByText('Choose another sign-in method'))
+      unmount()
+
+      // Rabby: a fresh attempt on the same tree.
+      auth().startWalletConnect({ connectorUid: 'rabby', name: 'Rabby Wallet' })
+      render(<WalletConnecting />)
+      expect(screen.getByTestId('title').textContent).toBe(
+        'Waiting for Rabby Wallet',
+      )
+
+      // The user finally closes the MetaMask popup.
+      const rejection = new Error('User rejected the request.')
+      rejection.name = 'UserRejectedRequestError'
+      await act(async () => {
+        settleMetaMask.reject(rejection)
+      })
+
+      // Rabby's screen is untouched and still waiting.
+      expect(auth().connectError).toBeNull()
+      expect(auth().step).toBe('wallet-connecting')
+      expect(auth().pendingWallet).toMatchObject({ connectorUid: 'rabby' })
+      expect(screen.getByTestId('title').textContent).toBe(
+        'Waiting for Rabby Wallet',
+      )
+      // Rabby's own answer still reports normally.
+      await rejectWith(rejection)
+      expect(auth().connectError?.message).toContain('Rabby Wallet')
     })
 
     // Watchers are keyed by wagmi config, not held in one module variable: a

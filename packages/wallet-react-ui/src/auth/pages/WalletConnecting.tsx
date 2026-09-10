@@ -8,16 +8,23 @@ import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
 import { isRequestPendingError } from '../utils/isRequestPendingError'
 
+/** One in-flight connect: its wagmi-store watcher, and its identity. */
+type Attempt = { stopWatching: () => void }
+
 /**
- * The one live wagmi-store watcher per wagmi config. Held outside React on
- * purpose: it has to outlive the component (see `attempt`), and a new attempt
- * on the same config replaces rather than stacks. Keyed by config, not a
- * single module variable, so two WagmiProvider trees on one page each keep
- * their own watcher — otherwise the second tree's attempt would tear down the
- * first tree's, and a late approval there would leave its pending state set
- * and re-prompt the wallet on the next mount.
+ * The current attempt per wagmi config. Held outside React on purpose: it has
+ * to outlive the component (see `attempt`), and a new attempt on the same
+ * config replaces rather than stacks. Keyed by config, not a single module
+ * variable, so two WagmiProvider trees on one page each keep their own —
+ * otherwise the second tree's attempt would tear down the first tree's, and a
+ * late approval there would leave its pending state set and re-prompt the
+ * wallet on the next mount.
+ *
+ * The record doubles as the attempt's identity: a connect() promise can't be
+ * cancelled, so a wallet the user walked away from can still reject later.
+ * Only the attempt that is still current may report a failure.
  */
-const watchers = new WeakMap<Config, () => void>()
+const current = new WeakMap<Config, Attempt>()
 
 function describeConnectError(
   err: unknown,
@@ -78,6 +85,7 @@ export function WalletConnecting() {
     setConnectError,
     clearPendingWallet,
     goToStep,
+    goBack,
   } = useAuth()
   const connectors = useConnectors()
   const config = useConfig()
@@ -109,7 +117,7 @@ export function WalletConnecting() {
     // wallet. Deliberately kept alive after the user leaves this screen, so a
     // late approval still closes the widget; released on success, rejection,
     // or the next attempt.
-    watchers.get(config)?.()
+    current.get(config)?.stopWatching()
     const unsubscribe = config.subscribe(
       (state) => (state.status === 'connected' ? state.current : null),
       (current) => {
@@ -121,11 +129,13 @@ export function WalletConnecting() {
         goToStep(null)
       },
     )
+    const thisAttempt: Attempt = { stopWatching: unsubscribe }
+    const isCurrent = () => current.get(config) === thisAttempt
     const release = () => {
       unsubscribe()
-      if (watchers.get(config) === unsubscribe) watchers.delete(config)
+      if (isCurrent()) current.delete(config)
     }
-    watchers.set(config, unsubscribe)
+    current.set(config, thisAttempt)
 
     // The @wagmi/core action, not useConnect's mutate: React Query drops
     // per-call callbacks when the issuing observer remounts — Strict Mode's
@@ -140,6 +150,12 @@ export function WalletConnecting() {
         goToStep(null)
       },
       (err) => {
+        // A superseded attempt stays silent. The user left wallet A pending,
+        // chose another method and started wallet B; A's promise outlived
+        // that, and its late rejection would otherwise overwrite B's waiting
+        // screen with an error about A. (A late *approval* is not gated: wagmi
+        // is then connected, so closing the widget is the right outcome.)
+        if (!isCurrent()) return
         release()
         setConnectError(describeConnectError(err, walletName))
       },
@@ -157,7 +173,13 @@ export function WalletConnecting() {
     attempt()
   }, [])
 
-  const chooseAnother = () => goToStep('sign-up')
+  // Pop back to sign-up rather than pushing it: every way onto this page is
+  // a wallet button on sign-up, so `sign-up` is what's under us in the
+  // history. A push would leave `wallet-connecting` in the history, giving
+  // sign-up a back arrow that remounts this page and calls connect() again
+  // while the original wallet request is still open (-32002). The fallback
+  // is defensive only — the history is never empty here in practice.
+  const chooseAnother = goBack ?? (() => goToStep('sign-up'))
 
   return (
     <>
