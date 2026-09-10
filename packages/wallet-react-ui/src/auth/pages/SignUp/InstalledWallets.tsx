@@ -52,8 +52,7 @@ export function SignUpInstalledWallets({
     .sort((a, b) => a.rank - b.rank)
     .slice(0, maxWallets)
 
-  // Hand off to the `wallet-connecting` step, which owns the connect() call
-  // and stays usable however the wallet responds.
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const startConnect = (row: (typeof rows)[number]) => {
     if (authPending) return
     if (!guardAgreement()) return

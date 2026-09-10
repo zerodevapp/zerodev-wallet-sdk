@@ -29,8 +29,7 @@ export function SignUpMoreWallets({
     (c) => c.id !== 'zerodev-wallet' && c.type !== 'walletConnect',
   )
 
-  // Hand off to the `wallet-connecting` step, which owns the connect() call
-  // and stays usable however the wallet responds.
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const startConnect = (
     connector: (typeof connectors)[number],
     name: string,

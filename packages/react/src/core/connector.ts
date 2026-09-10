@@ -159,10 +159,7 @@ export function zeroDevWalletCore(
 
       const publicClient = createPublicClient({ chain, transport })
 
-      // Chain id and timing only — never the RPC URL. Provider URLs carry
-      // API keys in the path or query, and this runs on every uncached chain
-      // setup, so logging it would write credentials to the console and any
-      // attached log collector.
+      // Chain id and timing only. RPC URLs carry API keys; never log them.
       console.log(`Creating kernel account for chain ${chainId}...`)
       const kernelStartedAt = Date.now()
       // For 4337, the kernel needs an ECDSA validator plugin keyed off the

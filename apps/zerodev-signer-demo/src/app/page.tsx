@@ -45,8 +45,7 @@ function LandingPageInner() {
 
   const {connect, connectors, status: connectStatus} = useConnect()
   const {address, status: accountStatus} = useAccount()
-  // See dashboard/page.tsx: `address` alone is the persisted, unverified
-  // connection until wagmi's reconnect sweep confirms it.
+  // See dashboard/page.tsx: `address` alone is unverified while reconnecting.
   const hasWallet = accountStatus === 'connected' && !!address
   const {step: authStep} = useAuth()
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but

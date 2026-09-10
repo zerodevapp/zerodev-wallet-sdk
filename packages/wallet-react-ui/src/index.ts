@@ -28,7 +28,7 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
-// Disconnect without wallet-side effects (never surfaces a wallet prompt)
+// wagmi's useDisconnect minus the wallet prompt
 export { useDisconnect } from './useDisconnect.js'
 export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
 

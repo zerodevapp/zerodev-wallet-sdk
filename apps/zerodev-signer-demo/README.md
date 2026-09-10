@@ -31,11 +31,10 @@ NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL=
 NEXT_PUBLIC_ZERODEV_PROJECT_ID=
 ```
 
-The RPC URLs are optional but not free to skip: left blank, viem falls back to
-each chain's public endpoint, which is rate-limited. Reconnecting on page load
-builds the kernel account over RPC, so a throttled request turns into a long
-"Reconnecting..." spinner (viem retries 3x with a 10s timeout). Use a provider
-URL (Alchemy, Infura, dRPC, ...) for anything beyond a quick look.
+The RPC URLs are optional but worth setting: left blank, viem falls back to
+each chain's rate-limited public endpoint, and a throttled request during the
+page-load reconnect turns into a long spinner (viem retries 3x with a 10s
+timeout).
 
 ## Running the Application
 

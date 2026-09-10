@@ -91,9 +91,7 @@ function SheetBody({
     }
   }
 
-  // Hand off to the `wallet-connecting` step, which owns the connect() call
-  // and stays usable however the wallet responds. The sheet unmounts with the
-  // sign-up page on the step change.
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const connectInstalled = () => {
     if (!installed) return
     startWalletConnect({

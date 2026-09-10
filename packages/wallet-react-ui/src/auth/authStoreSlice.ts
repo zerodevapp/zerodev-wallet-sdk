@@ -43,20 +43,18 @@ function clearStoredOtpSession(): void {
 }
 
 /**
- * Why the `wallet-connecting` step stopped waiting. Carries its own title
- * because not every outcome is a failure: a request the wallet is still
- * holding (EIP-1193 `-32002`) is a waiting state, and the page renders it as
- * one rather than as "Couldn't connect".
+ * Why the `wallet-connecting` step stopped waiting. Not always a failure: a
+ * request the wallet still holds (EIP-1193 `-32002`) renders as waiting.
  */
 export type ConnectFailure = {
   title: string
   message: string
-  /** True when the wallet still has the request open — render as waiting. */
+  /** The wallet still has the request open; render as waiting. */
   pending: boolean
 }
 
 export type PendingWallet = {
-  /** wagmi connector uid — the connecting page resolves it via useConnectors. */
+  /** wagmi connector uid, resolved via useConnectors. */
   connectorUid: string
   name: string
   icon?: string | undefined
@@ -84,23 +82,18 @@ export interface AuthStoreSlice {
     clearOtpSession: () => void
 
     /**
-     * External wallet the `wallet-connecting` step is driving. The step's
-     * page owns the wagmi `connect()` call (per-call mutation callbacks are
-     * dropped if the component that issued them unmounts, and the sign-up
-     * page unmounts on the step change), so the button only records intent.
+     * External wallet the `wallet-connecting` step is driving. That page owns
+     * the wagmi connect() call; the wallet button only records intent.
      */
     pendingWallet: PendingWallet | null
-    /** Rejection / failure / still-pending state shown on the connecting page. */
+    /** Outcome shown on the connecting page. */
     connectError: ConnectFailure | null
     /** Record the wallet and move to `wallet-connecting`. */
     startWalletConnect: (wallet: PendingWallet) => void
     setConnectError: (failure: ConnectFailure | null) => void
     /**
-     * Forget the pending wallet. Deliberately NOT called when the user
-     * cancels: the wallet's request is still open, and if it is approved
-     * later the `wallet-connecting` page's pending connect promise and wagmi
-     * store watcher recognise the connection and close the flow. Called on
-     * success, and by `reset()`.
+     * Forget the pending wallet. Called on success and by reset(), not when
+     * the user leaves: the open request may still be approved later.
      */
     clearPendingWallet: () => void
 
@@ -147,10 +140,8 @@ export const createAuthStoreSlice: StateCreator<
         auth: {
           ...state.auth,
           step,
-          // `null` ends the flow, so there is nothing to go back to. Without
-          // this, an external-wallet success left ['sign-up', …] behind: the
-          // external connector's disconnect never runs our reset(), and the
-          // next open showed a back arrow into a stale history.
+          // `null` ends the flow: clear the history so the next open has no
+          // stale back arrow.
           stepHistory:
             step === null
               ? []

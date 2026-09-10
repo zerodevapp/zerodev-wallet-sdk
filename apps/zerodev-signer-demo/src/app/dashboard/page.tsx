@@ -118,16 +118,11 @@ export default function DashboardPage() {
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
-  // Wait for wagmi to confirm the account. While `status` is 'reconnecting',
-  // `address` (and `isConnected`) come from the persisted connection wagmi
-  // hydrates from storage before any connector has been verified — an
-  // expired session would render a stale account whose actions fail. Only
-  // `status === 'connected'` means our connector actually reconnected.
-  //
-  // This can take a while: wagmi's page-load reconnect() sweeps every
-  // connector, including each wallet extension discovered via EIP-6963, and
-  // a locked or idle extension can hold `status` for 10–15s even though our
-  // connector was back in under a second. That is the loading spinner below.
+  // Only `status === 'connected'` is verified. While 'reconnecting', `address`
+  // and `isConnected` come from the persisted connection wagmi hydrates before
+  // checking any connector; an expired session would show a stale account.
+  // The sweep waits on every discovered extension, so a locked one can hold
+  // this for 10–15s — hence the spinner below.
   const hasWallet = status === 'connected' && !!address;
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();

@@ -73,8 +73,7 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     )
   }
 
-  // Hand off to the `wallet-connecting` step, which owns the connect() call
-  // and stays usable however the wallet responds (mirrors the other units).
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const handleClick = () => {
     if (authPending) return
     if (!guardAgreement()) return

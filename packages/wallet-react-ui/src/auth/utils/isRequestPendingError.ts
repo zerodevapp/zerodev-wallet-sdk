@@ -1,15 +1,10 @@
 /**
- * EIP-1193 `-32002` "Resource unavailable": the wallet already has a request
- * open for this origin (MetaMask: "Request of type wallet_requestPermissions
- * already pending"). Happens when the user closed the wallet popup without
- * answering and clicked again — the first request is still waiting inside the
- * extension, and the wallet will not open a second prompt until it's
- * resolved there.
+ * EIP-1193 `-32002`: the wallet already has a request open for this origin
+ * (popup closed without answering, then clicked again). It won't prompt again
+ * until that one is answered in the extension.
  *
- * Shape varies by layer: viem wraps it as `ResourceUnavailableRpcError`, but
- * wagmi's injected connector rethrows the wallet's raw JSON-RPC error object
- * (`{ code: -32002, message }`) — not an `Error` instance. Accept both, and
- * walk `.cause` since wagmi/viem sometimes nest the original.
+ * viem wraps it as `ResourceUnavailableRpcError`; wagmi's injected connector
+ * rethrows the raw JSON-RPC object. Accept both and walk `.cause`.
  */
 export function isRequestPendingError(err: unknown): boolean {
   let current: unknown = err

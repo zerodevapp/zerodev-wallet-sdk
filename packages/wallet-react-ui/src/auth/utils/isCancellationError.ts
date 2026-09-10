@@ -1,14 +1,11 @@
 /**
- * Did the user cancel, rather than something fail? Passkey prompt dismissed,
- * OAuth popup closed, or an external wallet's connection request rejected.
+ * The user cancelled, rather than something failed: passkey prompt dismissed,
+ * OAuth popup closed, or wallet connection request rejected.
  */
 export function isCancellationError(err: unknown): boolean {
-  // EIP-1193 `4001` "user rejected", checked first and on any object: the
-  // shape varies by layer. viem throws `UserRejectedRequestError`; MetaMask's
-  // own `ProviderRpcError` extends Error with `code: 4001` and a generic
-  // name; wagmi's injected connector sometimes rethrows the wallet's raw
-  // JSON-RPC object, not an Error at all. Walk `.cause` since wagmi/viem
-  // sometimes nest the original.
+  // EIP-1193 `4001` "user rejected", on any object: viem's
+  // UserRejectedRequestError, MetaMask's ProviderRpcError (an Error with
+  // `code`), or wagmi's rethrown raw JSON-RPC object. Walk `.cause`.
   let current: unknown = err
   for (let depth = 0; depth < 5 && isObject(current); depth++) {
     if (current.code === 4001) return true
@@ -18,7 +15,7 @@ export function isCancellationError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   // WebAuthn / passkey
   if (err.name === 'AbortError' || err.name === 'NotAllowedError') return true
-  // EIP-1193 user rejection via viem, when the code was not preserved
+  // viem's rejection error when `code` was dropped
   if (err.name === 'UserRejectedRequestError') return true
   // OAuth (existing logic, message-based)
   const msg = err.message.toLowerCase()
