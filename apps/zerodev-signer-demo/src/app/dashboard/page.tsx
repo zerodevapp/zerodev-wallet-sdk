@@ -20,7 +20,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useDisconnect } from "@zerodev/wallet-react-ui";
+import { useAccount, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
 import { ExportWalletModal } from "../components/ExportWalletModal";
@@ -117,6 +118,12 @@ export default function DashboardPage() {
 
   // Wagmi hooks
   const { address, status, chain, } = useAccount();
+  // Only `status === 'connected'` is verified. While 'reconnecting', `address`
+  // and `isConnected` come from the persisted connection wagmi hydrates before
+  // checking any connector; an expired session would show a stale account.
+  // The sweep waits on every discovered extension, so a locked one can hold
+  // this for 10–15s — hence the spinner below.
+  const hasWallet = status === 'connected' && !!address;
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
@@ -211,10 +218,10 @@ export default function DashboardPage() {
   // Use a delay to avoid redirecting during initial reconnection
   const [hasConnected, setHasConnected] = useState(false);
   useEffect(() => {
-    if (status === 'connected') {
+    if (hasWallet) {
       setHasConnected(true);
     }
-  }, [status]);
+  }, [hasWallet]);
   useEffect(() => {
     if (status === 'disconnected' && hasConnected) {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
@@ -233,7 +240,7 @@ export default function DashboardPage() {
     return () => window.clearTimeout(timeout);
   }, [status, isLoggingOut]);
 
-  if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
+  if (isLoggingOut || !hasWallet) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2">

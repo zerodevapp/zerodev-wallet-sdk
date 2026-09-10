@@ -86,6 +86,14 @@ function Root() {
 }
 ```
 
+> **Page-load reconnect.** wagmi's `reconnect()` sweeps every connector,
+> including each extension discovered via EIP-6963, and only sets `status` to
+> `'connected'` after the whole sweep; a locked extension can hold it for
+> 10–15 seconds. Meanwhile `useAccount()` already reports the `address` (and
+> `isConnected`) hydrated from storage, unverified — an expired session would
+> show a stale account. Gate signed-in UI on `status === 'connected'` and show
+> a loading state while `'reconnecting'`.
+
 ## Usage
 
 Mount `<ConnectWallet />` to render the active sign-in screen. Connecting via the

@@ -28,6 +28,8 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
+// wagmi's useDisconnect minus the wallet prompt
+export { useDisconnect } from './useDisconnect.js'
 export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
 
 // Signing

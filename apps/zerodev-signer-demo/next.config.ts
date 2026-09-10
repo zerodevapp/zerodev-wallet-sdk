@@ -28,10 +28,13 @@ const nextConfig: NextConfig = {
         __dirname,
         'node_modules/@tanstack/react-query',
       ),
-      // `wagmi/connectors` re-exports @wagmi/core's tempo module, which
-      // imports its optional `accounts` peer. It isn't installed (nothing
-      // here uses tempo), so stub the specifier out of the bundle.
+      // Optional peers of connectors this app doesn't use (`wagmi/connectors`
+      // re-exports them all), plus pino's optional `pino-pretty`. webpack
+      // warns "Module not found" for each on every compile; stub them out.
       accounts: false,
+      '@base-org/account': false,
+      '@metamask/connect-evm': false,
+      'pino-pretty': false,
     }
     return config
   },

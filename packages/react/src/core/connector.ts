@@ -159,7 +159,9 @@ export function zeroDevWalletCore(
 
       const publicClient = createPublicClient({ chain, transport })
 
+      // Chain id and timing only. RPC URLs carry API keys; never log them.
       console.log(`Creating kernel account for chain ${chainId}...`)
+      const kernelStartedAt = Date.now()
       // For 4337, the kernel needs an ECDSA validator plugin keyed off the
       // EOA so it can authorize userOps. 7702 uses `eip7702Account` instead
       // (the EOA itself is the validator via its delegation).
@@ -178,6 +180,10 @@ export function zeroDevWalletCore(
               },
             }),
       })
+
+      console.log(
+        `Kernel account ready for chain ${chainId} (${Date.now() - kernelStartedAt}ms)`,
+      )
 
       const kernelClient = createKernelAccountClient({
         account: kernelAccount,
@@ -233,6 +239,7 @@ export function zeroDevWalletCore(
 
     const doInitialize = async () => {
       console.log('Initializing ZeroDevWallet connector...')
+      const startedAt = Date.now()
 
       let apiKeyStamper: ApiKeyStamper | undefined
       let passkeyStamper: PasskeyStamper | undefined
@@ -294,7 +301,9 @@ export function zeroDevWalletCore(
         switchChain: switchActiveChain,
       })
 
-      console.log('ZeroDevWallet connector initialized')
+      console.log(
+        `ZeroDevWallet connector initialized (${Date.now() - startedAt}ms)`,
+      )
     }
 
     return {
@@ -320,6 +329,7 @@ export function zeroDevWalletCore(
         const isReconnecting =
           ('isReconnecting' in rest && rest.isReconnecting) || false
 
+        const connectStartedAt = Date.now()
         // Ensure wallet is initialized (lazy init on first connect)
         await initialize()
 
@@ -364,7 +374,9 @@ export function zeroDevWalletCore(
         const address = accountAddressForChain(activeChainId)
         if (!address) throw new Error('Failed to derive account address')
 
-        console.log('ZeroDevWallet connected:', address)
+        console.log(
+          `ZeroDevWallet connected: ${address} (${Date.now() - connectStartedAt}ms)`,
+        )
         return {
           accounts: (withCapabilities
             ? [{ address, capabilities: {} }]

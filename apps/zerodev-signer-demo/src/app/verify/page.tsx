@@ -17,13 +17,15 @@ export default function VerifyPage() {
 
 function VerifyPageInner() {
   const router = useRouter()
-  const { isConnected } = useAccount()
+  const { address, status } = useAccount()
+  // See dashboard/page.tsx for why `address` alone is not enough.
+  const hasWallet = status === 'connected' && !!address
 
   useEffect(() => {
-    if (isConnected) {
+    if (hasWallet) {
       router.push('/dashboard')
     }
-  }, [isConnected, router])
+  }, [hasWallet, router])
 
   return (
     <div className="mx-auto w-full max-w-[500px] min-h-screen flex flex-col sm:max-w-none sm:h-screen sm:min-h-0 sm:flex-row sm:items-center sm:justify-center">

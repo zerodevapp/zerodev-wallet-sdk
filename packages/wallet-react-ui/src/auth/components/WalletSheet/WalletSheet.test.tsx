@@ -35,16 +35,14 @@ vi.mock('@zerodev/react-ui', async (importOriginal) => {
   }
 })
 
-const goToStep = vi.fn()
+const startWalletConnect = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ goToStep }),
+  useAuth: () => ({ startWalletConnect }),
 }))
 
-const connect = vi.fn()
 let connectors: unknown[] = []
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ connect }),
 }))
 
 /** Prop double for the page-level pairing the SignUp root provides. */
@@ -118,9 +116,12 @@ describe('WalletSheet', () => {
 
     const button = screen.getByText(`Open in ${metamask.name}`)
     fireEvent.click(button)
-    expect(connect.mock.calls.at(-1)?.[0]).toEqual({ connector: announced })
-    act(() => connect.mock.calls.at(-1)?.[1].onSuccess())
-    expect(goToStep).toHaveBeenCalledWith(null)
+    // Hands off to the wallet-connecting step, which owns the connect call.
+    expect(startWalletConnect).toHaveBeenCalledWith({
+      connectorUid: announced.uid,
+      name: metamask.name,
+      icon: metamask.icon,
+    })
   })
 
   it('Browser tab links to the download page when nothing claims the wallet', () => {

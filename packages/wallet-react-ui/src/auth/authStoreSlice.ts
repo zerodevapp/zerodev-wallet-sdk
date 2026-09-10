@@ -42,6 +42,24 @@ function clearStoredOtpSession(): void {
   }
 }
 
+/**
+ * Why the `wallet-connecting` step stopped waiting. Not always a failure: a
+ * request the wallet still holds (EIP-1193 `-32002`) renders as waiting.
+ */
+export type ConnectFailure = {
+  title: string
+  message: string
+  /** The wallet still has the request open; render as waiting. */
+  pending: boolean
+}
+
+export type PendingWallet = {
+  /** wagmi connector uid, resolved via useConnectors. */
+  connectorUid: string
+  name: string
+  icon?: string | undefined
+}
+
 export interface AuthStoreSlice {
   auth: {
     // State
@@ -62,6 +80,22 @@ export interface AuthStoreSlice {
     }) => void
     /** Clear the persisted OTP session after a successful verify. */
     clearOtpSession: () => void
+
+    /**
+     * External wallet the `wallet-connecting` step is driving. That page owns
+     * the wagmi connect() call; the wallet button only records intent.
+     */
+    pendingWallet: PendingWallet | null
+    /** Outcome shown on the connecting page. */
+    connectError: ConnectFailure | null
+    /** Record the wallet and move to `wallet-connecting`. */
+    startWalletConnect: (wallet: PendingWallet) => void
+    setConnectError: (failure: ConnectFailure | null) => void
+    /**
+     * Forget the pending wallet. Called on success and by reset(), not when
+     * the user leaves: the open request may still be approved later.
+     */
+    clearPendingWallet: () => void
 
     // Actions
     /** Restore a persisted OTP session (survives reloads mid-email-flow). */
@@ -85,6 +119,8 @@ export const createAuthStoreSlice: StateCreator<
     email: null,
     otpId: null,
     otpEncryptionTargetBundle: null,
+    pendingWallet: null,
+    connectError: null,
 
     // Actions
     initialize: () => {
@@ -104,10 +140,14 @@ export const createAuthStoreSlice: StateCreator<
         auth: {
           ...state.auth,
           step,
+          // `null` ends the flow: clear the history so the next open has no
+          // stale back arrow.
           stepHistory:
-            state.auth.step === null
-              ? state.auth.stepHistory
-              : [...state.auth.stepHistory, state.auth.step],
+            step === null
+              ? []
+              : state.auth.step === null
+                ? state.auth.stepHistory
+                : [...state.auth.stepHistory, state.auth.step],
         },
       }))
     },
@@ -136,7 +176,36 @@ export const createAuthStoreSlice: StateCreator<
           email: null,
           otpId: null,
           otpEncryptionTargetBundle: null,
+          pendingWallet: null,
+          connectError: null,
         },
+      }))
+    },
+
+    startWalletConnect: (wallet) => {
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          pendingWallet: wallet,
+          connectError: null,
+          step: 'wallet-connecting',
+          stepHistory:
+            state.auth.step === null
+              ? state.auth.stepHistory
+              : [...state.auth.stepHistory, state.auth.step],
+        },
+      }))
+    },
+
+    setConnectError: (failure) => {
+      set((state) => ({
+        auth: { ...state.auth, connectError: failure },
+      }))
+    },
+
+    clearPendingWallet: () => {
+      set((state) => ({
+        auth: { ...state.auth, pendingWallet: null, connectError: null },
       }))
     },
 

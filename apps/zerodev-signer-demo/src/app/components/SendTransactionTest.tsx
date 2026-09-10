@@ -92,7 +92,9 @@ export function SendTransactionTest({
   const [isBatchSubmitting, setIsBatchSubmitting] = useState(false);
 
   // Wagmi hooks
-  const { address, isConnected, chain } = useAccount();
+  const { address, chain, status } = useAccount();
+  // Same readiness signal as the dashboard (see dashboard/page.tsx).
+  const hasWallet = status === 'connected' && !!address;
   const publicClient = usePublicClient({chainId: chain?.id});
   const config = useConfig();
   const { sendCallsAsync, error: sendCallsError, reset: resetSendCalls } = useSendCalls();
@@ -266,7 +268,7 @@ export function SendTransactionTest({
 
   // Fetch NFT balance
   const fetchNftBalance = async () => {
-    if (!isConnected || !address || !nftContractAddress) return;
+    if (!hasWallet || !address || !nftContractAddress) return;
 
     setLoadingBalance(true);
     try {
@@ -288,11 +290,11 @@ export function SendTransactionTest({
 
   // Fetch balance when switching to NFT mode or chain changes
   useEffect(() => {
-    if (mode === "mint-nft" && isConnected) {
+    if (mode === "mint-nft" && hasWallet) {
       fetchNftBalance();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isConnected, publicClient]);
+  }, [mode, hasWallet, publicClient]);
 
   useEffect(() => {
     const fetchWalletBalance = async () => {
@@ -307,13 +309,13 @@ export function SendTransactionTest({
   // arrive (e.g. from the faucet) — otherwise the amount input stays disabled
   // until the user manually refreshes, even though the header balance updated.
   useEffect(() => {
-    if (!isConnected) return;
+    if (!hasWallet) return;
     const interval = window.setInterval(() => {
       void refreshBalances();
     }, 10_000);
     return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, chain, publicClient, usdcContractAddress]);
+  }, [hasWallet, address, chain, publicClient, usdcContractAddress]);
 
   useEffect(() => {
     if (mode !== "send-eth" || hasEditedAmount) return;
@@ -326,7 +328,7 @@ export function SendTransactionTest({
     resetSendCalls();
     setBatchTxHashes([]);
 
-    if (!isConnected || !address) {
+    if (!hasWallet || !address) {
       setError("Please authenticate first");
       return;
     }
@@ -417,7 +419,7 @@ export function SendTransactionTest({
     resetMint();
     setMintedTokenId(null);
 
-    if (!isConnected || !address) {
+    if (!hasWallet || !address) {
       setError("Please authenticate first");
       return;
     }

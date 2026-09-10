@@ -366,4 +366,77 @@ describe('authStoreSlice', () => {
       expect(store2.getState().auth.step).toBeNull()
     })
   })
+
+  describe('goToStep(null)', () => {
+    it('clears history, so reopening after an external-wallet success shows no back arrow', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().goToStep('sign-up') // host connect() opens the widget
+      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().goToStep(null) // wallet approved — flow over
+      // User disconnects the EXTERNAL connector: our connector's disconnect(),
+      // and so reset(), never runs. The next open must start clean.
+      auth().goToStep('sign-up')
+
+      expect(auth().stepHistory).toEqual([])
+    })
+  })
+
+  describe('wallet-connecting', () => {
+    it('startWalletConnect records the wallet, clears a stale error, and pushes history', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().goToStep('sign-up')
+      auth().setConnectError({
+        title: 'Couldn’t connect',
+        message: 'stale',
+        pending: false,
+      })
+
+      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+
+      expect(auth().step).toBe('wallet-connecting')
+      expect(auth().pendingWallet).toEqual({
+        connectorUid: 'mm',
+        name: 'MetaMask',
+      })
+      expect(auth().connectError).toBeNull()
+      // Back arrow returns to sign-up.
+      expect(auth().stepHistory).toEqual(['sign-up'])
+    })
+
+    it('clearPendingWallet forgets the wallet and error but leaves the step', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().setConnectError({
+        title: 'Couldn’t connect',
+        message: 'boom',
+        pending: false,
+      })
+
+      auth().clearPendingWallet()
+
+      expect(auth().pendingWallet).toBeNull()
+      expect(auth().connectError).toBeNull()
+      expect(auth().step).toBe('wallet-connecting')
+    })
+
+    it('reset clears the pending wallet and error', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().setConnectError({
+        title: 'Couldn’t connect',
+        message: 'boom',
+        pending: false,
+      })
+
+      auth().reset()
+
+      expect(auth().pendingWallet).toBeNull()
+      expect(auth().connectError).toBeNull()
+      expect(auth().step).toBeNull()
+    })
+  })
 })

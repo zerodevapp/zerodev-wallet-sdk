@@ -27,9 +27,14 @@ cp .env.example .env
 
 ```
 NEXT_PUBLIC_SEPOLIA_RPC_URL=
-NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL=
+NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL=
 NEXT_PUBLIC_ZERODEV_PROJECT_ID=
 ```
+
+The RPC URLs are optional but worth setting: left blank, viem falls back to
+each chain's rate-limited public endpoint, and a throttled request during the
+page-load reconnect turns into a long spinner (viem retries 3x with a 10s
+timeout).
 
 ## Running the Application
 
