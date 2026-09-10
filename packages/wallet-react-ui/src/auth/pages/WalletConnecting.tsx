@@ -149,6 +149,21 @@ export function WalletConnecting() {
       })
       return
     }
+    // A persisted session can already be live for this wallet: wagmi restores
+    // connections on mount, and a host may open the auth widget regardless.
+    // The watcher below only reacts to future store changes, and calling
+    // connect() on a connected connector throws ConnectorAlreadyConnectedError
+    // — so close the flow as the success it already is. Mirrors the guard in
+    // useWalletConnectPairing.
+    const alreadyConnected = [...config.state.connections.values()].some(
+      (connection) => connection.connector.uid === connector.uid,
+    )
+    if (alreadyConnected) {
+      clearPendingWallet()
+      goToStep(null)
+      return
+    }
+
     setConnectError(null)
 
     // Close the flow the moment wagmi reports THIS connector connected —

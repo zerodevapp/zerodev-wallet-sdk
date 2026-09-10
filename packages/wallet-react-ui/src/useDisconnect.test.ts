@@ -67,6 +67,34 @@ describe('useDisconnect', () => {
     expect(rpcLog).toEqual(['wallet_revokePermissions'])
   })
 
+  it('keeps the patch installed across overlapping disconnects', async () => {
+    let releaseSecond!: () => void
+    disconnectAsync
+      // first disconnect: sends its revoke and finishes immediately
+      .mockImplementationOnce(async () => {
+        await provider.request({ method: 'wallet_revokePermissions' })
+      })
+      // second disconnect: holds until after the first has fully finished
+      .mockImplementationOnce(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSecond = resolve
+        })
+        await provider.request({ method: 'wallet_revokePermissions' })
+      })
+    const { result } = renderHook(() => useDisconnect())
+    const first = result.current.disconnectAsync()
+    const second = result.current.disconnectAsync()
+    await first
+    // The first call's release must not have restored the real request while
+    // the second is still running — its revoke stays suppressed.
+    releaseSecond()
+    await second
+    expect(rpcLog).toEqual([])
+    // Both released: the provider is back to its real request.
+    await provider.request({ method: 'wallet_revokePermissions' })
+    expect(rpcLog).toEqual(['wallet_revokePermissions'])
+  })
+
   it('falls through to plain disconnect when no provider is reachable', async () => {
     fakeConfig.state.current = null as never
     const { result } = renderHook(() => useDisconnect())

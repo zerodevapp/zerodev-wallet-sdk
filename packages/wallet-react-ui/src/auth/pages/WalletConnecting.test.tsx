@@ -158,6 +158,16 @@ describe('WalletConnecting', () => {
     expect(auth().pendingWallet).toBeNull()
   })
 
+  it('closes immediately when the wallet is already connected, without calling connect()', () => {
+    // wagmi restored a persisted session; a host opened the widget anyway.
+    // connect() would throw ConnectorAlreadyConnectedError.
+    fakeConfig.connectAs(metamask)
+    render(<WalletConnecting />)
+    expect(connect).not.toHaveBeenCalled()
+    expect(auth().step).toBeNull()
+    expect(auth().pendingWallet).toBeNull()
+  })
+
   it('closes the widget and forgets the wallet when it approves', async () => {
     render(<WalletConnecting />)
     await approve()

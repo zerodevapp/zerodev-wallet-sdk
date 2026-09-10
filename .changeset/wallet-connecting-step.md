@@ -31,6 +31,9 @@ Also fixes the back arrow that appeared on reopening the widget after
 connect → disconnect: `goToStep(null)` now clears the step history, since a
 `null` step means the flow is over and there is nothing to go back to.
 
+A wallet whose persisted connection wagmi already restored closes the flow
+immediately instead of failing with `ConnectorAlreadyConnectedError`.
+
 Re-picking a wallet whose request is still unanswered re-adopts the open
 attempt instead of sending another `connect()`: wallets queue connection
 requests, approving one leaves the rest queued, and the leftovers resurface

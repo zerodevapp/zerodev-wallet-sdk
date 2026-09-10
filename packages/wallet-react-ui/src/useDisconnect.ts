@@ -7,6 +7,44 @@ type Eip1193Provider = {
 }
 
 /**
+ * Per-provider patch bookkeeping, reference-counted across overlapping
+ * disconnects. An unconditional install/restore pair would break under
+ * concurrency: the first disconnect to finish would restore the real
+ * `request` while a second is still running (its revoke then reaches the
+ * wallet — the exact prompt this hook suppresses), and the second's restore
+ * would reinstall the first's wrapper permanently.
+ */
+const patches = new WeakMap<
+  Eip1193Provider,
+  { original: Eip1193Provider['request']; count: number }
+>()
+
+/** Install the revoke-suppressing wrapper; returns the paired release. */
+function acquirePatch(provider: Eip1193Provider): () => void {
+  let entry = patches.get(provider)
+  if (!entry) {
+    const original = provider.request.bind(provider)
+    provider.request = (args) =>
+      args?.method === 'wallet_revokePermissions'
+        ? Promise.resolve(null)
+        : original(args)
+    entry = { original, count: 0 }
+    patches.set(provider, entry)
+  }
+  entry.count++
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    entry.count--
+    if (entry.count === 0) {
+      provider.request = entry.original
+      patches.delete(provider)
+    }
+  }
+}
+
+/**
  * wagmi's `useDisconnect`, guaranteed to never surface a wallet prompt.
  *
  * wagmi's injected connector sends `wallet_revokePermissions` on disconnect.
@@ -41,15 +79,11 @@ export function useDisconnect() {
 
     if (!provider?.request) return disconnectAsync(variables)
 
-    const original = provider.request.bind(provider)
-    provider.request = (args) =>
-      args?.method === 'wallet_revokePermissions'
-        ? Promise.resolve(null)
-        : original(args)
+    const release = acquirePatch(provider)
     try {
       return await disconnectAsync(variables)
     } finally {
-      provider.request = original
+      release()
     }
   }
 

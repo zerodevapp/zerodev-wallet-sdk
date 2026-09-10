@@ -20,7 +20,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useDisconnect } from "@zerodev/wallet-react-ui";
+import { useAccount, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
 import { ExportWalletModal } from "../components/ExportWalletModal";

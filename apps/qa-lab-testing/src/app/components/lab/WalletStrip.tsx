@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useDisconnect } from "@zerodev/wallet-react-ui";
+import { useAccount, usePublicClient } from "wagmi";
 import { useConfigHref } from "../../lib/use-wallet-config";
 import { cn } from "../../lib/utils";
 import { ChainSelector } from "../ChainSelector";
