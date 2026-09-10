@@ -245,6 +245,26 @@ describe('WalletConnecting', () => {
     expect(body).not.toContain('[object Object]')
   })
 
+  it('uses a fixed sentence for a plain object with no message, never [object Object]', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32603 })
+
+    expect(screen.getByTestId('title').textContent).toBe('Couldn’t connect')
+    expect(screen.getByTestId('body').textContent).toBe(
+      'Something went wrong while connecting to MetaMask. Please try again. (code -32603)',
+    )
+  })
+
+  it('treats an empty message like a missing one', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ message: '' })
+
+    expect(screen.getByTestId('body').textContent).not.toContain('[object')
+    expect(screen.getByTestId('body').textContent).toContain(
+      'Something went wrong while connecting to MetaMask.',
+    )
+  })
+
   it('surfaces other failures verbatim', async () => {
     render(<WalletConnecting />)
     await rejectWith(new Error('boom'))

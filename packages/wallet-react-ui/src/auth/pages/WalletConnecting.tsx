@@ -51,16 +51,30 @@ function describeConnectError(
     }
   }
   // Never render "[object Object]": wallets throw plain JSON-RPC error
-  // objects, viem throws Errors with a friendlier `shortMessage`.
+  // objects, viem throws Errors with a friendlier `shortMessage`. A string
+  // thrown as-is is shown as-is. Anything else — an object with no usable
+  // message, such as `{ code: -32603 }` — gets a fixed sentence, with the
+  // numeric code appended since it is the only actionable detail there.
   let message: string | undefined
-  if (typeof err === 'object' && err !== null) {
-    const e = err as { shortMessage?: unknown; message?: unknown }
+  let code: number | undefined
+  if (typeof err === 'string' && err.length > 0) {
+    message = err
+  } else if (typeof err === 'object' && err !== null) {
+    const e = err as {
+      shortMessage?: unknown
+      message?: unknown
+      code?: unknown
+    }
     const text = e.shortMessage ?? e.message
     if (typeof text === 'string' && text.length > 0) message = text
+    if (typeof e.code === 'number') code = e.code
   }
   return {
     title: 'Couldn’t connect',
-    message: message ?? (err instanceof Error ? err.message : String(err)),
+    message:
+      message ??
+      `Something went wrong while connecting to ${walletName}. Please try again.` +
+        (code !== undefined ? ` (code ${code})` : ''),
     pending: false,
   }
 }
