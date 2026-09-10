@@ -1,5 +1,6 @@
 ---
 '@zerodev/wallet-react-ui': patch
+'@zerodev/wallet-react': patch
 ---
 
 fix: external wallet connection no longer freezes the sign-up page
@@ -48,3 +49,8 @@ re-arms it and the wallet pops its connect view at logout. EIP-1193 offers no
 way to clear a wallet's queue, so this hook suppresses the revoke: disconnect
 stays app-side (wagmi state + reconnect shim), and the site remains
 authorized in the wallet until the user revokes it there.
+
+`@zerodev/wallet-react`: the `zeroDevWallet` connector logs how long connector
+initialization, connect, and per-chain kernel account setup take, alongside
+the chain id — so a slow sign-in can be told apart from a slow page-load
+reconnect. RPC URLs are never logged: provider URLs carry API keys.
