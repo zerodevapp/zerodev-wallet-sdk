@@ -110,6 +110,13 @@ export function WalletConnecting() {
   const walletName = pendingWallet?.name ?? 'your wallet'
 
   const attempt = () => {
+    // Starting an attempt ends the previous one on this config, whatever
+    // happens next — including the early return below. Otherwise a wallet the
+    // user left pending would stay current, and its late rejection would
+    // overwrite the "no longer available" screen shown for the new one.
+    current.get(config)?.stopWatching()
+    current.delete(config)
+
     if (!connector) {
       setConnectError({
         title: 'Couldn’t connect',
@@ -131,7 +138,6 @@ export function WalletConnecting() {
     // wallet. Deliberately kept alive after the user leaves this screen, so a
     // late approval still closes the widget; released on success, rejection,
     // or the next attempt.
-    current.get(config)?.stopWatching()
     const unsubscribe = config.subscribe(
       (state) => (state.status === 'connected' ? state.current : null),
       (current) => {

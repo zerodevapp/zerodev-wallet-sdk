@@ -362,6 +362,32 @@ describe('WalletConnecting', () => {
       expect(auth().connectError?.message).toContain('Rabby Wallet')
     })
 
+    it("keeps a stale rejection silent even when the next wallet's connector has gone away", async () => {
+      // MetaMask: start, leave it pending, choose another method.
+      const { unmount } = render(<WalletConnecting />)
+      const settleMetaMask = settle
+      fireEvent.click(screen.getByText('Choose another sign-in method'))
+      unmount()
+
+      // Rabby: chosen, but its connector is gone by the time this page mounts.
+      auth().startWalletConnect({ connectorUid: 'rabby', name: 'Rabby Wallet' })
+      render(<WalletConnecting />)
+      expect(screen.getByTestId('body').textContent).toContain(
+        'no longer available',
+      )
+
+      // MetaMask finally rejects — it must not replace Rabby's screen.
+      const rejection = new Error('User rejected the request.')
+      rejection.name = 'UserRejectedRequestError'
+      await act(async () => {
+        settleMetaMask.reject(rejection)
+      })
+      expect(screen.getByTestId('body').textContent).toContain(
+        'no longer available',
+      )
+      expect(auth().connectError?.title).toBe('Couldn’t connect')
+    })
+
     // Watchers are keyed by wagmi config, not held in one module variable: a
     // page with two WagmiProvider trees must not have the second tree's
     // attempt tear down the first tree's watcher.
