@@ -30,3 +30,18 @@ the screen still closes the widget for the same reason.
 Also fixes the back arrow that appeared on reopening the widget after
 connect → disconnect: `goToStep(null)` now clears the step history, since a
 `null` step means the flow is over and there is nothing to go back to.
+
+Re-picking a wallet whose request is still unanswered re-adopts the open
+attempt instead of sending another `connect()`: wallets queue connection
+requests, approving one leaves the rest queued, and the leftovers resurface
+later as ghost prompts (e.g. right after logout).
+
+New export `useDisconnect`: a drop-in replacement for wagmi's that never
+surfaces a wallet prompt. wagmi's injected connector sends
+`wallet_revokePermissions` on disconnect; if the wallet still holds an
+unanswered connection request for the origin (ignored prompt + reload —
+pending confirmations live in the extension and survive reloads), the revoke
+re-arms it and the wallet pops its connect view at logout. EIP-1193 offers no
+way to clear a wallet's queue, so this hook suppresses the revoke: disconnect
+stays app-side (wagmi state + reconnect shim), and the site remains
+authorized in the wallet until the user revokes it there.
