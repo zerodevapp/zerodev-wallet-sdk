@@ -3,6 +3,7 @@ import { Button, PoweredBy } from '@zerodev/react-ui'
 import { useEffect, useRef } from 'react'
 import { useConfig, useConnectors } from 'wagmi'
 import { StatusScreen } from '../../shared/components/StatusScreen'
+import { useKitStore } from '../../shared/hooks/useKitStore'
 import type { ConnectFailure } from '../authStoreSlice'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
@@ -111,6 +112,7 @@ export function WalletConnecting() {
   } = useAuth()
   const connectors = useConnectors()
   const config = useConfig()
+  const store = useKitStore()
 
   const connector = pendingWallet
     ? connectors.find((c) => c.uid === pendingWallet.connectorUid)
@@ -264,7 +266,24 @@ export function WalletConnecting() {
       (status) => {
         if (status === 'reconnecting') return
         stopWaiting()
-        if (isCurrent()) proceed()
+        if (!isCurrent()) return
+        // The user may have left while we waited — "Choose another", the
+        // header back arrow (goBack), or close (reset) — and only the first
+        // of those passes through this page. So decide from the kit store,
+        // not from which control was used: proceed only if the flow is still
+        // on this page for this wallet. Otherwise nothing has reached the
+        // wallet, so there is nothing to keep alive for a late approval; drop
+        // the attempt rather than open a prompt after the user has gone.
+        const { step, pendingWallet: wanted } = store.getState().auth
+        if (
+          step !== 'wallet-connecting' ||
+          wanted?.connectorUid !== connector.uid
+        ) {
+          release()
+          if (wanted?.connectorUid === connector.uid) clearPendingWallet()
+          return
+        }
+        proceed()
       },
     )
     stops.push(stopWaiting)
@@ -287,18 +306,7 @@ export function WalletConnecting() {
   // sign-up a back arrow that remounts this page and calls connect() again
   // while the original wallet request is still open (-32002). The fallback
   // is defensive only — the history is never empty here in practice.
-  const chooseAnother = () => {
-    // Still waiting on the reconnect sweep means no request has reached the
-    // wallet, so there is nothing a late approval could come from: drop the
-    // attempt and the wallet record rather than prompt after the user left.
-    const active = current.get(config)
-    if (active?.awaitingReconnect) {
-      active.stopWatching()
-      current.delete(config)
-      clearPendingWallet()
-    }
-    ;(goBack ?? (() => goToStep('sign-up')))()
-  }
+  const chooseAnother = goBack ?? (() => goToStep('sign-up'))
 
   return (
     <>

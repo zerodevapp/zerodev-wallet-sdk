@@ -372,16 +372,30 @@ describe('WalletConnecting', () => {
       expect(fakeConfig.subs.size).toBe(0)
     })
 
-    it('does not prompt later if the user leaves before the sweep settles', () => {
-      render(<WalletConnecting />)
-      fireEvent.click(screen.getByText('Choose another sign-in method'))
-      expect(auth().step).toBe('sign-up')
-      // Nothing reached the wallet, so there is no record to keep alive.
-      expect(auth().pendingWallet).toBeNull()
+    // Every way out must cancel the held connect, not just this page's own
+    // button: the header back arrow and close button call goBack / reset on
+    // the store directly. Decided from the store, so all three behave alike.
+    describe('does not prompt later if the user leaves before the sweep settles', () => {
+      const leaveVia = {
+        'Choose another sign-in method': () =>
+          fireEvent.click(screen.getByText('Choose another sign-in method')),
+        'the header back arrow (goBack)': () => act(() => auth().goBack()),
+        'the close button (reset)': () => act(() => auth().reset()),
+      }
+      for (const [name, leave] of Object.entries(leaveVia)) {
+        it(`via ${name}`, () => {
+          render(<WalletConnecting />)
+          leave()
+          expect(auth().step).not.toBe('wallet-connecting')
 
-      act(() => fakeConfig.setStatus('disconnected'))
-      expect(connect).not.toHaveBeenCalled()
-      expect(fakeConfig.subs.size).toBe(0)
+          act(() => fakeConfig.setStatus('disconnected'))
+          expect(connect).not.toHaveBeenCalled()
+          // Nothing reached the wallet, so no record is kept for a late
+          // approval, and no watcher is left behind.
+          expect(auth().pendingWallet).toBeNull()
+          expect(fakeConfig.subs.size).toBe(0)
+        })
+      }
     })
   })
 
