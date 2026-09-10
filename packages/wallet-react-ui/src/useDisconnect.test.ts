@@ -27,9 +27,15 @@ const fakeConfig = {
 }
 // wagmi's injected connector: revoke, then shim. The wrapped hook must let
 // everything through except the revoke.
-const disconnectAsync = vi.fn(async (..._args: unknown[]) => {
-  await provider.request({ method: 'wallet_revokePermissions' })
-  await provider.request({ method: 'eth_chainId' })
+// Like wagmi, talks to the provider of the connector it is asked to
+// disconnect (the hook always pins one), falling back to the default one.
+const disconnectAsync = vi.fn(async (...args: unknown[]) => {
+  const [variables] = args as [
+    { connector?: { getProvider: () => Promise<typeof provider> } }?,
+  ]
+  const target = (await variables?.connector?.getProvider()) ?? provider
+  await target.request({ method: 'wallet_revokePermissions' })
+  await target.request({ method: 'eth_chainId' })
 })
 /** What each wagmi hook was called with, per render. */
 const hookCalls: { useConfig: unknown[]; useDisconnect: unknown[] } = {
@@ -80,6 +86,47 @@ describe('useDisconnect', () => {
     // Integrations that compare, wrap, or restore `request` themselves must
     // see the provider exactly as it was before the disconnect.
     expect(provider.request).toBe(originalRequest)
+  })
+
+  it('restores the own-property descriptor, not just the function value', async () => {
+    const before = Object.getOwnPropertyDescriptor(provider, 'request')
+    const { result } = renderHook(() => useDisconnect())
+    await result.current.disconnectAsync()
+    expect(Object.getOwnPropertyDescriptor(provider, 'request')).toEqual(before)
+  })
+
+  it('leaves no own-property shadow when request is inherited from the prototype', async () => {
+    // MetaMask's provider defines request() on its class prototype.
+    class Proto {
+      async request({ method }: { method: string }) {
+        rpcLog.push(method)
+        return null
+      }
+    }
+    const inherited = new Proto()
+    const inheritedConnector = {
+      uid: 'inh',
+      id: 'inherited',
+      getProvider: async () => inherited,
+    }
+    fakeConfig.state.connections.set('inh', {
+      connector: inheritedConnector as never,
+    })
+    fakeConfig.state.current = 'inh'
+
+    const { result } = renderHook(() => useDisconnect())
+    await result.current.disconnectAsync()
+    expect(rpcLog).toEqual(['eth_chainId'])
+
+    // Back to the prototype's method, with no own property left behind …
+    expect(Object.hasOwn(inherited, 'request')).toBe(false)
+    expect(inherited.request).toBe(Proto.prototype.request)
+    // … so a later change to the prototype is seen by this instance.
+    const replaced = async () => 'replaced'
+    Proto.prototype.request = replaced as never
+    expect(inherited.request).toBe(replaced)
+
+    fakeConfig.state.connections.delete('inh')
   })
 
   it('forwards the per-call mutation options to wagmi, from both functions', async () => {

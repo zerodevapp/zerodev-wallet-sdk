@@ -16,7 +16,12 @@ type Eip1193Provider = {
  */
 const patches = new WeakMap<
   Eip1193Provider,
-  { original: Eip1193Provider['request']; count: number }
+  {
+    original: Eip1193Provider['request']
+    /** Own-property descriptor of `request` before the patch; undefined if inherited. */
+    ownDescriptor: PropertyDescriptor | undefined
+    count: number
+  }
 >()
 
 /** Install the revoke-suppressing wrapper; returns the paired release. */
@@ -27,11 +32,17 @@ function acquirePatch(provider: Eip1193Provider): () => void {
     // back, and integrations that compare, wrap, or restore `request`
     // themselves must see the provider exactly as it was.
     const original = provider.request
+    // Remember the property's *shape* too. EIP-1193 providers commonly define
+    // `request` on the prototype (MetaMask's does); the assignment below then
+    // creates an own property, and restoring by assignment would leave that
+    // shadow behind — pinning the provider to the old method if its prototype
+    // later changes. Restored with the recorded descriptor, or deleted.
+    const ownDescriptor = Object.getOwnPropertyDescriptor(provider, 'request')
     provider.request = (args) =>
       args?.method === 'wallet_revokePermissions'
         ? Promise.resolve(null)
         : original.call(provider, args)
-    entry = { original, count: 0 }
+    entry = { original, ownDescriptor, count: 0 }
     patches.set(provider, entry)
   }
   entry.count++
@@ -41,7 +52,11 @@ function acquirePatch(provider: Eip1193Provider): () => void {
     released = true
     entry.count--
     if (entry.count === 0) {
-      provider.request = entry.original
+      if (entry.ownDescriptor) {
+        Object.defineProperty(provider, 'request', entry.ownDescriptor)
+      } else {
+        delete (provider as Partial<Eip1193Provider>).request
+      }
       patches.delete(provider)
     }
   }
