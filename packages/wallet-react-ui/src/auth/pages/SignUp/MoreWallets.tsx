@@ -1,16 +1,15 @@
 import { ListItem, ListItemChevron, ListItemIcon } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { useConnect, useConnectors } from 'wagmi'
+import { useConnectors } from 'wagmi'
 import { walletConnectLogo } from '../../brandAssets'
 import {
   WalletGridSheet,
   type WalletTileData,
 } from '../../components/WalletGridSheet'
 import { useAuth } from '../../hooks/useAuth'
-import { isCancellationError } from '../../utils/isCancellationError'
 import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
 import { announcesWallet, matchesWallet, WALLET_GUIDE } from '../../walletGuide'
-import { useReportPending, useSignUpContext } from './context'
+import { useSignUpContext } from './context'
 
 /** "More wallets" row — opens the wallet grid sheet. */
 export function SignUpMoreWallets({
@@ -18,13 +17,10 @@ export function SignUpMoreWallets({
 }: {
   title?: string
 }) {
-  const { goToStep } = useAuth()
-  const { authPending, guardAgreement, setError, openWalletSheet } =
-    useSignUpContext()
+  const { startWalletConnect } = useAuth()
+  const { authPending, guardAgreement, openWalletSheet } = useSignUpContext()
   const [open, setOpen] = useState(false)
   const connectors = useConnectors()
-  const { connect, isPending } = useConnect()
-  useReportPending(isPending)
 
   // Our own connector is the embedded wallet, and walletConnect-type
   // connectors are the mobile transport rather than a wallet — neither
@@ -33,24 +29,16 @@ export function SignUpMoreWallets({
     (c) => c.id !== 'zerodev-wallet' && c.type !== 'walletConnect',
   )
 
-  const startConnect = (connector: (typeof connectors)[number]) => {
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
+  const startConnect = (
+    connector: (typeof connectors)[number],
+    name: string,
+    icon: string | undefined,
+  ) => {
     if (authPending) return
     if (!guardAgreement()) return
     setOpen(false)
-    setError(null)
-    connect(
-      { connector },
-      {
-        // The external wallet is now the active wagmi connection — the
-        // embedded-wallet flow is done, so close it.
-        onSuccess: () => goToStep(null),
-        onError: (err) => {
-          if (!isCancellationError(err)) {
-            setError(err instanceof Error ? err.message : String(err))
-          }
-        },
-      },
-    )
+    startWalletConnect({ connectorUid: connector.uid, name, icon })
   }
 
   const wcEnabled = connectors.some(isZeroDevWalletConnect)
@@ -65,7 +53,7 @@ export function SignUpMoreWallets({
         // Announced = the wallet is live on this page (extension or its own
         // in-app browser) — connect directly instead of a WC handoff.
         if (announced) {
-          startConnect(announced)
+          startConnect(announced, wallet.name, wallet.icon)
           return
         }
         if (wcEnabled) {
@@ -79,7 +67,7 @@ export function SignUpMoreWallets({
         // wallet (e.g. a vendor SDK) is the last way to connect.
         const claimed = walletConnectors.find((c) => matchesWallet(c, wallet))
         if (claimed) {
-          startConnect(claimed)
+          startConnect(claimed, wallet.name, wallet.icon)
           return
         }
         setOpen(false)
@@ -96,7 +84,7 @@ export function SignUpMoreWallets({
       key: connector.uid,
       name: connector.name,
       icon: connector.icon,
-      onSelect: () => startConnect(connector),
+      onSelect: () => startConnect(connector, connector.name, connector.icon),
     }))
 
   const walletConnectTiles: WalletTileData[] = wcEnabled
