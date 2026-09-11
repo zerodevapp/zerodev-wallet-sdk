@@ -6,6 +6,7 @@ export type AuthStep =
   | 'otp-input'
   | 'verifying-otp'
   | 'passkey-prompt'
+  | 'wallet-connecting'
   | 'oauth-in-progress'
   | 'authenticated'
   | 'error'

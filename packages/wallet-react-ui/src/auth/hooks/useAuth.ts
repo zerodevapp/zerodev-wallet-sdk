@@ -12,11 +12,15 @@ export function useAuth() {
     store,
     (state) => state.auth.otpEncryptionTargetBundle,
   )
+  const pendingWallet = useStore(store, (state) => state.auth.pendingWallet)
   return {
     step,
     email,
     otpId,
     otpEncryptionTargetBundle,
+    pendingWallet,
+    startWalletConnect: store.getState().auth.startWalletConnect,
+    clearPendingWallet: store.getState().auth.clearPendingWallet,
     goToStep: store.getState().auth.goToStep,
     goBack: stepHistory.length > 0 ? store.getState().auth.goBack : null,
     reset: store.getState().auth.reset,

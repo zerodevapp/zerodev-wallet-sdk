@@ -2,9 +2,9 @@
  * @vitest-environment happy-dom
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { act, Component, type ReactNode } from 'react'
+import { Component, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useSignUpContext } from './context'
+import { useReportPending } from './context'
 import { SignUp } from './index'
 
 afterEach(cleanup)
@@ -47,8 +47,9 @@ vi.mock('../../../shared/components/SignUpFooter', () => ({
 }))
 
 const goToStep = vi.fn()
+const startWalletConnect = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ goToStep }),
+  useAuth: () => ({ goToStep, startWalletConnect }),
 }))
 
 type FakeConnector = {
@@ -67,24 +68,20 @@ vi.mock('../../components/WalletSheet', () => ({
   },
 }))
 
-const connect = vi.fn()
 let connectors: FakeConnector[] = []
-let connectPending = false
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ connect, isPending: connectPending }),
 }))
 
 beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
-  connectPending = false
   deepLink.value = null
 })
 
 describe('SignUp.Wallet', () => {
   it('connects an announced wallet directly even when WalletConnect is configured', () => {
-    const announced = { id: 'io.metamask' }
+    const announced = { id: 'io.metamask', uid: 'mm' }
     connectors = [
       announced,
       { id: 'walletConnect', type: 'walletConnect', zdWalletConnect: true },
@@ -98,8 +95,10 @@ describe('SignUp.Wallet', () => {
 
     // The wallet is live on this page — direct connect, no WC handoff.
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
-    expect(connect.mock.calls[0][0]).toEqual({ connector: announced })
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+      connectorUid: announced.uid,
+    })
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(false)
   })
@@ -116,7 +115,7 @@ describe('SignUp.Wallet', () => {
     expect(screen.queryByText('INSTALLED')).toBeNull()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).not.toHaveBeenCalled()
+    expect(startWalletConnect).not.toHaveBeenCalled()
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(true)
     expect(lastSheet.wallet?.id).toBe('metamask')
@@ -127,6 +126,7 @@ describe('SignUp.Wallet', () => {
     // extension's name — claimed by name, badged, no WC handoff.
     const inApp = {
       id: 'io.metamask.mobile',
+      uid: 'mm-mobile',
       name: 'MetaMask',
       type: 'injected',
     }
@@ -142,12 +142,14 @@ describe('SignUp.Wallet', () => {
     expect(screen.getByText('INSTALLED')).toBeDefined()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
-    expect(connect.mock.calls[0][0]).toEqual({ connector: inApp })
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+      connectorUid: inApp.uid,
+    })
   })
 
-  it('connects the claiming connector and closes the flow on success', () => {
-    const announced = { id: 'io.metamask' }
+  it('connects the claiming connector into the connecting step', () => {
+    const announced = { id: 'io.metamask', uid: 'mm' }
     connectors = [announced]
     render(
       <SignUp>
@@ -159,11 +161,10 @@ describe('SignUp.Wallet', () => {
     expect(screen.getByText('INSTALLED')).toBeDefined()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
-    expect(connect.mock.calls[0][0]).toEqual({ connector: announced })
-
-    act(() => connect.mock.calls[0][1].onSuccess())
-    expect(goToStep).toHaveBeenCalledWith(null)
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+      connectorUid: announced.uid,
+    })
   })
 
   it('treats a configured SDK connector claiming the rdns as connectable, without a badge', () => {
@@ -178,7 +179,7 @@ describe('SignUp.Wallet', () => {
     expect(screen.queryByText('INSTALLED')).toBeNull()
 
     fireEvent.click(screen.getByText('Coinbase Wallet'))
-    expect(connect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
   })
 
   it('renders a download link when no connector claims the wallet', () => {
@@ -190,7 +191,7 @@ describe('SignUp.Wallet', () => {
 
     const link = screen.getByText('MetaMask').closest('a')
     expect(link?.getAttribute('href')).toBe('https://metamask.io/download')
-    expect(connect).not.toHaveBeenCalled()
+    expect(startWalletConnect).not.toHaveBeenCalled()
   })
 
   it('blocks connect until terms are accepted', () => {
@@ -202,51 +203,31 @@ describe('SignUp.Wallet', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).not.toHaveBeenCalled()
+    expect(startWalletConnect).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByTestId('footer-agree'))
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnect).toHaveBeenCalledTimes(1)
   })
 
-  it('reports its in-flight connect so sibling methods disable', () => {
-    function AuthPendingReader() {
-      const { authPending } = useSignUpContext()
-      return <div data-testid="auth-pending">{String(authPending)}</div>
+  it('stays disabled while a sibling method is in flight', () => {
+    // Connecting an external wallet no longer locks the page (that moved to
+    // the wallet-connecting step); a sibling's in-flight auth still does.
+    function SiblingPending() {
+      useReportPending(true)
+      return null
     }
 
     connectors = [{ id: 'io.metamask' }]
-    connectPending = true
     render(
       <SignUp>
         <SignUp.Wallet walletId="metamask" />
-        <AuthPendingReader />
-      </SignUp>,
-    )
-
-    expect(screen.getByTestId('auth-pending').textContent).toBe('true')
-    fireEvent.click(screen.getByText('MetaMask'))
-    expect(connect).not.toHaveBeenCalled()
-  })
-
-  it('surfaces connect failures through the error takeover, except user rejection', () => {
-    connectors = [{ id: 'io.metamask' }]
-    render(
-      <SignUp>
-        <SignUp.Wallet walletId="metamask" />
+        <SiblingPending />
       </SignUp>,
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    const rejection = new Error('User rejected the request.')
-    rejection.name = 'UserRejectedRequestError'
-    act(() => connect.mock.calls[0][1].onError(rejection))
-    expect(screen.queryByText('Error occurred')).toBeNull()
-
-    fireEvent.click(screen.getByText('MetaMask'))
-    act(() => connect.mock.calls[1][1].onError(new Error('boom')))
-    expect(screen.getByText('Error occurred')).toBeDefined()
-    expect(screen.getByText('boom')).toBeDefined()
+    expect(startWalletConnect).not.toHaveBeenCalled()
   })
 
   it('throws on an unknown walletId (raw-JS guard)', () => {
