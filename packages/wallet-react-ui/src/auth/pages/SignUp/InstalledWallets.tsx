@@ -1,9 +1,8 @@
 import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
-import { useConnect, useConnectors } from 'wagmi'
+import { useConnectors } from 'wagmi'
 import { useAuth } from '../../hooks/useAuth'
-import { isCancellationError } from '../../utils/isCancellationError'
 import { matchesWallet, WALLET_GUIDE } from '../../walletGuide'
-import { useReportPending, useSignUpContext } from './context'
+import { useSignUpContext } from './context'
 
 /** Auto-discovered rows for installed wallets: one row per announced (6963)
  * browser extension. Renders nothing when no wallet is installed. */
@@ -19,12 +18,9 @@ export function SignUpInstalledWallets({
    * curated ones. */
   maxWallets?: number
 }) {
-  const { goToStep } = useAuth()
-  const { authPending, guardAgreement, setError, registeredWallets } =
-    useSignUpContext()
+  const { startWalletConnect } = useAuth()
+  const { authPending, guardAgreement, registeredWallets } = useSignUpContext()
   const connectors = useConnectors()
-  const { connect, isPending } = useConnect()
-  useReportPending(isPending)
 
   // Same rule that earns the INSTALLED badge elsewhere: only a 6963
   // announcement proves a live extension. Announcements surface as
@@ -56,38 +52,32 @@ export function SignUpInstalledWallets({
     .sort((a, b) => a.rank - b.rank)
     .slice(0, maxWallets)
 
-  const startConnect = (connector: (typeof connectors)[number]) => {
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
+  const startConnect = (row: (typeof rows)[number]) => {
     if (authPending) return
     if (!guardAgreement()) return
-    setError(null)
-    connect(
-      { connector },
-      {
-        // The external wallet is now the active wagmi connection — the
-        // embedded-wallet flow is done, so close it (mirrors SignUp.Wallet).
-        onSuccess: () => goToStep(null),
-        onError: (err) => {
-          if (!isCancellationError(err)) {
-            setError(err instanceof Error ? err.message : String(err))
-          }
-        },
-      },
-    )
+    startWalletConnect({
+      connectorUid: row.connector.uid,
+      name: row.name,
+      icon: row.icon,
+    })
   }
 
   return (
     <>
-      {rows.map(({ connector, name, icon }) => (
+      {rows.map((row) => (
         <ListItem
-          key={connector.uid}
-          title={name}
+          key={row.connector.uid}
+          title={row.name}
           icon={
-            icon ? <img src={icon} alt="" className="zd:w-6 zd:h-6" /> : null
+            row.icon ? (
+              <img src={row.icon} alt="" className="zd:w-6 zd:h-6" />
+            ) : null
           }
           subtitle={<Badge text="INSTALLED" />}
           trailing={<ListItemChevron />}
           disabled={authPending}
-          onClick={() => startConnect(connector)}
+          onClick={() => startConnect(row)}
         />
       ))}
     </>
