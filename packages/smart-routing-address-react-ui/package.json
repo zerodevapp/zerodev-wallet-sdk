@@ -86,7 +86,7 @@
     "typescript": "5.9.3",
     "viem": "^2.47.18",
     "vite": "^6.4.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.11"
   },
   "type": "module"
 }
