@@ -366,4 +366,18 @@ describe('authStoreSlice', () => {
       expect(store2.getState().auth.step).toBeNull()
     })
   })
+
+  describe('goToStep(null)', () => {
+    it('clears history, so reopening after an external-wallet success shows no back arrow', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().goToStep('sign-up') // host connect() opens the widget
+      auth().goToStep(null) // external wallet approved — flow over
+      // Disconnecting an external wallet runs that wallet's connector, not
+      // ours, so reset() never fires. The next open must still start clean.
+      auth().goToStep('sign-up')
+
+      expect(auth().stepHistory).toEqual([])
+    })
+  })
 })
