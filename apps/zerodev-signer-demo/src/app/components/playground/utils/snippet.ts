@@ -91,6 +91,12 @@ export function emailMethod(
 export const DEFAULT_ITEMS: PlaygroundItem[] = [
   { key: 'default-passkey', type: 'passkey' },
   { key: 'default-divider', type: 'divider' },
+  {
+    key: 'default-installed-wallets',
+    type: 'installedWallets',
+    exclude: '',
+    maxWallets: null,
+  },
   { key: 'default-google', type: 'google' },
   { key: 'default-email', type: 'email', method: 'otp' },
 ]
