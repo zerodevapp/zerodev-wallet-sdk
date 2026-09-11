@@ -8,6 +8,8 @@ import type { AuthStep } from './types'
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
+  mockPendingWallet = null
 })
 
 // Mock all page components. ConnectWallet renders `SignUp.Default` by default,
@@ -32,6 +34,12 @@ vi.mock('./pages/Verifying', () => ({
   Verifying: () => <div data-testid="verifying">Verifying Page</div>,
 }))
 
+vi.mock('./pages/WalletConnecting', () => ({
+  WalletConnecting: () => (
+    <div data-testid="wallet-connecting">WalletConnecting Page</div>
+  ),
+}))
+
 vi.mock('./pages/ErrorScreen', () => ({
   ErrorScreen: () => <div data-testid="error">Error Page</div>,
 }))
@@ -54,18 +62,25 @@ vi.mock('../shared/components/StatusScreen', () => ({
 // Mock useAuth hook. Typed against the real hook so field drift (renamed or
 // removed members) fails the typecheck instead of accumulating silently.
 let mockStep: AuthStep | null = null
+let mockPendingWallet: { connectorUid: string; name: string } | null = null
+const goToStep = vi.fn()
+const clearPendingWallet = vi.fn()
 vi.mock('./hooks/useAuth', () => ({
   useAuth: (): ReturnType<typeof import('./hooks/useAuth')['useAuth']> => ({
     step: mockStep,
     email: null,
     otpId: null,
     otpEncryptionTargetBundle: null,
-    goToStep: vi.fn(),
+    goToStep,
     goBack: null,
     reset: vi.fn(),
     setEmail: vi.fn(),
     setOtpSession: vi.fn(),
     clearOtpSession: vi.fn(),
+    pendingWallet: mockPendingWallet,
+    startWalletConnect: vi.fn(),
+    setConnectError: vi.fn(),
+    clearPendingWallet,
   }),
 }))
 
@@ -132,6 +147,14 @@ describe('ConnectWallet', () => {
 
     expect(screen.getByTestId('verifying')).toBeDefined()
     expect(screen.getByText('Verifying Page')).toBeDefined()
+  })
+
+  it('renders wallet-connecting page', () => {
+    mockStep = 'wallet-connecting'
+    render(<ConnectWallet />)
+
+    expect(screen.getByTestId('wallet-connecting')).toBeDefined()
+    expect(screen.getByText('WalletConnecting Page')).toBeDefined()
   })
 
   it('renders oauth-in-progress state', () => {
