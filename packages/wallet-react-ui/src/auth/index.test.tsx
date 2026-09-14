@@ -78,8 +78,9 @@ vi.mock('./hooks/useAuth', () => ({
     setOtpSession: vi.fn(),
     clearOtpSession: vi.fn(),
     pendingWallet: mockPendingWallet,
-    startWalletConnect: vi.fn(),
+    connectError: null,
     setConnectError: vi.fn(),
+    startWalletConnect: vi.fn(),
     clearPendingWallet,
   }),
 }))

@@ -13,13 +13,16 @@ export function useAuth() {
     (state) => state.auth.otpEncryptionTargetBundle,
   )
   const pendingWallet = useStore(store, (state) => state.auth.pendingWallet)
+  const connectError = useStore(store, (state) => state.auth.connectError)
   return {
     step,
     email,
     otpId,
     otpEncryptionTargetBundle,
     pendingWallet,
+    connectError,
     startWalletConnect: store.getState().auth.startWalletConnect,
+    setConnectError: store.getState().auth.setConnectError,
     clearPendingWallet: store.getState().auth.clearPendingWallet,
     goToStep: store.getState().auth.goToStep,
     goBack: stepHistory.length > 0 ? store.getState().auth.goBack : null,
