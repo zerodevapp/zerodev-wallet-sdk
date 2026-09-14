@@ -129,6 +129,32 @@ describe('WalletConnecting', () => {
     expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
   })
 
+  // Several wallets can be left unanswered at once, so the open request has
+  // to be remembered per wallet, not one at a time.
+  it('re-adopts the first wallet even after another wallet was tried in between', () => {
+    const rabby: FakeConnector = { uid: 'rabby', name: 'Rabby Wallet' }
+    connectors = [metamask, rabby]
+
+    // MetaMask: leave it unanswered.
+    const { unmount } = render(<WalletConnecting />)
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    unmount()
+
+    // Rabby: leave that unanswered too.
+    auth().startWalletConnect({ connectorUid: 'rabby', name: 'Rabby Wallet' })
+    const second = render(<WalletConnecting />)
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    second.unmount()
+    expect(connect).toHaveBeenCalledTimes(2)
+
+    // Back to MetaMask, whose request is still open in the extension.
+    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    render(<WalletConnecting />)
+
+    expect(connect).toHaveBeenCalledTimes(2)
+    expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
+  })
+
   it('sends a fresh request when the wallet already answered', async () => {
     const { unmount } = render(<WalletConnecting />)
     await rejectWith(new Error('User rejected the request.'))
@@ -152,8 +178,8 @@ describe('WalletConnecting', () => {
     expect(auth().pendingWallet).toBeNull()
   })
 
-  // Matches the behaviour before this screen existed; the message comes next.
-  it('returns to sign-up without a message when the wallet rejects', async () => {
+  // A rejection needs no explanation — same as before this screen existed.
+  it('returns to sign-up without a message when the user rejects', async () => {
     const rejection = new Error('User rejected the request.')
     rejection.name = 'UserRejectedRequestError'
     render(<WalletConnecting />)
@@ -161,6 +187,58 @@ describe('WalletConnecting', () => {
 
     expect(auth().step).toBe('sign-up')
     expect(auth().pendingWallet).toBeNull()
+    expect(auth().connectError).toBeNull()
+  })
+
+  // The message is the only diagnostic a host gets for a real failure, and the
+  // sign-up page that used to show it unmounts on the step change.
+  it('shows the message for a failure that is not a user rejection', async () => {
+    render(<WalletConnecting />)
+    await rejectWith(new Error('Provider is not configured'))
+
+    expect(auth().step).toBe('wallet-connecting')
+    expect(screen.getByTestId('title').textContent).toBe('Couldn’t connect')
+    expect(screen.getByTestId('body').textContent).toBe(
+      'Provider is not configured',
+    )
+    // Still a way out.
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    expect(auth().step).toBe('sign-up')
+  })
+
+  it('clears a stale error when the wallet is picked again', async () => {
+    const { unmount } = render(<WalletConnecting />)
+    await rejectWith(new Error('Provider is not configured'))
+    unmount()
+
+    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    render(<WalletConnecting />)
+
+    expect(auth().connectError).toBeNull()
+    expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
+  })
+
+  // The abandoned prompt is still sitting in the extension, and a user who
+  // bailed will often dismiss it later — by then they are somewhere else.
+  it('ignores a late rejection once the user has moved on to another sign-in method', async () => {
+    render(<WalletConnecting />)
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    auth().goToStep('otp-input') // user entered their email instead
+
+    await rejectWith(new Error('User rejected the request.'))
+
+    expect(auth().step).toBe('otp-input')
+  })
+
+  it('ignores a late rejection once the user has started a different wallet', async () => {
+    render(<WalletConnecting />)
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    auth().startWalletConnect({ connectorUid: 'rabby', name: 'Rabby Wallet' })
+
+    await rejectWith(new Error('User rejected the request.'))
+
+    expect(auth().step).toBe('wallet-connecting')
+    expect(auth().pendingWallet).toMatchObject({ connectorUid: 'rabby' })
   })
 
   it('closes immediately when the wallet is already connected, without calling connect()', () => {
