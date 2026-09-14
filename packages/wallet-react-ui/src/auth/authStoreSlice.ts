@@ -42,6 +42,12 @@ function clearStoredOtpSession(): void {
   }
 }
 
+/** Why the connecting page stopped waiting. */
+export type ConnectFailure = {
+  title: string
+  message: string
+}
+
 export type PendingWallet = {
   /** wagmi connector uid, resolved via useConnectors. */
   connectorUid: string
@@ -75,11 +81,11 @@ export interface AuthStoreSlice {
      * the wagmi connect() call; the wallet button only records intent.
      */
     pendingWallet: PendingWallet | null
-    /** Why the connecting page stopped waiting; null while it waits. */
-    connectError: string | null
+    /** Null while the page is still waiting on the wallet. */
+    connectError: ConnectFailure | null
     /** Record the wallet and move to `wallet-connecting`. */
     startWalletConnection: (wallet: PendingWallet) => void
-    setConnectError: (message: string | null) => void
+    setConnectError: (failure: ConnectFailure | null) => void
     /**
      * Forget the pending wallet. Called on success and by reset(), not when
      * the user leaves: the open request may still be approved later.
@@ -186,9 +192,9 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
-    setConnectError: (message) => {
+    setConnectError: (failure) => {
       set((state) => ({
-        auth: { ...state.auth, connectError: message },
+        auth: { ...state.auth, connectError: failure },
       }))
     },
 

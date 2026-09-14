@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useConfig, useConnectors } from 'wagmi'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useKitStore } from '../../shared/hooks/useKitStore'
+import type { ConnectFailure } from '../authStoreSlice'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
 
@@ -21,6 +22,22 @@ function openFor(config: Config): Set<string> {
     openRequests.set(config, uids)
   }
   return uids
+}
+
+function describeConnectError(
+  err: unknown,
+  walletName: string,
+): ConnectFailure {
+  if (isCancellationError(err)) {
+    return {
+      title: 'Request declined',
+      message: `You declined the connection request in ${walletName}.`,
+    }
+  }
+  return {
+    title: 'Couldn’t connect',
+    message: err instanceof Error ? err.message : String(err),
+  }
 }
 
 /**
@@ -107,14 +124,7 @@ export function WalletConnecting() {
         ) {
           return
         }
-        // A rejection needs no explanation, as before this screen existed.
-        // Any other failure's message is the host's only diagnostic.
-        if (isCancellationError(err)) {
-          clearPendingWallet()
-          leave()
-          return
-        }
-        setConnectError(err instanceof Error ? err.message : String(err))
+        setConnectError(describeConnectError(err, walletName))
       },
     )
   }
@@ -139,16 +149,21 @@ export function WalletConnecting() {
             its unlock screen.
           </StatusScreen>
         ) : (
-          <StatusScreen imageName="error" title="Couldn’t connect">
-            {connectError}
+          <StatusScreen imageName="error" title={connectError.title}>
+            {connectError.message}
           </StatusScreen>
         )}
         {/* EIP-1193 has no cancel, so the label promises only what it does. */}
-        <Button
-          action="secondary"
-          text="Choose another sign-in method"
-          onClick={leave}
-        />
+        <div className="zd:flex zd:flex-col zd:gap-1">
+          {connectError !== null && (
+            <Button action="primary" text="Try again" onClick={attempt} />
+          )}
+          <Button
+            action="secondary"
+            text="Choose another sign-in method"
+            onClick={leave}
+          />
+        </div>
       </div>
 
       <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
