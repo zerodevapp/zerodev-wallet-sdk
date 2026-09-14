@@ -168,6 +168,26 @@ export function WalletConnecting() {
     )
   }
 
+  // wagmi can connect without our connect() promise resolving: after a reload
+  // the wallet's queued request belongs to a dead page, and approving it
+  // authorises the site through the connector's own events. Watch the store so
+  // the flow still closes.
+  useEffect(() => {
+    if (!connector) return
+    const uid = connector.uid
+    return config.subscribe(
+      (state) => (state.status === 'connected' ? state.current : null),
+      (currentUid) => {
+        if (!currentUid) return
+        const connected = config.state.connections.get(currentUid)?.connector
+        if (connected?.uid !== uid) return
+        const auth = store.getState().auth
+        auth.clearPendingWallet()
+        auth.goToStep(null)
+      },
+    )
+  }, [connector, config, store])
+
   // Once on mount; the ref guards Strict Mode's double effect run.
   const started = useRef(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only kick; `attempt` is intentionally the mount-time closure
