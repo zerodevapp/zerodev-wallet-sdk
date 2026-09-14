@@ -232,3 +232,87 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    # No `if:` guard and no `env:` secrets, deliberately: the integration layer
+    # is in-process and must never need a live service. If a test here ever
+    # needs a secret, it belongs in e2e/backend instead.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests
+        run: pnpm test:integration
+
+  ci-gate:
+    name: All checks passed
+    runs-on: ubuntu-latest
+    needs:
+      - lint-and-format
+      - typecheck
+      - build
+      - test
+      - integration-test
+      - backend-e2e-test
+      - e2e-test
+    if: always()
+    steps:
+      - name: Verify every job succeeded
+        env:
+          # Every job in `needs:` and its result, so this script never has to
+          # name them. Adding or removing a gated job is a one-line edit to
+          # `needs:` above and nothing else.
+          NEEDS: ${{ toJSON(needs) }}
+          # The ONLY per-job policy: jobs allowed to report `skipped`. Both are
+          # guarded off for PRs from forks, so a fork PR could never merge otherwise.
+          # Any other job that reports `skipped` fails the gate — a skip there
+          # means it silently did not run.
+          SKIPPABLE: backend-e2e-test e2e-test
+        run: |
+          fail=0
+
+          # `jq` is preinstalled on GitHub-hosted ubuntu runners.
+          while read -r job result; do
+            case "$result" in
+              success)
+                echo "ok       $job"
+                ;;
+              skipped)
+                case " $SKIPPABLE " in
+                  *" $job "*)
+                    echo "skipped  $job (allowed: guarded off for fork PRs)"
+                    ;;
+                  *)
+                    echo "::error::$job was skipped but is not allowed to skip"
+                    fail=1
+                    ;;
+                esac
+                ;;
+              *)
+                echo "::error::$job did not succeed (got '$result')"
+                fail=1
+                ;;
+            esac
+          done <<EOF
+          $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
+          EOF
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::CI gate failed — see the job results above."
+            exit 1
+          fi
+          echo "All gated jobs passed."

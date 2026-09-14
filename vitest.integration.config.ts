@@ -1,6 +1,14 @@
 import * as path from 'node:path'
 import { configDefaults, defineConfig } from 'vitest/config'
 
+// The integration layer: boundary and flow tests that span a seam but need NO
+// live service. Nothing here may read a secret or open a socket — the
+// live-dependency suites are `e2e/vitest.backend.config.ts` (real KMS/Turnkey)
+// and `e2e/playwright.config.ts` (browser).
+//
+// The alias block mirrors `vitest.config.ts` on purpose: cross-package boundary
+// tests import by package specifier. If a third config ever needs it, extract
+// it rather than adding a third copy.
 export default defineConfig({
   resolve: {
     alias: {
@@ -22,10 +30,12 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
+    include: ['packages/*/src/**/*.integration.test.ts'],
+    exclude: configDefaults.exclude,
     coverage: {
       provider: 'v8',
-      // `lcov` (coverage/lcov.info) is what Codecov ingests in CI.
       reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: 'coverage/integration',
       include: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.tsx'],
       exclude: [
         'packages/*/src/**/*.test.ts',
@@ -40,17 +50,5 @@ export default defineConfig({
         'packages/*/src/**/*.d.ts',
       ],
     },
-    include: [
-      'packages/*/src/**/*.test.ts',
-      'packages/*/src/**/*.test.tsx',
-      'e2e/mocks/**/*.test.ts',
-    ],
-    // `*.integration.test.ts` matches the include glob above, so without this
-    // the unit suite silently swallows the whole integration layer. It has its
-    // own runner: `pnpm test:integration`.
-    exclude: [
-      ...configDefaults.exclude,
-      'packages/*/src/**/*.integration.test.ts',
-    ],
   },
 })
