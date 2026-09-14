@@ -24,4 +24,4 @@ export type {
 export { SmartRoutingAddress } from './pages'
 
 // Types
-export type { SmartRoutingAddressConfig } from './types'
+export type { OnrampWidgetParams, SmartRoutingAddressConfig } from './types'

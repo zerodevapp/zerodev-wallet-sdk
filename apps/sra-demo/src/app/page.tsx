@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  type OnrampWidgetParams,
   SmartRoutingAddress,
   type SmartRoutingAddressConfig,
   SmartRoutingAddressProvider,
@@ -76,6 +77,12 @@ export default function Home() {
   // producing a UI ↔ mock mismatch).
   const [mockErrorMode, setMockErrorMode] = useState<MockErrorMode>('none')
   const [mockSponsored, setMockSponsored] = useState(false)
+  // Shows the widget's "Buy with card" (Transak) entry. Defaults on when a
+  // real partner key is configured; toggleable from Mock controls otherwise
+  // so the entry's UX is previewable with a placeholder key.
+  const [mockOnramp, setMockOnramp] = useState(
+    !!process.env.NEXT_PUBLIC_TRANSAK_API_KEY,
+  )
   // Lifted for the same reason as the toggles above: the mock-controls
   // <details> would otherwise reset to closed every time an action bumps
   // `mockNonce` and remounts the subtree.
@@ -157,8 +164,30 @@ export default function Home() {
   }
 
   const config = useMemo<SmartRoutingAddressConfig>(
-    () => ({ targetChainId, slippage }),
-    [targetChainId, slippage],
+    () => ({
+      targetChainId,
+      slippage,
+      // Fiat onramp is partner-gated (needs a KYB'd Transak key + secret).
+      // Widget URLs must be minted server-side (Transak refuses plain
+      // apiKey iframes), so the widget calls our /api/transak-session route
+      // — the same recipe a real host implements on their backend. Without
+      // env credentials the route 501s and the sheet shows its error state.
+      ...(mockOnramp && {
+        onramp: {
+          getWidgetUrl: async (params: OnrampWidgetParams) => {
+            const res = await fetch('/api/transak-session', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(params),
+            })
+            if (!res.ok) throw new Error(`transak session: ${res.status}`)
+            const { widgetUrl } = (await res.json()) as { widgetUrl: string }
+            return widgetUrl
+          },
+        },
+      }),
+    }),
+    [targetChainId, slippage, mockOnramp],
   )
 
   const recipientReady = isAddress(recipient)
@@ -252,6 +281,8 @@ export default function Home() {
                 setMockErrorMode={setMockErrorMode}
                 mockSponsored={mockSponsored}
                 setMockSponsored={setMockSponsored}
+                mockOnramp={mockOnramp}
+                setMockOnramp={setMockOnramp}
                 controlsOpen={mockControlsOpen}
                 setControlsOpen={setMockControlsOpen}
               />

@@ -28,7 +28,9 @@ export function BuyWithCardButton({
     <Button
       size="sm"
       action="secondary"
-      className="zd:w-full"
+      // shrink-0: the deposit page is a flex column that overflows once the
+      // route loads — without it the button gets flex-squashed to ~0 height.
+      className="zd:w-full zd:shrink-0"
       {...(onClick && { onClick })}
       {...(disabled !== undefined && { disabled })}
     >

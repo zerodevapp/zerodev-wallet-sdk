@@ -17,8 +17,9 @@ import {
   Wrapper,
 } from '@zerodev/react-ui'
 import type { DepositedToken, TOKEN_TYPE } from '@zerodev/smart-routing-address'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddressDisplay } from '../components/AddressDisplay'
+import { BuyWithCardButton } from '../components/BuyWithCardButton'
 import { ErrorRetryCard } from '../components/ErrorRetryCard'
 import {
   FeeBreakdownRows,
@@ -28,6 +29,7 @@ import {
 } from '../components/FeeBreakdown'
 import { FEE_INFO } from '../components/FeeBreakdown/feeInfo'
 import { LoadingCard } from '../components/LoadingCard'
+import { OnrampSheet, type OnrampSheetState } from '../components/OnrampSheet'
 import { PendingDeposits } from '../components/PendingDeposits'
 import { DEFAULT_FILL_TIME_SECONDS } from '../constants'
 import { useSmartRoutingAddressContext } from '../context/SmartRoutingAddressContext'
@@ -49,6 +51,7 @@ import {
   formatSlippage,
 } from '../utils/format'
 import { buildFeeBreakdown } from '../utils/providerFees'
+import { TRANSAK_NETWORKS } from '../utils/transak'
 
 export interface DepositProps {
   onQrClick?: () => void
@@ -79,6 +82,10 @@ export function Deposit({
     useSmartRoutingAddressContext()
   const [feeOpen, setFeeOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
+  const [onrampOpen, setOnrampOpen] = useState(false)
+  const [onrampState, setOnrampState] = useState<OnrampSheetState>({
+    status: 'loading',
+  })
 
   const success = addressState.status === 'success' ? addressState : null
   const address = success?.address
@@ -280,6 +287,33 @@ export function Deposit({
     retry,
   ])
 
+  // Opens the onramp sheet and mints a fresh Transak widget URL for the
+  // current route. Runs per press (and per retry): session URLs are
+  // single-use with a 5-minute expiry, so there's nothing to cache. The
+  // generation counter drops stale responses if the sheet is reopened while
+  // an earlier mint is still in flight.
+  const onrampGenRef = useRef(0)
+  const openOnramp = useCallback(() => {
+    const onramp = config.onramp
+    if (!onramp) return
+    const gen = ++onrampGenRef.current
+    setOnrampState({ status: 'loading' })
+    setOnrampOpen(true)
+    onramp
+      .getWidgetUrl({
+        walletAddress: address,
+        cryptoCurrencyCode: tokenSymbol,
+        network: source ? TRANSAK_NETWORKS[source.chain.id] : undefined,
+      })
+      .then((url) => {
+        if (onrampGenRef.current === gen)
+          setOnrampState({ status: 'ready', url })
+      })
+      .catch(() => {
+        if (onrampGenRef.current === gen) setOnrampState({ status: 'error' })
+      })
+  }, [config.onramp, address, tokenSymbol, source])
+
   return (
     // min-h-full, not h-full: with a fixed height, overflowing content
     // scrolls past the padding box and pb-6 never lands after the last row
@@ -288,6 +322,22 @@ export function Deposit({
     // bottom padding is honoured.
     <div className="zd:flex zd:min-h-full zd:w-full zd:flex-col zd:items-center zd:gap-4 zd:pt-4 zd:pb-6">
       <Text className="zd:w-full zd:text-center">{SUBTITLE}</Text>
+
+      {/* Fiat onramp entry (Figma 20400:2504) — config-gated: only partners
+          with a KYB-approved Transak key show it, and it stays visually
+          secondary to the core copy-address flow. Disabled until the deposit
+          address exists since that's where the purchase is delivered. */}
+      {config.onramp && (
+        <>
+          <BuyWithCardButton onClick={openOnramp} disabled={!address} />
+          <OnrampSheet
+            open={onrampOpen}
+            onOpenChange={setOnrampOpen}
+            state={onrampState}
+            onRetry={openOnramp}
+          />
+        </>
+      )}
 
       <div className="zd:relative zd:flex zd:w-full zd:flex-1 zd:flex-col zd:gap-2">
         <ArrowCardPair

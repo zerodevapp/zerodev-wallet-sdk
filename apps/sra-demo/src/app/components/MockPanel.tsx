@@ -47,6 +47,8 @@ export function MockPanel({
   setMockErrorMode,
   mockSponsored,
   setMockSponsored,
+  mockOnramp,
+  setMockOnramp,
   controlsOpen,
   setControlsOpen,
 }: {
@@ -56,6 +58,8 @@ export function MockPanel({
   setMockErrorMode: (mode: MockErrorMode) => void
   mockSponsored: boolean
   setMockSponsored: (value: boolean) => void
+  mockOnramp: boolean
+  setMockOnramp: (value: boolean) => void
   controlsOpen: boolean
   setControlsOpen: (open: boolean) => void
 }) {
@@ -262,6 +266,8 @@ export function MockPanel({
             setErrorMode={setMockErrorMode}
             sponsored={mockSponsored}
             setSponsored={setMockSponsored}
+            onramp={mockOnramp}
+            setOnramp={setMockOnramp}
             open={controlsOpen}
             setOpen={setControlsOpen}
           />
