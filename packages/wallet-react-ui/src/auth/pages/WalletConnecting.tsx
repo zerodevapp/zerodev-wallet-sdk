@@ -81,6 +81,10 @@ export function WalletConnecting() {
   }
 
   const attempt = () => {
+    // Starting an attempt means waiting again: drop the previous outcome so
+    // Try again shows the wallet rather than the failure it replaces.
+    setConnectError(null)
+
     // Single-flight per wallet: a wallet rejects a second request rather than
     // re-prompting, so re-adopt the open one — its promise still drives this
     // screen.
