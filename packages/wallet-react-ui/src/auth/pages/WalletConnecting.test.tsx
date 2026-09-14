@@ -39,11 +39,49 @@ type FakeConnector = { uid: string; name: string; icon?: string }
 let connectors: FakeConnector[] = []
 // Fresh per test, like a fresh page load: the page keeps its in-flight
 // attempt keyed by the wagmi config, and that must not leak between tests.
+type FakeState = {
+  status: 'connected' | 'disconnected'
+  current: string | null
+  connections: Map<string, { connector: FakeConnector }>
+}
+type Sub = {
+  selector: (s: FakeState) => unknown
+  listener: (v: unknown, p: unknown) => void
+  prev: unknown
+}
 function makeFakeConfig() {
-  return {
+  const config = {
     connectors: [{ id: 'zerodev-wallet', getKitStore: () => store }],
-    state: { connections: new Map<string, { connector: FakeConnector }>() },
+    state: {
+      status: 'disconnected',
+      current: null,
+      connections: new Map(),
+    } as FakeState,
+    subs: new Set<Sub>(),
+    subscribe(selector: Sub['selector'], listener: Sub['listener']) {
+      const sub: Sub = { selector, listener, prev: selector(config.state) }
+      config.subs.add(sub)
+      return () => config.subs.delete(sub)
+    },
+    /** What wagmi does to its store when a connector connects. */
+    connectAs(connector: FakeConnector) {
+      config.state = {
+        status: 'connected',
+        current: connector.uid,
+        connections: new Map([[connector.uid, { connector }]]),
+      }
+      for (const sub of [...config.subs]) {
+        if (!config.subs.has(sub)) continue
+        const next = sub.selector(config.state)
+        if (next !== sub.prev) {
+          const prev = sub.prev
+          sub.prev = next
+          sub.listener(next, prev)
+        }
+      }
+    },
   }
+  return config
 }
 let fakeConfig = makeFakeConfig()
 vi.mock('wagmi', () => ({
@@ -243,6 +281,31 @@ describe('WalletConnecting', () => {
       "Open MetaMask from your browser's toolbar",
     )
     expect(auth().connectError?.pending).toBe(true)
+  })
+
+  // Approving a request left over from a previous page load authorises the
+  // site through the connector's own events, so our connect() never resolves.
+  it('closes the widget when wagmi connects without our request resolving', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32002, message: 'already pending' })
+    expect(screen.getByTestId('title').textContent).toBe(
+      'Request waiting in MetaMask',
+    )
+
+    // The user approves the queued request in the extension.
+    act(() => fakeConfig.connectAs(metamask))
+
+    expect(auth().step).toBeNull()
+    expect(auth().pendingWallet).toBeNull()
+  })
+
+  it('ignores wagmi connecting to some other wallet', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32002, message: 'already pending' })
+
+    act(() => fakeConfig.connectAs({ uid: 'other', name: 'Other' }))
+
+    expect(auth().step).toBe('wallet-connecting')
   })
 
   it('finds -32002 nested under cause, as wagmi wraps it', async () => {
