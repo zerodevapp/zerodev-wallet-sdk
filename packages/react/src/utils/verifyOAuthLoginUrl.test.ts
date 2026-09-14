@@ -3,11 +3,16 @@ import {
   generateOAuthNonce,
   OAUTH_PROVIDERS,
   verifyGoogleLoginUrl,
-} from './verifyGoogleLoginUrl.js'
+  verifyOAuthLoginUrl,
+} from './verifyOAuthLoginUrl.js'
 
 describe('OAUTH_PROVIDERS', () => {
   it('has google provider', () => {
     expect(OAUTH_PROVIDERS.GOOGLE).toBe('google')
+  })
+
+  it('has x provider', () => {
+    expect(OAUTH_PROVIDERS.X).toBe('x')
   })
 })
 
@@ -96,5 +101,34 @@ describe('verifyGoogleLoginUrl', () => {
     expect(() => verifyGoogleLoginUrl('not a url', publicKey)).toThrow(
       /not a valid URL/,
     )
+  })
+})
+
+describe('verifyOAuthLoginUrl', () => {
+  const publicKey = '0xabcdef'
+  const validNonce = generateOAuthNonce(publicKey)
+
+  it('passes for an x.com URL with a matching nonce', () => {
+    const url = `https://x.com/i/oauth2/authorize?nonce=${validNonce}&client_id=x`
+    expect(() => verifyOAuthLoginUrl('x', url, publicKey)).not.toThrow()
+  })
+
+  it('throws when an x URL is served from the google host', () => {
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?nonce=${validNonce}`
+    expect(() => verifyOAuthLoginUrl('x', url, publicKey)).toThrow(
+      /host mismatch/,
+    )
+  })
+
+  it('throws when an x URL has no nonce', () => {
+    const url = 'https://x.com/i/oauth2/authorize?client_id=x'
+    expect(() => verifyOAuthLoginUrl('x', url, publicKey)).toThrow(
+      /missing nonce/,
+    )
+  })
+
+  it('passes for a google URL with a matching nonce', () => {
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?nonce=${validNonce}`
+    expect(() => verifyOAuthLoginUrl('google', url, publicKey)).not.toThrow()
   })
 })
