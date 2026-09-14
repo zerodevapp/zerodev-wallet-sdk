@@ -120,10 +120,16 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  integration-test:
-    name: Integration Tests
+  backend-e2e-test:
+    name: Backend E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Needs the staging secrets, so skip wherever they are unavailable:
+    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
+    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository
+       && github.actor != 'dependabot[bot]')
     needs: [build]
     concurrency:
       group: integration-tests-staging
@@ -144,8 +150,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run integration tests
-        run: pnpm test:integration
+      - name: Run backend e2e tests
+        run: pnpm test:e2e:backend
         env:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
@@ -153,7 +159,13 @@ jobs:
   e2e-test:
     name: Browser E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Needs the staging secrets, so skip wherever they are unavailable:
+    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
+    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository
+       && github.actor != 'dependabot[bot]')
     needs: [build]
     concurrency:
       group: e2e-tests-staging

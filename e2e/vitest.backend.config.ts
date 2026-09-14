@@ -31,8 +31,8 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['e2e/integration/**/*.test.ts'],
-    globalSetup: ['e2e/integration/global-setup.ts'],
+    include: ['e2e/backend/**/*.test.ts'],
+    globalSetup: ['e2e/backend/global-setup.ts'],
     environment: 'node',
     testTimeout: 120_000,
     hookTimeout: 60_000,
