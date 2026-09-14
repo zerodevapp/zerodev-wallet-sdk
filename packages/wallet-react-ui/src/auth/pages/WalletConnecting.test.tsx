@@ -207,6 +207,78 @@ describe('WalletConnecting', () => {
     expect(screen.getByTestId('title').textContent).toBe('Request declined')
   })
 
+  // The common path: the original request is still owned by this page, so
+  // answering it in the wallet reports straight back here — no -32002 at all.
+  it('reports a cancellation made in the wallet after re-picking it', async () => {
+    const { unmount } = render(<WalletConnecting />)
+    const original = settle
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    unmount()
+
+    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    render(<WalletConnecting />)
+    expect(connect).toHaveBeenCalledTimes(1) // re-adopted, not re-sent
+
+    // The user dismisses it from the extension.
+    await act(async () => {
+      original.reject({ code: 4001, message: 'User rejected the request.' })
+    })
+
+    expect(screen.getByTestId('title').textContent).toBe('Request declined')
+  })
+
+  // The Reown edge case: the wallet holds the first request and refuses to
+  // prompt again, so the user has to finish it in the extension.
+  it("reads MetaMask's -32002 as a waiting state, not a failure", async () => {
+    render(<WalletConnecting />)
+    await rejectWith({
+      code: -32002,
+      message: 'Request of type wallet_requestPermissions already pending',
+    })
+
+    expect(screen.getByTestId('title').textContent).toBe(
+      'Request waiting in MetaMask',
+    )
+    expect(screen.getByTestId('body').textContent).toContain(
+      "Open MetaMask from your browser's toolbar",
+    )
+    expect(auth().connectError?.pending).toBe(true)
+  })
+
+  it('finds -32002 nested under cause, as wagmi wraps it', async () => {
+    const wrapped = new Error('Connector error')
+    ;(wrapped as { cause?: unknown }).cause = Object.assign(
+      new Error('already pending'),
+      { code: -32002 },
+    )
+    render(<WalletConnecting />)
+    await rejectWith(wrapped)
+
+    expect(screen.getByTestId('title').textContent).toBe(
+      'Request waiting in MetaMask',
+    )
+  })
+
+  it('never renders [object Object] for an error object with no message', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32603 })
+
+    expect(screen.getByTestId('body').textContent).toBe(
+      'Something went wrong while connecting to MetaMask. Please try again. (code -32603)',
+    )
+  })
+
+  it("prefers viem's shortMessage over its long message", async () => {
+    render(<WalletConnecting />)
+    await rejectWith(
+      Object.assign(new Error('a very long viem explanation'), {
+        shortMessage: 'Connector not found.',
+      }),
+    )
+
+    expect(screen.getByTestId('body').textContent).toBe('Connector not found.')
+  })
+
   it('leaves the screen from the rejection state', async () => {
     render(<WalletConnecting />)
     await rejectWith({ code: 4001, message: 'User rejected the request.' })
