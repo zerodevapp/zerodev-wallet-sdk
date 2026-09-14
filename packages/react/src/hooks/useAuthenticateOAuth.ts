@@ -10,7 +10,7 @@ import {
   authenticateOAuth,
   type GetOAuthSessionIdFn,
 } from '../authenticateOAuth.js'
-import type { OAuthProvider } from '../utils/verifyGoogleLoginUrl.js'
+import type { OAuthProvider } from '../utils/verifyOAuthLoginUrl.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined
