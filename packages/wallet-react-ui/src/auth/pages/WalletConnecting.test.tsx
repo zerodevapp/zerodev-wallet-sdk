@@ -191,6 +191,9 @@ describe('WalletConnecting', () => {
     // Retry sends a fresh request; the wallet answered, so it is not re-adopted.
     fireEvent.click(screen.getByText('Try again'))
     expect(connect).toHaveBeenCalledTimes(2)
+    // …and the screen says so, instead of keeping the failure it replaced.
+    expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
+    expect(screen.queryByText('Try again')).toBeNull()
   })
 
   // wagmi's injected connector rethrows the wallet's own error, which carries
