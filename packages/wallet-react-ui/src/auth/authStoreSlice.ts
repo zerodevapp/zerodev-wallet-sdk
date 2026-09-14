@@ -42,10 +42,15 @@ function clearStoredOtpSession(): void {
   }
 }
 
-/** Why the connecting page stopped waiting. */
+/**
+ * Why the connecting page stopped waiting. Not always a failure: a request the
+ * wallet still holds (EIP-1193 `-32002`) renders as waiting.
+ */
 export type ConnectFailure = {
   title: string
   message: string
+  /** The wallet still has the request open; render as waiting. */
+  pending: boolean
 }
 
 export type PendingWallet = {

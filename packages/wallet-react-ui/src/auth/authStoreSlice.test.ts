@@ -402,7 +402,11 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const auth = () => store.getState().auth
       auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
-      auth().setConnectError({ title: 'Couldn’t connect', message: 'boom' })
+      auth().setConnectError({
+        title: 'Couldn’t connect',
+        message: 'boom',
+        pending: false,
+      })
 
       auth().clearPendingWallet()
 
@@ -415,7 +419,11 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const auth = () => store.getState().auth
       auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
-      auth().setConnectError({ title: 'Couldn’t connect', message: 'boom' })
+      auth().setConnectError({
+        title: 'Couldn’t connect',
+        message: 'boom',
+        pending: false,
+      })
 
       auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
 
@@ -426,7 +434,11 @@ describe('authStoreSlice', () => {
       const store = createStore()
       const auth = () => store.getState().auth
       auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
-      auth().setConnectError({ title: 'Couldn’t connect', message: 'boom' })
+      auth().setConnectError({
+        title: 'Couldn’t connect',
+        message: 'boom',
+        pending: false,
+      })
 
       auth().reset()
 
