@@ -75,8 +75,11 @@ export interface AuthStoreSlice {
      * the wagmi connect() call; the wallet button only records intent.
      */
     pendingWallet: PendingWallet | null
+    /** Why the connecting page stopped waiting; null while it waits. */
+    connectError: string | null
     /** Record the wallet and move to `wallet-connecting`. */
     startWalletConnect: (wallet: PendingWallet) => void
+    setConnectError: (message: string | null) => void
     /**
      * Forget the pending wallet. Called on success and by reset(), not when
      * the user leaves: the open request may still be approved later.
@@ -106,6 +109,7 @@ export const createAuthStoreSlice: StateCreator<
     otpId: null,
     otpEncryptionTargetBundle: null,
     pendingWallet: null,
+    connectError: null,
 
     // Actions
     initialize: () => {
@@ -162,6 +166,7 @@ export const createAuthStoreSlice: StateCreator<
           otpId: null,
           otpEncryptionTargetBundle: null,
           pendingWallet: null,
+          connectError: null,
         },
       }))
     },
@@ -171,6 +176,7 @@ export const createAuthStoreSlice: StateCreator<
         auth: {
           ...state.auth,
           pendingWallet: wallet,
+          connectError: null,
           step: 'wallet-connecting',
           stepHistory:
             state.auth.step === null
@@ -180,9 +186,15 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
+    setConnectError: (message) => {
+      set((state) => ({
+        auth: { ...state.auth, connectError: message },
+      }))
+    },
+
     clearPendingWallet: () => {
       set((state) => ({
-        auth: { ...state.auth, pendingWallet: null },
+        auth: { ...state.auth, pendingWallet: null, connectError: null },
       }))
     },
 
