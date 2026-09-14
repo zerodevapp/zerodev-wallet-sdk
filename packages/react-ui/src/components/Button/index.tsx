@@ -51,6 +51,8 @@ const textClasses: Record<NonNullable<ButtonProps['action']>, string> = {
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string
+  /** Decorative only — it is hidden from assistive tech, so an icon-only
+   * button needs its own `aria-label`. */
   iconName?: IconName
   action?: 'primary' | 'secondary'
   /** `lg` (default) is the 64px hero button; `sm` the 48px row button. */
@@ -91,6 +93,7 @@ export function Button({
           <Icon
             name={iconName}
             className={cn(sizeIconClasses[size], textClasses[action])}
+            aria-hidden
           />
         )}
         {text && <Text className={textClasses[action]}>{text}</Text>}
@@ -101,6 +104,7 @@ export function Button({
           <Icon
             name={iconName}
             className={cn(sizeIconClasses[size], textClasses[action])}
+            aria-hidden
           />
         )}
       </button>
