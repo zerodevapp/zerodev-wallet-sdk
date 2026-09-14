@@ -8,11 +8,10 @@ import {
   Text,
 } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { useConnect, useConnectors } from 'wagmi'
+import { useConnectors } from 'wagmi'
 import { walletConnectLogo } from '../../brandAssets'
 import { useAuth } from '../../hooks/useAuth'
 import type { WalletConnectPairing } from '../../hooks/useWalletConnectPairing'
-import { isCancellationError } from '../../utils/isCancellationError'
 import { matchesWallet, type WalletGuideEntry } from '../../walletGuide'
 
 export type WalletSheetProps = {
@@ -57,10 +56,9 @@ function SheetBody({
   wallet?: WalletGuideEntry | undefined
   pairing: WalletConnectPairing
 }) {
-  const { goToStep } = useAuth()
+  const { startWalletConnect } = useAuth()
   const { uri, error, retry } = pairing
   const connectors = useConnectors()
-  const { connect } = useConnect()
 
   // Installed (announced/configured) connector for the selected wallet —
   // drives the Browser tab: connect directly instead of "get the extension".
@@ -70,7 +68,6 @@ function SheetBody({
   const [tab, setTab] = useState<'mobile' | 'browser'>(
     installed ? 'browser' : 'mobile',
   )
-  const [connectError, setConnectError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   // Wallet-specific QR encodes the wallet's own deep link so phone cameras
@@ -94,23 +91,17 @@ function SheetBody({
     }
   }
 
+  // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const connectInstalled = () => {
     if (!installed) return
-    setConnectError(null)
-    connect(
-      { connector: installed },
-      {
-        onSuccess: () => goToStep(null),
-        onError: (err) => {
-          if (!isCancellationError(err)) {
-            setConnectError(err instanceof Error ? err.message : String(err))
-          }
-        },
-      },
-    )
+    startWalletConnect({
+      connectorUid: installed.uid,
+      name: wallet?.name ?? installed.name,
+      icon: wallet?.icon ?? installed.icon,
+    })
   }
 
-  const shownError = error ?? connectError
+  const shownError = error
 
   return (
     <div className="zd:flex zd:flex-col zd:items-center zd:gap-3">

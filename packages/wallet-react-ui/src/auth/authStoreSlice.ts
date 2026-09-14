@@ -42,6 +42,13 @@ function clearStoredOtpSession(): void {
   }
 }
 
+export type PendingWallet = {
+  /** wagmi connector uid, resolved via useConnectors. */
+  connectorUid: string
+  name: string
+  icon?: string | undefined
+}
+
 export interface AuthStoreSlice {
   auth: {
     // State
@@ -62,6 +69,22 @@ export interface AuthStoreSlice {
     }) => void
     /** Clear the persisted OTP session after a successful verify. */
     clearOtpSession: () => void
+
+    /**
+     * External wallet the `wallet-connecting` step is driving. That page owns
+     * the wagmi connect() call; the wallet button only records intent.
+     */
+    pendingWallet: PendingWallet | null
+    /** Why the connecting page stopped waiting; null while it waits. */
+    connectError: string | null
+    /** Record the wallet and move to `wallet-connecting`. */
+    startWalletConnect: (wallet: PendingWallet) => void
+    setConnectError: (message: string | null) => void
+    /**
+     * Forget the pending wallet. Called on success and by reset(), not when
+     * the user leaves: the open request may still be approved later.
+     */
+    clearPendingWallet: () => void
 
     // Actions
     /** Restore a persisted OTP session (survives reloads mid-email-flow). */
@@ -85,6 +108,8 @@ export const createAuthStoreSlice: StateCreator<
     email: null,
     otpId: null,
     otpEncryptionTargetBundle: null,
+    pendingWallet: null,
+    connectError: null,
 
     // Actions
     initialize: () => {
@@ -140,7 +165,36 @@ export const createAuthStoreSlice: StateCreator<
           email: null,
           otpId: null,
           otpEncryptionTargetBundle: null,
+          pendingWallet: null,
+          connectError: null,
         },
+      }))
+    },
+
+    startWalletConnect: (wallet) => {
+      set((state) => ({
+        auth: {
+          ...state.auth,
+          pendingWallet: wallet,
+          connectError: null,
+          step: 'wallet-connecting',
+          stepHistory:
+            state.auth.step === null
+              ? state.auth.stepHistory
+              : [...state.auth.stepHistory, state.auth.step],
+        },
+      }))
+    },
+
+    setConnectError: (message) => {
+      set((state) => ({
+        auth: { ...state.auth, connectError: message },
+      }))
+    },
+
+    clearPendingWallet: () => {
+      set((state) => ({
+        auth: { ...state.auth, pendingWallet: null, connectError: null },
       }))
     },
 
