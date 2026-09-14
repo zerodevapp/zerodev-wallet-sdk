@@ -8,11 +8,9 @@ import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
 
 /**
- * Connector uids with a connect() still open, per wagmi config. Lives outside
- * React because the request outlives this component: the user can leave the
- * screen and come back while the wallet still has it open. Keyed by connector
- * because several wallets can be left unanswered at once — leave MetaMask,
- * try Rabby, then come back to MetaMask.
+ * Connector uids with a connect() still open, per wagmi config. Outside React
+ * because the request outlives this component, and keyed by connector because
+ * several wallets can be left unanswered at once.
  */
 const openRequests = new WeakMap<Config, Set<string>>()
 
@@ -27,12 +25,12 @@ function openFor(config: Config): Set<string> {
 
 /**
  * The `wallet-connecting` step: shown from picking an external wallet until it
- * answers. A locked wallet, or a popup the user closed, never answers, so the
- * user must always be able to leave.
+ * answers, which a locked or dismissed wallet never does — so leaving must
+ * always be possible.
  *
- * This page owns the connect() call: React Query drops per-call callbacks when
- * the issuing component unmounts, and the sign-up page unmounts on the step
- * change. The wallet button only records intent (`startWalletConnect`).
+ * This page owns the connect() call, since React Query drops per-call
+ * callbacks when the sign-up page unmounts on the step change. The wallet
+ * button only records intent (`startWalletConnect`).
  */
 export function WalletConnecting() {
   const {
@@ -44,7 +42,7 @@ export function WalletConnecting() {
   } = useAuth()
   const connectors = useConnectors()
   const config = useConfig()
-  // Read outside React too: the wallet can answer long after this unmounts.
+  // Read outside React: the wallet can answer long after this unmounts.
   const store = useKitStore()
 
   const connector = pendingWallet
@@ -66,14 +64,13 @@ export function WalletConnecting() {
   }
 
   const attempt = () => {
-    // Single-flight per wallet: the user can leave this screen and pick the
-    // same wallet again while its request is still open in the extension.
-    // Wallets reject a second request instead of re-prompting, so re-adopt
-    // the open one — its promise is alive and still drives this screen.
+    // Single-flight per wallet: a wallet rejects a second request rather than
+    // re-prompting, so re-adopt the open one — its promise still drives this
+    // screen.
     if (connector && openFor(config).has(connector.uid)) return
 
-    // The wallet is gone, or already connected: wagmi's connect() would throw
-    // rather than prompt, so there is nothing to wait for on this screen.
+    // Gone, or already connected: connect() would throw rather than prompt,
+    // so there is nothing to wait for.
     if (!connector) {
       clearPendingWallet()
       leave()
@@ -87,10 +84,9 @@ export function WalletConnecting() {
       return
     }
 
-    // @wagmi/core's connect(), not useConnect's mutate: a promise can't lose
-    // its handlers on remount (Strict Mode), and the kit store is safe to
-    // write after unmount — so a wallet answered after the user left this
-    // screen still closes the widget.
+    // @wagmi/core's connect(), not useConnect's mutate: a promise keeps its
+    // handlers across remounts (Strict Mode) and after unmount, so a wallet
+    // answered once the user left still closes the widget.
     const open = openFor(config)
     open.add(connector.uid)
     connect(config, { connector }).then(
@@ -100,12 +96,10 @@ export function WalletConnecting() {
       },
       (err: unknown) => {
         open.delete(connector.uid)
-        // The user may have moved on while the wallet sat unanswered — email,
-        // another wallet, or simply away — and the abandoned prompt is often
-        // dismissed later. Only act while the flow is still waiting on THIS
-        // wallet, or a late rejection would drag them out of what they are
-        // doing. (A late *approval* is not gated: the wallet is then
-        // connected, so ending the flow is right wherever they are.)
+        // The abandoned prompt is often dismissed much later, by which point
+        // the user has moved on. Act only while the flow is still waiting on
+        // THIS wallet. (Approval is not gated: the wallet is then connected,
+        // so ending the flow is right wherever they are.)
         const auth = store.getState().auth
         if (
           auth.step !== 'wallet-connecting' ||
@@ -113,9 +107,8 @@ export function WalletConnecting() {
         ) {
           return
         }
-        // A user rejection needs no explanation: back to the other sign-in
-        // methods, as before this screen existed. Anything else is a real
-        // failure, and its message is the only diagnostic the host gets.
+        // A rejection needs no explanation, as before this screen existed.
+        // Any other failure's message is the host's only diagnostic.
         if (isCancellationError(err)) {
           clearPendingWallet()
           leave()
@@ -150,8 +143,7 @@ export function WalletConnecting() {
             {connectError}
           </StatusScreen>
         )}
-        {/* A pending wallet request can't be cancelled (EIP-1193), so the
-            label promises only what it does. */}
+        {/* EIP-1193 has no cancel, so the label promises only what it does. */}
         <Button
           action="secondary"
           text="Choose another sign-in method"
