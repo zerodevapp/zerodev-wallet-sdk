@@ -115,7 +115,7 @@ test.describe('SRA deposits', () => {
     })
 
     sra.advance()
-    await expect(pending.getByText('Received', { exact: true })).toBeVisible({
+    await expect(pending.getByText('Delivered', { exact: true })).toBeVisible({
       timeout: POLL_WINDOW_MS,
     })
 
@@ -271,15 +271,18 @@ test.describe('SRA deposits', () => {
 
     await expect(widget.getByText('From network')).toBeVisible()
     // Everything below is what the mock reported for the default route:
-    // 250 USDC sent on OP Mainnet, settling on Arbitrum less the 0.15 fee
-    await expect(widget.getByText('250 USDC', { exact: true })).toBeVisible()
+    // 250 USDC sent on OP Mainnet, settling on Arbitrum less the 0.15 fee.
+    // The "From" row renders the amount and symbol as separate nodes around
+    // the token logo, so they're asserted individually.
+    await expect(widget.getByText('250', { exact: true })).toBeVisible()
+    await expect(widget.getByText('USDC', { exact: true })).toBeVisible()
     await expect(widget.getByText('249.85 USDC', { exact: true })).toBeVisible()
     await expect(widget.getByText('OP Mainnet', { exact: true })).toBeVisible()
     await expect(
       widget.getByText('Arbitrum One', { exact: true }),
     ).toBeVisible()
 
-    await widget.getByRole('button', { name: 'Show fee details' }).click()
+    await widget.getByRole('button', { name: /Show fee details/ }).click()
     const panel = widget.getByRole('region', { name: 'Fee breakdown' })
     await expect(panel.getByText('Provider', { exact: true })).toBeVisible()
     await expect(
@@ -297,7 +300,7 @@ test.describe('SRA deposits', () => {
       timeout: POLL_WINDOW_MS,
     })
 
-    await send.getByRole('button', { name: 'Show fee details' }).click()
+    await send.getByRole('button', { name: /Show fee details/ }).click()
 
     await expect(send.getByText('Provider', { exact: true })).toBeVisible()
     await expect(
