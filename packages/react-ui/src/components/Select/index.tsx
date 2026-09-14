@@ -24,6 +24,8 @@ export function SelectTrigger({
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
+        // Named group so `SelectIcon` can read THIS trigger's open state.
+        'zd:group/select',
         'zd:inline-flex zd:items-center zd:justify-between zd:gap-2',
         'zd:outline-none zd:cursor-pointer',
         // Counters Radix's `pointer-events: none` on the trigger while the
@@ -52,11 +54,13 @@ export function SelectIcon({
   return (
     <SelectPrimitive.Icon
       ref={ref}
-      // Radix sets data-state on the trigger; the `in-*` variant reads it
-      // from this descendant, so the chevron turns to face up while the
-      // panel is open and animates back down on close.
+      // Turns to face up while the panel is open, animated both ways. Scoped
+      // to the trigger's own group, not any open ancestor: a Select rendered
+      // inside a BottomSheet would otherwise sit permanently flipped, since
+      // Radix marks the open dialog content with the same `data-state`.
       className={cn(
-        'zd:shrink-0 zd:transition-transform zd:duration-200 zd:in-data-[state=open]:rotate-180',
+        'zd:shrink-0 zd:transition-transform zd:duration-200',
+        'zd:group-data-[state=open]/select:rotate-180',
         className,
       )}
       {...props}

@@ -282,7 +282,7 @@ test.describe('SRA deposits', () => {
       widget.getByText('Arbitrum One', { exact: true }),
     ).toBeVisible()
 
-    await widget.getByRole('button', { name: 'Show fee details' }).click()
+    await widget.getByRole('button', { name: /Show fee details/ }).click()
     const panel = widget.getByRole('region', { name: 'Fee breakdown' })
     await expect(panel.getByText('Provider', { exact: true })).toBeVisible()
     await expect(
@@ -300,7 +300,7 @@ test.describe('SRA deposits', () => {
       timeout: POLL_WINDOW_MS,
     })
 
-    await send.getByRole('button', { name: 'Show fee details' }).click()
+    await send.getByRole('button', { name: /Show fee details/ }).click()
 
     await expect(send.getByText('Provider', { exact: true })).toBeVisible()
     await expect(

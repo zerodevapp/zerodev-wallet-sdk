@@ -220,9 +220,9 @@ export function FeeBreakdownRows({ breakdown }: { breakdown: FeeBreakdown }) {
 /**
  * The clickable fee value: wraps the summary (children) and the disclosure
  * chevron in one button so the whole value toggles the breakdown, not just
- * the arrow. The aria-label deliberately names the ACTION (it also keeps
- * the e2e "Show fee details" role queries stable); the value itself remains
- * visible beside it.
+ * the arrow. The action is named by a visually hidden span rather than
+ * `aria-label`, which would replace the button's content and leave screen
+ * readers hearing the action without the fee.
  */
 export function FeeDisclosureButton({
   open,
@@ -242,10 +242,12 @@ export function FeeDisclosureButton({
       onClick={onToggle}
       aria-expanded={open}
       {...(panelId && { 'aria-controls': panelId })}
-      aria-label={open ? 'Hide fee details' : 'Show fee details'}
       className="zd:flex zd:cursor-pointer zd:items-center zd:gap-[5px]"
     >
       {children}
+      <span className="zd:sr-only">
+        {open ? 'Hide fee details' : 'Show fee details'}
+      </span>
       <Icon
         // One chevron rotated by state (matches SelectIcon) so open/close
         // animates instead of swapping glyphs.
