@@ -123,7 +123,7 @@ export function zeroDevWalletCore(
      *
      * No-ops if the chain is already set up.
      */
-    const setupChain = async (
+    const doSetupChain = async (
       chainId: number,
       httpOpts?: { fetchOptions?: CreateTransportOptions['fetchOptions'] },
     ) => {
@@ -138,6 +138,7 @@ export function zeroDevWalletCore(
           'Refusing to build an account from an invalid or zero-address owner (unrecoverable): the wallet address failed to resolve.',
         )
       }
+      const ownerAtStart = eoaAccount.address
 
       const chain = params.chains.find((c) => c.id === chainId)
       if (!chain) throw new Error(`Chain ${chainId} not found in config`)
@@ -195,8 +196,37 @@ export function zeroDevWalletCore(
           ),
         }),
       })
+      // The owner can change while we await kernel construction (logout /
+      // account swap). Committing here would write the previous owner's account
+      // into the new owner's store — a signer mix-up. Drop the stale build.
+      if (store.getState().eoaAccount?.address !== ownerAtStart) return
       store.getState().setKernelAccount(chainId, kernelAccount)
       store.getState().setKernelClient(chainId, kernelClient)
+    }
+
+    // De-dupe concurrent builds of the same chain. The provider now builds
+    // chains lazily on demand, so two calls can race for a fresh chain (e.g.
+    // wallet_getCapabilities + wallet_sendCalls firing together) — without this
+    // both would run createKernelAccount. Cache the in-flight promise; drop it
+    // once settled so a failed build can be retried.
+    // ponytail: per-chain in-flight map, not a full client cache — doSetupChain
+    // already no-ops via the store once built.
+    const chainSetupInFlight = new Map<string, Promise<void>>()
+    const setupChain = (
+      chainId: number,
+      httpOpts?: { fetchOptions?: CreateTransportOptions['fetchOptions'] },
+    ): Promise<void> => {
+      // Key by owner + chain: a mid-flight owner change must not reuse the
+      // previous owner's build (whose commit now aborts), so the new owner
+      // gets its own build rather than an empty client.
+      const key = `${store.getState().eoaAccount?.address ?? 'anon'}:${chainId}`
+      let inFlight = chainSetupInFlight.get(key)
+      if (!inFlight) {
+        inFlight = doSetupChain(chainId, httpOpts)
+        chainSetupInFlight.set(key, inFlight)
+        inFlight.finally(() => chainSetupInFlight.delete(key)).catch(() => {})
+      }
+      return inFlight
     }
 
     /**
@@ -292,6 +322,9 @@ export function zeroDevWalletCore(
         config: params,
         chains: Array.from(params.chains),
         switchChain: switchActiveChain,
+        // Build-only, for cross-chain sends that never went through
+        // connect()/switchChain() (does not change the active chain).
+        ensureChain: (chainId: number) => setupChain(chainId, httpOpts),
       })
 
       console.log('ZeroDevWallet connector initialized')
