@@ -6,39 +6,65 @@ import { WagmiProvider } from 'wagmi'
 import { pickConfigParams, resolveWalletConfig } from './lib/config-params'
 import { createWalletConfig } from './wagmi-config'
 
+type WalletConfig = ReturnType<typeof createWalletConfig>
+
 type ConfigEntry = {
-  config: ReturnType<typeof createWalletConfig>
+  config: WalletConfig
   queryClient: QueryClient
 }
 
 /**
  * One wagmi config per set of config params, so Strict Mode's double mount
  * reuses the connector instead of orphaning it.
- *
- * Browser only: module scope on the server is per-process, so caching there
- * would share a config and QueryClient across all requests and never evict.
  */
-const configCache = new Map<string, ConfigEntry>()
+const clientCache = new Map<string, ConfigEntry>()
 
-function buildConfigFor(configKey: string): ConfigEntry {
-  return {
-    config: createWalletConfig(
-      resolveWalletConfig(new URLSearchParams(configKey)),
-    ),
+/**
+ * The config only, on the server. Shareable because it is a pure function of
+ * the config params; caching it matters because `createConfig` runs every
+ * connector's `setup()`, and `walletConnect.setup()` initialises WalletConnect
+ * eagerly with no `typeof window` guard.
+ *
+ * The QueryClient is **not** cached here: one shared across requests would
+ * serve one request's fetched data to the next.
+ */
+const serverConfigCache = new Map<string, WalletConfig>()
+
+/**
+ * `rpc.<chainId>` accepts an arbitrary URL, so the keyspace is unbounded. Cap
+ * it and evict oldest-first.
+ */
+const MAX_SERVER_CONFIGS = 32
+
+function createConfigFor(configKey: string): WalletConfig {
+  return createWalletConfig(resolveWalletConfig(new URLSearchParams(configKey)))
+}
+
+function getConfigFor(configKey: string): ConfigEntry {
+  if (typeof window === 'undefined') {
+    let config = serverConfigCache.get(configKey)
+    if (!config) {
+      config = createConfigFor(configKey)
+      if (serverConfigCache.size >= MAX_SERVER_CONFIGS) {
+        // Map iterates in insertion order, so this is the oldest entry.
+        const oldest = serverConfigCache.keys().next().value
+        if (oldest !== undefined) serverConfigCache.delete(oldest)
+      }
+      serverConfigCache.set(configKey, config)
+    }
+    return { config, queryClient: new QueryClient() }
+  }
+
+  const cached = clientCache.get(configKey)
+  if (cached) return cached
+
+  const entry = {
+    config: createConfigFor(configKey),
     // Tied to the config: a different connector means a different session, so
     // the previous cache is meaningless.
     queryClient: new QueryClient(),
   }
-}
-
-function getConfigFor(configKey: string): ConfigEntry {
-  if (typeof window === 'undefined') return buildConfigFor(configKey)
-
-  const cached = configCache.get(configKey)
-  if (cached) return cached
-
-  const entry = buildConfigFor(configKey)
-  configCache.set(configKey, entry)
+  clientCache.set(configKey, entry)
   return entry
 }
 

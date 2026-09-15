@@ -1,28 +1,36 @@
 "use client";
 
-import { ArrowLeft, Check, Copy, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, Copy, RotateCcw, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppHeader } from "../components/AppHeader";
 import { ConfigLink } from "../components/ConfigLink";
 import {
-  AUTH_METHODS,
-  type AuthMethodId,
-  CHAIN_CATALOG,
+  CHAINS,
   PARAM,
   resolveWalletConfig,
   serializeOverrides,
 } from "../lib/config-params";
-import { AUTH_FLAVOR_IDS, type AuthFlavorId } from "../lib/wallet-config";
+import { clearStoredPreset, useAuthPreset } from "../lib/use-auth-preset";
+import {
+  AUTH_FLAVOR_IDS,
+  AUTH_PRESET_IDS,
+  AUTH_PRESETS,
+  AUTH_UNITS,
+  type AuthFlavorId,
+  type AuthPresetId,
+  DEFAULT_AUTH_PRESET,
+} from "../lib/wallet-config";
 import { LAB_FEATURES, areaHref, featureHref } from "../lib/features";
 import { cn } from "../lib/utils";
 
 /**
  * Builds a URL carrying wallet-config overrides.
  *
- * The page holds no wallet state and persists nothing — it turns a form into a
- * query string. That's the whole safety story: a bad value can't be sticky, so
- * it can never brick the app the way a persisted override could.
+ * Two axes are left: the sign-in preset and the email delivery flavor. Hosts
+ * come from `.env` and the chain list from `lib/wallet-config.ts`, because
+ * neither was ever varied per test and both cost more to explain than they
+ * saved.
  *
  * The URL it emits is exactly what a Playwright spec would use, so the workflow
  * is: build it here, copy it, paste it into a test.
@@ -34,23 +42,21 @@ export default function ConfigBuilderPage() {
     [searchParams],
   );
 
-  const [kms, setKms] = useState(searchParams.get(PARAM.kms) ?? "");
-  const [aaHost, setAaHost] = useState(searchParams.get(PARAM.aaHost) ?? "");
-  const [chainIds, setChainIds] = useState<number[]>(
-    current.chains.map((chain) => chain.id),
-  );
   // Read-only: the form doesn't edit transports, but it must not *drop* an
   // `rpc.<chainId>` param someone hand-wrote before landing here.
   const [rpcUrls] = useState<Record<number, string>>(() => {
     const seed: Record<number, string> = {};
-    for (const chain of CHAIN_CATALOG) {
+    for (const chain of CHAINS) {
       seed[chain.id] = searchParams.get(`${PARAM.rpcPrefix}${chain.id}`) ?? "";
     }
     return seed;
   });
-  const [authMethods, setAuthMethods] = useState<AuthMethodId[]>(
-    current.authMethods,
+  // Seeded from the live resolution — URL, else stored, else default
+  const { preset: activePreset, ready: presetReady } = useAuthPreset();
+  const [presetOverride, setPresetOverride] = useState<AuthPresetId | null>(
+    null,
   );
+  const preset = presetOverride ?? activePreset;
   const [authFlavor, setAuthFlavor] = useState<AuthFlavorId>(
     current.authFlavor,
   );
@@ -58,27 +64,16 @@ export default function ConfigBuilderPage() {
   const [copied, setCopied] = useState(false);
 
   const query = serializeOverrides({
-    kms: kms.trim() || undefined,
-    aaHost: aaHost.trim() || undefined,
-    chainIds,
     rpcUrls: Object.fromEntries(
       Object.entries(rpcUrls)
-        .filter(([id, url]) => url.trim() && chainIds.includes(Number(id)))
+        .filter(([, url]) => url.trim())
         .map(([id, url]) => [Number(id), url.trim()]),
     ),
-    authMethods,
+    preset,
     authFlavor,
   }).toString();
 
   const url = query ? `${target}?${query}` : target;
-
-  // wagmi types chains as a non-empty tuple, and with no auth method there is
-  // no way to sign in. Both are rejected by the parser too, since URLs get
-  // hand-edited — this just stops you generating a broken one.
-  const errors = [
-    chainIds.length === 0 && "Select at least one chain.",
-    authMethods.length === 0 && "Select at least one auth method.",
-  ].filter(Boolean) as string[];
 
   const targets = [
     { href: "/", label: "/ (overview)" },
@@ -98,11 +93,6 @@ export default function ConfigBuilderPage() {
     // mount, so a soft navigation would leave the old connector in place.
     window.location.assign(url);
   };
-
-  const toggle = <T,>(list: T[], value: T) =>
-    list.includes(value)
-      ? list.filter((item) => item !== value)
-      : [...list, value];
 
   return (
     <div className="min-h-screen">
@@ -127,76 +117,98 @@ export default function ConfigBuilderPage() {
               Wallet configuration
             </h1>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              Everything here becomes a URL query param. Blank means &ldquo;use
-              the default&rdquo;. Applying reloads the page — a new config means
-              a new connector, so{" "}
+              Everything here becomes a URL query param. Applying reloads the
+              page — a new config means a new connector, so{" "}
               <span className="font-semibold">you will be signed out</span>.
             </p>
           </div>
 
           <div className="divide-y divide-[var(--border-warm)]">
-            <Field label="kms proxy base url" param={PARAM.kms}>
-              <input
-                type="text"
-                value={kms}
-                onChange={(event) => setKms(event.target.value)}
-                placeholder="(env default)"
-                spellCheck={false}
-                data-testid="config-kms"
-                className="w-full rounded-lg border border-[var(--border-warm)] px-3 py-2 font-mono text-xs text-[var(--ink)] placeholder:text-[var(--muted)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <Field label="sign-in preset" param={PARAM.preset}>
+              <div
+                role="radiogroup"
+                aria-label="Sign-in preset"
+                className="flex flex-col gap-2"
+              >
+                {AUTH_PRESET_IDS.map((id) => {
+                  const selected = preset === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setPresetOverride(id)}
+                      data-testid={`config-preset-${id}`}
+                      data-selected={String(selected)}
+                      className={cn(
+                        "cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                        selected
+                          ? "border-[var(--ink)] bg-[var(--surface-warm)]"
+                          : "border-[var(--border-warm)] bg-white opacity-60 hover:border-[var(--ink)] hover:opacity-100",
+                      )}
+                    >
+                      <p className="text-[11px] font-semibold text-[var(--ink)]">
+                        <code className="font-mono">{id}</code> ·{" "}
+                        {AUTH_PRESETS[id].label}
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-4 text-[var(--muted)]">
+                        {AUTH_PRESETS[id].description}
+                      </p>
+                      <ol className="mt-1.5 flex flex-col gap-0.5">
+                        {AUTH_PRESETS[id].units.map((unit, index) => (
+                          <li
+                            key={unit}
+                            data-testid={`config-preset-${id}-unit-${unit}`}
+                            className="flex gap-2 font-mono text-[11px] leading-4 text-[var(--ink)]"
+                          >
+                            <span className="w-3 shrink-0 text-[var(--muted)]">
+                              {index + 1}
+                            </span>
+                            {AUTH_UNITS[unit]}
+                          </li>
+                        ))}
+                      </ol>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="mt-2 text-[11px] leading-4 text-[var(--muted)]">
+                <span className="font-semibold">This one persists:</span>{" "}
+                opening the URL stores the preset, so later reloads without the
+                param keep it. Use <span className="font-semibold">Clear stored
+                preset</span> below to go back to{" "}
+                <code className="font-mono">{DEFAULT_AUTH_PRESET}</code>.
+              </p>
             </Field>
 
-            <Field label="aa host" param={PARAM.aaHost}>
-              <input
-                type="text"
-                value={aaHost}
-                onChange={(event) => setAaHost(event.target.value)}
-                placeholder="(env default)"
-                spellCheck={false}
-                data-testid="config-aa-host"
-                className="w-full rounded-lg border border-[var(--border-warm)] px-3 py-2 font-mono text-xs text-[var(--ink)] placeholder:text-[var(--muted)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </Field>
-
-            <Field label="chains" param={PARAM.chains}>
+            <Field label="chains" param="— (all active)">
               <div className="flex flex-wrap gap-2">
-                {CHAIN_CATALOG.map((chain) => (
-                  <Toggle
+                {CHAINS.map((chain, index) => (
+                  <ReadOnlyChip
                     key={chain.id}
-                    checked={chainIds.includes(chain.id)}
-                    onChange={() => setChainIds(toggle(chainIds, chain.id))}
                     testId={`config-chain-${chain.id}`}
+                    data-connects-to={String(index === 0)}
                   >
                     {chain.name}
                     <span className="text-[var(--muted)]">{chain.id}</span>
-                  </Toggle>
+                    {index === 0 && (
+                      <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                        connects here
+                      </span>
+                    )}
+                  </ReadOnlyChip>
                 ))}
               </div>
-            </Field>
-
-            {/*
-              Transports are deliberately not editable here. Selected chains
-              default to the ZeroDev staging RPC (localhost for Anvil), which
-              covers every case we have. The `rpc.<chainId>` param still works
-              if you hand-write a URL — see the README.
-            */}
-
-            <Field label="auth methods" param={PARAM.authMethods}>
-              <div className="flex flex-wrap gap-2">
-                {AUTH_METHODS.map((method) => (
-                  <Toggle
-                    key={method}
-                    checked={authMethods.includes(method)}
-                    onChange={() =>
-                      setAuthMethods(toggle(authMethods, method))
-                    }
-                    testId={`config-auth-method-${method}`}
-                  >
-                    {method}
-                  </Toggle>
-                ))}
-              </div>
+              <p className="mt-1.5 text-[11px] leading-4 text-[var(--muted)]">
+                All of these are configured. The first entry is the one the lab
+                connects to on load; the rest are switchable in the app. Edit{" "}
+                <code className="font-mono">CHAINS</code> in{" "}
+                <code className="font-mono">src/app/lib/wallet-config.ts</code>{" "}
+                to change the list or the order.
+              </p>
             </Field>
 
             {/*
@@ -246,22 +258,11 @@ export default function ConfigBuilderPage() {
               {url}
             </code>
 
-            {errors.length > 0 && (
-              <ul
-                className="mt-2 list-disc pl-4 text-xs text-red-700"
-                data-testid="config-errors"
-              >
-                {errors.map((error) => (
-                  <li key={error}>{error}</li>
-                ))}
-              </ul>
-            )}
-
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={apply}
-                disabled={errors.length > 0}
+                disabled={!presetReady}
                 data-testid="config-apply"
                 className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#2a1c13] disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -270,6 +271,7 @@ export default function ConfigBuilderPage() {
 
               <button
                 type="button"
+                disabled={!presetReady}
                 onClick={async () => {
                   await navigator.clipboard.writeText(url);
                   setCopied(true);
@@ -294,6 +296,19 @@ export default function ConfigBuilderPage() {
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset to defaults
               </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  clearStoredPreset();
+                  window.location.assign("/config");
+                }}
+                data-testid="config-clear-stored-preset"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-4 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Clear stored preset
+              </button>
             </div>
           </div>
         </div>
@@ -306,17 +321,40 @@ export default function ConfigBuilderPage() {
         </p>
 
         <p className="mt-2 text-xs leading-6 text-[var(--muted)]">
-          This page only changes the current session. To change what the app
-          uses by <span className="font-semibold">default</span>, edit{" "}
+          The auth flavor is per-URL; the sign-in preset persists once opened.
+          To change what the app uses by{" "}
+          <span className="font-semibold">default</span>, edit{" "}
           <code className="font-mono text-[11px]">
             src/app/lib/wallet-config.ts
           </code>{" "}
-          (chains, auth methods, transport template) or{" "}
-          <code className="font-mono text-[11px]">.env</code> (project id, KMS
-          proxy, AA host) — see the app README.
+          (chains, presets, transport template) or{" "}
+          <code className="font-mono text-[11px]">.env</code> (project ids, KMS
+          proxy, AA host, WalletConnect) — see the app README.
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * A value the page shows but cannot change — rendered as text, not a button.
+ */
+function ReadOnlyChip({
+  testId,
+  children,
+  ...rest
+}: {
+  testId: string;
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      data-testid={testId}
+      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-2.5 py-1 font-mono text-xs font-semibold text-[var(--muted)]"
+      {...rest}
+    >
+      {children}
+    </span>
   );
 }
 
