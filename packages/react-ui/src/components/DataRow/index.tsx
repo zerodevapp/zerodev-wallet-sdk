@@ -90,9 +90,9 @@ export function DataRow({
                   'zd:w-3.5 zd:h-3.5',
                   // Warning rows use the thin outline glyph at half opacity
                   // (Figma 20002:36053) instead of the filled disc.
-                  isWarning
-                    ? 'zd:text-solarOrange zd:opacity-50'
-                    : 'zd:text-greyScale/50',
+                  // Full strength, not 50%: halving it drops the icon to
+                  // 1.80:1, under the 3:1 WCAG floor for non-text elements.
+                  isWarning ? 'zd:text-solarOrange' : 'zd:text-greyScale/50',
                 )}
                 aria-hidden
               />
@@ -117,9 +117,7 @@ export function DataRow({
                   'zd:w-3.5 zd:h-3.5',
                   // Warning rows use the thin outline glyph at half opacity
                   // (Figma 20002:36053) instead of the filled disc.
-                  isWarning
-                    ? 'zd:text-solarOrange zd:opacity-50'
-                    : 'zd:text-greyScale/50',
+                  isWarning ? 'zd:text-solarOrange' : 'zd:text-greyScale/50',
                 )}
                 aria-hidden
               />

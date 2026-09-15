@@ -27,7 +27,7 @@ export function Switch({ value, onValueChange }: SwitchProps) {
           )}
         />
         {!value && (
-          <Text className="zd:text-body3 zd:text-greyScale/50">Off</Text>
+          <Text className="zd:text-body3 zd:text-greyScale/60">Off</Text>
         )}
       </button>
     </Wrapper>

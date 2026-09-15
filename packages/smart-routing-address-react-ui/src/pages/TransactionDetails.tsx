@@ -346,7 +346,7 @@ function StatusText({
     <Text
       className={cn(
         'zd:text-body3',
-        tone === 'error' ? 'zd:text-negative' : 'zd:text-greyScale/50',
+        tone === 'error' ? 'zd:text-negative' : 'zd:text-greyScale/60',
       )}
     >
       {children}

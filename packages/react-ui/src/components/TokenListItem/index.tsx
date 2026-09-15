@@ -137,7 +137,7 @@ export function TokenListItem({
                   <Icon name={subtitleIcon} className="zd:w-full zd:h-full" />
                 </span>
               )}
-              <Text className="zd:text-body3 zd:text-greyScale/50 zd:truncate">
+              <Text className="zd:text-body3 zd:text-greyScale/60 zd:truncate">
                 {subtitle}
               </Text>
             </div>

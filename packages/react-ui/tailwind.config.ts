@@ -21,6 +21,10 @@ const config: Config = {
         skyBlue: '#45ABFB',
         greyBrown: '#B78C71',
         warmGrey: '#E3CFC3',
+        // Secondary text uses greyScale/60, not /50: on offWhite, 50%
+        // measures 3.51:1 and misses WCAG AA's 4.5:1 for body text, while
+        // 60% clears it at 4.92:1. Icons may stay at /50 — non-text
+        // elements only need 3:1.
         offWhite: '#F7F5F0',
         greyScale: '#130E0B',
         positive: '#228300',

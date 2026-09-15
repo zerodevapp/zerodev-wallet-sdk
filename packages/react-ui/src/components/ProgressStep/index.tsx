@@ -62,7 +62,7 @@ export function ProgressStep({
                 // earlier steps are still in flight.
                 done
                 ? 'zd:text-greyScale'
-                : 'zd:text-greyScale/50',
+                : 'zd:text-greyScale/60',
           )}
         >
           {label}

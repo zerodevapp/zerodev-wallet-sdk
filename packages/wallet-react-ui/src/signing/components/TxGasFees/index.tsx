@@ -154,7 +154,7 @@ export function TxGasFees({
               <div className="zd:flex zd:flex-col zd:pr-1">
                 <Text className="zd:text-body1">{item.fee}</Text>
                 {item.feeUsd && (
-                  <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
+                  <Text className="zd:text-body3 zd:text-greyScale/60 zd:self-end">
                     {item.feeUsd}
                   </Text>
                 )}

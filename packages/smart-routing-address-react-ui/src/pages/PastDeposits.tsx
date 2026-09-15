@@ -127,7 +127,7 @@ export function PastDeposits({ onSelectDeposit }: PastDepositsProps) {
           </output>
         ) : deposits.length === 0 ? (
           <div className="zd:flex zd:flex-1 zd:items-center zd:justify-center zd:py-8">
-            <Text className="zd:text-greyScale/50">No deposits yet</Text>
+            <Text className="zd:text-greyScale/60">No deposits yet</Text>
           </div>
         ) : (
           <div className="zd:flex zd:flex-1 zd:flex-col zd:gap-1 zd:overflow-y-auto">

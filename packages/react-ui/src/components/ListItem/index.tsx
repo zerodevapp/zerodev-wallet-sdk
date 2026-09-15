@@ -91,7 +91,7 @@ export function ListItem({
           <div className="zd:flex zd:flex-col zd:justify-center zd:text-left zd:gap-1">
             <Text className="zd:text-body1">{title}</Text>
             {typeof subtitle === 'string' ? (
-              <Text className="zd:text-body3 zd:text-greyScale/50">
+              <Text className="zd:text-body3 zd:text-greyScale/60">
                 {subtitle}
               </Text>
             ) : (

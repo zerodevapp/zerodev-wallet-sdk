@@ -40,7 +40,7 @@ export interface TxnItemProps {
 
 const STATUS_COLOR: Record<TxnStatus, string> = {
   Routing: 'zd:text-solarOrange',
-  Detected: 'zd:text-greyScale/50',
+  Detected: 'zd:text-greyScale/60',
   // In-flight arrival reads in plain ink (Figma 20002:36061); the green
   // celebration is reserved for the terminal Delivered state.
   Received: 'zd:text-greyScale',
@@ -136,7 +136,7 @@ export function TxnItem({
             {status}
           </Text>
         </span>
-        <Text className="zd:text-body3 zd:text-greyScale/50">{timestamp}</Text>
+        <Text className="zd:text-body3 zd:text-greyScale/60">{timestamp}</Text>
       </div>
     </div>
   )

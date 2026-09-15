@@ -78,7 +78,7 @@ export function FeeSummary({ breakdown }: { breakdown: FeeBreakdown }) {
         </b>
       )}
       {pct && usd && (
-        <span className="zd:text-body2 zd:text-greyScale/50 zd:leading-none">
+        <span className="zd:text-body2 zd:text-greyScale/60 zd:leading-none">
           +
         </span>
       )}

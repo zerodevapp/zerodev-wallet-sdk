@@ -38,7 +38,7 @@ export function AllocationModule({
             <Text className="zd:text-body1">{symbol}</Text>
             <div className="zd:flex zd:flex-row zd:gap-1 zd:items-center">
               <Icon name={network as IconName} className="zd:h-3 zd:w-3" />
-              <Text className="zd:text-body3 zd:text-greyScale/50">
+              <Text className="zd:text-body3 zd:text-greyScale/60">
                 {capitalizeFirst(network)}
               </Text>
             </div>

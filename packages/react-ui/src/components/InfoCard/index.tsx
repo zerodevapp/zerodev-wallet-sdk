@@ -45,7 +45,7 @@ export function InfoCard({
         ) : null}
         <div className="zd:flex zd:flex-col">
           <Text className="zd:text-body1">{title}</Text>
-          {subtitle && <Text className="zd:text-greyScale/50">{subtitle}</Text>}
+          {subtitle && <Text className="zd:text-greyScale/60">{subtitle}</Text>}
         </div>
       </div>
       {rightElement}
