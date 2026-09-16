@@ -10,6 +10,8 @@ import {
   zeroAddress,
 } from 'viem'
 import type { Client } from '../../client/types.js'
+import { TURNKEY_STAMP_HEADER } from '../../constants.js'
+import type { SigningStamper } from '../../stampers/types.js'
 
 export type TurnkeyPayload = {
   type: string
@@ -53,11 +55,15 @@ export function buildTurnkeyPayload(
   }
 }
 
+/**
+ * `token` is the user's session for `sign/*` routes. Server wallets call
+ * `server-wallet/sign/*` with an agent key and no session, so they omit it.
+ */
 export async function sendSigningRequest(
-  client: Client,
+  client: Client<undefined, SigningStamper>,
   params: {
     projectId: string
-    token: string
+    token?: string
     path: string
     turnkeyPayload: TurnkeyPayload
     bodyFields: Record<string, unknown>
@@ -74,7 +80,9 @@ export async function sendSigningRequest(
     ...bodyFields,
     turnkeyPayload,
     stampHeader: {
-      stampHeaderName: innerStamp.stampHeaderName,
+      // Relayed to Turnkey, so it carries Turnkey's header name, whatever the
+      // outer stamp is called.
+      stampHeaderName: TURNKEY_STAMP_HEADER,
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }
@@ -89,7 +97,7 @@ export async function sendSigningRequest(
     body: fullBody,
     headers: {
       [outerStamp.stampHeaderName]: outerStamp.stampHeaderValue,
-      Authorization: `Bearer ${token}`,
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   })
   const signature = response?.signature

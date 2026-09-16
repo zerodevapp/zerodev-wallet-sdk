@@ -1,3 +1,4 @@
+import type { ApiKeyStamper, SigningStamper } from '../stampers/types.js'
 import {
   type ZeroDevWalletActions,
   zeroDevWalletActions,
@@ -13,7 +14,8 @@ let clientId = 0
  */
 export function createBaseClient<
   extended extends Record<string, unknown> | undefined = undefined,
->(config: ClientConfig): Client<extended> {
+  TStamper extends SigningStamper = ApiKeyStamper,
+>(config: ClientConfig<TStamper>): Client<extended, TStamper> {
   const {
     transport,
     apiKeyStamper,
@@ -68,7 +70,7 @@ export function createBaseClient<
 
   return Object.assign(client, {
     extend: extend(client) as any,
-  }) as Client<extended>
+  }) as Client<extended, TStamper>
 }
 
 export type ZeroDevWalletClient = Client<ZeroDevWalletActions>
