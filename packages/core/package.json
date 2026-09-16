@@ -79,6 +79,11 @@
       "types": "./dist/_types/actions/index.d.ts",
       "import": "./dist/_esm/actions/index.js",
       "require": "./dist/_cjs/actions/index.js"
+    },
+    "./server": {
+      "types": "./dist/_types/server/index.d.ts",
+      "import": "./dist/_esm/server/index.js",
+      "require": "./dist/_cjs/server/index.js"
     }
   },
   "files": [
