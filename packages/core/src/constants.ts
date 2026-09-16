@@ -4,7 +4,10 @@ export const DEFAULT_IFRAME_ELEMENT_ID = 'turnkey-default-iframe-element-id'
 // Prod parent organization id. Only a fallback — the SDK resolves the parent
 // org at runtime from the KMS `server-info/parent-org-id` endpoint.
 export const DEFAULT_ORGANIZATION_ID = '65028f18-01c6-4ed4-beff-2ed1be5d6bad'
-export const KMS_SERVER_URL = 'https://kms.zerodev.app'
+export const KMS_SERVER_URL = 'https://localhost:7082'
+
+export const TURNKEY_STAMP_HEADER = 'X-Stamp'
+export const AGENT_STAMP_HEADER = 'X-Agent-Stamp'
 
 // Pinned ECDSA P-256 public key (uncompressed, 65 bytes hex) of Turnkey's
 // TLS Fetcher Sign enclave. Used to verify the signature on the OTP encryption
