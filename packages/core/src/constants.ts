@@ -8,6 +8,7 @@ export const KMS_SERVER_URL = 'https://kms.zerodev.app'
 
 export const TURNKEY_STAMP_HEADER = 'X-Stamp'
 export const AGENT_STAMP_HEADER = 'X-Agent-Stamp'
+export const TURNKEY_API_KEY_SCHEME = 'SIGNATURE_SCHEME_TK_API_P256'
 
 // Pinned ECDSA P-256 public key (uncompressed, 65 bytes hex) of Turnkey's
 // TLS Fetcher Sign enclave. Used to verify the signature on the OTP encryption
