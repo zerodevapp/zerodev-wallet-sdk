@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createAgentKeyStamper } from '../stampers/agentKeyStamper.js'
+import { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
 import { generateP256KeyPair } from '../utils/p256KeyPair.js'
 import { createServerWalletClient } from './createServerWalletClient.js'
 
 describe('createServerWalletClient', () => {
-  it('builds an agent-key stamper from a private key', async () => {
+  it('builds a private-key stamper from a private key', async () => {
     const { privateKey, publicKey } = generateP256KeyPair()
     const client = createServerWalletClient({
       organizationId: 'org',
@@ -14,7 +14,7 @@ describe('createServerWalletClient', () => {
   })
 
   it('uses the given stamper over a private key', async () => {
-    const own = createAgentKeyStamper(generateP256KeyPair().privateKey)
+    const own = createPrivateKeyStamper(generateP256KeyPair().privateKey)
     const other = generateP256KeyPair()
     const client = createServerWalletClient({
       organizationId: 'org',

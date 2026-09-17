@@ -332,7 +332,7 @@ A server process that holds an agent key talks to a wallet set through the
 `@zerodev/wallet-core/server` entry.
 ```ts
 import {
-  createAgentKeyStamper,
+  createPrivateKeyStamper,
   createServerWalletClient,
   generateP256KeyPair,
 } from '@zerodev/wallet-core/server'

@@ -18,7 +18,7 @@ export type {
   WalletSetDetails,
 } from '../actions/serverWallet/index.js'
 export type { ServerWalletActions } from '../client/decorators/serverWallet.js'
-export { createAgentKeyStamper } from '../stampers/agentKeyStamper.js'
+export { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
 export type { SigningStamper } from '../stampers/types.js'
 export {
   generateP256KeyPair,
