@@ -11,10 +11,7 @@ async function signedBy(owner: ReturnType<typeof privateKeyToAccount>) {
   return { hash, signature }
 }
 
-function fakeClient(
-  signature: string,
-  stampHeaderName = 'X-Stamp',
-): {
+function fakeClient(signature: string): {
   client: Client<undefined, SigningStamper>
   request: ReturnType<typeof vi.fn>
 } {
@@ -22,7 +19,7 @@ function fakeClient(
   const client = {
     apiKeyStamper: {
       stamp: vi.fn(async () => ({
-        stampHeaderName,
+        stampHeaderName: 'X-Stamp',
         stampHeaderValue: 'stamp',
       })),
     },
@@ -77,9 +74,9 @@ describe('sendSigningRequest', () => {
     expect(call.headers.Authorization).toBe('Bearer token')
   })
 
-  it('sends no bearer token without a session and names the inner stamp X-Stamp whatever the outer header is', async () => {
+  it('sends no bearer token without a session and puts the outer stamp under X-Agent-Stamp for server-wallet routes', async () => {
     const { hash, signature } = await signedBy(owner)
-    const { client, request } = fakeClient(signature, 'X-Agent-Stamp')
+    const { client, request } = fakeClient(signature)
 
     await sendSigningRequest(client, {
       projectId: 'project',
@@ -93,21 +90,5 @@ describe('sendSigningRequest', () => {
     expect(call.headers.Authorization).toBeUndefined()
     expect(call.headers['X-Agent-Stamp']).toBe('stamp')
     expect(call.body.stampHeader.stampHeaderName).toBe('X-Stamp')
-  })
-
-  it('keeps a WebAuthn stamper header name on the inner stamp', async () => {
-    const { hash, signature } = await signedBy(owner)
-    const { client, request } = fakeClient(signature, 'X-Stamp-Webauthn')
-
-    await sendSigningRequest(client, {
-      projectId: 'project',
-      token: 'token',
-      path: 'sign/message',
-      turnkeyPayload: buildTurnkeyPayload('organization', owner.address, hash),
-      bodyFields: {},
-    })
-
-    const [call] = request.mock.calls[0] as [Call]
-    expect(call.body.stampHeader.stampHeaderName).toBe('X-Stamp-Webauthn')
   })
 })

@@ -10,10 +10,7 @@ import {
   zeroAddress,
 } from 'viem'
 import type { Client } from '../../client/types.js'
-import {
-  TURNKEY_STAMP_HEADER,
-  TURNKEY_WEBAUTHN_STAMP_HEADER,
-} from '../../constants.js'
+import { AGENT_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 export type TurnkeyPayload = {
@@ -58,20 +55,13 @@ export function buildTurnkeyPayload(
   }
 }
 
-/**
- * The body-embedded stamp is relayed to Turnkey, which knows two header names.
- * A stamper that already uses one of them keeps it; a KMS-only header such as
- * `X-Agent-Stamp` maps to the API-key name.
- */
-function turnkeyStampHeaderName(stamperHeader: string): string {
-  return stamperHeader === TURNKEY_WEBAUTHN_STAMP_HEADER
-    ? TURNKEY_WEBAUTHN_STAMP_HEADER
-    : TURNKEY_STAMP_HEADER
-}
+const SERVER_WALLET_PREFIX = 'server-wallet/'
 
 /**
  * `token` is the user's session for `sign/*` routes. Server wallets call
  * `server-wallet/sign/*` with an agent key and no session, so they omit it.
+ * The KMS reads the outer stamp from `X-Agent-Stamp` on those routes and from
+ * the stamp's own header name on user routes.
  */
 export async function sendSigningRequest(
   client: Client<undefined, SigningStamper>,
@@ -94,7 +84,7 @@ export async function sendSigningRequest(
     ...bodyFields,
     turnkeyPayload,
     stampHeader: {
-      stampHeaderName: turnkeyStampHeaderName(innerStamp.stampHeaderName),
+      stampHeaderName: innerStamp.stampHeaderName,
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }
@@ -102,13 +92,16 @@ export async function sendSigningRequest(
   // Outer stamp over full body (for KMS middleware)
   const fullBodyString = canonicalizeEx(fullBody)
   const outerStamp = await client.apiKeyStamper.stamp(fullBodyString)
+  const outerHeader = path.startsWith(SERVER_WALLET_PREFIX)
+    ? AGENT_STAMP_HEADER
+    : outerStamp.stampHeaderName
 
   const response = await client.request({
     path: `${projectId}/${path}`,
     method: 'POST',
     body: fullBody,
     headers: {
-      [outerStamp.stampHeaderName]: outerStamp.stampHeaderValue,
+      [outerHeader]: outerStamp.stampHeaderValue,
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   })

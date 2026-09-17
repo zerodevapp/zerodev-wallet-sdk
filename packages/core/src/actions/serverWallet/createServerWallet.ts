@@ -1,7 +1,7 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
-import { TURNKEY_STAMP_HEADER } from '../../constants.js'
+import { AGENT_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 export type CreateServerWalletParameters = {
@@ -61,7 +61,7 @@ export async function createServerWallet(
   const body = {
     timestampMs,
     stamp: {
-      stampHeaderName: TURNKEY_STAMP_HEADER,
+      stampHeaderName: innerStamp.stampHeaderName,
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }
@@ -71,6 +71,6 @@ export async function createServerWallet(
     path: `${params.projectId}/server-wallet/wallets`,
     method: 'POST',
     body,
-    headers: { [outerStamp.stampHeaderName]: outerStamp.stampHeaderValue },
+    headers: { [AGENT_STAMP_HEADER]: outerStamp.stampHeaderValue },
   })
 }
