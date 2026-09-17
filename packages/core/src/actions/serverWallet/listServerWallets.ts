@@ -3,26 +3,28 @@ import { AGENT_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 /** Mirrors the KMS `WalletSetDetails` response field for field. */
+/** The KMS wallet-set response, `dto.WalletSetDetailsResponse` in doorway-kms. */
 export type WalletSetDetails = {
-  WalletSet: {
-    ProjectId: string
-    SubOrgId: string
-    OwnerUserId: string
-    AgentUserId: string
-    Name: string
+  walletSet: {
+    projectId: string
+    subOrgId: string
+    ownerUserId: string
+    agentUserId: string
+    name: string
   }
-  Wallets: {
-    WalletId: string
-    WalletAddress: string
-    WalletType: string
-    Primary: boolean
+  wallets: {
+    walletId: string
+    walletAddress: string
+    walletType: string
+    primary: boolean
   }[]
-  AgentKeys: {
-    ApiPublicKey: string
-    TurnkeyApiKeyId: string
-    Name: string
-    Roles: string[]
-    ExpiresAt: string | null
+  agentKeys: {
+    apiPublicKey: string
+    turnkeyApiKeyId: string
+    name: string
+    roles: string[]
+    /** Absent when the key does not expire. */
+    expiresAt?: string
   }[]
 }
 
