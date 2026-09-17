@@ -18,7 +18,7 @@ export function SignUpInstalledWallets({
    * curated ones. */
   maxWallets?: number
 }) {
-  const { startWalletConnect } = useAuth()
+  const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement, registeredWallets } = useSignUpContext()
   const connectors = useConnectors()
 
@@ -56,7 +56,7 @@ export function SignUpInstalledWallets({
   const startConnect = (row: (typeof rows)[number]) => {
     if (authPending) return
     if (!guardAgreement()) return
-    startWalletConnect({
+    startWalletConnection({
       connectorUid: row.connector.uid,
       name: row.name,
       icon: row.icon,

@@ -80,7 +80,7 @@ vi.mock('./hooks/useAuth', () => ({
     pendingWallet: mockPendingWallet,
     connectError: null,
     setConnectError: vi.fn(),
-    startWalletConnect: vi.fn(),
+    startWalletConnection: vi.fn(),
     clearPendingWallet,
   }),
 }))

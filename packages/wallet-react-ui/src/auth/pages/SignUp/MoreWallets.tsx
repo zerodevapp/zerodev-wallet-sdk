@@ -17,7 +17,7 @@ export function SignUpMoreWallets({
 }: {
   title?: string
 }) {
-  const { startWalletConnect } = useAuth()
+  const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement, openWalletSheet } = useSignUpContext()
   const [open, setOpen] = useState(false)
   const connectors = useConnectors()
@@ -38,7 +38,7 @@ export function SignUpMoreWallets({
     if (authPending) return
     if (!guardAgreement()) return
     setOpen(false)
-    startWalletConnect({ connectorUid: connector.uid, name, icon })
+    startWalletConnection({ connectorUid: connector.uid, name, icon })
   }
 
   const wcEnabled = connectors.some(isZeroDevWalletConnect)

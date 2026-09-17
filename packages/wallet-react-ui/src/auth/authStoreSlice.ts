@@ -78,7 +78,7 @@ export interface AuthStoreSlice {
     /** Why the connecting page stopped waiting; null while it waits. */
     connectError: string | null
     /** Record the wallet and move to `wallet-connecting`. */
-    startWalletConnect: (wallet: PendingWallet) => void
+    startWalletConnection: (wallet: PendingWallet) => void
     setConnectError: (message: string | null) => void
     /**
      * Forget the pending wallet. Called on success and by reset(), not when
@@ -171,7 +171,7 @@ export const createAuthStoreSlice: StateCreator<
       }))
     },
 
-    startWalletConnect: (wallet) => {
+    startWalletConnection: (wallet) => {
       set((state) => ({
         auth: {
           ...state.auth,

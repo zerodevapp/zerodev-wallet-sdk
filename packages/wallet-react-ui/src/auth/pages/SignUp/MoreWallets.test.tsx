@@ -65,9 +65,9 @@ vi.mock('@zerodev/react-ui', async (importOriginal) => {
 })
 
 const goToStep = vi.fn()
-const startWalletConnect = vi.fn()
+const startWalletConnection = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ goToStep, startWalletConnect }),
+  useAuth: () => ({ goToStep, startWalletConnection }),
 }))
 
 type FakeConnector = {
@@ -123,8 +123,8 @@ describe('SignUp.MoreWallets', () => {
     fireEvent.click(screen.getByText('MetaMask'))
 
     // The wallet is live on this page — direct connect, no WC handoff.
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: metamask.uid,
     })
     expect(screen.queryByTestId('wallet-sheet')).toBeNull()
@@ -138,7 +138,7 @@ describe('SignUp.MoreWallets', () => {
     openSheet()
     fireEvent.click(screen.getByText('MetaMask'))
 
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(true)
     expect(lastSheet.wallet?.id).toBe('metamask')
@@ -160,7 +160,7 @@ describe('SignUp.MoreWallets', () => {
     renderMoreWallets()
     openSheet()
     fireEvent.click(screen.getByText('Example Wallet'))
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: exotic.uid,
     })
   })
@@ -173,7 +173,7 @@ describe('SignUp.MoreWallets', () => {
     openSheet()
     fireEvent.click(screen.getByText('WalletConnect'))
 
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(true)
     expect(lastSheet.wallet).toBeUndefined()
@@ -224,8 +224,8 @@ describe('SignUp.MoreWallets', () => {
     openSheet()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: announced.uid,
     })
     // Selecting closes the sheet.
@@ -243,7 +243,7 @@ describe('SignUp.MoreWallets', () => {
       '_blank',
       'noopener,noreferrer',
     )
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
     expect(screen.queryByTestId('wallet-sheet')).toBeNull()
     openSpy.mockRestore()
   })
@@ -254,7 +254,7 @@ describe('SignUp.MoreWallets', () => {
     openSheet()
 
     fireEvent.click(screen.getByText('Coinbase Wallet'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
   })
 
   it('gives unmatched live connectors their own tile', () => {
@@ -269,8 +269,8 @@ describe('SignUp.MoreWallets', () => {
     openSheet()
 
     fireEvent.click(screen.getByText('Example Wallet'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: exotic.uid,
     })
   })

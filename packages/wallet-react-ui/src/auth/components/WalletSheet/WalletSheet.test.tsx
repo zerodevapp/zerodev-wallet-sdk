@@ -35,9 +35,9 @@ vi.mock('@zerodev/react-ui', async (importOriginal) => {
   }
 })
 
-const startWalletConnect = vi.fn()
+const startWalletConnection = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ startWalletConnect }),
+  useAuth: () => ({ startWalletConnection }),
 }))
 
 let connectors: unknown[] = []
@@ -117,7 +117,7 @@ describe('WalletSheet', () => {
     const button = screen.getByText(`Open in ${metamask.name}`)
     fireEvent.click(button)
     // Hands off to the wallet-connecting step, which owns the connect call.
-    expect(startWalletConnect).toHaveBeenCalledWith({
+    expect(startWalletConnection).toHaveBeenCalledWith({
       connectorUid: announced.uid,
       name: metamask.name,
       icon: metamask.icon,
