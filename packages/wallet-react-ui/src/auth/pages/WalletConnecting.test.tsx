@@ -256,7 +256,7 @@ describe('WalletConnecting', () => {
     fireEvent.click(screen.getByText('Choose another sign-in method'))
     unmount()
 
-    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
     render(<WalletConnecting />)
     expect(connect).toHaveBeenCalledTimes(1) // re-adopted, not re-sent
 
