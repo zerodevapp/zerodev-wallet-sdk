@@ -10,7 +10,10 @@ import {
   zeroAddress,
 } from 'viem'
 import type { Client } from '../../client/types.js'
-import { TURNKEY_STAMP_HEADER } from '../../constants.js'
+import {
+  TURNKEY_STAMP_HEADER,
+  TURNKEY_WEBAUTHN_STAMP_HEADER,
+} from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 export type TurnkeyPayload = {
@@ -56,6 +59,17 @@ export function buildTurnkeyPayload(
 }
 
 /**
+ * The body-embedded stamp is relayed to Turnkey, which knows two header names.
+ * A stamper that already uses one of them keeps it; a KMS-only header such as
+ * `X-Agent-Stamp` maps to the API-key name.
+ */
+function turnkeyStampHeaderName(stamperHeader: string): string {
+  return stamperHeader === TURNKEY_WEBAUTHN_STAMP_HEADER
+    ? TURNKEY_WEBAUTHN_STAMP_HEADER
+    : TURNKEY_STAMP_HEADER
+}
+
+/**
  * `token` is the user's session for `sign/*` routes. Server wallets call
  * `server-wallet/sign/*` with an agent key and no session, so they omit it.
  */
@@ -80,9 +94,7 @@ export async function sendSigningRequest(
     ...bodyFields,
     turnkeyPayload,
     stampHeader: {
-      // Relayed to Turnkey, so it carries Turnkey's header name, whatever the
-      // outer stamp is called.
-      stampHeaderName: TURNKEY_STAMP_HEADER,
+      stampHeaderName: turnkeyStampHeaderName(innerStamp.stampHeaderName),
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }
