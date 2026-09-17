@@ -1,6 +1,6 @@
 import { p256 } from '@noble/curves/nist.js'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
-import { AGENT_STAMP_HEADER } from '../constants.js'
+import { TURNKEY_STAMP_HEADER } from '../constants.js'
 import type { SigningStamper } from './types.js'
 
 const SCHEME = 'SIGNATURE_SCHEME_TK_API_P256'
@@ -12,9 +12,9 @@ function base64UrlEncode(bytes: Uint8Array): string {
 }
 
 /**
- * Stamps with a static P-256 private key held by the caller. Stamps go under `X-Agent-Stamp`.
+ * Stamps with a P-256 private key held by the caller.
  */
-export function createAgentKeyStamper(privateKey: string): SigningStamper {
+export function createPrivateKeyStamper(privateKey: string): SigningStamper {
   const secretKey = hexToBytes(privateKey.replace(/^0x/, ''))
   const publicKey = bytesToHex(p256.getPublicKey(secretKey, true))
 
@@ -35,7 +35,7 @@ export function createAgentKeyStamper(privateKey: string): SigningStamper {
         signature: await sign(payload),
       })
       return {
-        stampHeaderName: AGENT_STAMP_HEADER,
+        stampHeaderName: TURNKEY_STAMP_HEADER,
         stampHeaderValue: base64UrlEncode(new TextEncoder().encode(envelope)),
       }
     },

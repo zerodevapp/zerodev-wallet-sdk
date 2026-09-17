@@ -7,7 +7,6 @@ export const DEFAULT_ORGANIZATION_ID = '65028f18-01c6-4ed4-beff-2ed1be5d6bad'
 export const KMS_SERVER_URL = 'https://kms.zerodev.app'
 
 export const TURNKEY_STAMP_HEADER = 'X-Stamp'
-export const TURNKEY_WEBAUTHN_STAMP_HEADER = 'X-Stamp-Webauthn'
 export const AGENT_STAMP_HEADER = 'X-Agent-Stamp'
 
 // Pinned ECDSA P-256 public key (uncompressed, 65 bytes hex) of Turnkey's

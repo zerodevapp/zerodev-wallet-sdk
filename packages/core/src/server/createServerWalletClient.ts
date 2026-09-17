@@ -6,8 +6,8 @@ import {
 import { zeroDevWalletTransport } from '../client/transports/createTransport.js'
 import type { Client } from '../client/types.js'
 import { KMS_SERVER_URL } from '../constants.js'
-import { createAgentKeyStamper } from '../stampers/agentKeyStamper.js'
 import { createNoopPasskeyStamper } from '../stampers/noopPasskeyStamper.js'
+import { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
 import type { SigningStamper } from '../stampers/types.js'
 
 export type ServerWalletClient = Client<ServerWalletActions, SigningStamper>
@@ -55,6 +55,6 @@ export function createServerWalletClient(
 
 function resolveStamper(config: ServerWalletClientConfig): SigningStamper {
   if (config.stamper) return config.stamper
-  if (config.privateKey) return createAgentKeyStamper(config.privateKey)
+  if (config.privateKey) return createPrivateKeyStamper(config.privateKey)
   throw new Error('createServerWalletClient: pass `privateKey` or `stamper`')
 }
