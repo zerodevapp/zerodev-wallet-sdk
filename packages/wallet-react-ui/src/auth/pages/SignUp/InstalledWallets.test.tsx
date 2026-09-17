@@ -44,9 +44,9 @@ vi.mock('../../../shared/components/SignUpFooter', () => ({
 }))
 
 const goToStep = vi.fn()
-const startWalletConnect = vi.fn()
+const startWalletConnection = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ goToStep, startWalletConnect }),
+  useAuth: () => ({ goToStep, startWalletConnection }),
 }))
 
 type FakeConnector = {
@@ -107,12 +107,12 @@ describe('SignUp.InstalledWallets', () => {
     // Every row is a live announced provider — direct connect, never the
     // sheet (a WC handoff bounces out of the wallet's own in-app browser).
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(false)
 
     fireEvent.click(screen.getByText('Unknown'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(2)
+    expect(startWalletConnection).toHaveBeenCalledTimes(2)
   })
 
   it('renders a badged row per announced connector and nothing else', () => {
@@ -244,8 +244,8 @@ describe('SignUp.InstalledWallets', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: metamask.uid,
     })
   })
@@ -259,11 +259,11 @@ describe('SignUp.InstalledWallets', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByTestId('footer-agree'))
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
   })
 
   it('auto-dedupes a wallet pinned via SignUp.Wallet', () => {
@@ -296,7 +296,7 @@ describe('SignUp.InstalledWallets', () => {
     // And the surviving pinned row connects it, instead of linking out to
     // the download page.
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
   })
 
   it('auto-dedupes regardless of unit order', () => {
@@ -358,6 +358,6 @@ describe('SignUp.InstalledWallets', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
   })
 })

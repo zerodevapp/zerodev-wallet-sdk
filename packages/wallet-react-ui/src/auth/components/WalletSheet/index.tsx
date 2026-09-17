@@ -56,7 +56,7 @@ function SheetBody({
   wallet?: WalletGuideEntry | undefined
   pairing: WalletConnectPairing
 }) {
-  const { startWalletConnect } = useAuth()
+  const { startWalletConnection } = useAuth()
   const { uri, error, retry } = pairing
   const connectors = useConnectors()
 
@@ -94,7 +94,7 @@ function SheetBody({
   // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const connectInstalled = () => {
     if (!installed) return
-    startWalletConnect({
+    startWalletConnection({
       connectorUid: installed.uid,
       name: wallet?.name ?? installed.name,
       icon: wallet?.icon ?? installed.icon,

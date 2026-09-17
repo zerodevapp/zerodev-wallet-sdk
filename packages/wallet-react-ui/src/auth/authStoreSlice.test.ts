@@ -382,12 +382,12 @@ describe('authStoreSlice', () => {
   })
 
   describe('wallet-connecting', () => {
-    it('startWalletConnect records the wallet and pushes history', () => {
+    it('startWalletConnection records the wallet and pushes history', () => {
       const store = createStore()
       const auth = () => store.getState().auth
       auth().goToStep('sign-up')
 
-      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
 
       expect(auth().step).toBe('wallet-connecting')
       expect(auth().pendingWallet).toEqual({
@@ -401,7 +401,7 @@ describe('authStoreSlice', () => {
     it('clearPendingWallet forgets the wallet and error but leaves the step', () => {
       const store = createStore()
       const auth = () => store.getState().auth
-      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
       auth().setConnectError('boom')
 
       auth().clearPendingWallet()
@@ -411,13 +411,13 @@ describe('authStoreSlice', () => {
       expect(auth().step).toBe('wallet-connecting')
     })
 
-    it('startWalletConnect clears a stale error', () => {
+    it('startWalletConnection clears a stale error', () => {
       const store = createStore()
       const auth = () => store.getState().auth
-      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
       auth().setConnectError('boom')
 
-      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
 
       expect(auth().connectError).toBeNull()
     })
@@ -425,7 +425,7 @@ describe('authStoreSlice', () => {
     it('reset clears the pending wallet', () => {
       const store = createStore()
       const auth = () => store.getState().auth
-      auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
       auth().setConnectError('boom')
 
       auth().reset()

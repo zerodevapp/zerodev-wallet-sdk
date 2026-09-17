@@ -72,7 +72,7 @@ beforeEach(() => {
   connectors = [metamask]
   // The state a wallet button leaves behind.
   auth().goToStep('sign-up')
-  auth().startWalletConnect({
+  auth().startWalletConnection({
     connectorUid: 'mm',
     name: 'MetaMask',
     icon: 'data:mm',
@@ -121,7 +121,7 @@ describe('WalletConnecting', () => {
     unmount()
 
     // Back on sign-up, the user picks MetaMask again.
-    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
     render(<WalletConnecting />)
 
     expect(connect).toHaveBeenCalledTimes(1)
@@ -141,14 +141,17 @@ describe('WalletConnecting', () => {
     unmount()
 
     // Rabby: leave that unanswered too.
-    auth().startWalletConnect({ connectorUid: 'rabby', name: 'Rabby Wallet' })
+    auth().startWalletConnection({
+      connectorUid: 'rabby',
+      name: 'Rabby Wallet',
+    })
     const second = render(<WalletConnecting />)
     fireEvent.click(screen.getByText('Choose another sign-in method'))
     second.unmount()
     expect(connect).toHaveBeenCalledTimes(2)
 
     // Back to MetaMask, whose request is still open in the extension.
-    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
     render(<WalletConnecting />)
 
     expect(connect).toHaveBeenCalledTimes(2)
@@ -160,7 +163,7 @@ describe('WalletConnecting', () => {
     await rejectWith(new Error('User rejected the request.'))
     unmount()
 
-    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
     render(<WalletConnecting />)
 
     expect(connect).toHaveBeenCalledTimes(2)
@@ -211,7 +214,7 @@ describe('WalletConnecting', () => {
     await rejectWith(new Error('Provider is not configured'))
     unmount()
 
-    auth().startWalletConnect({ connectorUid: 'mm', name: 'MetaMask' })
+    auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
     render(<WalletConnecting />)
 
     expect(auth().connectError).toBeNull()
@@ -233,7 +236,10 @@ describe('WalletConnecting', () => {
   it('ignores a late rejection once the user has started a different wallet', async () => {
     render(<WalletConnecting />)
     fireEvent.click(screen.getByText('Choose another sign-in method'))
-    auth().startWalletConnect({ connectorUid: 'rabby', name: 'Rabby Wallet' })
+    auth().startWalletConnection({
+      connectorUid: 'rabby',
+      name: 'Rabby Wallet',
+    })
 
     await rejectWith(new Error('User rejected the request.'))
 

@@ -22,7 +22,7 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     )
   }
 
-  const { startWalletConnect } = useAuth()
+  const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement, registerWallet, openWalletSheet } =
     useSignUpContext()
   const connectors = useConnectors()
@@ -77,7 +77,7 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
   const handleClick = () => {
     if (authPending) return
     if (!guardAgreement()) return
-    startWalletConnect({
+    startWalletConnection({
       connectorUid: claimed.uid,
       name: wallet.name,
       icon: wallet.icon,

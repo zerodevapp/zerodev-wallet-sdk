@@ -21,7 +21,7 @@ export function useAuth() {
     otpEncryptionTargetBundle,
     pendingWallet,
     connectError,
-    startWalletConnect: store.getState().auth.startWalletConnect,
+    startWalletConnection: store.getState().auth.startWalletConnection,
     setConnectError: store.getState().auth.setConnectError,
     clearPendingWallet: store.getState().auth.clearPendingWallet,
     goToStep: store.getState().auth.goToStep,

@@ -47,9 +47,9 @@ vi.mock('../../../shared/components/SignUpFooter', () => ({
 }))
 
 const goToStep = vi.fn()
-const startWalletConnect = vi.fn()
+const startWalletConnection = vi.fn()
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ goToStep, startWalletConnect }),
+  useAuth: () => ({ goToStep, startWalletConnection }),
 }))
 
 type FakeConnector = {
@@ -95,8 +95,8 @@ describe('SignUp.Wallet', () => {
 
     // The wallet is live on this page — direct connect, no WC handoff.
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: announced.uid,
     })
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
@@ -115,7 +115,7 @@ describe('SignUp.Wallet', () => {
     expect(screen.queryByText('INSTALLED')).toBeNull()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
     const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
     expect(lastSheet.open).toBe(true)
     expect(lastSheet.wallet?.id).toBe('metamask')
@@ -142,8 +142,8 @@ describe('SignUp.Wallet', () => {
     expect(screen.getByText('INSTALLED')).toBeDefined()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: inApp.uid,
     })
   })
@@ -161,8 +161,8 @@ describe('SignUp.Wallet', () => {
     expect(screen.getByText('INSTALLED')).toBeDefined()
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
-    expect(startWalletConnect.mock.calls[0][0]).toMatchObject({
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: announced.uid,
     })
   })
@@ -179,7 +179,7 @@ describe('SignUp.Wallet', () => {
     expect(screen.queryByText('INSTALLED')).toBeNull()
 
     fireEvent.click(screen.getByText('Coinbase Wallet'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
   })
 
   it('renders a download link when no connector claims the wallet', () => {
@@ -191,7 +191,7 @@ describe('SignUp.Wallet', () => {
 
     const link = screen.getByText('MetaMask').closest('a')
     expect(link?.getAttribute('href')).toBe('https://metamask.io/download')
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
   })
 
   it('blocks connect until terms are accepted', () => {
@@ -203,11 +203,11 @@ describe('SignUp.Wallet', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByTestId('footer-agree'))
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
   })
 
   it('stays disabled while a sibling method is in flight', () => {
@@ -227,7 +227,7 @@ describe('SignUp.Wallet', () => {
     )
 
     fireEvent.click(screen.getByText('MetaMask'))
-    expect(startWalletConnect).not.toHaveBeenCalled()
+    expect(startWalletConnection).not.toHaveBeenCalled()
   })
 
   it('throws on an unknown walletId (raw-JS guard)', () => {

@@ -30,7 +30,7 @@ function openFor(config: Config): Set<string> {
  *
  * This page owns the connect() call, since React Query drops per-call
  * callbacks when the sign-up page unmounts on the step change. The wallet
- * button only records intent (`startWalletConnect`).
+ * button only records intent (`startWalletConnection`).
  */
 export function WalletConnecting() {
   const {
