@@ -1,5 +1,6 @@
 import { IndexedDbStamper as TurnkeyIndexedDbStamper } from '@turnkey/indexed-db-stamper'
 import { withCrossTabLock } from '../utils/crossTabLock.js'
+import { TURNKEY_STAMP_HEADER } from '../constants.js'
 import {
   compactSignatureToDerHex,
   encodeStamp,
@@ -68,7 +69,7 @@ export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
       const publicKey = await generateCompressedPublicKeyFromKeyPair(keyPair)
       const signature = await signWithKeyPair(keyPair, payload)
       return {
-        stampHeaderName: 'X-Stamp',
+        stampHeaderName: TURNKEY_STAMP_HEADER,
         stampHeaderValue: encodeStamp(publicKey, signature),
       }
     },
