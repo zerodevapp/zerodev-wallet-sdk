@@ -1,0 +1,76 @@
+# Applies review:* labels from the path rules in .github/labeler.yml.
+name: review-routing
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          # recompute on every push, so removing a risky file drops the label
+          sync-labels: true
+
+  # Per-file attention. Two surfaces: annotations render inline in Files
+  # changed (only when anchored to a line that's in the diff), and the
+  # sticky comment gives a ranked map that's always visible.
+  attention:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Annotate files in the diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE=$(git merge-base "origin/$BASE_REF" HEAD)
+          node scripts/review-attention.mjs "$BASE"
+
+      # Two sticky comments, posted map-first so the author checklist sits
+      # below it on the PR. Each is keyed by its own HTML-comment marker, so
+      # a push updates them in place instead of stacking.
+      - name: Post/update the attention map and self-review comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE=$(git merge-base "origin/$BASE_REF" HEAD)
+
+          post_sticky() { # $1 = marker, $2 = body file
+            local marker="$1" file="$2" id
+            id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+              --jq "[.[] | select(.body | contains(\"$marker\"))] | first | .id // empty")
+            if [ -n "$id" ]; then
+              gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@"$file" --jq .html_url
+            else
+              gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@"$file" --jq .html_url
+            fi
+          }
+
+          MAP_MARKER="<!-- review-attention-map -->"
+          { echo "$MAP_MARKER"; node scripts/review-attention.mjs "$BASE" --markdown; } > map.md
+          post_sticky "$MAP_MARKER" map.md
+
+          # Only exists when the PR has 🔴 files; skip rather than post an
+          # empty checklist.
+          SR_MARKER="<!-- author-self-review -->"
+          node scripts/review-attention.mjs "$BASE" --self-review > self-review.body
+          if [ -s self-review.body ]; then
+            { echo "$SR_MARKER"; cat self-review.body; } > self-review.md
+            post_sticky "$SR_MARKER" self-review.md
+          else
+            echo "no human-tier files — skipping the self-review comment"
+          fi
