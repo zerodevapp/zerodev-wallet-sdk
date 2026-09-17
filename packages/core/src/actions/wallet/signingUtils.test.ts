@@ -94,4 +94,20 @@ describe('sendSigningRequest', () => {
     expect(call.headers['X-Agent-Stamp']).toBe('stamp')
     expect(call.body.stampHeader.stampHeaderName).toBe('X-Stamp')
   })
+
+  it('keeps a WebAuthn stamper header name on the inner stamp', async () => {
+    const { hash, signature } = await signedBy(owner)
+    const { client, request } = fakeClient(signature, 'X-Stamp-Webauthn')
+
+    await sendSigningRequest(client, {
+      projectId: 'project',
+      token: 'token',
+      path: 'sign/message',
+      turnkeyPayload: buildTurnkeyPayload('organization', owner.address, hash),
+      bodyFields: {},
+    })
+
+    const [call] = request.mock.calls[0] as [Call]
+    expect(call.body.stampHeader.stampHeaderName).toBe('X-Stamp-Webauthn')
+  })
 })
