@@ -1,7 +1,9 @@
 /**
- * EIP-1193 `-32002`: the wallet already has a request open for this origin
- * (popup closed without answering, then clicked again). It will not prompt
- * again until that one is answered in the extension.
+ * EIP-1474 `-32002` "Resource unavailable". Injected wallets send it when a
+ * request for this origin is already open (popup closed without answering,
+ * then clicked again) and they will not prompt again until it is answered —
+ * wagmi's injected connector reads the code the same way ("prompt is already
+ * open").
  *
  * viem wraps it as `ResourceUnavailableRpcError`; wagmi's injected connector
  * rethrows the raw JSON-RPC object. Accept both and walk `.cause`.
