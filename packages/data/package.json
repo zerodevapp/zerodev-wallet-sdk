@@ -71,7 +71,8 @@
     "@zerodev/wallet-core": "workspace:*",
     "@zerodev/wallet-react": "workspace:*",
     "react": "^18.0.0 || ^19.0.0",
-    "wagmi": "^2.19.0 || ^3.0.0"
+    "wagmi": "^2.19.0 || ^3.0.0",
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@tanstack/react-query": "5.101.2",
@@ -79,7 +80,8 @@
     "@wagmi/core": "3.6.0",
     "react": "19.2.3",
     "typescript": "5.9.3",
-    "wagmi": "3.7.0"
+    "wagmi": "3.7.0",
+    "zod": "4.4.3"
   },
   "type": "module"
 }
