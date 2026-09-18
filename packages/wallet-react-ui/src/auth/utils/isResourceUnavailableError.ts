@@ -8,7 +8,7 @@
  * viem wraps it as `ResourceUnavailableRpcError`; wagmi's injected connector
  * rethrows the raw JSON-RPC object. Accept both and walk `.cause`.
  */
-export function isRequestPendingError(err: unknown): boolean {
+export function isResourceUnavailableError(err: unknown): boolean {
   let current: unknown = err
   for (let depth = 0; depth < 5 && isObject(current); depth++) {
     if (
