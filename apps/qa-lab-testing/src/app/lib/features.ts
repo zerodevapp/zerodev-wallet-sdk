@@ -2,6 +2,7 @@ import {
   Clock,
   Code2,
   FileSignature,
+  History,
   type LucideIcon,
   Network,
   Route,
@@ -33,6 +34,7 @@ export interface LabArea {
 export interface LabFeature {
   id: string;
   name: string;
+  icon?: LucideIcon;
   /** One line, shown on the overview card. */
   description: string;
   status: FeatureStatus;
@@ -54,6 +56,15 @@ export const LAB_FEATURES: LabFeature[] = [
       { id: "rpc", name: "RPC", icon: Network },
       { id: "session", name: "Session", icon: Clock },
     ],
+  },
+  {
+    id: "transaction-history",
+    name: "Transaction History",
+    icon: History,
+    description:
+      "Live Data API requests signed by the wallet's active session key.",
+    status: "wip",
+    areas: [],
   },
   {
     id: "sra",
