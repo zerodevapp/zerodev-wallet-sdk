@@ -39,19 +39,35 @@ function describeConnectError(
   if (isRequestPendingError(err)) {
     // Usually nothing failed: the wallet still has the first request open
     // and will not prompt again until it is answered there. But -32002 is
-    // only "resource unavailable", so relay the wallet's own message and
-    // suggest the outstanding request rather than assert it.
-    const { message } = describeProviderError(err)
+    // only "resource unavailable", so suggest the outstanding request rather
+    // than assert it. Not the wallet's own message: MetaMask's names RPC
+    // methods and the origin ("Request of type 'wallet_requestPermissions'
+    // already pending for origin…") — Reown shows its own copy here too.
     return {
       title: `Check ${walletName}`,
       message:
-        (message !== undefined ? `${message} ` : '') +
         `Open ${walletName} and check for an outstanding request. ` +
         'If one is waiting, approve or dismiss it, then try again.',
       pending: true,
     }
   }
-  const { message, code } = describeProviderError(err)
+  // Wallets throw raw JSON-RPC objects, viem throws Errors with
+  // `shortMessage`. Never render "[object Object]": fall back to a fixed
+  // sentence plus the code, the only actionable detail such an object has.
+  let message: string | undefined
+  let code: number | undefined
+  if (typeof err === 'string' && err.length > 0) {
+    message = err
+  } else if (typeof err === 'object' && err !== null) {
+    const e = err as {
+      shortMessage?: unknown
+      message?: unknown
+      code?: unknown
+    }
+    const text = e.shortMessage ?? e.message
+    if (typeof text === 'string' && text.length > 0) message = text
+    if (typeof e.code === 'number') code = e.code
+  }
   return {
     title: 'Couldn’t connect',
     message:
@@ -60,32 +76,6 @@ function describeConnectError(
         (code !== undefined ? ` (code ${code})` : ''),
     pending: false,
   }
-}
-
-/**
- * Wallets throw raw JSON-RPC objects, viem throws Errors with
- * `shortMessage`. Never render "[object Object]": yield no message rather
- * than one that isn't a string, leaving the code as the only actionable
- * detail such an object has.
- */
-function describeProviderError(err: unknown): {
-  message?: string
-  code?: number
-} {
-  if (typeof err === 'string' && err.length > 0) return { message: err }
-  if (typeof err === 'object' && err !== null) {
-    const e = err as {
-      shortMessage?: unknown
-      message?: unknown
-      code?: unknown
-    }
-    const text = e.shortMessage ?? e.message
-    return {
-      ...(typeof text === 'string' && text.length > 0 && { message: text }),
-      ...(typeof e.code === 'number' && { code: e.code }),
-    }
-  }
-  return {}
 }
 
 /**
