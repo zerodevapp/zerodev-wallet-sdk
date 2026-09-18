@@ -277,11 +277,14 @@ describe('WalletConnecting', () => {
       message: 'Request of type wallet_requestPermissions already pending',
     })
 
-    expect(screen.getByTestId('title').textContent).toBe(
-      'Request waiting in MetaMask',
+    expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
+    // The wallet's own message is relayed, then our suggestion — worded as a
+    // suggestion, since -32002 only guarantees "resource unavailable".
+    expect(screen.getByTestId('body').textContent).toContain(
+      'Request of type wallet_requestPermissions already pending',
     )
     expect(screen.getByTestId('body').textContent).toContain(
-      "Open MetaMask from your browser's toolbar",
+      'Open MetaMask and check for an outstanding request',
     )
     expect(auth().connectError?.pending).toBe(true)
   })
@@ -291,9 +294,7 @@ describe('WalletConnecting', () => {
   it('closes the widget when wagmi connects without our request resolving', async () => {
     render(<WalletConnecting />)
     await rejectWith({ code: -32002, message: 'already pending' })
-    expect(screen.getByTestId('title').textContent).toBe(
-      'Request waiting in MetaMask',
-    )
+    expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
 
     // The user approves the queued request in the extension.
     act(() => fakeConfig.connectAs(metamask))
@@ -320,9 +321,7 @@ describe('WalletConnecting', () => {
     render(<WalletConnecting />)
     await rejectWith(wrapped)
 
-    expect(screen.getByTestId('title').textContent).toBe(
-      'Request waiting in MetaMask',
-    )
+    expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
   })
 
   it('never renders [object Object] for an error object with no message', async () => {
