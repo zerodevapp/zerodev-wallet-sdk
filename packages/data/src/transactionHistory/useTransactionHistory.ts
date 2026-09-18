@@ -6,7 +6,10 @@ import {
   type UseInfiniteQueryResult,
   useInfiniteQuery,
 } from '@tanstack/react-query'
-import type { TransactionHistoryResponse } from '@zerodev/data-api-contract'
+import type {
+  DataApiChainId,
+  TransactionHistoryResponse,
+} from '@zerodev/data-api-contract'
 import type { DataApiEnvironment } from '@zerodev/data-api-stamp'
 import { NotAuthenticatedError } from '@zerodev/wallet-react'
 import {
@@ -33,6 +36,7 @@ export function transactionHistoryQueryKey(input: {
   baseUrl: string
   walletAddress: string | null
   environment: DataApiEnvironment
+  chainIds?: readonly DataApiChainId[] | undefined
 }) {
   return ['zeroDev', 'dataApi', 'transactionHistory', input] as const
 }
@@ -42,7 +46,7 @@ export function useTransactionHistory<
 >(
   parameters: useTransactionHistory.Parameters<config>,
 ): useTransactionHistory.ReturnType {
-  const { baseUrl, query } = parameters
+  const { baseUrl, chainIds, query } = parameters
   const config = useConfig(parameters)
   // Wagmi 2 does not export useConnection. Wagmi 3 keeps useAccount as its
   // deprecated compatibility alias, so useAccount supports both peer majors.
@@ -59,6 +63,7 @@ export function useTransactionHistory<
       baseUrl,
       walletAddress: connector && accountReady ? account.address : null,
       environment,
+      chainIds,
     }),
     initialPageParam: null,
     queryFn: ({ pageParam, signal }) => {
@@ -67,6 +72,7 @@ export function useTransactionHistory<
         baseUrl,
         connector,
         environment,
+        ...(chainIds === undefined ? {} : { chainIds }),
         ...(pageParam === null ? {} : { next: pageParam }),
         signal,
       })
@@ -81,6 +87,7 @@ export function useTransactionHistory<
 export declare namespace useTransactionHistory {
   type Parameters<config extends Config = Config> = ConfigParameter<config> & {
     baseUrl: string
+    chainIds?: readonly DataApiChainId[]
     environment?: DataApiEnvironment
     query?:
       | Omit<
