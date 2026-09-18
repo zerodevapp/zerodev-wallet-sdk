@@ -278,13 +278,12 @@ describe('WalletConnecting', () => {
     })
 
     expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
-    // The wallet's own message is relayed, then our suggestion — worded as a
-    // suggestion, since -32002 only guarantees "resource unavailable".
-    expect(screen.getByTestId('body').textContent).toContain(
-      'Request of type wallet_requestPermissions already pending',
-    )
-    expect(screen.getByTestId('body').textContent).toContain(
-      'Open MetaMask and check for an outstanding request',
+    // Our copy, not the wallet's ("Request of type 'wallet_requestPermissions'
+    // already pending for origin…"), worded as a suggestion since -32002 only
+    // guarantees "resource unavailable".
+    expect(screen.getByTestId('body').textContent).toBe(
+      'Open MetaMask and check for an outstanding request. ' +
+        'If one is waiting, approve or dismiss it, then try again.',
     )
     expect(auth().connectError?.pending).toBe(true)
   })
