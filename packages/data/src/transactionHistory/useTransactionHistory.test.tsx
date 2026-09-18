@@ -104,6 +104,28 @@ describe('useTransactionHistory', () => {
     expect(nextResult?.hasNextPage).toBe(false)
   })
 
+  it('forwards chainIds to the first page and the next page', async () => {
+    const chainIds = ['ethereum', 'arbitrum'] as const
+    const { result } = renderHook(
+      () => useTransactionHistory({ baseUrl, chainIds }),
+      { wrapper: wrapper() },
+    )
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(h.getTransactionHistory.mock.calls[0]?.[1]).toMatchObject({
+      chainIds,
+    })
+
+    await act(async () => {
+      await result.current.fetchNextPage()
+    })
+
+    expect(h.getTransactionHistory.mock.calls[1]?.[1]).toMatchObject({
+      chainIds,
+      next: 'cursor-2',
+    })
+  })
+
   it('passes an explicit testnet environment', async () => {
     renderHook(
       () => useTransactionHistory({ baseUrl, environment: 'testnet' }),
@@ -132,12 +154,13 @@ describe('useTransactionHistory', () => {
     expect(h.getTransactionHistory).not.toHaveBeenCalled()
   })
 
-  it('keys the feed by URL, wallet, and environment but not cursor', () => {
+  it('keys the feed by URL, wallet, environment, and chainIds but not cursor', () => {
     expect(
       transactionHistoryQueryKey({
         baseUrl,
         walletAddress: '0x1111111111111111111111111111111111111111',
         environment: 'testnet',
+        chainIds: ['ethereum'],
       }),
     ).toEqual([
       'zeroDev',
@@ -147,6 +170,7 @@ describe('useTransactionHistory', () => {
         baseUrl,
         walletAddress: '0x1111111111111111111111111111111111111111',
         environment: 'testnet',
+        chainIds: ['ethereum'],
       },
     ])
   })
