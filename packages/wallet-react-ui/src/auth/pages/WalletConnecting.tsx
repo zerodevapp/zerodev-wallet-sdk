@@ -69,17 +69,17 @@ export function WalletConnecting() {
     // screen.
     if (connector && openFor(config).has(connector.uid)) return
 
-    // Gone, or already connected: connect() would throw rather than prompt,
-    // so there is nothing to wait for.
+    // Connector gone from the config: nothing to connect to.
     if (!connector) {
       clearPendingWallet()
       leave()
       return
     }
-    const alreadyConnected = [...config.state.connections.values()].some(
-      (connection) => connection.connector.uid === connector.uid,
-    )
-    if (alreadyConnected) {
+    // Already the current connection: connect() would throw rather than
+    // prompt (its exact guard), so there is nothing to wait for. A connector
+    // that is connected but not current falls through on purpose — connect()
+    // then resolves silently and promotes it to current.
+    if (config.state.current === connector.uid) {
       close()
       return
     }
