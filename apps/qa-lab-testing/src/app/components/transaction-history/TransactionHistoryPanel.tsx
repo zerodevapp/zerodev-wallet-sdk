@@ -3,6 +3,8 @@
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import {
+  DATA_API_CHAIN_IDS,
+  type DataApiChainId,
   DataApiError,
   type DataApiEnvironment,
   useTransactionHistory,
@@ -56,8 +58,26 @@ function ErrorDetails({ error }: { error: Error }) {
 function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
   const [environment, setEnvironment] =
     useState<DataApiEnvironment>("mainnet");
+  const [selectedChainIds, setSelectedChainIds] = useState<
+    ReadonlySet<DataApiChainId>
+  >(() => new Set());
   const { address } = useAccount();
-  const history = useTransactionHistory({ baseUrl, environment });
+
+  const chainIds =
+    selectedChainIds.size === 0
+      ? undefined
+      : DATA_API_CHAIN_IDS.filter((chainId) => selectedChainIds.has(chainId));
+
+  function toggleChainId(chainId: DataApiChainId) {
+    setSelectedChainIds((current) => {
+      const next = new Set(current);
+      if (next.has(chainId)) next.delete(chainId);
+      else next.add(chainId);
+      return next;
+    });
+  }
+
+  const history = useTransactionHistory({ baseUrl, environment, chainIds });
   const pages = history.data?.pages ?? [];
   const items = pages.flatMap((page) => page.items);
   const error = history.error;
@@ -77,28 +97,60 @@ function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
             </p>
           </div>
 
-          <div className="inline-flex rounded-lg border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
-            {ENVIRONMENTS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setEnvironment(value)}
-                data-testid={`transaction-history-environment-${value}`}
-                data-active={String(environment === value)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-colors",
-                  environment === value
-                    ? "bg-[var(--ink)] text-white"
-                    : "text-[var(--muted)] hover:text-[var(--ink)]",
-                )}
-              >
-                {value}
-              </button>
-            ))}
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-lg border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
+                {ENVIRONMENTS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setEnvironment(value)}
+                    data-testid={`transaction-history-environment-${value}`}
+                    data-active={String(environment === value)}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-colors",
+                      environment === value
+                        ? "bg-[var(--ink)] text-white"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]",
+                    )}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+
+              <div className="inline-flex rounded-lg border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
+                {DATA_API_CHAIN_IDS.map((chainId) => {
+                  const selected = selectedChainIds.has(chainId);
+
+                  return (
+                    <button
+                      key={chainId}
+                      type="button"
+                      onClick={() => toggleChainId(chainId)}
+                      data-testid={`transaction-history-chain-${chainId}`}
+                      data-active={String(selected)}
+                      className={cn(
+                        "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                        selected
+                          ? "bg-[var(--ink)] text-white"
+                          : "text-[var(--muted)] hover:text-[var(--ink)]",
+                      )}
+                    >
+                      {chainId}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p className="text-xs text-[var(--muted)]">
+              {chainIds ? chainIds.join(", ") : "All chains"}
+            </p>
           </div>
         </div>
 
-        <dl className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <dl className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
             <dt className="text-xs font-semibold text-gray-500">Data API</dt>
             <dd
@@ -124,6 +176,15 @@ function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
             <dt className="text-xs font-semibold text-gray-500">Query</dt>
             <dd className="mt-1 font-mono text-xs text-gray-800">
               {history.fetchStatus} · failures {history.failureCount}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+            <dt className="text-xs font-semibold text-gray-500">chainIds</dt>
+            <dd
+              className="mt-1 break-all font-mono text-xs text-gray-800"
+              data-testid="transaction-history-chain-ids"
+            >
+              {chainIds ? JSON.stringify(chainIds) : "undefined"}
             </dd>
           </div>
         </dl>

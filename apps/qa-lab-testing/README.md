@@ -159,6 +159,12 @@ Use the mainnet/testnet toggle to change the explicitly signed environment, and
 use the browser Network panel to inspect `X-Wallet-Address`, `X-Timestamp`,
 `X-Stamp`, and `X-Env`.
 
+The chain buttons next to that toggle build the `chainIds` filter; selecting
+none queries every chain and the `chainIds` readout shows the exact value the
+hook received. The buttons are deliberately not filtered by environment, so
+pairing `testnet` with `ethereum` sends a mismatched filter and renders the
+server's 400 `{ error: 'invalid chainIds' }` in the error block.
+
 Because everything else derives from `wallet-config.ts`, editing a default there updates
 the app, the `/config` builder and the `/environment` readout together — there is no
 second place to keep in sync.
