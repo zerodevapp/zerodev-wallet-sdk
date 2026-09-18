@@ -33,6 +33,27 @@ const firstPage = await getTransactionHistory(config, {
 account, stamps every page request with its current P-256 session key, and uses
 the opaque `next` cursor for `fetchNextPage`.
 
+### Filtering by chain
+
+Pass `chainIds` to restrict the feed to specific chains. The filter is part of
+the feed identity, so changing it starts a new query rather than appending to
+the current one.
+
+```ts
+import { useTransactionHistory } from '@zerodev/wallet-data'
+
+const history = useTransactionHistory({
+  baseUrl: process.env.NEXT_PUBLIC_ZERODEV_DATA_API_URL!,
+  chainIds: ['ethereum', 'arbitrum'],
+})
+```
+
+`DATA_API_CHAIN_IDS` lists every accepted value; chains that belong to the other
+environment are rejected with a 400. An empty `chainIds` array is a programmer
+error: it throws a `TypeError` before anything is signed or sent. Omit the
+parameter to query every chain. The client sends `chainIds` on every page, but
+the server ignores it whenever `next` is present and follows the cursor instead.
+
 The Data API origin is required while this feature is in private preview. A URL
 embedded in a browser or React Native application is observable and should be
 treated as feature configuration, not as a secret.

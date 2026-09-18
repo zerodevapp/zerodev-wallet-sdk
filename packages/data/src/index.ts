@@ -14,6 +14,7 @@ export type {
   TransactionHistoryTransaction,
   UnparsedTransactionHistoryItem,
 } from '@zerodev/data-api-contract'
+export { DATA_API_CHAIN_IDS } from '@zerodev/data-api-contract'
 export type { DataApiEnvironment } from '@zerodev/data-api-stamp'
 export {
   DataApiError,

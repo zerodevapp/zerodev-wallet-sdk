@@ -61,6 +61,12 @@ describe('transactionHistoryRetry', () => {
     expect(transactionHistoryRetry(0, error)).toBe(false)
   })
 
+  it('does not retry a rejected chainIds filter', () => {
+    expect(
+      transactionHistoryRetry(0, new TypeError('chainIds must not be empty')),
+    ).toBe(false)
+  })
+
   it('does not mistake an unknown implementation error for a network failure', () => {
     expect(
       transactionHistoryRetry(0, new Error('wallet not initialized')),
