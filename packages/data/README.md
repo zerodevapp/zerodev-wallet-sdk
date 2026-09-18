@@ -2,7 +2,9 @@
 
 Signed ZeroDev Data API queries and TanStack Query hooks. Install this package
 only when an application uses Data API features; `wallet-core` and
-`wallet-react` do not import it.
+`wallet-react` do not import it. It runs the shared contract's schemas at
+runtime, so `zod` (`^4.1.0`) is a peer dependency alongside `wagmi`,
+`@tanstack/react-query`, and the ZeroDev wallet packages.
 
 ## Transaction history
 
