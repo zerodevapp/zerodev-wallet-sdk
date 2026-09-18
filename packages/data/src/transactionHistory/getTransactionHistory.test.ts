@@ -116,6 +116,48 @@ describe('getTransactionHistory', () => {
     expect(new Headers(init.headers).get('X-Env')).toBe('testnet')
   })
 
+  it('signs the chainIds filter it sends', async () => {
+    await getTransactionHistory(config, {
+      baseUrl: 'https://data.example',
+      chainIds: ['ethereum', 'arbitrum'],
+    })
+
+    expect(stamper.stamp).toHaveBeenCalledWith(
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","requestTarget":"/v1/me/transaction-history?chainIds=ethereum%2Carbitrum","ts":1787688000000,"walletAddress":"0x1111111111111111111111111111111111111111"}',
+    )
+
+    const [url] = fetchMock.mock.calls[0] ?? []
+    expect(url.search).toBe('?chainIds=ethereum%2Carbitrum')
+    expect(url.searchParams.get('chainIds')).toBe('ethereum,arbitrum')
+  })
+
+  it('orders chainIds before the cursor on a next page', async () => {
+    await getTransactionHistory(config, {
+      baseUrl: 'https://data.example',
+      chainIds: ['ethereum', 'arbitrum'],
+      next: 'cursor-2',
+    })
+
+    const requestTarget =
+      '/v1/me/transaction-history?chainIds=ethereum%2Carbitrum&next=cursor-2'
+    expect(JSON.parse(stamper.stamp.mock.calls[0]?.[0] ?? '{}')).toMatchObject({
+      requestTarget,
+    })
+    const [url] = fetchMock.mock.calls[0] ?? []
+    expect(`${url.pathname}${url.search}`).toBe(requestTarget)
+  })
+
+  it('rejects an empty chainIds filter before signing or fetching', async () => {
+    await expect(
+      getTransactionHistory(config, {
+        baseUrl: 'https://data.example',
+        chainIds: [],
+      }),
+    ).rejects.toThrow(new TypeError('chainIds must not be empty'))
+    expect(stamper.stamp).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('passes the query AbortSignal to fetch', async () => {
     const controller = new AbortController()
 

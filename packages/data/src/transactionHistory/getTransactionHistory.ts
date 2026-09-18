@@ -1,5 +1,6 @@
 import type { Config, Connector } from '@wagmi/core'
 import {
+  type DataApiChainId,
   type TransactionHistoryResponse,
   TransactionHistoryResponseSchema,
 } from '@zerodev/data-api-contract'
@@ -23,6 +24,9 @@ export async function getTransactionHistory(
   config: Config,
   parameters: getTransactionHistory.Parameters,
 ): Promise<getTransactionHistory.ReturnType> {
+  const { chainIds } = parameters
+  if (chainIds?.length === 0) throw new TypeError('chainIds must not be empty')
+
   const connector = parameters.connector ?? getZeroDevConnector(config)
   if (connector.id !== 'zerodev-wallet') throw new NotAuthenticatedError()
 
@@ -32,8 +36,10 @@ export async function getTransactionHistory(
 
   const store = await getZeroDevStore(connector)
   const wallet = getZeroDevWallet(store)
-  const query: Record<string, string> =
-    parameters.next === undefined ? {} : { next: parameters.next }
+  const query: Record<string, string> = {
+    ...(chainIds === undefined ? {} : { chainIds: chainIds.join(',') }),
+    ...(parameters.next === undefined ? {} : { next: parameters.next }),
+  }
   const body = await requestDataApiGet({
     baseUrl: parameters.baseUrl,
     environment: parameters.environment ?? 'mainnet',
@@ -52,6 +58,7 @@ export async function getTransactionHistory(
 export declare namespace getTransactionHistory {
   type Parameters = {
     baseUrl: string
+    chainIds?: readonly DataApiChainId[]
     connector?: Connector
     environment?: DataApiEnvironment
     next?: string
