@@ -405,11 +405,37 @@ describe('WalletConnecting', () => {
     expect(auth().pendingWallet).toMatchObject({ connectorUid: 'rabby' })
   })
 
-  it('closes immediately when the wallet is already connected, without calling connect()', () => {
-    fakeConfig.state.connections = new Map([['mm', { connector: metamask }]])
+  it('closes immediately when the wallet is already the current connection, without calling connect()', () => {
+    // connect() would throw ConnectorAlreadyConnectedError in exactly this
+    // state, so the page must not call it.
+    fakeConfig.state = {
+      status: 'connected',
+      current: 'mm',
+      connections: new Map([['mm', { connector: metamask }]]),
+    }
     render(<WalletConnecting />)
 
     expect(connect).not.toHaveBeenCalled()
+    expect(auth().step).toBeNull()
+    expect(auth().pendingWallet).toBeNull()
+  })
+
+  it('calls connect() when the wallet is connected but not current, so it becomes current', async () => {
+    // Connected-but-not-current does not throw in wagmi; connect() resolves
+    // off the existing authorisation and promotes the wallet to current.
+    const other: FakeConnector = { uid: 'other', name: 'Other' }
+    fakeConfig.state = {
+      status: 'connected',
+      current: 'other',
+      connections: new Map([
+        ['other', { connector: other }],
+        ['mm', { connector: metamask }],
+      ]),
+    }
+    render(<WalletConnecting />)
+
+    expect(connect).toHaveBeenCalledTimes(1)
+    await approve()
     expect(auth().step).toBeNull()
     expect(auth().pendingWallet).toBeNull()
   })

@@ -7,7 +7,7 @@ import { useKitStore } from '../../shared/hooks/useKitStore'
 import type { ConnectFailure } from '../authStoreSlice'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
-import { isRequestPendingError } from '../utils/isRequestPendingError'
+import { isResourceUnavailableError } from '../utils/isResourceUnavailableError'
 
 /**
  * Connector uids with a connect() still open, per wagmi config. Outside React
@@ -36,7 +36,7 @@ function describeConnectError(
       pending: false,
     }
   }
-  if (isRequestPendingError(err)) {
+  if (isResourceUnavailableError(err)) {
     // Usually nothing failed: the wallet still has the first request open
     // and will not prompt again until it is answered there. But -32002 is
     // only "resource unavailable", so suggest the outstanding request rather
