@@ -7,6 +7,7 @@ import { useKitStore } from '../../shared/hooks/useKitStore'
 import type { ConnectFailure } from '../authStoreSlice'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
+import { isResourceUnavailableError } from '../utils/isResourceUnavailableError'
 
 /**
  * Connector uids with a connect() still open, per wagmi config. Outside React
@@ -32,11 +33,48 @@ function describeConnectError(
     return {
       title: 'Request declined',
       message: `You declined the connection request in ${walletName}.`,
+      pending: false,
     }
+  }
+  if (isResourceUnavailableError(err)) {
+    // Usually nothing failed: the wallet still has the first request open
+    // and will not prompt again until it is answered there. But -32002 is
+    // only "resource unavailable", so suggest the outstanding request rather
+    // than assert it. Not the wallet's own message: MetaMask's names RPC
+    // methods and the origin ("Request of type 'wallet_requestPermissions'
+    // already pending for origin…") — Reown shows its own copy here too.
+    return {
+      title: `Check ${walletName}`,
+      message:
+        `Open ${walletName} and check for an outstanding request. ` +
+        'If one is waiting, approve or dismiss it, then try again.',
+      pending: true,
+    }
+  }
+  // Wallets throw raw JSON-RPC objects, viem throws Errors with
+  // `shortMessage`. Never render "[object Object]": fall back to a fixed
+  // sentence plus the code, the only actionable detail such an object has.
+  let message: string | undefined
+  let code: number | undefined
+  if (typeof err === 'string' && err.length > 0) {
+    message = err
+  } else if (typeof err === 'object' && err !== null) {
+    const e = err as {
+      shortMessage?: unknown
+      message?: unknown
+      code?: unknown
+    }
+    const text = e.shortMessage ?? e.message
+    if (typeof text === 'string' && text.length > 0) message = text
+    if (typeof e.code === 'number') code = e.code
   }
   return {
     title: 'Couldn’t connect',
-    message: err instanceof Error ? err.message : String(err),
+    message:
+      message ??
+      `Something went wrong while connecting to ${walletName}. Please try again.` +
+        (code !== undefined ? ` (code ${code})` : ''),
+    pending: false,
   }
 }
 
@@ -133,6 +171,26 @@ export function WalletConnecting() {
     )
   }
 
+  // wagmi can connect without our connect() promise resolving: after a reload
+  // the wallet's queued request belongs to a dead page, and approving it
+  // authorises the site through the connector's own events. Watch the store so
+  // the flow still closes.
+  useEffect(() => {
+    if (!connector) return
+    const uid = connector.uid
+    return config.subscribe(
+      (state) => (state.status === 'connected' ? state.current : null),
+      (currentUid) => {
+        if (!currentUid) return
+        const connected = config.state.connections.get(currentUid)?.connector
+        if (connected?.uid !== uid) return
+        const auth = store.getState().auth
+        auth.clearPendingWallet()
+        auth.goToStep(null)
+      },
+    )
+  }, [connector, config, store])
+
   // Once on mount; the ref guards Strict Mode's double effect run.
   const started = useRef(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only kick; `attempt` is intentionally the mount-time closure
@@ -153,7 +211,10 @@ export function WalletConnecting() {
             its unlock screen.
           </StatusScreen>
         ) : (
-          <StatusScreen imageName="error" title={connectError.title}>
+          <StatusScreen
+            imageName={connectError.pending ? 'loading' : 'error'}
+            title={connectError.title}
+          >
             {connectError.message}
           </StatusScreen>
         )}
