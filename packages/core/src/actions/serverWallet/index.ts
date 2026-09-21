@@ -4,17 +4,6 @@ export {
   createServerWallet,
 } from './createServerWallet.js'
 export {
-  type ListServerWalletsParameters,
-  type ListServerWalletsReturnType,
-  listServerWallets,
-  type WalletSetDetails,
-} from './listServerWallets.js'
-export {
-  type ListWalletSetsParameters,
-  type ListWalletSetsReturnType,
-  listWalletSets,
-} from './listWalletSets.js'
-export {
   type SignMessageParameters,
   type SignMessageReturnType,
   signMessage,

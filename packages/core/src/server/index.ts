@@ -3,10 +3,6 @@
 export type {
   CreateServerWalletParameters,
   CreateServerWalletReturnType,
-  ListServerWalletsParameters,
-  ListServerWalletsReturnType,
-  ListWalletSetsParameters,
-  ListWalletSetsReturnType,
   SignMessageParameters,
   SignMessageReturnType,
   SignTransactionParameters,
@@ -15,7 +11,6 @@ export type {
   SignTypedDataV4ReturnType,
   SignUserOperationParameters,
   SignUserOperationReturnType,
-  WalletSetDetails,
 } from '../actions/serverWallet/index.js'
 export type { ServerWalletActions } from '../client/decorators/serverWallet.js'
 export { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
