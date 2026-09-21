@@ -2,12 +2,6 @@ import {
   type CreateServerWalletParameters,
   type CreateServerWalletReturnType,
   createServerWallet,
-  type ListServerWalletsParameters,
-  type ListServerWalletsReturnType,
-  type ListWalletSetsParameters,
-  type ListWalletSetsReturnType,
-  listServerWallets,
-  listWalletSets,
   type SignMessageParameters,
   type SignMessageReturnType,
   type SignTransactionParameters,
@@ -26,24 +20,14 @@ import type { Client } from '../types.js'
 
 /**
  * Everything an agent key can do against a wallet set. The KMS checks the
- * key's roles (`create`, `sign`, `read`) per route; the client binds all seven
- * and lets a 403 report a missing role.
+ * key's roles (`create`, `sign`) per route; the client binds all five and
+ * lets a 403 report a missing role.
  */
 export type ServerWalletActions = {
   /** Creates a wallet in the wallet set. Role: `create`. */
   createServerWallet: (
     params: CreateServerWalletParameters,
   ) => Promise<CreateServerWalletReturnType>
-
-  /** Lists the wallet set's wallets. Role: `read`. */
-  listServerWallets: (
-    params: ListServerWalletsParameters,
-  ) => Promise<ListServerWalletsReturnType>
-
-  /** Returns the wallet set. Role: `read`. */
-  listWalletSets: (
-    params: ListWalletSetsParameters,
-  ) => Promise<ListWalletSetsReturnType>
 
   /** Signs a message (EIP-191). Role: `sign`. */
   signMessage: (params: SignMessageParameters) => Promise<SignMessageReturnType>
@@ -69,8 +53,6 @@ export function serverWalletActions(
 ): ServerWalletActions {
   return {
     createServerWallet: (params) => createServerWallet(client, params),
-    listServerWallets: (params) => listServerWallets(client, params),
-    listWalletSets: (params) => listWalletSets(client, params),
     signMessage: (params) => signMessage(client, params),
     signTransaction: (params) => signTransaction(client, params),
     signTypedDataV4: (params) => signTypedDataV4(client, params),
