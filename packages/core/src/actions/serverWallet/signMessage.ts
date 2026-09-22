@@ -1,5 +1,6 @@
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
+import { AGENT_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 import {
   buildTurnkeyPayload,
@@ -30,5 +31,6 @@ export async function signMessage(
     path: 'server-wallet/sign/message',
     turnkeyPayload,
     bodyFields: { message, encoding },
+    outerStampHeader: AGENT_STAMP_HEADER,
   })
 }
