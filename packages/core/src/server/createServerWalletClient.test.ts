@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
 import { generateP256KeyPair } from '../utils/p256KeyPair.js'
-import { createServerWalletClient } from './createServerWalletClient.js'
+import {
+  createServerWalletClient,
+  type ServerWalletClientConfig,
+} from './createServerWalletClient.js'
 
 describe('createServerWalletClient', () => {
   it('builds a private-key stamper from a private key', async () => {
@@ -32,5 +35,21 @@ describe('createServerWalletClient', () => {
     expect(typeof client.createServerWallet).toBe('function')
     expect(typeof client.signMessage).toBe('function')
     expect('signInWithOtp' in client).toBe(false)
+  })
+
+  it('throws when the config has neither a private key nor a stamper', () => {
+    expect(() =>
+      createServerWalletClient({
+        organizationId: 'org',
+      } as ServerWalletClientConfig),
+    ).toThrow('createServerWalletClient: pass `privateKey` or `stamper`')
+  })
+
+  it('carries the organizationId that createServerWallet defaults to', () => {
+    const client = createServerWalletClient({
+      organizationId: 'org',
+      privateKey: generateP256KeyPair().privateKey,
+    })
+    expect(client.organizationId).toBe('org')
   })
 })
