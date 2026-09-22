@@ -10,7 +10,7 @@ import {
   zeroAddress,
 } from 'viem'
 import type { Client } from '../../client/types.js'
-import { AGENT_STAMP_HEADER, TURNKEY_STAMP_HEADER } from '../../constants.js'
+import { TURNKEY_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 export type TurnkeyPayload = {
@@ -55,13 +55,12 @@ export function buildTurnkeyPayload(
   }
 }
 
-const SERVER_WALLET_PREFIX = 'server-wallet/'
-
 /**
  * `token` is the user's session for `sign/*` routes. Server wallets call
- * `server-wallet/sign/*` with an agent key and no session, so they omit it.
- * The KMS reads the outer stamp from `X-Agent-Stamp` on those routes and from
- * the stamp's own header name on user routes.
+ * `server-wallet/sign/*` with an agent key and no session, so they omit it
+ * and pass `outerStampHeader: AGENT_STAMP_HEADER`, the header the KMS reads
+ * agent stamps from. User routes leave it unset and the stamp's own header
+ * name is used.
  */
 export async function sendSigningRequest(
   client: Client<undefined, SigningStamper>,
@@ -71,6 +70,8 @@ export async function sendSigningRequest(
     path: string
     turnkeyPayload: TurnkeyPayload
     bodyFields: Record<string, unknown>
+    /** Header the KMS reads the outer stamp from. Defaults to the stamper's own. */
+    outerStampHeader?: string
   },
 ): Promise<Hex> {
   const { projectId, token, path, turnkeyPayload, bodyFields } = params
@@ -94,9 +95,7 @@ export async function sendSigningRequest(
   // Outer stamp over full body (for KMS middleware)
   const fullBodyString = canonicalizeEx(fullBody)
   const outerStamp = await client.apiKeyStamper.stamp(fullBodyString)
-  const outerHeader = path.startsWith(SERVER_WALLET_PREFIX)
-    ? AGENT_STAMP_HEADER
-    : outerStamp.stampHeaderName
+  const outerHeader = params.outerStampHeader ?? outerStamp.stampHeaderName
 
   const response = await client.request({
     path: `${projectId}/${path}`,
