@@ -13,20 +13,10 @@ import type { Address, Chain } from 'viem'
  * by the pending/past/detail views. */
 export type DepositWithTimestamp = DepositedToken & { createdAt?: string }
 
-type SdkEstimatedFee =
+export type EstimatedFee =
   GetSmartRoutingAddressFeeEstimatesReturns['estimatedFees'][number]
 
-/** SDK fee data plus the `isSponsored` flag pre-v1 servers send. v1 dropped
- * it from the SDK's public type (same-chain deposits no longer need fee
- * sponsorship), but hosts can still pin a 0.2.x version, so it stays as an
- * optional augmentation. */
-export type EstimatedFeeData = SdkEstimatedFee['data'][number] & {
-  isSponsored?: boolean
-}
-
-export type EstimatedFee = Omit<SdkEstimatedFee, 'data'> & {
-  data: EstimatedFeeData[]
-}
+export type EstimatedFeeData = EstimatedFee['data'][number]
 
 /** Internal chain-object form of a source token */
 export type SourceToken = {
@@ -37,8 +27,8 @@ export type SourceToken = {
 
 export type SmartRoutingAddressConfig = {
   /**
-   * ZeroDev project id; when non-empty it is appended to the server URL
-   * for every request
+   * ZeroDev project id, sent with every address-creation request (the SDK
+   * appends it to the server URL)
    */
   projectId?: string
   /** Chain id where funds settle */
@@ -54,10 +44,7 @@ export type SmartRoutingAddressConfig = {
    * Max slippage in basis points (50 = 0.5%).
    */
   slippage: number
-  /**
-   * Override the smart routing address server root URL; the projectId is
-   * appended to it
-   */
+  /** Override the smart routing address server root URL */
   baseUrl?: string
 }
 

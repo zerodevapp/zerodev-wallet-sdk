@@ -27,9 +27,6 @@ export type DepositSplitLeg = Pick<DepositedToken, 'bridge' | 'execution'> & {
 
 export type DepositWithSplits = DepositedToken & {
   splits?: DepositSplitLeg[]
-  /** Failure message some SRA servers include with a deposit; dropped from
-   * the SDK's public type in v1, kept here as an optional extension. */
-  error?: string | null
 }
 
 export function getDepositKey(deposit: DepositedToken): string {

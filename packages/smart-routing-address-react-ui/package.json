@@ -57,14 +57,14 @@
   ],
   "dependencies": {
     "@zerodev/react-ui": "workspace:*",
-    "@zerodev/smart-routing-address": "1.0.0-alpha.1",
+    "@zerodev/smart-routing-address": "^1.0.2",
     "uqr": "^0.1.2",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",
-    "viem": "^2.47.18"
+    "viem": "^2.56.8"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.3.3",
@@ -84,7 +84,7 @@
     "storybook": "^10.3.3",
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3",
-    "viem": "^2.47.18",
+    "viem": "^2.56.8",
     "vite": "^6.4.1",
     "vitest": "^4.0.18"
   },

@@ -37,7 +37,6 @@ import { CHAIN_ICONS, PROVIDER_ICONS, TOKEN_ICONS } from '../iconAssets'
 import type { SourceToken } from '../types'
 import {
   getSourceTokenSymbol,
-  resolveBaseUrl,
   resolveDestChain,
   sourceTokensFromFees,
 } from '../utils/config'
@@ -137,7 +136,7 @@ export function Deposit({
     refetch: refetchDeposits,
   } = useDepositStatus({
     address,
-    baseUrl: resolveBaseUrl(config),
+    baseUrl: config.baseUrl,
   })
   const newDeposits = useNewDeposits(deposits, hasLoaded)
   const pastDepositsCount = deposits.length - newDeposits.length

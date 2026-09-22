@@ -23,7 +23,6 @@ import type { DepositWithTimestamp } from '../types'
 import { getTxUrl } from '../utils/chains'
 import {
   getSourceTokenSymbol,
-  resolveBaseUrl,
   resolveDestChain,
   sourceTokensFromFees,
 } from '../utils/config'
@@ -49,7 +48,7 @@ function useLiveDeposit(initial: DepositWithTimestamp): DepositWithTimestamp {
     addressState.status === 'success' ? addressState.address : undefined
   const { deposits } = useDepositStatus({
     address,
-    baseUrl: resolveBaseUrl(config),
+    baseUrl: config.baseUrl,
   })
   const targetHash = initial.deposit.transactionHash
   const live = deposits.find((d) => d.deposit.transactionHash === targetHash) as
