@@ -184,16 +184,41 @@ describe('WalletConnecting', () => {
     expect(auth().pendingWallet).toBeNull()
   })
 
-  // A rejection needs no explanation — same as before this screen existed.
-  it('returns to sign-up without a message when the user rejects', async () => {
+  it('explains a user rejection and offers retry or another method', async () => {
     const rejection = new Error('User rejected the request.')
     rejection.name = 'UserRejectedRequestError'
     render(<WalletConnecting />)
     await rejectWith(rejection)
 
+    expect(screen.getByTestId('title').textContent).toBe('Request declined')
+    expect(screen.getByTestId('body').textContent).toBe(
+      'You declined the connection request in MetaMask.',
+    )
+    // Retry sends a fresh request; the wallet answered, so it is not re-adopted.
+    fireEvent.click(screen.getByText('Try again'))
+    expect(connect).toHaveBeenCalledTimes(2)
+    // …and the screen says so, instead of keeping the failure it replaced.
+    expect(screen.getByTestId('title').textContent).toBe('Waiting for MetaMask')
+    expect(screen.queryByText('Try again')).toBeNull()
+  })
+
+  // wagmi's injected connector rethrows the wallet's own error, which carries
+  // `code` but not viem's name.
+  it("reads a wallet's own 4001 error as a rejection, not a failure", async () => {
+    render(<WalletConnecting />)
+    await rejectWith(
+      Object.assign(new Error('User rejected the request.'), { code: 4001 }),
+    )
+
+    expect(screen.getByTestId('title').textContent).toBe('Request declined')
+  })
+
+  it('leaves the screen from the rejection state', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: 4001, message: 'User rejected the request.' })
+
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
     expect(auth().step).toBe('sign-up')
-    expect(auth().pendingWallet).toBeNull()
-    expect(auth().connectError).toBeNull()
   })
 
   // The message is the only diagnostic a host gets for a real failure, and the
