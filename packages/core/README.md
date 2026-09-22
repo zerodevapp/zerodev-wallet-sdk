@@ -345,6 +345,11 @@ const { publicKey, privateKey } = generateP256KeyPair()
 const client = createServerWalletClient({
   organizationId: WALLET_SET_SUB_ORG_ID,
   privateKey: process.env.AGENT_PRIVATE_KEY,
+  // Defaults to production. Set to point at another KMS deployment.
+  proxyBaseUrl: process.env.KMS_PROXY_BASE_URL,
+  // Server requests carry no browser origin. Send one that is on the
+  // project's ACL allowlist, or allowlist the server's IP instead.
+  fetchOptions: { headers: { Origin: 'https://your-app.example' } },
 })
 
 const { walletAddress } = await client.createServerWallet({ projectId })
