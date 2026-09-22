@@ -39,14 +39,49 @@ type FakeConnector = { uid: string; name: string; icon?: string }
 let connectors: FakeConnector[] = []
 // Fresh per test, like a fresh page load: the page keeps its in-flight
 // attempt keyed by the wagmi config, and that must not leak between tests.
+type FakeState = {
+  status: 'connected' | 'disconnected'
+  current: string | null
+  connections: Map<string, { connector: FakeConnector }>
+}
+type Sub = {
+  selector: (s: FakeState) => unknown
+  listener: (v: unknown, p: unknown) => void
+  prev: unknown
+}
 function makeFakeConfig() {
-  return {
+  const config = {
     connectors: [{ id: 'zerodev-wallet', getKitStore: () => store }],
     state: {
-      connections: new Map<string, { connector: FakeConnector }>(),
-      current: null as string | null,
+      status: 'disconnected',
+      current: null,
+      connections: new Map(),
+    } as FakeState,
+    subs: new Set<Sub>(),
+    subscribe(selector: Sub['selector'], listener: Sub['listener']) {
+      const sub: Sub = { selector, listener, prev: selector(config.state) }
+      config.subs.add(sub)
+      return () => config.subs.delete(sub)
+    },
+    /** What wagmi does to its store when a connector connects. */
+    connectAs(connector: FakeConnector) {
+      config.state = {
+        status: 'connected',
+        current: connector.uid,
+        connections: new Map([[connector.uid, { connector }]]),
+      }
+      for (const sub of [...config.subs]) {
+        if (!config.subs.has(sub)) continue
+        const next = sub.selector(config.state)
+        if (next !== sub.prev) {
+          const prev = sub.prev
+          sub.prev = next
+          sub.listener(next, prev)
+        }
+      }
     },
   }
+  return config
 }
 let fakeConfig = makeFakeConfig()
 vi.mock('wagmi', () => ({
@@ -213,6 +248,101 @@ describe('WalletConnecting', () => {
     expect(screen.getByTestId('title').textContent).toBe('Request declined')
   })
 
+  // The common path: the original request is still owned by this page, so
+  // answering it in the wallet reports straight back here — no -32002 at all.
+  it('reports a cancellation made in the wallet after re-picking it', async () => {
+    const { unmount } = render(<WalletConnecting />)
+    const original = settle
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    unmount()
+
+    auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
+    render(<WalletConnecting />)
+    expect(connect).toHaveBeenCalledTimes(1) // re-adopted, not re-sent
+
+    // The user dismisses it from the extension.
+    await act(async () => {
+      original.reject({ code: 4001, message: 'User rejected the request.' })
+    })
+
+    expect(screen.getByTestId('title').textContent).toBe('Request declined')
+  })
+
+  // The Reown edge case: the wallet holds the first request and refuses to
+  // prompt again, so the user has to finish it in the extension.
+  it("reads MetaMask's -32002 as a waiting state, not a failure", async () => {
+    render(<WalletConnecting />)
+    await rejectWith({
+      code: -32002,
+      message: 'Request of type wallet_requestPermissions already pending',
+    })
+
+    expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
+    // Our copy, not the wallet's ("Request of type 'wallet_requestPermissions'
+    // already pending for origin…"), worded as a suggestion since -32002 only
+    // guarantees "resource unavailable".
+    expect(screen.getByTestId('body').textContent).toBe(
+      'Open MetaMask and check for an outstanding request. ' +
+        'If one is waiting, approve or dismiss it, then try again.',
+    )
+    expect(auth().connectError?.pending).toBe(true)
+  })
+
+  // Approving a request left over from a previous page load authorises the
+  // site through the connector's own events, so our connect() never resolves.
+  it('closes the widget when wagmi connects without our request resolving', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32002, message: 'already pending' })
+    expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
+
+    // The user approves the queued request in the extension.
+    act(() => fakeConfig.connectAs(metamask))
+
+    expect(auth().step).toBeNull()
+    expect(auth().pendingWallet).toBeNull()
+  })
+
+  it('ignores wagmi connecting to some other wallet', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32002, message: 'already pending' })
+
+    act(() => fakeConfig.connectAs({ uid: 'other', name: 'Other' }))
+
+    expect(auth().step).toBe('wallet-connecting')
+  })
+
+  it('finds -32002 nested under cause, as wagmi wraps it', async () => {
+    const wrapped = new Error('Connector error')
+    ;(wrapped as { cause?: unknown }).cause = Object.assign(
+      new Error('already pending'),
+      { code: -32002 },
+    )
+    render(<WalletConnecting />)
+    await rejectWith(wrapped)
+
+    expect(screen.getByTestId('title').textContent).toBe('Check MetaMask')
+  })
+
+  it('never renders [object Object] for an error object with no message', async () => {
+    render(<WalletConnecting />)
+    await rejectWith({ code: -32603 })
+
+    expect(screen.getByTestId('body').textContent).toBe(
+      'Something went wrong while connecting to MetaMask. Please try again. (code -32603)',
+    )
+  })
+
+  it("prefers viem's shortMessage over its long message", async () => {
+    render(<WalletConnecting />)
+    await rejectWith(
+      Object.assign(new Error('a very long viem explanation'), {
+        shortMessage: 'Connector not found.',
+      }),
+    )
+
+    expect(screen.getByTestId('body').textContent).toBe('Connector not found.')
+  })
+
   it('leaves the screen from the rejection state', async () => {
     render(<WalletConnecting />)
     await rejectWith({ code: 4001, message: 'User rejected the request.' })
@@ -278,8 +408,11 @@ describe('WalletConnecting', () => {
   it('closes immediately when the wallet is already the current connection, without calling connect()', () => {
     // connect() would throw ConnectorAlreadyConnectedError in exactly this
     // state, so the page must not call it.
-    fakeConfig.state.connections = new Map([['mm', { connector: metamask }]])
-    fakeConfig.state.current = 'mm'
+    fakeConfig.state = {
+      status: 'connected',
+      current: 'mm',
+      connections: new Map([['mm', { connector: metamask }]]),
+    }
     render(<WalletConnecting />)
 
     expect(connect).not.toHaveBeenCalled()
@@ -291,11 +424,14 @@ describe('WalletConnecting', () => {
     // Connected-but-not-current does not throw in wagmi; connect() resolves
     // off the existing authorisation and promotes the wallet to current.
     const other: FakeConnector = { uid: 'other', name: 'Other' }
-    fakeConfig.state.connections = new Map([
-      ['other', { connector: other }],
-      ['mm', { connector: metamask }],
-    ])
-    fakeConfig.state.current = 'other'
+    fakeConfig.state = {
+      status: 'connected',
+      current: 'other',
+      connections: new Map([
+        ['other', { connector: other }],
+        ['mm', { connector: metamask }],
+      ]),
+    }
     render(<WalletConnecting />)
 
     expect(connect).toHaveBeenCalledTimes(1)
