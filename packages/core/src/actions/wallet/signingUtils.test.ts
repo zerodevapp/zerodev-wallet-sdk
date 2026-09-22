@@ -74,7 +74,7 @@ describe('sendSigningRequest', () => {
     expect(call.headers.Authorization).toBe('Bearer token')
   })
 
-  it('sends no bearer token without a session and puts the outer stamp under X-Agent-Stamp for server-wallet routes', async () => {
+  it('sends no bearer token without a session and puts the outer stamp under the requested header', async () => {
     const { hash, signature } = await signedBy(owner)
     const { client, request } = fakeClient(signature)
 
@@ -83,6 +83,7 @@ describe('sendSigningRequest', () => {
       path: 'server-wallet/sign/message',
       turnkeyPayload: buildTurnkeyPayload('organization', owner.address, hash),
       bodyFields: {},
+      outerStampHeader: 'X-Agent-Stamp',
     })
 
     const [call] = request.mock.calls[0] as [Call]
