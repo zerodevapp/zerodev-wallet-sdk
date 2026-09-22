@@ -1,7 +1,7 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
-import { AGENT_STAMP_HEADER } from '../../constants.js'
+import { AGENT_STAMP_HEADER, TURNKEY_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 export type CreateServerWalletParameters = {
@@ -58,10 +58,12 @@ export async function createServerWallet(
   const innerStamp = await client.apiKeyStamper.stamp(
     canonicalizeEx(createWalletPayload(organizationId, timestampMs)),
   )
+  // The KMS relays this stamp to Turnkey under the header named here and
+  // accepts only `X-Stamp`, whatever the stamper calls its own header.
   const body = {
     timestampMs,
     stamp: {
-      stampHeaderName: innerStamp.stampHeaderName,
+      stampHeaderName: TURNKEY_STAMP_HEADER,
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }

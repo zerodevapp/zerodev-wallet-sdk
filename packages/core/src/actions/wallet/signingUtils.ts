@@ -10,7 +10,7 @@ import {
   zeroAddress,
 } from 'viem'
 import type { Client } from '../../client/types.js'
-import { AGENT_STAMP_HEADER } from '../../constants.js'
+import { AGENT_STAMP_HEADER, TURNKEY_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
 
 export type TurnkeyPayload = {
@@ -79,12 +79,14 @@ export async function sendSigningRequest(
   const innerBodyString = canonicalizeEx(turnkeyPayload)
   const innerStamp = await client.apiKeyStamper.stamp(innerBodyString)
 
-  // Build full body with inner stamp embedded
+  // Build full body with inner stamp embedded. The KMS relays it to Turnkey
+  // under the header named here and accepts only `X-Stamp`, whatever the
+  // stamper calls its own header.
   const fullBody = {
     ...bodyFields,
     turnkeyPayload,
     stampHeader: {
-      stampHeaderName: innerStamp.stampHeaderName,
+      stampHeaderName: TURNKEY_STAMP_HEADER,
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }

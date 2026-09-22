@@ -201,6 +201,27 @@ describe('createServerWallet', () => {
     expect(JSON.parse(innerPayload).organizationId).toBe('params-org')
   })
 
+  it('embeds the inner stamp under X-Stamp whatever the stamper names its header', async () => {
+    // A custom SigningStamper (HSM, cloud KMS) may name its header anything.
+    // The KMS validates the embedded name as X-Stamp and rejects others.
+    const stamper = {
+      stamp: async (payload: string) => ({
+        stampHeaderName: 'X-Agent-Stamp',
+        stampHeaderValue: `signed:${payload}`,
+      }),
+    } as unknown as SigningStamper
+    const { client, request } = fakeClient(stamper)
+
+    await createServerWallet(client, {
+      projectId: 'project',
+      organizationId: 'org',
+    })
+
+    expect(
+      firstCall<CreateWalletBody>(request).body.stamp.stampHeaderName,
+    ).toBe('X-Stamp')
+  })
+
   it('throws before stamping when no organizationId is available', async () => {
     const stamper = echoStamper()
     const { client, request } = fakeClient(stamper)
