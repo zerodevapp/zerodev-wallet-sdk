@@ -1,5 +1,5 @@
 import type { DepositedToken } from '@zerodev/smart-routing-address'
-import { SUPPORTED_TOKENS } from '@zerodev/smart-routing-address'
+import { TOKEN_ADDRESSES } from '@zerodev/smart-routing-address'
 import type { Address, Hash } from 'viem'
 import { numberToHex, zeroAddress } from 'viem'
 import { arbitrum, base, optimism } from 'viem/chains'
@@ -11,7 +11,7 @@ export const OWNER: Address = '0x1111111111111111111111111111111111111111'
 export const SMART_ROUTING_ADDRESS: Address =
   '0x2222222222222222222222222222222222222222'
 
-export const OPTIMISM_USDC = SUPPORTED_TOKENS[optimism.id]?.USDC as Address
+export const OPTIMISM_USDC = TOKEN_ADDRESSES[optimism.id]?.USDC as Address
 
 export const TEST_PROJECT_ID = 'test-project-id'
 
@@ -84,7 +84,7 @@ export function makeDeposit(
 export const EXECUTION_INFO: NonNullable<DepositedToken['execution']> = {
   blockNumber: '200',
   chainId: base.id,
-  outputToken: SUPPORTED_TOKENS[base.id]?.USDC as Address,
+  outputToken: TOKEN_ADDRESSES[base.id]?.USDC as Address,
   transactionHash:
     '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   outputAmount: '1850000',

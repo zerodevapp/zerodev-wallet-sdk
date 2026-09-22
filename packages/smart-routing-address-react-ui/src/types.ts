@@ -13,10 +13,20 @@ import type { Address, Chain } from 'viem'
  * by the pending/past/detail views. */
 export type DepositWithTimestamp = DepositedToken & { createdAt?: string }
 
-export type EstimatedFee =
+type SdkEstimatedFee =
   GetSmartRoutingAddressFeeEstimatesReturns['estimatedFees'][number]
 
-export type EstimatedFeeData = EstimatedFee['data'][number]
+/** SDK fee data plus the `isSponsored` flag pre-v1 servers send. v1 dropped
+ * it from the SDK's public type (same-chain deposits no longer need fee
+ * sponsorship), but hosts can still pin a 0.2.x version, so it stays as an
+ * optional augmentation. */
+export type EstimatedFeeData = SdkEstimatedFee['data'][number] & {
+  isSponsored?: boolean
+}
+
+export type EstimatedFee = Omit<SdkEstimatedFee, 'data'> & {
+  data: EstimatedFeeData[]
+}
 
 /** Internal chain-object form of a source token */
 export type SourceToken = {
@@ -33,7 +43,7 @@ export type SmartRoutingAddressConfig = {
   projectId?: string
   /** Chain id where funds settle */
   targetChainId: number
-  /** Smart routing address version, defaults to the latest stable */
+  /** Smart routing address version, defaults to the latest supported */
   version?: SmartRoutingAddressVersion
   /**
    * Destination actions per token type. When omitted, funds are simply

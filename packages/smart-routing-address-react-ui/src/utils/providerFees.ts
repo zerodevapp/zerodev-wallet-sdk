@@ -267,7 +267,7 @@ export function buildFeeBreakdown(
     usd: executionUsd,
     // Show the SRA fee in token units when we can't price it in USD
     ...(showTokenFallback && { text: feeToken }),
-    sponsored: feeData.isSponsored,
+    sponsored: feeData.isSponsored ?? false,
   }
 
   const lines = [executionLine, ...(provider?.lines ?? [])]

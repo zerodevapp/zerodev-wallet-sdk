@@ -83,7 +83,7 @@ export function Deposit({
   const address = success?.address
   const estimatedFees = success?.estimatedFees ?? []
 
-  // allowPartialRoutes lets the server drop source tokens it can't route, so
+  // The server only returns estimates for source tokens it can route, so
   // the routable set is exactly the tokens the fee estimates came back with.
   const srcTokens = useMemo(
     () => sourceTokensFromFees(estimatedFees),

@@ -1,5 +1,8 @@
 import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
-import { SUPPORTED_TOKENS } from '@zerodev/smart-routing-address'
+import {
+  NATIVE_TOKENS_SUPPORTED,
+  TOKEN_ADDRESSES,
+} from '@zerodev/smart-routing-address'
 import type { Chain } from 'viem'
 import {
   arbitrum,
@@ -67,7 +70,7 @@ export const CHAINS_BY_ID: ReadonlyMap<number, Chain> = new Map(
 )
 
 /**
- * Token types the SDK ships in `SUPPORTED_TOKENS` but the SRA server does not
+ * Token types the SDK ships in `TOKEN_ADDRESSES` but the SRA server does not
  * yet recognize. Sending one of these as a source token makes the server
  * reject the whole `createSmartRoutingAddress` request with
  * `Invalid params: Token address … is not supported on chain N`, which breaks
@@ -82,21 +85,36 @@ const UNSUPPORTED_TOKEN_TYPES: ReadonlySet<TOKEN_TYPE> = new Set(['EURC'])
 
 /**
  * Source tokens offered for deposits: every supported mainnet token the SDK
- * exposes (NATIVE plus each ERC-20, with wrapped native surfaced as WETH),
- * mapped to its viem chain object. Testnets are excluded from the default;
- * chains this package cannot resolve to a viem chain are skipped, and token
- * types the server can't route yet are filtered via `UNSUPPORTED_TOKEN_TYPES`.
+ * exposes (NATIVE where the chain supports it, plus each ERC-20 in the
+ * token-address map, with wrapped native surfaced as WETH), mapped to its
+ * viem chain object. Testnets are excluded from the default; chains this
+ * package cannot resolve to a viem chain are skipped, and token types the
+ * server can't route yet are filtered via `UNSUPPORTED_TOKEN_TYPES`.
  */
 export const DEFAULT_SOURCE_TOKENS: SourceToken[] = Object.entries(
-  SUPPORTED_TOKENS,
+  TOKEN_ADDRESSES,
 ).flatMap(([chainId, tokens]) => {
   // Skip chains this package cannot resolve to a viem chain object
   const chain = CHAINS_BY_ID.get(Number(chainId))
   if (!chain) return []
-  return Object.keys(tokens)
-    .filter((t) => !UNSUPPORTED_TOKEN_TYPES.has(t as TOKEN_TYPE))
-    .map((tokenType) => ({
-      chain,
-      tokenType: tokenType as TOKEN_TYPE,
-    }))
+  // NATIVE left the token-address map in v1; native support is its own list
+  const native = (NATIVE_TOKENS_SUPPORTED as readonly number[]).includes(
+    chain.id,
+  )
+  return (
+    [...(native ? ['NATIVE'] : []), ...Object.keys(tokens)]
+      .filter((t) => !UNSUPPORTED_TOKEN_TYPES.has(t as TOKEN_TYPE))
+      // v1 lists WRAPPED_NATIVE alongside WETH; on ETH-native chains both
+      // point at the same contract, which would duplicate the picker entry —
+      // keep the WETH surface, as before v1
+      .filter(
+        (t) =>
+          t !== 'WRAPPED_NATIVE' ||
+          tokens.WRAPPED_NATIVE?.toLowerCase() !== tokens.WETH?.toLowerCase(),
+      )
+      .map((tokenType) => ({
+        chain,
+        tokenType: tokenType as TOKEN_TYPE,
+      }))
+  )
 })

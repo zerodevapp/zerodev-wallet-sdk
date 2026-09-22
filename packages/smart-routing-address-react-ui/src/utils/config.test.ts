@@ -26,8 +26,8 @@ const BARE_CONFIG: SmartRoutingAddressConfig = {
 }
 
 describe('resolveVersion', () => {
-  it('defaults to the latest stable version', () => {
-    expect(resolveVersion(TEST_CONFIG)).toBe('0.2.1')
+  it('defaults to the latest supported version', () => {
+    expect(resolveVersion(TEST_CONFIG)).toBe('1.0.0-alpha.0')
   })
 
   it('keeps an explicit version', () => {
@@ -92,26 +92,36 @@ describe('resolveDestChain', () => {
 
 describe('resolveSourceTokens', () => {
   it('returns the default source tokens, excluding token types missing on the destination chain', () => {
-    // base has no WBTC entry in the SDK token addresses
+    // base has no USDH entry in the SDK token addresses (HyperEVM-only)
     const expected = DEFAULT_SOURCE_TOKENS.filter(
-      (source) => source.tokenType !== 'WBTC',
+      (source) => source.tokenType !== 'USDH',
     )
     expect(resolveSourceTokens(BARE_CONFIG)).toEqual(expected)
   })
 
-  it('keeps only stables for a destination chain without native support', () => {
-    // bsc only maps USDC/USDT and is not in NATIVE_TOKENS_SUPPORTED
-    const sources = resolveSourceTokens({ targetChainId: bsc.id })
+  it('drops native token types for a destination chain without native support', () => {
+    // bsc is not in NATIVE_TOKENS_SUPPORTED and maps no WRAPPED_NATIVE
+    const sources = resolveSourceTokens({
+      targetChainId: bsc.id,
+      slippage: 100,
+    })
     const tokenTypes = new Set(sources.map((source) => source.tokenType))
-    expect([...tokenTypes].sort()).toEqual(['USDC', 'USDT'])
+    expect([...tokenTypes].sort()).toEqual([
+      'DAI',
+      'USDC',
+      'USDT',
+      'WBTC',
+      'WETH',
+    ])
   })
 })
 
 describe('resolveActions', () => {
   it('builds an action per default token type', () => {
-    // WBTC is excluded because base has no WBTC token address; wrapped
-    // native is surfaced as WETH. EURC is excluded via
-    // `UNSUPPORTED_TOKEN_TYPES` because the SRA server rejects it.
+    // WRAPPED_NATIVE appears once via Blast (its rebasing WETH, listed
+    // without a WETH key); elsewhere it duplicates WETH and is deduped.
+    // EURC is excluded via `UNSUPPORTED_TOKEN_TYPES` because the SRA
+    // server rejects it.
     const actions = resolveActions(BARE_CONFIG, OWNER)
     expect(Object.keys(actions ?? {})).toEqual([
       'NATIVE',
@@ -119,6 +129,8 @@ describe('resolveActions', () => {
       'WETH',
       'USDT',
       'DAI',
+      'WBTC',
+      'WRAPPED_NATIVE',
     ])
   })
 

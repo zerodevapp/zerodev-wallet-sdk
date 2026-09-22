@@ -1,5 +1,5 @@
 import type { TOKEN_TYPE } from '@zerodev/smart-routing-address'
-import { SUPPORTED_TOKENS } from '@zerodev/smart-routing-address'
+import { TOKEN_ADDRESSES } from '@zerodev/smart-routing-address'
 import type { Address } from 'viem'
 import { isAddressEqual, zeroAddress } from 'viem'
 import type { EstimatedFee, EstimatedFeeData } from '../types'
@@ -15,7 +15,7 @@ export function resolveTokenAddress(
 ): Address | null {
   if (tokenType === 'NATIVE') return zeroAddress
   if (tokenType === 'ERC20') return null
-  return SUPPORTED_TOKENS[chainId]?.[tokenType] ?? null
+  return TOKEN_ADDRESSES[chainId]?.[tokenType] ?? null
 }
 
 /** Whether the token type resolves to the given on-chain address on a chain. */

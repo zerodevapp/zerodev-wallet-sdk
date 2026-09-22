@@ -99,13 +99,12 @@ describe('useSmartRoutingAddress', () => {
     expect(createSmartRoutingAddress).toHaveBeenCalledWith({
       owner: OWNER,
       destChain: base,
+      version: '1.0.0-alpha.0',
       slippage: TEST_CONFIG.slippage,
       srcTokens: resolveSourceTokens(TEST_CONFIG),
       actions: resolveActions(TEST_CONFIG, OWNER),
-      allowPartialRoutes: true,
       config: {
         baseUrl: `${SMART_ROUTING_ADDRESS_SERVER_URL}/${TEST_CONFIG.projectId}`,
-        version: '0.2.1',
       },
     })
   })

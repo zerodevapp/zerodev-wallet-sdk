@@ -6,9 +6,10 @@ import type {
 import {
   createCall,
   FLEX,
+  NATIVE_TOKENS_SUPPORTED,
   SMART_ROUTING_ADDRESS_SERVER_URL,
-  SMART_ROUTING_ADDRESS_V0_2_1,
-  SUPPORTED_TOKENS,
+  SMART_ROUTING_ADDRESS_V1_0_0_ALPHA_0,
+  TOKEN_ADDRESSES,
 } from '@zerodev/smart-routing-address'
 import { type Address, type Chain, erc20Abi } from 'viem'
 import { DEFAULT_DASHBOARD_URL, DEFAULT_SOURCE_TOKENS } from '../constants'
@@ -23,7 +24,7 @@ import { tokenAddressMatches } from './fees'
 export function resolveVersion(
   config: SmartRoutingAddressConfig,
 ): SmartRoutingAddressVersion {
-  return config.version ?? SMART_ROUTING_ADDRESS_V0_2_1
+  return config.version ?? SMART_ROUTING_ADDRESS_V1_0_0_ALPHA_0
 }
 
 /**
@@ -52,12 +53,16 @@ export function resolveDestChain(config: SmartRoutingAddressConfig): Chain {
 
 /**
  * Whether the SDK can resolve the token type to an asset on the chain:
- * generic ERC20 deposits are always accepted, every other type (including
- * NATIVE) needs a SUPPORTED_TOKENS entry for the chain.
+ * generic ERC20 deposits are always accepted, NATIVE needs the chain in
+ * NATIVE_TOKENS_SUPPORTED, and every other type needs a TOKEN_ADDRESSES
+ * entry for the chain.
  */
 function isTokenOnChain(tokenType: TOKEN_TYPE, chainId: number): boolean {
   if (tokenType === 'ERC20') return true
-  return SUPPORTED_TOKENS[chainId]?.[tokenType] !== undefined
+  if (tokenType === 'NATIVE') {
+    return (NATIVE_TOKENS_SUPPORTED as readonly number[]).includes(chainId)
+  }
+  return TOKEN_ADDRESSES[chainId]?.[tokenType] !== undefined
 }
 
 /**
@@ -122,10 +127,7 @@ export function resolveActions(
   return Object.fromEntries(
     uniqueTokenTypes(resolveSourceTokens(config)).map((tokenType) => [
       tokenType,
-      {
-        action: tokenType === 'NATIVE' ? [nativeCall] : [erc20Call],
-        fallBack: tokenType === 'NATIVE' ? [nativeCall] : [erc20Call],
-      },
+      { action: tokenType === 'NATIVE' ? [nativeCall] : [erc20Call] },
     ]),
   )
 }

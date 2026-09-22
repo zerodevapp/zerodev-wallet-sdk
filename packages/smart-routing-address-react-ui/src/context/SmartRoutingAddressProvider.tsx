@@ -68,18 +68,11 @@ export function SmartRoutingAddressProvider({
           const result = await createSmartRoutingAddress({
             owner: nextRecipient,
             destChain: resolveDestChain(config),
+            version: resolveVersion(config),
             slippage: config.slippage,
             srcTokens: resolveSourceTokens(config),
-            ...(resolveActions(config, nextRecipient) && {
-              actions: resolveActions(config, nextRecipient),
-            }),
-            // Drop source tokens without an available route instead
-            // of failing the whole address creation
-            allowPartialRoutes: true,
-            config: {
-              ...(baseUrl && { baseUrl }),
-              version: resolveVersion(config),
-            },
+            actions: resolveActions(config, nextRecipient),
+            ...(baseUrl && { config: { baseUrl } }),
           })
           // State writes are generation-gated (results superseded by a newer
           // request must not clobber the live one), but the promise still
