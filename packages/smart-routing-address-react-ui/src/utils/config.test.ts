@@ -1,5 +1,5 @@
 import { SMART_ROUTING_ADDRESS_SERVER_URL } from '@zerodev/smart-routing-address'
-import { arbitrum, base, bsc, optimism } from 'viem/chains'
+import { arbitrum, base, bsc, optimism, soneium } from 'viem/chains'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_DASHBOARD_URL, DEFAULT_SOURCE_TOKENS } from '../constants'
 import {
@@ -87,6 +87,17 @@ describe('resolveDestChain', () => {
     expect(() =>
       resolveDestChain({ ...TEST_CONFIG, targetChainId: 999_999 }),
     ).toThrow(/Unsupported chain id 999999/)
+  })
+})
+
+describe('DEFAULT_SOURCE_TOKENS', () => {
+  it('excludes USDT on Soneium, which Across deprecated', () => {
+    const soneiumTypes = DEFAULT_SOURCE_TOKENS.filter(
+      (source) => source.chain.id === soneium.id,
+    ).map((source) => source.tokenType)
+    expect(soneiumTypes).not.toContain('USDT')
+    // Only USDT is dropped; the chain itself stays routable
+    expect(soneiumTypes).toContain('USDC')
   })
 })
 
