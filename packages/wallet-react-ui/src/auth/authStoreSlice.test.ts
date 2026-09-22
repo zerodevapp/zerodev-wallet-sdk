@@ -380,4 +380,59 @@ describe('authStoreSlice', () => {
       expect(auth().stepHistory).toEqual([])
     })
   })
+
+  describe('wallet-connecting', () => {
+    it('startWalletConnection records the wallet and pushes history', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().goToStep('sign-up')
+
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
+
+      expect(auth().step).toBe('wallet-connecting')
+      expect(auth().pendingWallet).toEqual({
+        connectorUid: 'mm',
+        name: 'MetaMask',
+      })
+      // Back arrow returns to sign-up.
+      expect(auth().stepHistory).toEqual(['sign-up'])
+    })
+
+    it('clearPendingWallet forgets the wallet and error but leaves the step', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().setConnectError('boom')
+
+      auth().clearPendingWallet()
+
+      expect(auth().pendingWallet).toBeNull()
+      expect(auth().connectError).toBeNull()
+      expect(auth().step).toBe('wallet-connecting')
+    })
+
+    it('startWalletConnection clears a stale error', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().setConnectError('boom')
+
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
+
+      expect(auth().connectError).toBeNull()
+    })
+
+    it('reset clears the pending wallet', () => {
+      const store = createStore()
+      const auth = () => store.getState().auth
+      auth().startWalletConnection({ connectorUid: 'mm', name: 'MetaMask' })
+      auth().setConnectError('boom')
+
+      auth().reset()
+
+      expect(auth().pendingWallet).toBeNull()
+      expect(auth().connectError).toBeNull()
+      expect(auth().step).toBeNull()
+    })
+  })
 })

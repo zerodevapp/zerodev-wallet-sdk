@@ -1,0 +1,157 @@
+import { type Config, connect } from '@wagmi/core'
+import { Button, PoweredBy } from '@zerodev/react-ui'
+import { useEffect, useRef } from 'react'
+import { useConfig, useConnectors } from 'wagmi'
+import { StatusScreen } from '../../shared/components/StatusScreen'
+import { useKitStore } from '../../shared/hooks/useKitStore'
+import { useAuth } from '../hooks/useAuth'
+import { isCancellationError } from '../utils/isCancellationError'
+
+/**
+ * Connector uids with a connect() still open, per wagmi config. Outside React
+ * because the request outlives this component, and keyed by connector because
+ * several wallets can be left unanswered at once.
+ */
+const openRequests = new WeakMap<Config, Set<string>>()
+
+function openFor(config: Config): Set<string> {
+  let uids = openRequests.get(config)
+  if (!uids) {
+    uids = new Set()
+    openRequests.set(config, uids)
+  }
+  return uids
+}
+
+/**
+ * The `wallet-connecting` step: shown from picking an external wallet until it
+ * answers, which a locked or dismissed wallet never does — so leaving must
+ * always be possible.
+ *
+ * This page owns the connect() call, since React Query drops per-call
+ * callbacks when the sign-up page unmounts on the step change. The wallet
+ * button only records intent (`startWalletConnection`).
+ */
+export function WalletConnecting() {
+  const {
+    pendingWallet,
+    connectError,
+    setConnectError,
+    clearPendingWallet,
+    goToStep,
+  } = useAuth()
+  const connectors = useConnectors()
+  const config = useConfig()
+  // Read outside React: the wallet can answer long after this unmounts.
+  const store = useKitStore()
+
+  const connector = pendingWallet
+    ? connectors.find((c) => c.uid === pendingWallet.connectorUid)
+    : undefined
+  const walletName = pendingWallet?.name ?? 'your wallet'
+
+  // Pop, don't push: pushing would leave `wallet-connecting` in the history,
+  // and sign-up's back arrow would remount this page and connect() again.
+  const leave = () => {
+    const auth = store.getState().auth
+    if (auth.stepHistory.length > 0) auth.goBack()
+    else auth.goToStep('sign-up')
+  }
+
+  const close = () => {
+    clearPendingWallet()
+    goToStep(null)
+  }
+
+  const attempt = () => {
+    // Single-flight per wallet: a wallet rejects a second request rather than
+    // re-prompting, so re-adopt the open one — its promise still drives this
+    // screen.
+    if (connector && openFor(config).has(connector.uid)) return
+
+    // Connector gone from the config: nothing to connect to.
+    if (!connector) {
+      clearPendingWallet()
+      leave()
+      return
+    }
+    // Already the current connection: connect() would throw rather than
+    // prompt (its exact guard), so there is nothing to wait for. A connector
+    // that is connected but not current falls through on purpose — connect()
+    // then resolves silently and promotes it to current.
+    if (config.state.current === connector.uid) {
+      close()
+      return
+    }
+
+    // @wagmi/core's connect(), not useConnect's mutate: a promise keeps its
+    // handlers across remounts (Strict Mode) and after unmount, so a wallet
+    // answered once the user left still closes the widget.
+    const open = openFor(config)
+    open.add(connector.uid)
+    connect(config, { connector }).then(
+      () => {
+        open.delete(connector.uid)
+        close()
+      },
+      (err: unknown) => {
+        open.delete(connector.uid)
+        // The abandoned prompt is often dismissed much later, by which point
+        // the user has moved on. Act only while the flow is still waiting on
+        // THIS wallet. (Approval is not gated: the wallet is then connected,
+        // so ending the flow is right wherever they are.)
+        const auth = store.getState().auth
+        if (
+          auth.step !== 'wallet-connecting' ||
+          auth.pendingWallet?.connectorUid !== connector.uid
+        ) {
+          return
+        }
+        // A rejection needs no explanation, as before this screen existed.
+        // Any other failure's message is the host's only diagnostic.
+        if (isCancellationError(err)) {
+          clearPendingWallet()
+          leave()
+          return
+        }
+        setConnectError(err instanceof Error ? err.message : String(err))
+      },
+    )
+  }
+
+  // Once on mount; the ref guards Strict Mode's double effect run.
+  const started = useRef(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only kick; `attempt` is intentionally the mount-time closure
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    attempt()
+  }, [])
+
+  return (
+    <>
+      <div className="zd:flex-1 zd:flex zd:flex-col zd:gap-8 zd:items-center zd:justify-center">
+        {connectError === null ? (
+          <StatusScreen imageName="loading" title={`Waiting for ${walletName}`}>
+            Approve or reject the request in your wallet.
+            <br />
+            Nothing showing? Open the wallet, the request may be waiting behind
+            its unlock screen.
+          </StatusScreen>
+        ) : (
+          <StatusScreen imageName="error" title="Couldn’t connect">
+            {connectError}
+          </StatusScreen>
+        )}
+        {/* EIP-1193 has no cancel, so the label promises only what it does. */}
+        <Button
+          action="secondary"
+          text="Choose another sign-in method"
+          onClick={leave}
+        />
+      </div>
+
+      <PoweredBy className="zd:self-center zd:pt-4 zd:pb-6" />
+    </>
+  )
+}

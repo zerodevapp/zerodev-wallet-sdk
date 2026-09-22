@@ -7,6 +7,7 @@ import { ErrorScreen } from './pages/ErrorScreen'
 import { OtpInput } from './pages/OtpInput'
 import { SignUp } from './pages/SignUp'
 import { Verifying } from './pages/Verifying'
+import { WalletConnecting } from './pages/WalletConnecting'
 import type { AuthStep } from './types'
 import { hasMagicLinkCodeInUrl, stripMagicLinkCodeFromUrl } from './utils/url'
 
@@ -47,6 +48,8 @@ function renderStep(
       return <OAuthCallback />
     case 'passkey-prompt':
       return <PasskeyPrompt />
+    case 'wallet-connecting':
+      return <WalletConnecting />
     case 'error':
       return <ErrorScreen />
     default:
