@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
 import { generateP256KeyPair } from '../utils/p256KeyPair.js'
 import {
@@ -51,5 +51,48 @@ describe('createServerWalletClient', () => {
       privateKey: generateP256KeyPair().privateKey,
     })
     expect(client.organizationId).toBe('org')
+  })
+
+  describe('transport options', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('targets production when no proxyBaseUrl is given', () => {
+      const client = createServerWalletClient({
+        organizationId: 'org',
+        privateKey: generateP256KeyPair().privateKey,
+      })
+      expect(client.transport.url).toBe('https://kms.zerodev.app/api/v1')
+    })
+
+    it('sends requests to proxyBaseUrl with fetchOptions applied', async () => {
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({}),
+      }))
+      vi.stubGlobal('fetch', fetchMock)
+      const client = createServerWalletClient({
+        organizationId: 'org',
+        privateKey: generateP256KeyPair().privateKey,
+        proxyBaseUrl: 'https://kms.staging.zerodev.app/api/v1',
+        fetchOptions: { headers: { Origin: 'http://localhost:3000' } },
+      })
+
+      await client.createServerWallet({ projectId: 'project' })
+
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ]
+      expect(url).toBe(
+        'https://kms.staging.zerodev.app/api/v1/project/server-wallet/wallets',
+      )
+      expect((init.headers as Record<string, string>).Origin).toBe(
+        'http://localhost:3000',
+      )
+    })
   })
 })
