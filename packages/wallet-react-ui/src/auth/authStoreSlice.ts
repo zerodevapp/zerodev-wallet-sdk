@@ -104,10 +104,14 @@ export const createAuthStoreSlice: StateCreator<
         auth: {
           ...state.auth,
           step,
+          // `null` ends the flow: clear the history so the next open has no
+          // stale back arrow.
           stepHistory:
-            state.auth.step === null
-              ? state.auth.stepHistory
-              : [...state.auth.stepHistory, state.auth.step],
+            step === null
+              ? []
+              : state.auth.step === null
+                ? state.auth.stepHistory
+                : [...state.auth.stepHistory, state.auth.step],
         },
       }))
     },
