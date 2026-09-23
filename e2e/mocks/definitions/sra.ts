@@ -6,9 +6,9 @@ import {
   bsc,
   linea,
   mainnet,
-  mode,
   optimism,
   polygon,
+  unichain,
 } from 'viem/chains'
 import type { MockRequest, MockRequestContext } from '../types.js'
 
@@ -17,9 +17,11 @@ import type { MockRequest, MockRequestContext } from '../types.js'
  */
 
 /** The SDK's default server; the lab sets no `baseUrl`, so this is the URL
- * both RPCs reach. The optional segment is the `/v2/<projectId>` form. */
+ * both RPCs reach. The optional segment is the `/v2/<projectId>` form —
+ * creation always appends `/<projectId>`, which with the lab's empty project
+ * id leaves a bare trailing slash, so the segment may be empty. */
 export const SRA_RPC_URL_PATTERN =
-  /^https:\/\/api\.smart-routing-address\.zerodev\.app\/v2(\/[^/?]+)?$/
+  /^https:\/\/api\.smart-routing-address\.zerodev\.app\/v2(\/[^/?]*)?$/
 
 export const SRA_CREATE_METHOD = 'zd_createSmartRoutingAddress'
 export const SRA_STATUS_METHOD = 'zd_getSmartRoutingAddressStatus'
@@ -78,8 +80,8 @@ const TOKENS: Record<number, Partial<Record<SraSymbol, Address>>> = {
     USDC: getAddress('0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'),
     USDT: getAddress('0xfde4c96c8593536e31f229ea8f37b2ada2699bb2'),
   },
-  [mode.id]: {
-    USDT: getAddress('0xf0f161fda2712db8b566946122a5af183995e2ed'),
+  [unichain.id]: {
+    USDT: getAddress('0x9151434b16b9763660705744891fA906F660EcC5'),
   },
   [linea.id]: {
     USDT: getAddress('0xa219439258ca9da29e9cc4ce5596924745e12b93'),
@@ -120,7 +122,7 @@ export const SRA_DEFAULT_ROUTES: readonly SraRoute[] = [
   { chainId: bsc.id, symbol: 'USDT', minDeposit: '0.52' },
   { chainId: polygon.id, symbol: 'USDT', minDeposit: '0.52' },
   { chainId: base.id, symbol: 'USDT', minDeposit: '0.52' },
-  { chainId: mode.id, symbol: 'USDT', minDeposit: '0.52' },
+  { chainId: unichain.id, symbol: 'USDT', minDeposit: '0.52' },
   { chainId: linea.id, symbol: 'USDT', minDeposit: '0.52' },
 ]
 
