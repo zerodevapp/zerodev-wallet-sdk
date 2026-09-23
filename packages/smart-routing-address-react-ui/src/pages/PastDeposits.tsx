@@ -9,7 +9,6 @@ import type { DepositStage, DepositWithTimestamp } from '../types'
 import { getTxUrl } from '../utils/chains'
 import {
   getSourceTokenSymbol,
-  resolveBaseUrl,
   resolveDestChain,
   sourceTokensFromFees,
 } from '../utils/config'
@@ -91,7 +90,7 @@ export function PastDeposits({ onSelectDeposit }: PastDepositsProps) {
 
   const { deposits, hasLoaded } = useDepositStatus({
     address,
-    baseUrl: resolveBaseUrl(config),
+    baseUrl: config.baseUrl,
   })
 
   const destChain = resolveDestChain(config)

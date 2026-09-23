@@ -37,7 +37,6 @@ import { CHAIN_ICONS, PROVIDER_ICONS, TOKEN_ICONS } from '../iconAssets'
 import type { SourceToken } from '../types'
 import {
   getSourceTokenSymbol,
-  resolveBaseUrl,
   resolveDestChain,
   sourceTokensFromFees,
 } from '../utils/config'
@@ -83,7 +82,7 @@ export function Deposit({
   const address = success?.address
   const estimatedFees = success?.estimatedFees ?? []
 
-  // allowPartialRoutes lets the server drop source tokens it can't route, so
+  // The server only returns estimates for source tokens it can route, so
   // the routable set is exactly the tokens the fee estimates came back with.
   const srcTokens = useMemo(
     () => sourceTokensFromFees(estimatedFees),
@@ -137,7 +136,7 @@ export function Deposit({
     refetch: refetchDeposits,
   } = useDepositStatus({
     address,
-    baseUrl: resolveBaseUrl(config),
+    baseUrl: config.baseUrl,
   })
   const newDeposits = useNewDeposits(deposits, hasLoaded)
   const pastDepositsCount = deposits.length - newDeposits.length

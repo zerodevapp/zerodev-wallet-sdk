@@ -16,7 +16,7 @@
     "next": "15.3.8",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "viem": "^2.47.18"
+    "viem": "2.55.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

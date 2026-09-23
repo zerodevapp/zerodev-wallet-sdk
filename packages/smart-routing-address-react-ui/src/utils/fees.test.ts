@@ -18,7 +18,8 @@ describe('resolveTokenAddress', () => {
   })
 
   it('returns null for unknown token on chain', () => {
-    expect(resolveTokenAddress('EURC', arbitrum.id)).toBeNull()
+    // USDG is not mapped on arbitrum
+    expect(resolveTokenAddress('USDG', arbitrum.id)).toBeNull()
   })
 })
 

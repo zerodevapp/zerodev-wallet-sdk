@@ -2,6 +2,16 @@ packages:
   - 'packages/*'
   - 'apps/*'
 
+# One viem across the workspace, so every @wagmi/core peer-resolves to the
+# same instance (two instances make their types unrelated and break app
+# typechecks). Ceiling: @wagmi/core@3.6.0 imports viem/tempo APIs removed in
+# 2.55.7 (zone.getDepositStatus) and 2.56.0 (the ./tempo/zones export).
+# Floor: @zerodev/smart-routing-address@1.x needs >=2.55 (robinhood chain).
+# Scoped to our declared range so WalletConnect's pinned viem@2.23.2 chain
+# is left alone. Raise when wagmi supports viem >=2.56.
+overrides:
+  'viem@^2.47.18': 2.55.5
+
 # Security: Only install packages that are at least 24 hours old (1440 minutes)
 # This helps protect against typosquatting and malicious packages
 minimumReleaseAge: 1440

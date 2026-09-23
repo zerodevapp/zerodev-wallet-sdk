@@ -1,8 +1,5 @@
 import { act, render, renderHook, waitFor } from '@testing-library/react'
-import {
-  createSmartRoutingAddress,
-  SMART_ROUTING_ADDRESS_SERVER_URL,
-} from '@zerodev/smart-routing-address'
+import { createSmartRoutingAddress } from '@zerodev/smart-routing-address'
 import type { ReactNode } from 'react'
 import type { Address } from 'viem'
 import { arbitrum, base } from 'viem/chains'
@@ -98,15 +95,13 @@ describe('useSmartRoutingAddress', () => {
 
     expect(createSmartRoutingAddress).toHaveBeenCalledWith({
       owner: OWNER,
+      projectId: TEST_CONFIG.projectId,
       destChain: base,
+      version: '1.0.0',
       slippage: TEST_CONFIG.slippage,
       srcTokens: resolveSourceTokens(TEST_CONFIG),
-      actions: resolveActions(TEST_CONFIG, OWNER),
+      actions: resolveActions(TEST_CONFIG, OWNER, '1.0.0'),
       allowPartialRoutes: true,
-      config: {
-        baseUrl: `${SMART_ROUTING_ADDRESS_SERVER_URL}/${TEST_CONFIG.projectId}`,
-        version: '0.2.1',
-      },
     })
   })
 

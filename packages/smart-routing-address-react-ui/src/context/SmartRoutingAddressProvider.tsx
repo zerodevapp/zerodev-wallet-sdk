@@ -1,3 +1,4 @@
+import type { CreateSmartRoutingAddressParams } from '@zerodev/smart-routing-address'
 import { createSmartRoutingAddress } from '@zerodev/smart-routing-address'
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import type { Address } from 'viem'
@@ -8,7 +9,6 @@ import type {
 } from '../types'
 import {
   resolveActions,
-  resolveBaseUrl,
   resolveDestChain,
   resolveSourceTokens,
   resolveVersion,
@@ -64,23 +64,25 @@ export function SmartRoutingAddressProvider({
       const request = (async () => {
         setAddressState({ status: 'loading' })
         try {
-          const baseUrl = resolveBaseUrl(config)
+          const version = resolveVersion(config)
+          // The params discriminate on the version literal (legacy actions
+          // carry `fallBack`, v1 actions must not); `resolveActions` builds
+          // the shape matching `version`, so the union is narrowed by hand.
           const result = await createSmartRoutingAddress({
             owner: nextRecipient,
+            // The SDK appends the project id to the server URL; the demo
+            // and other project-less setups send an empty id.
+            projectId: config.projectId ?? '',
             destChain: resolveDestChain(config),
+            version,
             slippage: config.slippage,
             srcTokens: resolveSourceTokens(config),
-            ...(resolveActions(config, nextRecipient) && {
-              actions: resolveActions(config, nextRecipient),
-            }),
+            actions: resolveActions(config, nextRecipient, version),
             // Drop source tokens without an available route instead
             // of failing the whole address creation
             allowPartialRoutes: true,
-            config: {
-              ...(baseUrl && { baseUrl }),
-              version: resolveVersion(config),
-            },
-          })
+            ...(config.baseUrl && { config: { baseUrl: config.baseUrl } }),
+          } as CreateSmartRoutingAddressParams)
           // State writes are generation-gated (results superseded by a newer
           // request must not clobber the live one), but the promise still
           // resolves with the address this call created — per-call semantics

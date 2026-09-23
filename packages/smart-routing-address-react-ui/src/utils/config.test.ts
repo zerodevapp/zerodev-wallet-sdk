@@ -1,18 +1,12 @@
-import { SMART_ROUTING_ADDRESS_SERVER_URL } from '@zerodev/smart-routing-address'
-import { arbitrum, base, bsc, optimism } from 'viem/chains'
+import { SMART_ROUTING_ADDRESS_V1_0_0 } from '@zerodev/smart-routing-address'
+import { arbitrum, base, bsc, optimism, robinhood } from 'viem/chains'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_DASHBOARD_URL, DEFAULT_SOURCE_TOKENS } from '../constants'
-import {
-  OWNER,
-  SMART_ROUTING_ADDRESS,
-  TEST_CONFIG,
-  TEST_PROJECT_ID,
-} from '../test/fixtures'
+import { OWNER, SMART_ROUTING_ADDRESS, TEST_CONFIG } from '../test/fixtures'
 import type { SmartRoutingAddressConfig } from '../types'
 import {
   getSourceTokenSymbol,
   resolveActions,
-  resolveBaseUrl,
   resolveDashboardUrl,
   resolveDestChain,
   resolveSourceTokens,
@@ -27,42 +21,11 @@ const BARE_CONFIG: SmartRoutingAddressConfig = {
 
 describe('resolveVersion', () => {
   it('defaults to the latest stable version', () => {
-    expect(resolveVersion(TEST_CONFIG)).toBe('0.2.1')
+    expect(resolveVersion(TEST_CONFIG)).toBe('1.0.0')
   })
 
   it('keeps an explicit version', () => {
     expect(resolveVersion({ ...TEST_CONFIG, version: '0.2.0' })).toBe('0.2.0')
-  })
-})
-
-describe('resolveBaseUrl', () => {
-  it('appends the project id to the default server URL', () => {
-    expect(resolveBaseUrl(TEST_CONFIG)).toBe(
-      `${SMART_ROUTING_ADDRESS_SERVER_URL}/${TEST_PROJECT_ID}`,
-    )
-  })
-
-  it('appends the project id to a custom server root', () => {
-    expect(
-      resolveBaseUrl({
-        ...TEST_CONFIG,
-        baseUrl: 'https://example.com/sra/',
-      }),
-    ).toBe(`https://example.com/sra/${TEST_PROJECT_ID}`)
-  })
-
-  it('does not override the URL without a project id', () => {
-    expect(resolveBaseUrl(BARE_CONFIG)).toBeUndefined()
-    expect(resolveBaseUrl({ ...BARE_CONFIG, projectId: '' })).toBe(undefined)
-  })
-
-  it('keeps a custom baseUrl as-is without a project id', () => {
-    expect(
-      resolveBaseUrl({
-        ...BARE_CONFIG,
-        baseUrl: 'https://example.com/sra',
-      }),
-    ).toBe('https://example.com/sra')
   })
 })
 
@@ -90,50 +53,76 @@ describe('resolveDestChain', () => {
   })
 })
 
+describe('DEFAULT_SOURCE_TOKENS', () => {
+  it('offers Robinhood chain deposits (native, WETH and USDG)', () => {
+    // Robinhood is an SRA-only source chain — it is not in the wallet's own
+    // chain list, so it regressing out of SUPPORTED_CHAINS is easy to miss.
+    const robinhoodTypes = DEFAULT_SOURCE_TOKENS.filter(
+      (source) => source.chain.id === robinhood.id,
+    ).map((source) => source.tokenType)
+    expect(robinhoodTypes.sort()).toEqual(['NATIVE', 'USDG', 'WETH'])
+  })
+})
+
 describe('resolveSourceTokens', () => {
   it('returns the default source tokens, excluding token types missing on the destination chain', () => {
-    // base has no WBTC entry in the SDK token addresses
+    // base maps no WBTC and no USDG in the SDK's supported tokens
     const expected = DEFAULT_SOURCE_TOKENS.filter(
-      (source) => source.tokenType !== 'WBTC',
+      (source) => source.tokenType !== 'WBTC' && source.tokenType !== 'USDG',
     )
     expect(resolveSourceTokens(BARE_CONFIG)).toEqual(expected)
   })
 
-  it('keeps only stables for a destination chain without native support', () => {
-    // bsc only maps USDC/USDT and is not in NATIVE_TOKENS_SUPPORTED
-    const sources = resolveSourceTokens({ targetChainId: bsc.id })
+  it('drops native token types for a destination chain without native support', () => {
+    // bsc maps only USDC/USDT/WETH — no NATIVE entry
+    const sources = resolveSourceTokens({
+      targetChainId: bsc.id,
+      slippage: 100,
+    })
     const tokenTypes = new Set(sources.map((source) => source.tokenType))
-    expect([...tokenTypes].sort()).toEqual(['USDC', 'USDT'])
+    expect([...tokenTypes].sort()).toEqual(['USDC', 'USDT', 'WETH'])
   })
 })
 
 describe('resolveActions', () => {
   it('builds an action per default token type', () => {
-    // WBTC is excluded because base has no WBTC token address; wrapped
-    // native is surfaced as WETH. EURC is excluded via
-    // `UNSUPPORTED_TOKEN_TYPES` because the SRA server rejects it.
-    const actions = resolveActions(BARE_CONFIG, OWNER)
-    expect(Object.keys(actions ?? {})).toEqual([
-      'NATIVE',
-      'USDC',
-      'WETH',
-      'USDT',
-      'DAI',
-    ])
+    const actions = resolveActions(
+      BARE_CONFIG,
+      OWNER,
+      SMART_ROUTING_ADDRESS_V1_0_0,
+    )
+    expect(Object.keys(actions)).toEqual(['NATIVE', 'USDC', 'WETH', 'USDT'])
   })
 
   it('forwards native deposits to the recipient as value', () => {
-    const actions = resolveActions(BARE_CONFIG, OWNER)
-    const [nativeCall] = actions?.NATIVE?.action ?? []
+    const actions = resolveActions(
+      BARE_CONFIG,
+      OWNER,
+      SMART_ROUTING_ADDRESS_V1_0_0,
+    )
+    const [nativeCall] = actions.NATIVE?.action ?? []
     expect(nativeCall?.target).toBe(OWNER)
   })
 
   it('transfers ERC-20 deposits via the FLEX token placeholder', () => {
-    const actions = resolveActions(BARE_CONFIG, OWNER)
-    const [erc20Call] = actions?.USDC?.action ?? []
+    const actions = resolveActions(
+      BARE_CONFIG,
+      OWNER,
+      SMART_ROUTING_ADDRESS_V1_0_0,
+    )
+    const [erc20Call] = actions.USDC?.action ?? []
     // createCall resolves FLEX.TOKEN_ADDRESS into the sentinel address
     expect(erc20Call?.target).toBe('0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF')
     expect(erc20Call?.value).toBe(0n)
+  })
+
+  it('omits fallBack for v1 and includes it for legacy versions', () => {
+    // v0.x managers run `fallBack` when the action reverts; v1 has none
+    const v1 = resolveActions(BARE_CONFIG, OWNER, SMART_ROUTING_ADDRESS_V1_0_0)
+    expect(v1.USDC).not.toHaveProperty('fallBack')
+
+    const legacy = resolveActions(BARE_CONFIG, OWNER, '0.2.1')
+    expect(legacy.USDC?.fallBack).toEqual(legacy.USDC?.action)
   })
 })
 
