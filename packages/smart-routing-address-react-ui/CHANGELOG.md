@@ -1,8 +1,8 @@
 # @zerodev/smart-routing-address-react-ui
 
-## 0.1.0
+## 0.0.6
 
-### Minor Changes
+### Patch Changes
 
 - 7287ef4: feat: migrate to @zerodev/smart-routing-address v1
 
