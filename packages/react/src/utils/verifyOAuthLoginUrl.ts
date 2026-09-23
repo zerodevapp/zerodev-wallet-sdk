@@ -1,16 +1,20 @@
+import type { OAuthProvider } from '@zerodev/wallet-core'
 import { sha256, stringToBytes } from 'viem'
+
+export type { OAuthProvider }
 
 export const OAUTH_PROVIDERS = {
   GOOGLE: 'google',
-} as const
+  X: 'x',
+} as const satisfies Record<string, OAuthProvider>
 
-export type OAuthProvider =
-  (typeof OAUTH_PROVIDERS)[keyof typeof OAUTH_PROVIDERS]
-
-const GOOGLE_OAUTH_HOST = 'accounts.google.com'
+const OAUTH_HOSTS: Record<OAuthProvider, string> = {
+  google: 'accounts.google.com',
+  x: 'x.com',
+}
 
 /**
- * Compute the OIDC nonce that the backend will embed in the Google login URL.
+ * Compute the OIDC nonce that the backend will embed in the login URL.
  *
  * Mirrors the backend's `turnkeyOAuthNonce` (Go):
  *   `hex(sha256(utf8_bytes_of(pub_key_hex_lowercase_no_0x)))`
@@ -25,11 +29,11 @@ export function generateOAuthNonce(publicKey: string): string {
 }
 
 /**
- * Verify a Google OAuth login URL returned by the doorway-kms backend.
+ * Verify an OAuth login URL returned by the doorway-kms backend.
  *
  * Throws if:
  * - the URL is malformed,
- * - the host isn't `accounts.google.com`,
+ * - the host isn't the provider's expected host,
  * - the `nonce` query param is missing or doesn't equal
  *   `generateOAuthNonce(publicKey)`.
  *
@@ -37,7 +41,8 @@ export function generateOAuthNonce(publicKey: string): string {
  * session pubkey at the Turnkey OIDC step — Turnkey requires the id_token's
  * nonce to match the hash of the pubkey it's logging in for.
  */
-export function verifyGoogleLoginUrl(
+export function verifyOAuthLoginUrl(
+  provider: OAuthProvider,
   loginUrl: string,
   publicKey: string,
 ): void {
@@ -47,9 +52,10 @@ export function verifyGoogleLoginUrl(
   } catch {
     throw new Error('login URL is not a valid URL')
   }
-  if (parsed.host !== GOOGLE_OAUTH_HOST) {
+  const expectedHost = OAUTH_HOSTS[provider]
+  if (parsed.host !== expectedHost) {
     throw new Error(
-      `login URL host mismatch: expected ${GOOGLE_OAUTH_HOST}, got ${parsed.host}`,
+      `login URL host mismatch: expected ${expectedHost}, got ${parsed.host}`,
     )
   }
   const nonce = parsed.searchParams.get('nonce')
@@ -58,4 +64,16 @@ export function verifyGoogleLoginUrl(
   if (nonce.toLowerCase() !== expected.toLowerCase()) {
     throw new Error('login URL nonce does not match public key hash')
   }
+}
+
+/**
+ * Verify a Google OAuth login URL.
+ *
+ * @deprecated Use {@link verifyOAuthLoginUrl} with `'google'` instead.
+ */
+export function verifyGoogleLoginUrl(
+  loginUrl: string,
+  publicKey: string,
+): void {
+  verifyOAuthLoginUrl('google', loginUrl, publicKey)
 }
