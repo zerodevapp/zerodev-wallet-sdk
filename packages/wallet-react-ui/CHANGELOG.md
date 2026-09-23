@@ -1,5 +1,108 @@
 # @zerodev/wallet-react-ui
 
+## 0.0.13
+
+### Patch Changes
+
+- 3ac022b: fix: no stray back arrow after signing in with an external wallet and logging out
+
+  `goToStep(null)` now clears the step history. Ending the flow used to push the
+  current step onto the history, and an external wallet's disconnect never runs
+  the kit's `reset()`, so the next open of the widget showed a back arrow that
+  led nowhere.
+
+- c1b16c0: design: SRA widget design-review pass, second round
+
+  react-ui:
+
+  - `TokenSummary` promoted from wallet-react-ui's internals and generalized:
+    `fiatValue`/`cryptoAmount` become display-agnostic
+    `primaryValue`/`secondaryValue` (secondary now optional), and the tile
+    gains an optional `badgeLogoUrl` chain badge.
+  - `ProgressStep` marks restyle per the design: 18px, done = soft orange disc
+    with an orange check (was solid orange/white), connector at full orange.
+  - `SelectIcon` chevron rotates to face up while the panel is open, animated
+    both ways.
+  - Every info affordance switches to the thin `info-outline` glyph at 14px —
+    `DataRow` used it for warning rows only, `ProgressStep` and the fee rows
+    used the filled 12px disc.
+  - `info-outline` glyph rotated 180° so the dot sits above the stem.
+
+  smart-routing-address-react-ui:
+
+  - Transaction-details page redesigned (Figma 20002:37994): single delivered
+    hero via `TokenSummary` (destination token tile + chain badge) replaces
+    the source→destination card pair, plus a "From" row with the deposited
+    amount; network-row chain logos bump to 18px and the explorer link's icon
+    inherits the link's ink. The design's fiat secondary line is omitted — SRA
+    fee estimates carry no USD pricing.
+  - Deposit rows report the terminal state as "Delivered"; the interim
+    "Received" status is gone.
+  - "Estimated fee" / "Total fee" values are clickable as a whole (not just
+    the arrow) and their disclosure chevron animates with open state.
+  - The "Arrives as" destination-chain pill skeletons alongside the token pill
+    while the route loads.
+
+- ee8de5e: fix: magic-link verification no longer dead-ends on `/verify?code=…`
+
+  - The persisted OTP session is now restored before base connector setup.
+    Verification raced the restore: `auth.initialize()` (a synchronous
+    localStorage read) only ran after `await connector.setup?.()`, whose async
+    work (wallet creation, session validation) could be slow or fail.
+    `Verifying` reads the session once on mount, so landing on the magic link
+    before the restore finished stripped the code from the URL and silently
+    dropped the flow. The restore now runs first, synchronously inside wagmi's
+    `createConfig`, so the session is always in the store before any React
+    effect can observe it.
+  - Opening a magic link with no pending OTP session (expired, already used,
+    or a browser that never started the email flow) now shows a "Link
+    Expired" error with a path back to sign-in, instead of stripping the code
+    and rendering nothing.
+
+- 71e9acf: fix: say when the wallet is still holding an earlier connection request
+
+  Closing a wallet popup without answering leaves the request open in the
+  extension. The wallet answers the next attempt with EIP-1193 `-32002` instead
+  of prompting again, which the connecting page reported as a failure — often as
+  raw JSON-RPC text, or `[object Object]` when the wallet threw a bare object.
+
+  That case now reads "Request waiting in {wallet}", rendered as a waiting state
+  rather than an error, and tells the user to approve or dismiss the request from
+  the wallet's toolbar icon before trying again.
+
+  Any error object without a usable message now falls back to a plain sentence
+  with its numeric code, so `[object Object]` can no longer reach the screen.
+
+- a746117: fix: declining an external wallet connection now says so
+
+  Rejecting the request in the wallet returned the user to the sign-in options
+  with no explanation. The connecting page now shows "Request declined" with the
+  wallet's name, and offers Try again alongside the other sign-in methods.
+
+  A rejection is also recognised in every shape wallets throw it: an `Error`
+  carrying EIP-1193 `code: 4001` with a generic name, the raw JSON-RPC object
+  wagmi's injected connector rethrows, or either nested under `cause`. Only
+  viem's named error was matched before, so a rejection from those wallets was
+  reported as a failure.
+
+- c28a1b3: fix: picking an external wallet no longer freezes the sign-up page
+
+  A wallet that is locked, or whose popup the user closed without answering,
+  never replies to `connect()`. The sign-up page disabled every button while that
+  request was pending, so it sat frozen with no message and no way out.
+
+  Picking an external wallet now moves to a `wallet-connecting` step that names
+  the wallet it is waiting on and always offers a way back to the other sign-in
+  methods. The page owns the `connect()` call, so a wallet approved after the
+  user leaves still closes the widget, and re-picking a wallet whose request is
+  still open re-adopts it rather than sending one the wallet would reject. A
+  failure that is not a user rejection is reported on the page instead of the
+  sign-up screen that used to show it.
+
+- Updated dependencies [c1b16c0]
+- Updated dependencies [eccfccb]
+  - @zerodev/react-ui@0.0.9
+
 ## 0.0.12
 
 ### Patch Changes
