@@ -160,6 +160,8 @@ describe('core reconciliation on construction: keys agree', () => {
 })
 
 describe('core reconciliation on construction: stores disagree', () => {
+  // Clearing every session on any key disagreement is intended (brtkx, #423),
+  // including an evicted key store, where the sessions are orphaned not corrupt.
   it('clears sessions when the stored session is bound to a different key', async () => {
     const store = seededStore(session('session_stale', KEY_OTHER))
 

@@ -52,12 +52,14 @@ afterEach(() => {
 })
 
 describe('KMS boundary: HTTP failures stay distinguishable', () => {
+  // One attempt then throw is intended (brtkx, #423). These pin only that the
+  // status survives on the error; retrying is the caller's decision.
   const cases = [
     { status: 401, label: 'rejected credential — re-authenticate' },
     { status: 403, label: 'forbidden — do not retry' },
-    { status: 429, label: 'throttled — back off and retry' },
+    { status: 429, label: 'throttled' },
     { status: 500, label: 'server fault' },
-    { status: 503, label: 'outage — back off' },
+    { status: 503, label: 'outage' },
   ] as const
 
   for (const { status, label } of cases) {

@@ -323,6 +323,33 @@ describe('the wallet a login lands on', () => {
     expect(firstSession?.organizationId).toBe(WALLETS[0].subOrgId)
     expect(secondSession?.organizationId).toBe(WALLETS[1].subOrgId)
   })
+
+  it('replaces a live session on a bare second login, with no logout in between', async () => {
+    // Login does not guard an active session (brtkx, #423). The registration
+    // guard exists to stop duplicate wallets; a second login only makes a new
+    // session, and refusing it would block replacing a bricked one.
+    const kms = stubKms()
+    const core = await buildCore()
+
+    kms.picks(0)
+    await core.auth(loginWithPasskey)
+    // Asserted so the second login is provably over a LIVE session, which is the
+    // only difference between this test and the logout one above.
+    await expect(core.getSession()).resolves.toMatchObject({
+      organizationId: WALLETS[0].subOrgId,
+    })
+
+    // No logout. A guard would throw here, so reaching the assertions is the
+    // test: the second login is accepted and the first session is replaced.
+    kms.picks(1)
+    await core.auth(loginWithPasskey)
+
+    const account = await core.toAccount()
+    expect(account.address).toBe(WALLETS[1].signer.address)
+    await expect(core.getSession()).resolves.toMatchObject({
+      organizationId: WALLETS[1].subOrgId,
+    })
+  })
 })
 
 describe('an account object that outlives the wallet it was built for', () => {

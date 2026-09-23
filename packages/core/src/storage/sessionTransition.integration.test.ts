@@ -223,10 +223,9 @@ describe('session storage boundary: partial write failure', () => {
     })
   })
 
-  it('does not report a usable session when the storage read fails', async () => {
-    // Every read throws. Loose on purpose: "propagate" vs "resolve to no
-    // session" is an unanswered product question, so do NOT tighten this to
-    // `.rejects` — that would pin current behaviour as the contract.
+  it('propagates a failing storage read rather than reporting no session', async () => {
+    // Propagation is intended (brtkx, #423). Only a bad adapter throws here, and
+    // swallowing it would present that as a signed-out user.
     const mem = memoryAdapter()
     const failing: StorageAdapter = {
       ...mem.adapter,
@@ -236,15 +235,8 @@ describe('session storage boundary: partial write failure', () => {
     }
     const manager = createStorageManager(failing)
 
-    const outcome = await manager
-      .getActiveSession()
-      .then((session) => ({ ok: true as const, session }))
-      .catch((error: unknown) => ({ ok: false as const, error }))
-
-    if (outcome.ok) {
-      expect(outcome.session).toBeUndefined()
-    } else {
-      expect(outcome.error).toBeInstanceOf(Error)
-    }
+    await expect(manager.getActiveSession()).rejects.toThrow(
+      /IndexedDB unavailable/,
+    )
   })
 })
