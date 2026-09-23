@@ -10,7 +10,14 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import type { Chain } from 'viem'
 import { type Address, isAddress } from 'viem'
-import { arbitrum, base, mainnet, optimism, polygon } from 'viem/chains'
+import {
+  arbitrum,
+  base,
+  mainnet,
+  optimism,
+  polygon,
+  robinhood,
+} from 'viem/chains'
 import { MockPanel } from './components/MockPanel'
 import {
   installMockFetch,
@@ -28,7 +35,9 @@ const SIMULATED_DEFAULT_RECIPIENT: Address =
   '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
 
 // Destination chains offered in the "Settings" configurator.
-const CHAINS: Chain[] = [arbitrum, base, optimism, polygon, mainnet]
+// Robinhood is the only chain with USDG — pick it to see same-chain
+// USDG deposits alongside bridged ETH/WETH.
+const CHAINS: Chain[] = [arbitrum, base, optimism, polygon, mainnet, robinhood]
 
 /** Demo run mode. In `simulated` the mock fetch layer intercepts every SRA
  * server call so the widget can be exercised without any real network / funds
