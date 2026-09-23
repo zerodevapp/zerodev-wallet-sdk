@@ -156,7 +156,7 @@ The page imports `useTransactionHistory` from the optional
 `@zerodev/wallet-data` package and passes the configured URL directly to the
 hook. A successful empty page still proves that the request stamp was accepted.
 Use the mainnet/testnet toggle to change the explicitly signed environment, and
-use the browser Network panel to inspect `X-Wallet-Address`, `X-Timestamp`,
+use the browser Network panel to inspect `X-Project-Id`, `X-Timestamp`,
 `X-Stamp`, and `X-Env`.
 
 The chain buttons next to that toggle build the `chainIds` filter; selecting
