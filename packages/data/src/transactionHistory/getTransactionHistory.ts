@@ -31,10 +31,11 @@ export async function getTransactionHistory(
   if (connector.id !== 'zerodev-wallet') throw new NotAuthenticatedError()
 
   const accounts = await connector.getAccounts()
-  const walletAddress = accounts[0]
-  if (!walletAddress) throw new NotAuthenticatedError()
+  if (!accounts[0]) throw new NotAuthenticatedError()
 
   const store = await getZeroDevStore(connector)
+  const projectId = store.getState().oauthConfig?.projectId
+  if (projectId === undefined) throw new NotAuthenticatedError()
   const wallet = getZeroDevWallet(store)
   const query: Record<string, string> = {
     ...(chainIds === undefined ? {} : { chainIds: chainIds.join(',') }),
@@ -44,9 +45,9 @@ export async function getTransactionHistory(
     baseUrl: parameters.baseUrl,
     environment: parameters.environment ?? 'mainnet',
     path: TRANSACTION_HISTORY_PATH,
+    projectId,
     query,
     stamper: wallet.client.apiKeyStamper,
-    walletAddress,
     ...(parameters.signal === undefined ? {} : { signal: parameters.signal }),
   })
 
