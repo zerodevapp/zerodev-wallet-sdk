@@ -1,3 +1,4 @@
+import type { GetTransactionHistoryHeaders } from '@zerodev/data-api-contract'
 import {
   buildDataApiPayload,
   type DataApiEnvironment,
@@ -14,10 +15,10 @@ export type DataApiGetParameters = {
   baseUrl: string
   environment: DataApiEnvironment
   path: string
+  projectId: string
   query: Record<string, string>
   signal?: AbortSignal
   stamper: Pick<ApiKeyStamper, 'stamp'>
-  walletAddress: string
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -65,19 +66,25 @@ export async function requestDataApiGet(
   const payload = buildDataApiPayload({
     method: 'GET',
     requestTarget,
-    walletAddress: parameters.walletAddress,
+    projectId: parameters.projectId,
     environment: parameters.environment,
     ts,
   })
   const url = new URL(requestTarget, baseUrl)
   const stamp = await parameters.stamper.stamp(payload)
 
+  // The stamp header is set separately because the stamper owns its name.
+  const contractHeaders = {
+    'x-project-id': parameters.projectId,
+    'x-timestamp': String(ts),
+    ...(parameters.environment === 'testnet'
+      ? { 'x-env': 'testnet' as const }
+      : {}),
+  } satisfies GetTransactionHistoryHeaders
   const headers = new Headers({
-    Accept: 'application/json',
-    'X-Timestamp': String(ts),
-    'X-Wallet-Address': parameters.walletAddress,
+    ...contractHeaders,
+    accept: 'application/json',
   })
-  if (parameters.environment === 'testnet') headers.set('X-Env', 'testnet')
   headers.set(stamp.stampHeaderName, stamp.stampHeaderValue)
 
   let response: Response
