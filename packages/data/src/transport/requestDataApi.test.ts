@@ -23,9 +23,9 @@ describe('requestDataApiGet', () => {
           baseUrl: 'https://data.example',
           environment: 'mainnet',
           path,
+          projectId: 'project-1',
           query: {},
           stamper: { stamp },
-          walletAddress: '0x1111111111111111111111111111111111111111',
         }),
       ).rejects.toThrow('invalid Data API request target')
 
