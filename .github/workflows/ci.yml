@@ -150,15 +150,35 @@ jobs:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
 
+  preview:
+    name: Publish preview packages
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/preview.yml
+
   e2e-test:
     name: Browser E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    needs: [build]
+    needs: [build, preview]
+    # `always()` only because `preview` is skipped on a push, which would
+    # otherwise skip this job. The preview check sits in the first step instead: a
+    # guard here would report *skipped* on failure, which does not read as red.
+    if: >-
+      always()
+      && needs.build.result == 'success'
+      && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     concurrency:
       group: e2e-tests-staging
       queue: max
     steps:
+      - name: Require published previews
+        if: github.event_name == 'pull_request' && needs.preview.result != 'success'
+        run: |
+          echo "Preview finished as '${{ needs.preview.result }}', so there are no published" >&2
+          echo "packages to install. Failing rather than silently testing workspace symlinks." >&2
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
@@ -171,14 +191,19 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Point QA lab at preview packages
+        if: github.event_name == 'pull_request'
+        run: node scripts/use-preview-packages.mjs ${{ needs.preview.outputs.sha }}
 
-      - name: Build demo SDK dependencies
-        run: pnpm build:e2e
+      # --no-frozen-lockfile since the step above rewrites the lab's deps
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build demo SDK dependencies
+        run: pnpm build:e2e
 
       - name: Build and start QA lab
         working-directory: apps/qa-lab-testing
