@@ -92,7 +92,7 @@ function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">
               Calls the real Data API through <code>useTransactionHistory</code>.
-              Inspect the browser Network panel to see the wallet address,
+              Inspect the browser Network panel to see the project id,
               timestamp, environment, and P-256 stamp headers.
             </p>
           </div>
