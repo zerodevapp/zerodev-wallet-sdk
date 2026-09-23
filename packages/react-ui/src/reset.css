@@ -22,7 +22,7 @@
 /* The html-level rules from preflight, moved to the boundary element. The
    descendant rule below skips the boundary element itself, so the
    universal reset props repeat here. */
-.zd-scope {
+:where(.zd-scope) {
   font-family: var(--zd-default-font-family, ui-sans-serif, system-ui, sans-serif);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
@@ -56,6 +56,13 @@
   color: inherit;
   background: transparent;
   border-radius: 0;
+  appearance: none;
+}
+/* The blanket `appearance: none` above is for text-like fields; native
+   checkbox/radio chrome must survive (preflight never stripped it either).
+   Same zero specificity, so source order lets this win. */
+.zd-scope :where(input[type="checkbox"], input[type="radio"]) {
+  appearance: auto;
 }
 .zd-scope :where(input, textarea)::placeholder {
   opacity: 1;
