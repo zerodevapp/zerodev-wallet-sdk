@@ -189,6 +189,9 @@ importers:
       '@zerodev/wallet-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@zerodev/wallet-data':
+        specifier: workspace:*
+        version: link:../../packages/data
       '@zerodev/wallet-react':
         specifier: workspace:*
         version: link:../../packages/react
