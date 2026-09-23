@@ -18,6 +18,7 @@ import {
   optimism,
   plasma,
   polygon,
+  robinhood,
   scroll,
   soneium,
   tempo,
@@ -34,8 +35,10 @@ export const DEFAULT_FILL_TIME_SECONDS = 30
 export const DEFAULT_DASHBOARD_URL = 'https://smart-routing-address.zerodev.app'
 
 /**
- * Chains supported by the smart routing address SDK; mirrors the
- * smart-account-plus core `supportedChainIds` list.
+ * Chains supported by the smart routing address SDK; the smart-account-plus
+ * core `supportedChainIds` list, plus SRA-only source chains (Robinhood).
+ * A chain in the SDK's SUPPORTED_TOKENS but missing here is silently dropped
+ * from the source-token list — keep this in sync when the SDK adds chains.
  */
 export const SUPPORTED_CHAINS: readonly Chain[] = [
   mainnet,
@@ -54,6 +57,7 @@ export const SUPPORTED_CHAINS: readonly Chain[] = [
   linea,
   ink,
   megaeth,
+  robinhood,
   scroll,
   soneium,
   tempo,

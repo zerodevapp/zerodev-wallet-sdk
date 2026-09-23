@@ -1,5 +1,5 @@
 import { SMART_ROUTING_ADDRESS_V1_0_0 } from '@zerodev/smart-routing-address'
-import { arbitrum, base, bsc, optimism } from 'viem/chains'
+import { arbitrum, base, bsc, optimism, robinhood } from 'viem/chains'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_DASHBOARD_URL, DEFAULT_SOURCE_TOKENS } from '../constants'
 import { OWNER, SMART_ROUTING_ADDRESS, TEST_CONFIG } from '../test/fixtures'
@@ -50,6 +50,17 @@ describe('resolveDestChain', () => {
     expect(() =>
       resolveDestChain({ ...TEST_CONFIG, targetChainId: 999_999 }),
     ).toThrow(/Unsupported chain id 999999/)
+  })
+})
+
+describe('DEFAULT_SOURCE_TOKENS', () => {
+  it('offers Robinhood chain deposits (native, WETH and USDG)', () => {
+    // Robinhood is an SRA-only source chain — it is not in the wallet's own
+    // chain list, so it regressing out of SUPPORTED_CHAINS is easy to miss.
+    const robinhoodTypes = DEFAULT_SOURCE_TOKENS.filter(
+      (source) => source.chain.id === robinhood.id,
+    ).map((source) => source.tokenType)
+    expect(robinhoodTypes.sort()).toEqual(['NATIVE', 'USDG', 'WETH'])
   })
 })
 
