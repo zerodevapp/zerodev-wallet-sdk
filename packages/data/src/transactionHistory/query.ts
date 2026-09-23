@@ -15,7 +15,9 @@ import {
  * - Local auth/config/response-contract errors: no retry; repeating cannot
  *   connect an account, repair a URL, or reconcile an incompatible response.
  * - 400/401: no retry; the request or authorization must change first.
- * - 429: one retry only when Retry-After tells us when it can succeed.
+ * - 429 or 503: one retry only when Retry-After tells us when it can succeed.
+ *   A 503 is the Data API reporting that its identity backend is briefly
+ *   unreachable, and it names the wait itself.
  * - 502 and network failures: two retries, for three total attempts.
  * - Cancellation and all other HTTP statuses: no retry.
  */
@@ -34,7 +36,7 @@ export function transactionHistoryRetry(
   if (error instanceof DataApiError) {
     if (error.status === 400 || error.status === 401) return false
 
-    if (error.status === 429) {
+    if (error.status === 429 || error.status === 503) {
       return error.retryAfterMs !== undefined && failureCount < 1
     }
 
@@ -50,7 +52,7 @@ export function transactionHistoryRetry(
 /**
  * Delay paired with `transactionHistoryRetry`:
  *
- * - 429 uses the server's validated Retry-After delay exactly.
+ * - 429 and 503 use the server's validated Retry-After delay exactly.
  * - Network and 502 retries use 1s, then 2s exponential backoff, capped at
  *   30s if the retry budget is expanded in the future.
  * - Non-retryable errors never consume this value.
@@ -61,7 +63,7 @@ export function transactionHistoryRetryDelay(
 ): number {
   if (
     error instanceof DataApiError &&
-    error.status === 429 &&
+    (error.status === 429 || error.status === 503) &&
     error.retryAfterMs !== undefined
   ) {
     return error.retryAfterMs
