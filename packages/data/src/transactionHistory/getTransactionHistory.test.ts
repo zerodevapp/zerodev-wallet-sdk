@@ -20,6 +20,7 @@ import { getTransactionHistory } from './getTransactionHistory.js'
 
 const NOW = 1_787_688_000_000
 const WALLET_ADDRESS = '0x1111111111111111111111111111111111111111'
+const PROJECT_ID = 'project-alpha'
 const config = createConfig({
   chains: [mainnet],
   connectors: [],
@@ -57,7 +58,9 @@ describe('getTransactionHistory', () => {
     fetchMock = vi.fn(async () => jsonResponse({ items: [], next: 'cursor-2' }))
     vi.stubGlobal('fetch', fetchMock)
     h.getZeroDevConnector.mockReturnValue(connector)
-    h.getZeroDevStore.mockResolvedValue({ getState: vi.fn() })
+    h.getZeroDevStore.mockResolvedValue({
+      getState: vi.fn(() => ({ oauthConfig: { projectId: PROJECT_ID } })),
+    })
     h.getZeroDevWallet.mockReturnValue(wallet)
     connector.getAccounts.mockResolvedValue([WALLET_ADDRESS])
   })
@@ -67,13 +70,13 @@ describe('getTransactionHistory', () => {
     vi.unstubAllGlobals()
   })
 
-  it('signs and sends the dapp-facing mainnet account with no body', async () => {
+  it('signs and sends the connector project on mainnet with no body', async () => {
     await expect(
       getTransactionHistory(config, { baseUrl: 'https://data.example/' }),
     ).resolves.toEqual({ items: [], next: 'cursor-2' })
 
     expect(stamper.stamp).toHaveBeenCalledWith(
-      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","requestTarget":"/v1/me/transaction-history","ts":1787688000000,"walletAddress":"0x1111111111111111111111111111111111111111"}',
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history","ts":1787688000000}',
     )
 
     const call = fetchMock.mock.calls[0]
@@ -85,7 +88,8 @@ describe('getTransactionHistory', () => {
     expect(init.method).toBe('GET')
     expect(init.body).toBeUndefined()
     const headers = new Headers(init.headers)
-    expect(headers.get('X-Wallet-Address')).toBe(WALLET_ADDRESS)
+    expect(headers.get('X-Project-Id')).toBe(PROJECT_ID)
+    expect(headers.has('X-Wallet-Address')).toBe(false)
     expect(headers.get('X-Timestamp')).toBe(String(NOW))
     expect(headers.get('X-Env')).toBeNull()
     expect(headers.get('X-Stamp')).toBe(
@@ -123,7 +127,7 @@ describe('getTransactionHistory', () => {
     })
 
     expect(stamper.stamp).toHaveBeenCalledWith(
-      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","requestTarget":"/v1/me/transaction-history?chainIds=ethereum%2Carbitrum","ts":1787688000000,"walletAddress":"0x1111111111111111111111111111111111111111"}',
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history?chainIds=ethereum%2Carbitrum","ts":1787688000000}',
     )
 
     const [url] = fetchMock.mock.calls[0] ?? []
@@ -213,6 +217,18 @@ describe('getTransactionHistory', () => {
       getTransactionHistory(config, { baseUrl: 'https://data.example' }),
     ).rejects.toMatchObject({ name: 'NotAuthenticatedError' })
     expect(h.getZeroDevStore).not.toHaveBeenCalled()
+  })
+
+  it('fails before signing when the connector has no project id', async () => {
+    h.getZeroDevStore.mockResolvedValueOnce({
+      getState: vi.fn(() => ({ oauthConfig: null })),
+    })
+
+    await expect(
+      getTransactionHistory(config, { baseUrl: 'https://data.example' }),
+    ).rejects.toMatchObject({ name: 'NotAuthenticatedError' })
+    expect(stamper.stamp).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('rejects a base URL that contains routing state', async () => {

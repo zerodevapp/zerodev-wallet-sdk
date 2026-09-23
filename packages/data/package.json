@@ -62,8 +62,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@zerodev/data-api-contract": "0.1.0",
-    "@zerodev/data-api-stamp": "0.1.0"
+    "@zerodev/data-api-contract": "https://pkg.pr.new/@zerodev/data-api-contract@13",
+    "@zerodev/data-api-stamp": "https://pkg.pr.new/@zerodev/data-api-stamp@13"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
