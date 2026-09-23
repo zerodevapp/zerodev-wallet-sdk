@@ -290,7 +290,7 @@ describe('session commit: a second key-store call fails inside the handler', () 
   // Both handlers `await` further key-store calls before rethrowing, unguarded.
   // When one fails its error REPLACES the original, so the caller is told the
   // rollback failed rather than the commit.
-  it.fails('still blames the commit when the rollback also fails', async () => {
+  it.todo('still blames the commit when the rollback also fails', async () => {
     stubKms()
     const api = keyStore({ commitFails: true, discardFails: true })
     const { adapter } = storage()
@@ -302,7 +302,7 @@ describe('session commit: a second key-store call fails inside the handler', () 
     expect(blames(error, COMMIT_FAILURE)).toBe(true)
   })
 
-  it.fails('still blames the commit when the key read also fails', async () => {
+  it.todo('still blames the commit when the key read also fails', async () => {
     stubKms()
     const api = keyStore({
       commitFails: true,

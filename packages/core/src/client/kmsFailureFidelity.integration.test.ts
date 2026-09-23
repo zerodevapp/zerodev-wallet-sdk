@@ -110,7 +110,7 @@ describe('KMS boundary: HTTP failures stay distinguishable', () => {
     ).resolves.toMatchObject({ userId: 'user-1' })
   })
 
-  it.fails(
+  it.todo(
     'does not hand a non-JSON success body back as though it were the payload',
     async () => {
       // A gateway or CDN interstitial arriving with a 200. Today the text

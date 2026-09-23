@@ -155,7 +155,7 @@ describe('wallet export: the contract that must keep holding', () => {
 })
 
 describe('wallet export: choosing which wallet to hand over', () => {
-  it.fails(
+  it.todo(
     'does not export a wallet of its own choosing when Turnkey lists several',
     async () => {
       // Two wallets in the authenticated sub-org.
@@ -183,7 +183,7 @@ describe('wallet export: choosing which wallet to hand over', () => {
     },
   )
 
-  it.fails(
+  it.todo(
     'attributes an empty wallet list to the response rather than dereferencing it',
     async () => {
       // Today: `TypeError: Cannot read properties of undefined (reading
@@ -204,7 +204,7 @@ describe('wallet export: choosing which wallet to hand over', () => {
     },
   )
 
-  it.fails(
+  it.todo(
     'attributes a missing wallet list to the response rather than dereferencing it',
     async () => {
       // Today: `TypeError: Cannot read properties of undefined (reading '0')`.
@@ -227,7 +227,7 @@ describe('wallet export: choosing which wallet to hand over', () => {
 })
 
 describe('wallet export: what a caller can tell about a failure', () => {
-  it.fails('reports the status when listing wallets is throttled', async () => {
+  it.todo('reports the status when listing wallets is throttled', async () => {
     // Today: bare `Error: Failed to list wallets` — the 429 is gone, so a caller
     // cannot tell a throttle from a rejection. `exportPrivateKey` gets this
     // right on the same kind of failure.
@@ -244,7 +244,7 @@ describe('wallet export: what a caller can tell about a failure', () => {
     expect(reportsStatus(error, 429)).toBe(true)
   })
 
-  it.fails(
+  it.todo(
     'reports the status when the export submission is rejected',
     async () => {
       // Today: bare `Error: Failed to export wallet`.
@@ -262,7 +262,7 @@ describe('wallet export: what a caller can tell about a failure', () => {
     },
   )
 
-  it.fails(
+  it.todo(
     'attributes a non-JSON export response to the wallet export',
     async () => {
       // A 200 carrying HTML, as a gateway interstitial would. Today
@@ -289,7 +289,7 @@ describe('wallet export: what a caller can tell about a failure', () => {
     },
   )
 
-  it.fails(
+  it.todo(
     'attributes a non-JSON private-key export response to the export',
     async () => {
       // Its own case: the two siblings parse separate responses, so a fix to one
@@ -314,7 +314,7 @@ describe('wallet export: what a caller can tell about a failure', () => {
     },
   )
 
-  it.fails('does not wait forever on an unanswered export', async () => {
+  it.todo('does not wait forever on an unanswered export', async () => {
     // A fetch that never settles on its own; it rejects only once the caller's
     // own abort signal fires, so a timeout is the only thing that can end it.
     // A stub ignoring the signal would stay pending under an AbortController

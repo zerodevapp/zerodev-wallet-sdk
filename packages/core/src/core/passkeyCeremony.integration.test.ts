@@ -10,9 +10,6 @@
  * failure relabelled as a cancellation is filtered out, leaving the user with no
  * wallet and no error. Whether Core should translate a cancellation into
  * something friendlier is a product call and is not asserted.
- *
- * No defect found; no `it.fails` here. The tests exist because the propagation is
- * one `throw error` that a later refactor can quietly wrap.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKeyStamper, PasskeyStamper, Stamp } from '../stampers/types.js'
