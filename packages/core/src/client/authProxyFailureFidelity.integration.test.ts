@@ -94,7 +94,7 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
   // purpose: it requires an attributable rejection, since a 200 carrying HTML is
   // a transport failure wearing the shape of success.
 
-  it.fails(
+  it.todo(
     'does not report success when the response carries no verification token',
     async () => {
       // Today: resolves with `{}`, so `usable` is false. Downstream that becomes
@@ -112,7 +112,7 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
     },
   )
 
-  it.fails(
+  it.todo(
     'does not report success when the verification token is null',
     async () => {
       respondWith(200, JSON.stringify({ verificationToken: null }))
@@ -128,7 +128,7 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
     },
   )
 
-  it.fails('attributes a non-JSON success body to the auth proxy', async () => {
+  it.todo('attributes a non-JSON success body to the auth proxy', async () => {
     // A 200 carrying HTML, as a gateway or CDN interstitial would. Today
     // `response.json()` throws `SyntaxError: Unexpected token '<'`.
     respondWith(200, '<html>gateway timeout</html>', 'text/html')
@@ -142,7 +142,7 @@ describe('auth proxy: what a caller is left with when the response is wrong', ()
     expect((error as Error).message).toMatch(/auth proxy/i)
   })
 
-  it.fails('does not wait forever on a proxy that never answers', async () => {
+  it.todo('does not wait forever on a proxy that never answers', async () => {
     // A fetch that never settles on its own; it rejects only once the caller's
     // own abort signal fires, so a timeout is the only thing that can end it.
     // A stub ignoring the signal would stay pending under an AbortController

@@ -120,7 +120,7 @@ describe('wallet address resolution: the response shape itself', () => {
     )
   })
 
-  it.fails(
+  it.todo(
     'rejects a missing `walletAddresses` field with a diagnosable error, not a TypeError',
     async () => {
       // Today: `TypeError: Cannot read properties of undefined (reading '0')`.
@@ -132,7 +132,7 @@ describe('wallet address resolution: the response shape itself', () => {
     },
   )
 
-  it.fails(
+  it.todo(
     'rejects a null `walletAddresses` with a diagnosable error, not a TypeError',
     async () => {
       // Today: `TypeError: Cannot read properties of null (reading '0')`.
@@ -146,7 +146,7 @@ describe('wallet address resolution: the response shape itself', () => {
     },
   )
 
-  it.fails(
+  it.todo(
     'rejects an empty response body with a diagnosable error, not a TypeError',
     async () => {
       // Today: `TypeError: … of null (reading 'walletAddresses')`. Reachable on

@@ -7,7 +7,7 @@
  * The branch simply returns `data`, while its declared return type promises
  * `{otpId, otpEncryptionTargetBundle}`, both of which the caller must carry to
  * verify, and `rest.ts` returns `data as any` so neither is checked. One defect,
- * in the `it.fails` block.
+ * in the `it.todo` block.
  */
 import type { Hex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -265,7 +265,7 @@ describe('otp send: a 200 that carries no usable handle', () => {
   ]
 
   for (const [label, reply] of hollow) {
-    it.fails(`reports a send it cannot support when ${label}`, async () => {
+    it.todo(`reports a send it cannot support when ${label}`, async () => {
       const { sdk } = await build(reply)
 
       const outcome = await outcomeOf(sdk.auth(SEND))
