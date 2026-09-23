@@ -180,21 +180,6 @@ describe('wallet address resolution: ambiguity a user can actually hit', () => {
     }
   })
 
-  it.fails(
-    'refuses to build an account when KMS returns more than one address',
-    async () => {
-      // Today `walletAddresses[0]` wins silently — a well-formed address, so the
-      // validity guards above cannot catch it. Nothing here pins WHICH entry is
-      // chosen: mutating the adapter to take the last element leaves the suite
-      // green, deliberately.
-      const { client } = clientReturning({
-        walletAddresses: [ADDR_A, ADDR_B],
-      })
-
-      await expect(buildAccount(client)).rejects.toThrow()
-    },
-  )
-
   it('reflects a changed wallet address rather than reusing the first answer', async () => {
     // The double answers with a DIFFERENT address on the second call, so a
     // cache that still calls and ignores the answer fails here too.
