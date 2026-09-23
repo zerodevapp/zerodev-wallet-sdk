@@ -21,7 +21,7 @@ function dataApiError(status: number, retryAfterMs?: number) {
 }
 
 describe('transactionHistoryRetry', () => {
-  it.each([400, 401, 402, 403, 500, 503])(
+  it.each([400, 401, 402, 403, 500, 504])(
     'does not retry HTTP %s',
     (status) => {
       expect(transactionHistoryRetry(0, dataApiError(status))).toBe(false)
@@ -41,6 +41,14 @@ describe('transactionHistoryRetry', () => {
     expect(transactionHistoryRetry(0, delayed)).toBe(true)
     expect(transactionHistoryRetry(1, delayed)).toBe(false)
     expect(transactionHistoryRetryDelay(0, delayed)).toBe(30_000)
+  })
+
+  it('retries a 503 once only when Retry-After was valid', () => {
+    expect(transactionHistoryRetry(0, dataApiError(503))).toBe(false)
+    const delayed = dataApiError(503, 1_000)
+    expect(transactionHistoryRetry(0, delayed)).toBe(true)
+    expect(transactionHistoryRetry(1, delayed)).toBe(false)
+    expect(transactionHistoryRetryDelay(0, delayed)).toBe(1_000)
   })
 
   it('retries network failures twice with exponential delay', () => {
