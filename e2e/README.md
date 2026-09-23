@@ -21,8 +21,11 @@ They are configured from **different** files, which is easy to get wrong:
 
 ## What does NOT belong here
 
-Anything that can run without a live service. A test spanning two packages with
-no network is an **integration** test: name it `*.integration.test.ts` and put it
-beside the package source. That layer has no runner yet — it arrives with its
-first test. `e2e/` is the expensive layer, rate-limited by staging and slow, so a
-test lands here only because it genuinely cannot be written cheaper.
+Anything that can run without a live service. A test that needs no network is an
+**integration** test: name it `*.integration.test.ts` and put it beside the
+package source. Run the layer with `pnpm test:integration`
+(`vitest.integration.config.ts`, glob `packages/*/src/**/*.integration.test.ts`);
+CI runs it as its own `Integration Tests` job.
+
+`e2e/` is the expensive layer, rate-limited by staging and slow, so a test lands
+here only because it genuinely cannot be written cheaper.
