@@ -1,0 +1,5 @@
+# Mark machine-generated files so GitHub collapses them in PR diffs
+# (linguist-generated). Reviewer attention goes to the files that stay
+# expanded — see the review playbook, Step 1 · Mechanics.
+pnpm-lock.yaml linguist-generated=true
+**/CHANGELOG.md linguist-generated=true

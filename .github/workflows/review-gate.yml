@@ -1,0 +1,43 @@
+# Review gate (playbook, Part 2 · Enforcement).
+# review:human  → requires at least one human approval.
+# review:ai-first only → passes on its own (the AI review job + CI are the
+# gate for that tier; wire the agent-review requirement in here later).
+# Make this check *required* via a ruleset so it actually blocks merges.
+name: review-gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          labels=$(gh api "repos/$REPO/pulls/$PR" --jq '[.labels[].name] | join(",")')
+          echo "labels: $labels"
+
+          if [[ "$labels" != *"review:human"* ]]; then
+            echo "no review:human label — gate passes (ai-first / unrouted tier)"
+            exit 0
+          fi
+
+          approvals=$(gh api "repos/$REPO/pulls/$PR/reviews" \
+            --jq '[.[] | select(.state == "APPROVED" and (.user.type != "Bot"))] | length')
+          echo "human approvals: $approvals"
+
+          if (( approvals >= 1 )); then
+            echo "review:human satisfied — gate passes"
+          else
+            echo "::error::review:human PR needs at least one human approval before merge"
+            exit 1
+          fi

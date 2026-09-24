@@ -1,0 +1,62 @@
+# Checkout-based AI review (playbook, Part 2 · Tooling). Unlike diff-only
+# reviewers, the agent has the full repo: it greps callers, checks lockfile
+# state, and executes checks before reporting. Findings must carry a
+# concrete, verified failure scenario (see .github/review-rubric.md).
+#
+# Requires the ANTHROPIC_API_KEY repo secret. Until it's set, the job
+# reports neutral-skip instead of failing.
+name: ai-review
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # drafts are the author's self-review phase; review on ready
+    if: '!github.event.pull_request.draft'
+    steps:
+      - name: Check for API key
+        id: key
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::ANTHROPIC_API_KEY not configured — AI review skipped"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        if: steps.key.outputs.present == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Claude code review
+        if: steps.key.outputs.present == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this pull request per the routing rubric in
+            .github/review-rubric.md and the review rules in CLAUDE.md.
+
+            You have the full checkout: grep callers of changed symbols,
+            check that pnpm-lock.yaml is consistent (`pnpm install
+            --frozen-lockfile`), and run the affected package's tests when
+            they exist. Read the PR body for the author's brief and check
+            intent-vs-diff alignment.
+
+            Report findings as review comments. Every finding must state a
+            concrete failure scenario AND how you verified it (which command
+            you ran, what it output). If you cannot verify a suspicion by
+            execution, say so explicitly and mark it PLAUSIBLE, not
+            CONFIRMED. Do not repeat what Copilot already commented. Finish
+            with a sticky summary comment: a ranked attention map of the
+            changed files (🔴 decisions / 🟡 behavior / 🟢 mechanical), each
+            with a one-line why.
+          claude_args: '--allowedTools "Bash(pnpm install:*),Bash(pnpm test:*),Bash(pnpm build:*),Bash(git:*),Read,Grep,Glob"'

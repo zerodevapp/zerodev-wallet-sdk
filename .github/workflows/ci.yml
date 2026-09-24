@@ -81,6 +81,12 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      # Public-API surface check: every export change must land in the
+      # checked-in report (docs/api-reports/) so it's reviewable as a
+      # one-file diff. Regenerate: pnpm build && node scripts/api-report.mjs
+      - name: Check API reports are current
+        run: node scripts/api-report.mjs --check
+
       # Packaging smoke test: confirm each publishable package can be packed
       # (catches missing dist / bad `files` / `exports` before release).
       - name: Verify packaging (npm pack --dry-run)
