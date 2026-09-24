@@ -255,7 +255,11 @@ describe('server wallet sign actions', () => {
   const tx = 'f86c808504a817c80082520894'
   const typedData = '{"domain":{"chainId":"1"},"types":{}}'
   const typedDataHash = keccak256(toHex(typedData))
-  const userOp = '{"sender":"0x0000000000000000000000000000000000000001"}'
+  const userOpHash = keccak256(toHex('user operation'))
+  // What the KMS requires on the wire: the hash wrapped as an EIP-191 personal
+  // message, "\x19Ethereum Signed Message:\n32" followed by the 32 hash bytes.
+  const wrappedUserOp =
+    toHex('\x19Ethereum Signed Message:\n32').slice(2) + userOpHash.slice(2)
 
   const cases: SignCase[] = [
     {
@@ -291,17 +295,14 @@ describe('server wallet sign actions', () => {
       name: 'signUserOperation',
       route: 'user-operation',
       run: (client) =>
-        signUserOperation(client, {
-          ...base,
-          unsignedUserOperation: userOp,
-          chainId: 421614,
-          encoding: 'utf8',
-        }),
-      hash: keccak256(toHex(userOp)),
+        signUserOperation(client, { ...base, userOpHash, chainId: 421614 }),
+      // The wallet signs keccak256 of the wrapped bytes, which is what viem's
+      // hashMessage({ raw }) computes and what Kernel's validator recovers.
+      hash: hashMessage({ raw: userOpHash }),
       bodyFields: {
-        unsignedUserOperation: userOp,
+        unsignedUserOperation: wrappedUserOp,
         chainId: 421614,
-        encoding: 'utf8',
+        encoding: 'hex',
       },
     },
   ]
