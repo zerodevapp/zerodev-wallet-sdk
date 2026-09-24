@@ -326,6 +326,41 @@ await exportIframeStamper.injectKeyExportBundle(exportBundle, organizationId, 'H
 
 **Note:** The private key never touches your JavaScript code - it's decrypted inside Turnkey's iframe.
 
+## Server Wallets
+
+A server process that holds an agent key talks to a wallet set through the
+`@zerodev/wallet-core/server` entry.
+```ts
+import {
+  createPrivateKeyStamper,
+  createServerWalletClient,
+  generateP256KeyPair,
+} from '@zerodev/wallet-core/server'
+
+// Once, when provisioning: the public key is registered on the wallet set by
+// its owner, the private key goes into the server's secrets.
+const { publicKey, privateKey } = generateP256KeyPair()
+
+// At runtime
+const client = createServerWalletClient({
+  organizationId: WALLET_SET_SUB_ORG_ID,
+  privateKey: process.env.AGENT_PRIVATE_KEY,
+  // Defaults to production. Set to point at another KMS deployment.
+  proxyBaseUrl: process.env.KMS_PROXY_BASE_URL,
+  // Server requests carry no browser origin. Send one that is on the
+  // project's ACL allowlist, or allowlist the server's IP instead.
+  fetchOptions: { headers: { Origin: 'https://your-app.example' } },
+})
+
+const { walletAddress } = await client.createServerWallet({ projectId })
+const signature = await client.signMessage({
+  projectId,
+  address: walletAddress,
+  message: 'Hello World!',
+  encoding: 'utf8',
+})
+```
+
 ## TypeScript Types
 
 ```typescript

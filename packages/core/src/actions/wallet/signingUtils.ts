@@ -10,6 +10,8 @@ import {
   zeroAddress,
 } from 'viem'
 import type { Client } from '../../client/types.js'
+import { TURNKEY_STAMP_HEADER } from '../../constants.js'
+import type { SigningStamper } from '../../stampers/types.js'
 
 export type TurnkeyPayload = {
   type: string
@@ -53,14 +55,23 @@ export function buildTurnkeyPayload(
   }
 }
 
+/**
+ * `token` is the user's session for `sign/*` routes. Server wallets call
+ * `server-wallet/sign/*` with an agent key and no session, so they omit it
+ * and pass `outerStampHeader: AGENT_STAMP_HEADER`, the header the KMS reads
+ * agent stamps from. User routes leave it unset and the stamp's own header
+ * name is used.
+ */
 export async function sendSigningRequest(
-  client: Client,
+  client: Client<undefined, SigningStamper>,
   params: {
     projectId: string
-    token: string
+    token?: string
     path: string
     turnkeyPayload: TurnkeyPayload
     bodyFields: Record<string, unknown>
+    /** Header the KMS reads the outer stamp from. Defaults to the stamper's own. */
+    outerStampHeader?: string
   },
 ): Promise<Hex> {
   const { projectId, token, path, turnkeyPayload, bodyFields } = params
@@ -69,12 +80,14 @@ export async function sendSigningRequest(
   const innerBodyString = canonicalizeEx(turnkeyPayload)
   const innerStamp = await client.apiKeyStamper.stamp(innerBodyString)
 
-  // Build full body with inner stamp embedded
+  // Build full body with inner stamp embedded. The KMS relays it to Turnkey
+  // under the header named here and accepts only `X-Stamp`, whatever the
+  // stamper calls its own header.
   const fullBody = {
     ...bodyFields,
     turnkeyPayload,
     stampHeader: {
-      stampHeaderName: innerStamp.stampHeaderName,
+      stampHeaderName: TURNKEY_STAMP_HEADER,
       stampHeaderValue: innerStamp.stampHeaderValue,
     },
   }
@@ -82,14 +95,15 @@ export async function sendSigningRequest(
   // Outer stamp over full body (for KMS middleware)
   const fullBodyString = canonicalizeEx(fullBody)
   const outerStamp = await client.apiKeyStamper.stamp(fullBodyString)
+  const outerHeader = params.outerStampHeader ?? outerStamp.stampHeaderName
 
   const response = await client.request({
     path: `${projectId}/${path}`,
     method: 'POST',
     body: fullBody,
     headers: {
-      [outerStamp.stampHeaderName]: outerStamp.stampHeaderValue,
-      Authorization: `Bearer ${token}`,
+      [outerHeader]: outerStamp.stampHeaderValue,
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   })
   const signature = response?.signature

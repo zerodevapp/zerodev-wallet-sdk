@@ -1,4 +1,8 @@
-import type { ApiKeyStamper, PasskeyStamper } from '../stampers/types.js'
+import type {
+  ApiKeyStamper,
+  PasskeyStamper,
+  SigningStamper,
+} from '../stampers/types.js'
 import type { RestRequestFn } from './transports/rest.js'
 
 export type TransportConfig = {
@@ -17,7 +21,7 @@ export type TransportConfig = {
 }
 
 export type Transport = (options: {
-  apiKeyStamper: ApiKeyStamper
+  apiKeyStamper: SigningStamper
   passkeyStamper: PasskeyStamper
 }) => {
   config: TransportConfig
@@ -25,22 +29,30 @@ export type Transport = (options: {
   value?: Record<string, unknown>
 }
 
-export type ClientConfig = {
+export type ClientConfig<TStamper extends SigningStamper = ApiKeyStamper> = {
   transport: Transport
-  apiKeyStamper: ApiKeyStamper
+  apiKeyStamper: TStamper
   passkeyStamper: PasskeyStamper
   organizationId?: string
   key?: string
   name?: string
 }
 
-export type Client<extended extends Extended | undefined = undefined> = {
+/**
+ * `TStamper` is the type of the stamper in the `apiKeyStamper` slot. The web
+ * client keeps the full `ApiKeyStamper` with key rotation; a server client
+ * holds a plain `SigningStamper`.
+ */
+export type Client<
+  extended extends Extended | undefined = undefined,
+  TStamper extends SigningStamper = ApiKeyStamper,
+> = {
   /** Transport configuration */
   transport: TransportConfig & Record<string, unknown>
   /** Request function from transport */
   request: RestRequestFn
   /** API Key Stamper for authenticated requests */
-  apiKeyStamper: ApiKeyStamper
+  apiKeyStamper: TStamper
   /** Passkey Stamper for authenticated requests */
   passkeyStamper: PasskeyStamper
   /** Organization ID */
@@ -55,8 +67,11 @@ export type Client<extended extends Extended | undefined = undefined> = {
   uid: string
   /** Extend the client with additional functionality */
   extend: <const client extends Extended>(
-    fn: (client: Client<extended>) => client,
-  ) => Client<client & (extended extends Extended ? extended : unknown)>
+    fn: (client: Client<extended, TStamper>) => client,
+  ) => Client<
+    client & (extended extends Extended ? extended : unknown),
+    TStamper
+  >
 } & (extended extends Extended ? extended : unknown)
 
 type Extended = {
