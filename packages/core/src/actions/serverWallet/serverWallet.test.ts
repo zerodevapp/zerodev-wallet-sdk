@@ -239,7 +239,10 @@ type SignBody = Record<string, unknown> & { turnkeyPayload: TurnkeyPayload }
 type SignCase = {
   name: string
   route: string
-  run: (client: Client<undefined, SigningStamper>) => Promise<Hex>
+  run: (
+    client: Client<undefined, SigningStamper>,
+    options?: { withoutOrganizationId?: boolean },
+  ) => Promise<Hex>
   /** What the wallet signs; the test signs it as the owner so the response passes recovery. */
   hash: Hex
   bodyFields: Record<string, unknown>
@@ -247,11 +250,9 @@ type SignCase = {
 
 describe('server wallet sign actions', () => {
   const owner = privateKeyToAccount(`0x${'11'.repeat(32)}`)
-  const base = {
-    organizationId: 'org',
-    projectId: 'project',
-    address: owner.address,
-  }
+  const base = { projectId: 'project', address: owner.address }
+  const org = (options?: { withoutOrganizationId?: boolean }) =>
+    options?.withoutOrganizationId ? {} : { organizationId: 'org' }
   const tx = 'f86c808504a817c80082520894'
   const typedData = '{"domain":{"chainId":"1"},"types":{}}'
   const typedDataHash = keccak256(toHex(typedData))
@@ -265,25 +266,35 @@ describe('server wallet sign actions', () => {
     {
       name: 'signMessage',
       route: 'message',
-      run: (client) =>
-        signMessage(client, { ...base, message: 'hello', encoding: 'utf8' }),
+      run: (client, options) =>
+        signMessage(client, {
+          ...base,
+          ...org(options),
+          message: 'hello',
+          encoding: 'utf8',
+        }),
       hash: hashMessage('hello'),
       bodyFields: { message: 'hello', encoding: 'utf8' },
     },
     {
       name: 'signTransaction',
       route: 'transaction',
-      run: (client) =>
-        signTransaction(client, { ...base, unsignedTransaction: tx }),
+      run: (client, options) =>
+        signTransaction(client, {
+          ...base,
+          ...org(options),
+          unsignedTransaction: tx,
+        }),
       hash: keccak256(`0x${tx}`),
       bodyFields: { unsignedTransaction: tx },
     },
     {
       name: 'signTypedDataV4',
       route: 'typed-data-v4',
-      run: (client) =>
+      run: (client, options) =>
         signTypedDataV4(client, {
           ...base,
+          ...org(options),
           unsignedTypedDataV4: typedData,
           encoding: 'utf8',
           typedDataHash: typedDataHash.slice(2),
@@ -294,8 +305,13 @@ describe('server wallet sign actions', () => {
     {
       name: 'signUserOperation',
       route: 'user-operation',
-      run: (client) =>
-        signUserOperation(client, { ...base, userOpHash, chainId: 421614 }),
+      run: (client, options) =>
+        signUserOperation(client, {
+          ...base,
+          ...org(options),
+          userOpHash,
+          chainId: 421614,
+        }),
       // The wallet signs keccak256 of the wrapped bytes, which is what viem's
       // hashMessage({ raw }) computes and what Kernel's validator recovers.
       hash: hashMessage({ raw: userOpHash }),
@@ -306,6 +322,38 @@ describe('server wallet sign actions', () => {
       },
     },
   ]
+
+  it.each(cases)(
+    '$name falls back to the client organizationId',
+    async ({ run, hash }) => {
+      const signature = await owner.sign({ hash })
+      const { client, request } = fakeClient(echoStamper(), {
+        organizationId: 'client-org',
+        response: { signature },
+      })
+
+      await expect(run(client, { withoutOrganizationId: true })).resolves.toBe(
+        signature,
+      )
+      expect(
+        firstCall<SignBody>(request).body.turnkeyPayload.organizationId,
+      ).toBe('client-org')
+    },
+  )
+
+  it.each(cases)(
+    '$name throws before stamping when no organizationId is available',
+    async ({ name, run }) => {
+      const stamper = echoStamper()
+      const { client, request } = fakeClient(stamper)
+
+      await expect(
+        run(client, { withoutOrganizationId: true }),
+      ).rejects.toThrow(`${name} needs an organizationId`)
+      expect(stamper.stamp).not.toHaveBeenCalled()
+      expect(request).not.toHaveBeenCalled()
+    },
+  )
 
   it.each(cases)(
     '$name posts to the agent route with no session and returns the signature',

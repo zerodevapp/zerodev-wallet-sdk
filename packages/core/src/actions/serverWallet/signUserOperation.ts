@@ -7,10 +7,11 @@ import {
   computeDataPayloadHash,
   sendSigningRequest,
 } from '../wallet/signingUtils.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
 export type SignUserOperationParameters = {
-  /** The organization ID */
-  organizationId: string
+  /** The wallet set's sub-organization ID. Defaults to the client's `organizationId`. */
+  organizationId?: string
   /** The project ID for the request */
   projectId: string
   /** The address to sign with */
@@ -35,7 +36,12 @@ export async function signUserOperation(
   client: Client<undefined, SigningStamper>,
   params: SignUserOperationParameters,
 ): Promise<SignUserOperationReturnType> {
-  const { organizationId, projectId, address, userOpHash, chainId } = params
+  const { projectId, address, userOpHash, chainId } = params
+  const organizationId = resolveOrganizationId(
+    client,
+    params,
+    'signUserOperation',
+  )
 
   const hashBytes = hexToBytes(userOpHash)
   const unsignedUserOperation = bytesToHex(

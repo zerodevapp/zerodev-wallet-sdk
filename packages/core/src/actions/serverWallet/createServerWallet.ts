@@ -3,6 +3,7 @@ import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
 import { AGENT_STAMP_HEADER, TURNKEY_STAMP_HEADER } from '../../constants.js'
 import type { SigningStamper } from '../../stampers/types.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
 export type CreateServerWalletParameters = {
   /** The project ID for the request */
@@ -47,12 +48,11 @@ export async function createServerWallet(
   client: Client<undefined, SigningStamper>,
   params: CreateServerWalletParameters,
 ): Promise<CreateServerWalletReturnType> {
-  const organizationId = params.organizationId ?? client.organizationId
-  if (!organizationId) {
-    throw new Error(
-      'createServerWallet needs an organizationId: pass it in params or on the client.',
-    )
-  }
+  const organizationId = resolveOrganizationId(
+    client,
+    params,
+    'createServerWallet',
+  )
   const timestampMs = Date.now()
 
   const innerStamp = await client.apiKeyStamper.stamp(
