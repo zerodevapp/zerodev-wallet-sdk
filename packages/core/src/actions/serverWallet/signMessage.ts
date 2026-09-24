@@ -7,9 +7,20 @@ import {
   computeMessagePayloadHash,
   sendSigningRequest,
 } from '../wallet/signingUtils.js'
-import type { SignMessageParameters as UserSignMessageParameters } from '../wallet/signMessage.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
-export type SignMessageParameters = Omit<UserSignMessageParameters, 'token'>
+export type SignMessageParameters = {
+  /** The wallet set's sub-organization ID. Defaults to the client's `organizationId`. */
+  organizationId?: string
+  /** The project ID for the request */
+  projectId: string
+  /** The address to sign with */
+  address: Hex
+  /** The message to sign */
+  message: string
+  /** The encoding of the message ('utf8' or 'hex') */
+  encoding: 'utf8' | 'hex'
+}
 
 export type SignMessageReturnType = Hex
 
@@ -18,7 +29,8 @@ export async function signMessage(
   client: Client<undefined, SigningStamper>,
   params: SignMessageParameters,
 ): Promise<SignMessageReturnType> {
-  const { organizationId, projectId, address, message, encoding } = params
+  const { projectId, address, message, encoding } = params
+  const organizationId = resolveOrganizationId(client, params, 'signMessage')
 
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,

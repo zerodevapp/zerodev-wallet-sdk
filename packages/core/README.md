@@ -355,7 +355,6 @@ const client = createServerWalletClient({
 const { walletAddress } = await client.createServerWallet({ projectId })
 const signature = await client.signMessage({
   projectId,
-  organizationId: WALLET_SET_SUB_ORG_ID,
   address: walletAddress,
   message: 'Hello World!',
   encoding: 'utf8',
