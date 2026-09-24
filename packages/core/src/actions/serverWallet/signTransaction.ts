@@ -7,12 +7,18 @@ import {
   computeDataPayloadHash,
   sendSigningRequest,
 } from '../wallet/signingUtils.js'
-import type { SignTransactionParameters as UserSignTransactionParameters } from '../wallet/signTransaction.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
-export type SignTransactionParameters = Omit<
-  UserSignTransactionParameters,
-  'token'
->
+export type SignTransactionParameters = {
+  /** The wallet set's sub-organization ID. Defaults to the client's `organizationId`. */
+  organizationId?: string
+  /** The project ID for the request */
+  projectId: string
+  /** The address to sign with */
+  address: Hex
+  /** The unsigned transaction to sign (hex without 0x prefix) */
+  unsignedTransaction: string
+}
 
 export type SignTransactionReturnType = Hex
 
@@ -21,7 +27,12 @@ export async function signTransaction(
   client: Client<undefined, SigningStamper>,
   params: SignTransactionParameters,
 ): Promise<SignTransactionReturnType> {
-  const { organizationId, projectId, address, unsignedTransaction } = params
+  const { projectId, address, unsignedTransaction } = params
+  const organizationId = resolveOrganizationId(
+    client,
+    params,
+    'signTransaction',
+  )
 
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
