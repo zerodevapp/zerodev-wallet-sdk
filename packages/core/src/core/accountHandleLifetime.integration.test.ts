@@ -122,11 +122,9 @@ type KmsOptions = {
   signWithWrongWallet?: boolean
 }
 
-/**
- * Rejects any bearer other than the one it last issued, the way KMS would once a
- * key rotated, and resolves the wallet from the token rather than from any field
- * in the request.
- */
+/** Resolves the wallet from the token, not from any field in the request.
+ *  SYNTHETIC: it also rejects any bearer but the last one it issued. Nothing
+ *  here shows the real KMS does that; it makes a stale token visible. */
 function stubKms(options: KmsOptions) {
   let issued = 0
   let current: string | null = null

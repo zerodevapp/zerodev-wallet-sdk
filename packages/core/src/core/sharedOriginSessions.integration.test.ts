@@ -21,7 +21,13 @@ const ORG_A = 'org-a'
 const ORG_B = 'org-b'
 const JOURNAL = '@zerodev/session_transition'
 
-const walletOf = (org: string) => (org === ORG_B ? WALLET_B : WALLET_A)
+/** Refuses an org it does not know, so a missing or malformed bearer fails here
+ *  instead of quietly resolving to wallet A. */
+const walletOf = (org: string | null) => {
+  if (org === ORG_A) return WALLET_A
+  if (org === ORG_B) return WALLET_B
+  throw new Error(`stub: no wallet for org ${org}`)
+}
 
 const sessionKey = (nth: number) => `02${String(nth).padStart(64, '0')}`
 
