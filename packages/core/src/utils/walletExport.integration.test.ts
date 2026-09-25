@@ -62,6 +62,14 @@ function respond(list: () => Response, submit: () => Response) {
   return fetchMock
 }
 
+const submitted = (fetchMock: ReturnType<typeof respond>) => {
+  const call = fetchMock.mock.calls.find((c) =>
+    String(c[0]).includes('submit/export'),
+  )
+  return JSON.parse(String((call?.[1] as RequestInit | undefined)?.body))
+    .parameters as Record<string, unknown>
+}
+
 /** A fix may surface the status in the message or on the error; either counts. */
 const reportsStatus = (error: unknown, status: number) =>
   error instanceof Error &&
@@ -75,7 +83,7 @@ afterEach(() => {
 
 describe('wallet export: the contract that must keep holding', () => {
   it('returns the export bundle for the wallet it listed', async () => {
-    respond(
+    const fetchMock = respond(
       () => json({ wallets: [{ walletId: 'wallet-A' }] }),
       () => json(WALLET_BUNDLE),
     )
@@ -89,6 +97,11 @@ describe('wallet export: the contract that must keep holding', () => {
       exportBundle: 'bundle-1',
       walletId: 'wallet-A',
       organizationId: 'suborg-1',
+    })
+    // Which wallet's key material leaves, and who can decrypt it.
+    expect(submitted(fetchMock)).toMatchObject({
+      walletId: 'wallet-A',
+      targetPublicKey: TARGET_PUBLIC_KEY,
     })
   })
 
@@ -109,6 +122,9 @@ describe('wallet export: the contract that must keep holding', () => {
       organizationId: 'suborg-1',
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(submitted(fetchMock)).toMatchObject({
+      targetPublicKey: TARGET_PUBLIC_KEY,
+    })
   })
 
   it('reports the status and body when a private-key export is refused', async () => {
