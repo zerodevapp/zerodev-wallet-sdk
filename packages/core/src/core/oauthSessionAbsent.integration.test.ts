@@ -269,16 +269,15 @@ describe('oauth: the response is not a response', () => {
     'does not report a gateway interstitial as a sessionless login',
     async () => {
       // The transport's text fallback hands the HTML back as `data`, so
-      // `!data.session` is trivially true and a proxy failure becomes
-      // indistinguishable from "this user genuinely has no session" — which is a
-      // legitimate outcome. Compared rather than asserted directly, so any remedy
-      // that separates the two passes.
-      const genuine = await classify(() => ({ userId: 'u' }))
+      // `!data.session` is trivially true and a proxy failure reads as a login
+      // with no session. Asserted directly instead of compared with a genuine
+      // sessionless response: a remedy rejecting both would collapse the
+      // comparison, and what a genuine one should do is still open.
       const gateway = await classify(() =>
         rawBody('<html>gateway timeout</html>', 'text/html'),
       )
 
-      expect(gateway).not.toBe(genuine)
+      expect(gateway).toBe('rejected')
     },
   )
 })
