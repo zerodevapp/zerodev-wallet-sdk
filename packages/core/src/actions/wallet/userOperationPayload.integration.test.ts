@@ -7,7 +7,14 @@
  * and `buildTurnkeyPayload`'s address guard are shared with the other signing
  * paths.
  */
-import { type Hex, keccak256, recoverAddress, toHex } from 'viem'
+import {
+  concat,
+  type Hex,
+  hashMessage,
+  keccak256,
+  recoverAddress,
+  toHex,
+} from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { rest } from '../../client/transports/rest.js'
@@ -22,8 +29,16 @@ const SIGN_URL = `${BASE}/proj/sign/user-operation`
 const OWNER = privateKeyToAccount(`0x${'11'.repeat(32)}` as Hex)
 const IMPOSTOR = privateKeyToAccount(`0x${'33'.repeat(32)}` as Hex)
 
-/** A plausible packed user operation. Content is opaque to Core. */
+/** Opaque bytes, enough for the cases about hashing and relaying. */
 const USER_OP = '0xdeadbeef'
+
+/** A 32-byte hash wrapped as an EIP-191 personal message, which the caller sends
+ *  because Core wraps nothing here. The hash is arbitrary, not a real userOp. */
+const USER_OP_HASH = keccak256(toHex('a user operation'))
+const WRAPPED = concat([
+  toHex('\x19Ethereum Signed Message:\n32'),
+  USER_OP_HASH,
+])
 
 const stamper: Stamper = {
   stamp: async () => ({
@@ -101,12 +116,35 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('user operation: a signature the caller can broadcast', () => {
+describe('user operation: an EIP-191 payload the caller wrapped', () => {
+  it('hashes the wrapped bytes and returns a signature that recovers', async () => {
+    const { client } = driven()
+
+    const signature = await signUserOperation(client, {
+      ...PARAMS,
+      unsignedUserOperation: WRAPPED,
+      encoding: 'hex',
+    })
+
+    expect(signature).toMatch(SIGNATURE)
+    // viem rebuilds the prefix from the payload size, so agreeing with it proves
+    // the wrapping is really EIP-191. It does not prove KMS would accept this or
+    // that the result is broadcastable: the signer is a fake and the hash is not
+    // a real operation.
+    await expect(
+      recoverAddress({ hash: hashMessage({ raw: USER_OP_HASH }), signature }),
+    ).resolves.toBe(OWNER.address)
+  })
+})
+
+describe('user operation: which bytes Core hashes', () => {
   const encodings: ['hex' | 'utf8', string, Hex][] = [
     ['hex', 'the bytes the hex decodes to', keccak256(USER_OP)],
     ['utf8', 'the bytes of the string itself', keccak256(toHex(USER_OP))],
   ]
 
+  // Opaque bytes on purpose: the subject is which bytes Core hashes, not whether
+  // the result is a payload anything downstream would accept.
   for (const [encoding, what, expected] of encodings) {
     it(`signs ${what} when the encoding is ${encoding}`, async () => {
       const { client } = driven()
@@ -206,7 +244,8 @@ describe('user operation: the signing response is unusable', () => {
     expect(blamesTheSignature((outcome as { error: unknown }).error)).toBe(true)
   })
 
-  it('accepts a signature the backend sent without an 0x prefix', async () => {
+  // Opaque payload: the subject is the signature's shape, not its usability.
+  it('normalises a signature the backend sent without an 0x prefix', async () => {
     const { client } = driven((correct) => ({ signature: correct.slice(2) }))
 
     const signature = await signUserOperation(client, PARAMS)
