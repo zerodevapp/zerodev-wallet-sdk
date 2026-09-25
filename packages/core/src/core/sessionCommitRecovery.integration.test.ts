@@ -54,6 +54,13 @@ function keyStore(script: KeyStoreScript = {}): ApiKeyStamper & {
     stampHeaderName: 'X-Stamp',
     stampHeaderValue: 'stamp',
   })
+  // `indexedDbStamper` refuses every pending-key path without a pending key.
+  // The double did too little: silent success here hides a commit that never
+  // had a rotation staged.
+  const requirePending = () => {
+    if (!pending) throw new Error('No pending key rotation')
+    return pending
+  }
   const promote = () => {
     if (pending) active = pending
     pending = null
@@ -71,15 +78,23 @@ function keyStore(script: KeyStoreScript = {}): ApiKeyStamper & {
       return active
     },
     resetKeyPair: async () => {
+      pending = null
       active = sessionKey(++minted)
     },
     prepareKeyRotation: async () => {
       pending = sessionKey(++minted)
       return pending
     },
-    stampPending: stamp,
-    signPending: async () => 'sig',
+    stampPending: async () => {
+      requirePending()
+      return stamp()
+    },
+    signPending: async () => {
+      requirePending()
+      return 'sig'
+    },
     commitKeyRotation: async () => {
+      requirePending()
       const attempt = commits++
       if (script.commitPromotesThenFails) {
         promote()
