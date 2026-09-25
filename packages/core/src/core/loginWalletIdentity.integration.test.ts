@@ -33,31 +33,52 @@ const WALLETS = [
   },
 ] as const
 
-/** Tracks pending vs active the way a real key store does, so the rotation
- *  sequencing in the flow under test is exercised rather than stubbed away. */
+/** A stamp that names its key. Real stampers encode the public key into the
+ *  header and the backend resolves the user from it; the encoding here is fake
+ *  because this file owns both ends. */
+const stampWith = (key: string) => ({
+  stampHeaderName: 'X-Stamp',
+  stampHeaderValue: `key:${key}`,
+})
+
+const keyOf = (value: string | null | undefined) =>
+  value?.startsWith('key:') ? value.slice('key:'.length) : null
+
+/** Tracks pending vs active like a real key store, with `indexedDbStamper`'s
+ *  guards: clear drops both keys, reset drops pending, pending paths refuse to
+ *  run without one. No-op versions hide sequencing bugs. */
 function statefulStamper(): ApiKeyStamper {
   let activeKey: string | null = null
   let pending: string | null = null
   let n = 0
-  const stamp = async () => ({
-    stampHeaderName: 'X-Stamp',
-    stampHeaderValue: 'stamp',
-  })
+  const requirePending = () => {
+    if (!pending) throw new Error('No pending key rotation')
+    return pending
+  }
   return {
-    stamp,
-    clear: async () => {},
+    // No active-key guard: the real stamper has none at this layer. An
+    // unregistered key is refused by the KMS, where it fails in production too.
+    stamp: async () => stampWith(activeKey ?? 'unregistered'),
+    clear: async () => {
+      pending = null
+      activeKey = null
+    },
     getPublicKey: async () => activeKey,
     resetKeyPair: async () => {
+      pending = null
       activeKey = `02${String(++n).padStart(64, '0')}`
     },
     prepareKeyRotation: async () => {
       pending = `02${String(++n).padStart(64, '0')}`
       return pending
     },
-    stampPending: stamp,
-    signPending: async () => 'sig',
+    stampPending: async () => stampWith(requirePending()),
+    signPending: async () => {
+      requirePending()
+      return 'sig'
+    },
     commitKeyRotation: async () => {
-      if (pending) activeKey = pending
+      activeKey = requirePending()
       pending = null
     },
     discardKeyRotation: async () => {
@@ -67,25 +88,34 @@ function statefulStamper(): ApiKeyStamper {
   }
 }
 
-/** Login only stamps; the credential it stamps with is the authenticator's pick,
- *  which is what `stubKms().picks()` stands in for. */
-function passkeyStamper(): PasskeyStamper {
+/** Which passkey is tapped, the only thing deciding which wallet a login lands
+ *  on. Its stamp names the credential, so the choice travels in the request. */
+function authenticator() {
+  let current: (typeof WALLETS)[number] = WALLETS[0]
   return {
-    stamp: async () => ({
-      stampHeaderName: 'X-Stamp',
-      stampHeaderValue: 'stamp',
-    }),
-    clear: async () => {},
-    register: async () => ({
-      attestation: {
-        attestationObject: 'ao',
-        clientDataJson: 'cdj',
-        credentialId: 'credential-unused',
-      },
-      encodedChallenge: 'challenge',
+    pick: (index: 0 | 1) => {
+      current = WALLETS[index]
+    },
+    stamper: (): PasskeyStamper => ({
+      stamp: async () => stampWith(credentialOf(current)),
+      clear: async () => {},
+      register: async () => ({
+        attestation: {
+          attestationObject: 'ao',
+          clientDataJson: 'cdj',
+          credentialId: 'credential-unused',
+        },
+        encodedChallenge: 'challenge',
+      }),
     }),
   }
 }
+
+const credentialOf = (wallet: (typeof WALLETS)[number]) =>
+  `passkey-${wallet.subOrgId}`
+
+/** Routes that must carry the session token. Logout stamps but sends no bearer. */
+const SESSION_ROUTES = ['wallets', 'authenticators', 'sign/message']
 
 function sessionToken(publicKey: string, wallet: (typeof WALLETS)[number]) {
   return `hdr.${btoa(
@@ -100,43 +130,43 @@ function sessionToken(publicKey: string, wallet: (typeof WALLETS)[number]) {
 }
 
 /**
- * A KMS double that can answer as either identity, one at a time. It is NOT
- * modelling "an account with two wallets" — no such state exists server-side, so
- * there is nothing to model. It never returns both and never links them, exactly
- * as the real endpoints cannot. Which identity a login lands on is `picks()`, an
- * input it is told, because that decision is made on the device.
+ * A KMS double answering as one identity at a time; it never returns both
+ * wallets or links them, as the real endpoints cannot.
  *
- * Everything after login resolves the wallet from the session JWT, which is what
- * the backend does — `getUserWallet` and `getAuthenticators` both note the user is
- * resolved from the stamped credential plus the session token, with **no sub-org
- * sent in the request**. Note the direction: the sub-org is not sent, but it *is*
- * returned, as the `organization_id` claim inside the session token — which is how
- * Core learns which wallet it landed on. What never comes back is the credential
- * id, so Core knows which wallet but never which passkey produced it.
+ * Identity comes from the stamped credential, per `getUserWallet` and
+ * `getAuthenticators`. Login binds its session key to the wallet whose passkey
+ * signed it; later requests resolve by the key their stamp names. The bearer is
+ * recorded, not trusted, so tests can assert Core forwarded the right one.
  */
-function stubKms() {
-  const requests: { path: string; body: unknown; subOrg: string | null }[] = []
-  let picked: (typeof WALLETS)[number] = WALLETS[0]
+function stubKms(auth: ReturnType<typeof authenticator>) {
+  const requests: {
+    path: string
+    body: unknown
+    bearer: string | null
+    key: string | null
+  }[] = []
+  const sessionKeys = new Map<string, (typeof WALLETS)[number]>()
+  const issued = new Map<(typeof WALLETS)[number], string>()
   let lastSessionKey = ''
 
-  const subOrgFromToken = (headers: HeadersInit | undefined) => {
-    const auth = new Headers(headers).get('Authorization')
-    if (!auth) return null
-    const payload = auth.replace('Bearer ', '').split('.')[1]
-    if (!payload) return null
-    const claims = JSON.parse(atob(payload)) as { organization_id?: string }
-    return claims.organization_id ?? null
-  }
+  const bearerOf = (headers: HeadersInit | undefined) =>
+    new Headers(headers).get('Authorization')?.replace('Bearer ', '') ?? null
 
-  const walletFor = (subOrg: string | null) =>
-    WALLETS.find((w) => w.subOrgId === subOrg)
+  const walletFor = (key: string | null) =>
+    key === null
+      ? undefined
+      : (WALLETS.find((w) => credentialOf(w) === key) ?? sessionKeys.get(key))
 
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const target = String(url)
       const body = init?.body ? JSON.parse(String(init.body)) : {}
-      const subOrg = subOrgFromToken(init?.headers)
+      const bearer = bearerOf(init?.headers)
+      // Login stamps in the body, every other route in a header. No fallback
+      // between them: no real endpoint accepts one in place of the other.
+      const bodyKey = keyOf(body?.stamp?.stampHeaderValue)
+      const headerKey = keyOf(new Headers(init?.headers).get('X-Stamp'))
       const json = (payload: unknown, status = 200) =>
         new Response(JSON.stringify(payload), {
           status,
@@ -148,39 +178,47 @@ function stubKms() {
       }
 
       if (target.includes('/auth/login/stamp')) {
-        requests.push({ path: 'login', body, subOrg })
-        // The key the backend now holds for this session, which logout has to
-        // find in the authenticator list before it will erase anything locally.
+        requests.push({ path: 'login', body, bearer, key: bodyKey })
+        const wallet = walletFor(bodyKey)
+        if (!wallet) return json({ error: 'unauthenticated' }, 401)
+        // The session key is bound to the wallet whose passkey signed this
+        // login, and logout has to find it in the authenticator list before it
+        // will erase anything locally.
+        sessionKeys.set(body.targetPublicKey, wallet)
         lastSessionKey = body.targetPublicKey
-        return json({ session: sessionToken(body.targetPublicKey, picked) })
+        const session = sessionToken(body.targetPublicKey, wallet)
+        issued.set(wallet, session)
+        return json({ session })
       }
 
       if (target.includes('/authenticators')) {
-        requests.push({ path: 'authenticators', body, subOrg })
-        const wallet = walletFor(subOrg)
+        requests.push({ path: 'authenticators', body, bearer, key: headerKey })
+        const wallet = walletFor(headerKey)
         if (!wallet) return json({ error: 'unauthenticated' }, 401)
         // Scoped to the authenticated sub-org, as the endpoint is: this lists
         // the credentials of the wallet the login landed on and cannot mention
         // the other one.
         return json({
           oauths: null,
-          passkeys: [{ rpId: 'localhost', credentialId: `cred-${subOrg}` }],
+          passkeys: [
+            { rpId: 'localhost', credentialId: `cred-${wallet.subOrgId}` },
+          ],
           emailContacts: null,
           apiKeys: null,
           sessionKeys: [
-            { ApiKey: lastSessionKey, TurnkeyId: `apikey-${subOrg}` },
+            { ApiKey: lastSessionKey, TurnkeyId: `apikey-${wallet.subOrgId}` },
           ],
         })
       }
 
       if (target.includes('/auth/logout')) {
-        requests.push({ path: 'logout', body, subOrg })
+        requests.push({ path: 'logout', body, bearer, key: headerKey })
         return json({})
       }
 
       if (target.includes('/wallets')) {
-        requests.push({ path: 'wallets', body, subOrg })
-        const wallet = walletFor(subOrg)
+        requests.push({ path: 'wallets', body, bearer, key: headerKey })
+        const wallet = walletFor(headerKey)
         if (!wallet) return json({ error: 'unauthenticated' }, 401)
         return json({
           walletAddresses: [wallet.signer.address],
@@ -189,13 +227,11 @@ function stubKms() {
       }
 
       if (target.includes('/sign/message')) {
-        requests.push({ path: 'sign/message', body, subOrg })
-        // Signs with the wallet the SESSION belongs to, ignoring the `signWith`
-        // address in the payload. That is the worst plausible KMS answer — a real
-        // backend would more likely 403 a cross-sub-org `signWith` — and it is
-        // the one Core has to be correct for, because it is the answer that
-        // produces a valid signature from the wrong wallet.
-        const wallet = walletFor(subOrg)
+        requests.push({ path: 'sign/message', body, bearer, key: headerKey })
+        // SYNTHETIC: signs with the stamped credential's wallet, ignoring
+        // `signWith`. A real backend would more likely 403. This is the worse
+        // answer and the one Core must handle: a valid signature, wrong wallet.
+        const wallet = walletFor(headerKey)
         if (!wallet) return json({ error: 'unauthenticated' }, 401)
         const signature = await wallet.signer.sign({
           hash: `0x${body.turnkeyPayload.parameters.payload}` as Hex,
@@ -203,24 +239,37 @@ function stubKms() {
         return json({ signature })
       }
 
-      requests.push({ path: `unstubbed:${target}`, body, subOrg })
+      requests.push({
+        path: `unstubbed:${target}`,
+        body,
+        bearer,
+        key: headerKey,
+      })
       return json({}, 404)
     }),
   )
 
   return {
     requests,
-    /** Which identity the authenticator offers up next — a device-side decision
-     *  standing in for the user tapping one passkey rather than the other.
-     *  Nothing Core sends today influences it; see the first test. */
-    picks: (index: 0 | 1) => {
-      picked = WALLETS[index]
-    },
+    /** Which passkey the authenticator offers next, standing in for the user
+     *  tapping one rather than the other. Nothing Core sends influences it. */
+    picks: auth.pick,
     lastOf: (path: string) => requests.filter((r) => r.path === path).at(-1),
+    /** The session token the KMS issued for `index`, to assert Core forwards it. */
+    tokenFor: (index: 0 | 1) => issued.get(WALLETS[index]) ?? null,
+    /** Every request that should carry a session, in order, with what it sent.
+     *  Nulls are kept and nothing is de-duplicated: a missing Authorization has
+     *  to fail rather than vanish, and one correct request must not cover for a
+     *  wrong one. Nothing here is routed by the bearer, so this observes which
+     *  token Core forwarded. It says nothing about whether KMS would accept it. */
+    sessionRequests: () =>
+      requests
+        .filter((r) => SESSION_ROUTES.includes(r.path))
+        .map((r) => ({ path: r.path, bearer: r.bearer })),
   }
 }
 
-async function buildCore() {
+async function buildCore(auth: ReturnType<typeof authenticator>) {
   const store = new Map<string, string>()
   const adapter: StorageAdapter = {
     getItem: (key) => store.get(key) ?? null,
@@ -236,9 +285,18 @@ async function buildCore() {
     rpId: 'localhost',
     sessionStorage: adapter,
     apiKeyStamper: statefulStamper(),
-    passkeyStamper: passkeyStamper(),
+    passkeyStamper: auth.stamper(),
     proxyBaseUrl: 'https://kms.test.invalid/api/v1',
   })
+}
+
+/** One authenticator shared by the KMS double and Core, so `picks()` changes
+ *  which credential Core stamps with. The stamper reads the pick at stamp time,
+ *  so `picks()` works before or after this call. */
+async function setup() {
+  const auth = authenticator()
+  const kms = stubKms(auth)
+  return { kms, core: await buildCore(auth) }
 }
 
 const loginWithPasskey = { type: 'passkey', mode: 'login' } as const
@@ -249,8 +307,7 @@ afterEach(() => {
 
 describe('what a login is able to ask for', () => {
   it('sends only targetPublicKey, timestamp and stamp', async () => {
-    const kms = stubKms()
-    const core = await buildCore()
+    const { kms, core } = await setup()
 
     await core.auth(loginWithPasskey)
 
@@ -265,9 +322,8 @@ describe('what a login is able to ask for', () => {
 
 describe('the wallet a login lands on', () => {
   it('resolves the address of the wallet whose credential was used', async () => {
-    const kms = stubKms()
+    const { kms, core } = await setup()
     kms.picks(0)
-    const core = await buildCore()
 
     await core.auth(loginWithPasskey)
     const account = await core.toAccount()
@@ -281,12 +337,20 @@ describe('the wallet a login lands on', () => {
     await expect(
       recoverMessageAddress({ message: 'hello', signature }),
     ).resolves.toBe(WALLETS[0].signer.address)
+
+    // The stub answers by the stamped credential, so the right wallet coming
+    // back only means the right key signed. Every bearer-bearing request has to
+    // be checked too, or a stale or absent token passes unnoticed.
+    expect(kms.tokenFor(0)).not.toBeNull()
+    expect(kms.sessionRequests()).toEqual([
+      { path: 'wallets', bearer: kms.tokenFor(0) },
+      { path: 'sign/message', bearer: kms.tokenFor(0) },
+    ])
   })
 
   it('signs under the sub-organization of the session, not the parent org it authenticated against', async () => {
-    const kms = stubKms()
+    const { kms, core } = await setup()
     kms.picks(1)
-    const core = await buildCore()
 
     await core.auth(loginWithPasskey)
     const account = await core.toAccount()
@@ -297,11 +361,18 @@ describe('the wallet a login lands on', () => {
     }
     expect(sign.body.turnkeyPayload.organizationId).toBe(WALLETS[1].subOrgId)
     expect(sign.body.turnkeyPayload.organizationId).not.toBe('parent-org')
+
+    // The sub-org above rides in the body, so it would still be right if Core
+    // had forwarded no session at all.
+    expect(kms.tokenFor(1)).not.toBeNull()
+    expect(kms.sessionRequests()).toEqual([
+      { path: 'wallets', bearer: kms.tokenFor(1) },
+      { path: 'sign/message', bearer: kms.tokenFor(1) },
+    ])
   })
 
   it('lands on a different wallet across a logout and a fresh login, with no error either time', async () => {
-    const kms = stubKms()
-    const core = await buildCore()
+    const { kms, core } = await setup()
 
     kms.picks(0)
     await core.auth(loginWithPasskey)
@@ -322,14 +393,22 @@ describe('the wallet a login lands on', () => {
     expect(second.address).not.toBe(first.address)
     expect(firstSession?.organizationId).toBe(WALLETS[0].subOrgId)
     expect(secondSession?.organizationId).toBe(WALLETS[1].subOrgId)
+
+    // Both sessions are local state; only the per-request bearers show which
+    // token each half of the round trip actually presented.
+    expect(kms.tokenFor(0)).not.toBeNull()
+    expect(kms.sessionRequests()).toEqual([
+      { path: 'wallets', bearer: kms.tokenFor(0) },
+      { path: 'authenticators', bearer: kms.tokenFor(0) },
+      { path: 'wallets', bearer: kms.tokenFor(1) },
+    ])
   })
 
   it('replaces a live session on a bare second login, with no logout in between', async () => {
     // Login does not guard an active session (brtkx, #423). The registration
     // guard exists to stop duplicate wallets; a second login only makes a new
     // session, and refusing it would block replacing a bricked one.
-    const kms = stubKms()
-    const core = await buildCore()
+    const { kms, core } = await setup()
 
     kms.picks(0)
     await core.auth(loginWithPasskey)
@@ -349,13 +428,20 @@ describe('the wallet a login lands on', () => {
     await expect(core.getSession()).resolves.toMatchObject({
       organizationId: WALLETS[1].subOrgId,
     })
+
+    // Keeping the first token is the plausible bug here, and the stored session
+    // says wallet 1 either way. Only the second token is expected because the
+    // first login is never followed by a request: `getSession` reads locally.
+    expect(kms.tokenFor(0)).not.toBeNull()
+    expect(kms.sessionRequests()).toEqual([
+      { path: 'wallets', bearer: kms.tokenFor(1) },
+    ])
   })
 })
 
 describe('an account object that outlives the wallet it was built for', () => {
   it('refuses to sign with an account built before the switch rather than signing as the wrong wallet', async () => {
-    const kms = stubKms()
-    const core = await buildCore()
+    const { kms, core } = await setup()
 
     kms.picks(0)
     await core.auth(loginWithPasskey)
@@ -370,11 +456,19 @@ describe('an account object that outlives the wallet it was built for', () => {
     await expect(
       staleAccount.signMessage({ message: 'hello' }),
     ).rejects.toThrow(/did not recover/)
+
+    // The rejection comes from Core's owner check, which would fire on a stale
+    // bearer too. Asserted so the test cannot pass for that reason instead.
+    expect(kms.tokenFor(0)).not.toBeNull()
+    expect(kms.sessionRequests()).toEqual([
+      { path: 'wallets', bearer: kms.tokenFor(0) },
+      { path: 'authenticators', bearer: kms.tokenFor(0) },
+      { path: 'sign/message', bearer: kms.tokenFor(1) },
+    ])
   })
 
   it('recovers the correct signer when the caller rebuilds the account after the switch', async () => {
-    const kms = stubKms()
-    const core = await buildCore()
+    const { kms, core } = await setup()
 
     kms.picks(0)
     await core.auth(loginWithPasskey)
@@ -397,5 +491,17 @@ describe('an account object that outlives the wallet it was built for', () => {
     await expect(
       recoverMessageAddress({ message: 'hello', signature }),
     ).resolves.toBe(WALLETS[1].signer.address)
+
+    // The switch is where a stale bearer would survive: the new credential
+    // resolves the new wallet whichever token rode along with it. Asserting per
+    // request is what pins it: the post-switch lookup could otherwise carry the
+    // old token while only the final sign carries the new one.
+    expect(kms.tokenFor(0)).not.toBeNull()
+    expect(kms.sessionRequests()).toEqual([
+      { path: 'wallets', bearer: kms.tokenFor(0) },
+      { path: 'authenticators', bearer: kms.tokenFor(0) },
+      { path: 'wallets', bearer: kms.tokenFor(1) },
+      { path: 'sign/message', bearer: kms.tokenFor(1) },
+    ])
   })
 })
