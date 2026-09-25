@@ -11,6 +11,7 @@
  */
 import {
   type Hex,
+  hashTypedData,
   keccak256,
   parseGwei,
   recoverMessageAddress,
@@ -127,6 +128,22 @@ async function loggedIn(answer: (correct: Hex) => Answer) {
         return json({ walletAddresses: [OWNER.address] })
       }
       if (path.includes('/sign/')) {
+        if (typeof body.unsignedTypedDataV4 === 'string') {
+          const sent = JSON.parse(body.unsignedTypedDataV4)
+          const { EIP712Domain: _ignored, ...types } = sent.types
+          if (
+            body.turnkeyPayload.parameters.payload !==
+            hashTypedData({ ...sent, types }).slice(2)
+          ) {
+            return json(
+              {
+                error: 'invalid_request',
+                message: 'hash is not this document',
+              },
+              400,
+            )
+          }
+        }
         const correct = await OWNER.sign({
           hash: `0x${body.turnkeyPayload.parameters.payload}` as Hex,
         })
