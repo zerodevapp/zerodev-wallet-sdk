@@ -90,7 +90,10 @@ function token(publicKey: string) {
 /** How `auth/init/otp` answers. */
 type Reply = { body: unknown; status?: number } | { raw: string }
 
-const USABLE = { otpId: 'otp-1', otpEncryptionTargetBundle: 'bundle' }
+/** What a healthy send answers. The bundle is a placeholder: `encryptOtpAttempt`
+ *  JSON.parses it, so 'bundle' could never reach encryption. These cases cover
+ *  the fields being forwarded, not a handle verify could spend. */
+const SEND_ACCEPTED = { otpId: 'otp-1', otpEncryptionTargetBundle: 'bundle' }
 
 /**
  * The double answers a script and records paths; it branches on nothing. `sent`
@@ -173,8 +176,8 @@ const outcomeOf = (p: Promise<unknown>) =>
 /** Rejects `''` so a `?? ''` "fix" cannot pass for a repair. */
 const usable = (v: unknown) => typeof v === 'string' && v.length > 0
 
-/** Both fields are required to reach verify at all. */
-function carriesAUsableHandle(value: unknown) {
+/** Both fields came back non-empty. Says nothing about the bundle's contents. */
+function carriesTheHandleFields(value: unknown) {
   if (!value || typeof value !== 'object') return false
   const handle = value as Record<string, unknown>
   return usable(handle.otpId) && usable(handle.otpEncryptionTargetBundle)
@@ -186,10 +189,10 @@ const blamesTheSend = (error: unknown) =>
   !(error instanceof TypeError) &&
   /otp|code|bundle/i.test(error.message)
 
-/** Refuse attributably, or hand back a usable handle. Neither is the defect. */
+/** Refuse attributably, or hand back both handle fields. Neither is the defect. */
 const endsUsably = (outcome: Awaited<ReturnType<typeof outcomeOf>>) =>
   outcome.ok
-    ? carriesAUsableHandle(outcome.value)
+    ? carriesTheHandleFields(outcome.value)
     : blamesTheSend(outcome.error)
 
 afterEach(() => {
@@ -197,8 +200,8 @@ afterEach(() => {
 })
 
 describe('otp send: a healthy send', () => {
-  it('returns a handle the verify step can use', async () => {
-    const { sdk } = await build({ body: USABLE })
+  it('returns both handle fields to the caller', async () => {
+    const { sdk } = await build({ body: SEND_ACCEPTED })
 
     const outcome = await outcomeOf(sdk.auth(SEND))
 
@@ -206,7 +209,7 @@ describe('otp send: a healthy send', () => {
   })
 
   it('asks for the code with only the contact details', async () => {
-    const { sdk, sent } = await build({ body: USABLE })
+    const { sdk, sent } = await build({ body: SEND_ACCEPTED })
 
     await sdk.auth(SEND)
 
@@ -223,7 +226,7 @@ describe('otp send: a healthy send', () => {
   it('sends the same request for a magic link', async () => {
     // A distinct branch normalizing into the same request builder, so it is
     // covered on its own.
-    const { sdk, sent } = await build({ body: USABLE })
+    const { sdk, sent } = await build({ body: SEND_ACCEPTED })
 
     await sdk.auth({
       type: 'magicLink',
@@ -315,7 +318,7 @@ describe('otp send: must not disturb what is already there', () => {
 
   it('leaves an established session and its key untouched', async () => {
     // A signed-in user adding a login method must not be logged out by it.
-    const { sdk, api } = await build({ body: USABLE })
+    const { sdk, api } = await build({ body: SEND_ACCEPTED })
     await sdk.auth({ type: 'passkey', mode: 'login' })
     const before = await sdk.getAllSessions()
     const keyBefore = api.state()
@@ -351,7 +354,7 @@ describe('otp verify: an unusable bundle fails closed', () => {
 
   for (const [label, bundle] of unusableBundles) {
     it(`refuses before any network call when ${label}`, async () => {
-      const { sdk, api, paths } = await build({ body: USABLE })
+      const { sdk, api, paths } = await build({ body: SEND_ACCEPTED })
 
       const outcome = await outcomeOf(
         sdk.auth({
