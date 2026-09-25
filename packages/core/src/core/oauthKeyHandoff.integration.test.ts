@@ -26,6 +26,10 @@ function keyStore(): ApiKeyStamper & {
     stampHeaderName: 'X-Stamp',
     stampHeaderValue: 'stamp',
   })
+  const requirePending = () => {
+    if (!pending) throw new Error('No pending key rotation')
+    return pending
+  }
   return {
     stamp,
     clear: async () => {
@@ -34,6 +38,7 @@ function keyStore(): ApiKeyStamper & {
     },
     getPublicKey: async () => active,
     resetKeyPair: async () => {
+      pending = null
       active = sessionKey(++minted)
     },
     prepareKeyRotation: async () => {
@@ -41,10 +46,16 @@ function keyStore(): ApiKeyStamper & {
       pending = sessionKey(++minted)
       return pending
     },
-    stampPending: stamp,
-    signPending: async () => 'popsig',
+    stampPending: async () => {
+      requirePending()
+      return stamp()
+    },
+    signPending: async () => {
+      requirePending()
+      return 'popsig'
+    },
     commitKeyRotation: async () => {
-      if (pending) active = pending
+      active = requirePending()
       pending = null
     },
     discardKeyRotation: async () => {
