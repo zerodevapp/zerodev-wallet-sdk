@@ -85,9 +85,11 @@ describe('auth proxy config id: fetching it', () => {
   it('returns an id the proxy can be addressed with', async () => {
     respondWith(200, { authProxyConfigId: 'cfg-1' })
 
-    const outcome = await outcomeOf(getAuthProxyConfigId(transport()))
+    // Asserts the id itself, not through `endsUsably`: that also accepts a
+    // refusal, which would pass an implementation that refuses valid input.
+    const result = await getAuthProxyConfigId(transport())
 
-    expect(endsUsably(outcome)).toBe(true)
+    expect(result).toMatchObject({ authProxyConfigId: 'cfg-1' })
   })
 
   it('asks for it with a bare GET and no credentials', async () => {

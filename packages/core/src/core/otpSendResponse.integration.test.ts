@@ -203,9 +203,11 @@ describe('otp send: a healthy send', () => {
   it('returns both handle fields to the caller', async () => {
     const { sdk } = await build({ body: SEND_ACCEPTED })
 
-    const outcome = await outcomeOf(sdk.auth(SEND))
+    // Awaited directly, not through `endsUsably`: that also accepts a refusal,
+    // which would pass an implementation that refuses everything.
+    const handle = await sdk.auth(SEND)
 
-    expect(endsUsably(outcome)).toBe(true)
+    expect(carriesTheHandleFields(handle)).toBe(true)
   })
 
   it('asks for the code with only the contact details', async () => {
