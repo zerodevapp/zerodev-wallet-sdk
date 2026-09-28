@@ -44,9 +44,9 @@ path shared with every other spec.
 
 ## Configuring the wallet from the URL
 
-Two things are overridable per URL, on **every route**: the sign-in preset and the email
-delivery flavor. Everything else moved to source or `.env`, because it was never varied
-per test and cost more to explain than it saved.
+Three things are overridable per URL, on **every route**: the sign-in preset, the email
+delivery flavor and the account mode. Everything else moved to source or `.env`, because
+it was never varied per test and cost more to explain than it saved.
 
 ### Params
 
@@ -55,6 +55,7 @@ per test and cost more to explain than it saved.
 | `preset` | `preset-1`｜`preset-2` | `?preset=preset-2` |
 | `authFlavor` | `otp`｜`magicLink` | `?authFlavor=magicLink` |
 | `rpc.<chainId>` | http(s) URL | `?rpc.421614=https://my-rpc.test` |
+| `mode` | `7702`｜`4337`｜`EOA` | `?mode=4337` |
 
 ```
 /tx-signing/signing?preset=preset-1&authFlavor=magicLink
@@ -88,6 +89,11 @@ rather than trusted, and `/config` has a **Clear stored preset** button.
 
 WalletConnect registers whenever `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set, regardless
 of the active preset — it has to, because the connector list is built during SSR. 
+
+`mode` sets the connector's account mode. It defaults to `NEXT_PUBLIC_WALLET_MODE`, or
+`7702` when that is unset or invalid. `4337` makes the connector expose the Kernel
+address instead of the EOA. Like every config change, applying a new mode reloads the
+page and signs you out.
 
 ### Chains
 
@@ -131,6 +137,7 @@ typo'd param would run against defaults while looking like it tested an override
 | Anvil's RPC | `.env` → `NEXT_PUBLIC_ANVIL_URL` | falls back to `http://localhost:18545` |
 | KMS proxy base URL | `.env` → `NEXT_PUBLIC_KMS_PROXY_BASE_URL` | required; the connector asserts it |
 | AA host | `.env` → `NEXT_PUBLIC_ZERODEV_AA_HOST` | optional; unset leaves the SDK default |
+| Wallet mode | `.env` → `NEXT_PUBLIC_WALLET_MODE` | `7702`｜`4337`｜`EOA`; unset or invalid means `7702` |
 | Data API origin | `.env` → `NEXT_PUBLIC_DATA_API_BASE_URL` | Env-only; intentionally not URL-overridable. |
 | Project ids | `.env` → `NEXT_PUBLIC_ZD_PROJECT_ID` / `NEXT_PUBLIC_ZD_OTP_PROJECT_ID` | also feed the default transport URL |
 | WalletConnect | `.env` → `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | unset → no WC connector, preset 2 can't pair |
@@ -174,6 +181,15 @@ none queries every chain and the `chainIds` readout shows the exact value the
 hook received. The buttons are deliberately not filtered by environment, so
 pairing `testnet` with `ethereum` sends a mismatched filter and renders the
 server's 400 `{ error: 'invalid chainIds' }` in the error block.
+
+In `4337` mode, the address shown on the page and sent as `X-Wallet-Address` is
+the Kernel account, not the EOA. The Data API accepts it because it derives the
+same Kernel address from the KMS wallet. Open `/transaction-history?mode=4337`
+to test it; the `transaction-history-mode` chip shows the active mode.
+Connecting in `4337` mode needs a working RPC, because the connector computes the
+counterfactual Kernel address at connect time. The default staging RPC rejects project
+ids it does not know, such as a local one, so pass a per-chain override with the mode,
+for example `?mode=4337&rpc.11155111=<sepolia rpc url>`.
 
 Because everything else derives from `wallet-config.ts`, editing a default there updates
 the app, the `/config` builder and the `/environment` readout together — there is no
@@ -277,6 +293,7 @@ actually running with — not what was inlined at build time.
 | `env-transport-<CHAIN_ID>` | One transport chip; `data-explicit="true"｜"false"` |
 | `env-auth-methods` | Auth method chips container |
 | `env-auth-method-<METHOD>` | One method chip, e.g. `env-auth-method-passkey` |
+| `env-mode-<MODE>` | Wallet mode chip, e.g. `env-mode-4337` |
 
 Each pill also carries `data-pass="true"|"false"`, so assert on that rather than
 the label — the label wording differs per check type (`true`/`false` for

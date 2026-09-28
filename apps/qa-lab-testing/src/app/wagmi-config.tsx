@@ -1,15 +1,9 @@
 'use client'
 
-import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet, zeroDevWalletConnect } from '@zerodev/wallet-react-ui'
 import { type Transport, createConfig, http } from 'wagmi'
 import type { ResolvedWalletConfig } from './lib/config-params'
 import { WALLETCONNECT_PROJECT_ID } from './lib/wallet-config'
-
-// Local testing toggle for the connector's account mode.
-// Set NEXT_PUBLIC_WALLET_MODE to 'EOA' | '4337' | '7702' to override; leave
-// unset for the SDK default ('7702').
-const mode = process.env.NEXT_PUBLIC_WALLET_MODE as WalletMode | undefined
 
 /**
  * Builds a wagmi config from an already-resolved override set.
@@ -41,7 +35,9 @@ export function createWalletConfig(resolved: ResolvedWalletConfig) {
         ...(process.env.NEXT_PUBLIC_ORG_ID && {
           organizationId: process.env.NEXT_PUBLIC_ORG_ID,
         }),
-        ...(mode && { mode }),
+        // Account mode comes from the resolved config (`?mode=`, then
+        // NEXT_PUBLIC_WALLET_MODE, then '7702').
+        mode: resolved.mode,
       }),
       ...(WALLETCONNECT_PROJECT_ID
         ? [zeroDevWalletConnect({ projectId: WALLETCONNECT_PROJECT_ID })]
