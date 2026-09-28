@@ -247,7 +247,7 @@ describe('account handle: it follows the live session token', () => {
     ).resolves.toBe(WALLET_A.address)
   })
 
-  it('still signs when it was built during a refresh', async () => {
+  it('still signs when it was built without awaiting a pending refresh', async () => {
     const { core } = await loggedIn()
 
     const [, account] = await Promise.all([
