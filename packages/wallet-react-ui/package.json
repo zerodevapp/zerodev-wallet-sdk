@@ -89,8 +89,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3",
     "vite": "^6.4.3",
-    "vite-plugin-node-polyfills": "^0.25.0",
-    "vocs": "^1.4.1"
+    "vite-plugin-node-polyfills": "^0.25.0"
   },
   "type": "module"
 }
