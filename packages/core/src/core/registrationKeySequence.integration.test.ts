@@ -27,7 +27,7 @@ function keyStore(): ApiKeyStamper & {
   const promotions: string[] = []
   const stamp = async () => ({
     stampHeaderName: 'X-Stamp',
-    stampHeaderValue: 'stamp',
+    stampHeaderValue: `key:${active}`,
   })
   return {
     stamp,
@@ -43,7 +43,10 @@ function keyStore(): ApiKeyStamper & {
       pending = sessionKey(++minted)
       return pending
     },
-    stampPending: stamp,
+    stampPending: async () => ({
+      stampHeaderName: 'X-Stamp',
+      stampHeaderValue: `key:${pending}`,
+    }),
     signPending: async () => 'sig',
     commitKeyRotation: async () => {
       if (pending) {
@@ -121,6 +124,7 @@ type KmsOptions = {
 
 function stubKms(options: KmsOptions) {
   const paths: string[] = []
+  let loginRequest: { targetPublicKey: string; signedBy: string } | null = null
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -145,6 +149,10 @@ function stubKms(options: KmsOptions) {
         })
       }
       if (path.includes('/auth/login/stamp')) {
+        loginRequest = {
+          targetPublicKey: body.targetPublicKey,
+          signedBy: String(body.stamp?.stampHeaderValue).replace('key:', ''),
+        }
         if (options.failLogin) {
           return json({ error: 'unavailable', message: 'KMS down' }, 503)
         }
@@ -166,6 +174,7 @@ function stubKms(options: KmsOptions) {
   return {
     creates: () => count('/auth/register/passkey'),
     logins: () => count('/auth/login/stamp'),
+    loginRequest: () => loginRequest,
   }
 }
 
@@ -206,6 +215,10 @@ describe('registration: the two-rotation sequence', () => {
     const promoted = w.api.promoted()
     expect(promoted).toHaveLength(2)
     expect(w.api.activeKey()).toBe(promoted[1])
+    expect(w.kms.loginRequest()).toEqual({
+      targetPublicKey: promoted[1],
+      signedBy: promoted[0],
+    })
     await expect(w.core.getSession()).resolves.toMatchObject({
       publicKey: promoted[1],
     })
