@@ -103,25 +103,27 @@ async function buildCore(store: Map<string, string>, activeKey: string | null) {
     rpId: 'localhost',
     sessionStorage: adapterOver(store),
     apiKeyStamper: fakeStamper(activeKey),
-    // A dead address on purpose: a construction-time request would fail loudly
-    // here rather than silently reach real KMS.
-    proxyBaseUrl: 'http://127.0.0.1:1/api/v1',
+    // Reserved TLD, so a construction-time request fails without a socket.
+    proxyBaseUrl: 'https://kms.test.invalid/api/v1',
   })
 }
 
+/** Construction must not reach the network. A pass-through spy lets a request
+ *  out; this refuses it, across every describe rather than the first. */
+let fetchStub: ReturnType<typeof vi.fn>
+
+beforeEach(() => {
+  fetchStub = vi.fn((url: string | URL | Request) => {
+    throw new Error(`unstubbed fetch: ${String(url)}`)
+  })
+  vi.stubGlobal('fetch', fetchStub)
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('core reconciliation on construction: keys agree', () => {
-  let fetchSpy: ReturnType<typeof vi.spyOn>
-
-  beforeEach(() => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch')
-  })
-
-  // Load-bearing: without it the spy outlives this describe and wraps `fetch`
-  // for every later test in the file.
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
   it('keeps the stored session when its bound key matches the live signing key', async () => {
     const stored = session('session_live', KEY_LIVE)
     const store = seededStore(stored)
@@ -142,7 +144,7 @@ describe('core reconciliation on construction: keys agree', () => {
 
     await buildCore(store, KEY_LIVE)
 
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(fetchStub).not.toHaveBeenCalled()
   })
 
   it('tolerates a case- and 0x-prefix difference between the two stores', async () => {

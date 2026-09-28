@@ -16,7 +16,9 @@ import type { Client } from './types.js'
 
 const BASE = 'https://kms.example.invalid/api/v1'
 const CONFIG_ID_URL = `${BASE}/server-info/auth-proxy-id`
-const VERIFY_URL = 'https://authproxy.turnkey.com/v1/otp_verify_v2'
+/** Reserved TLD: the real proxy host must not be reachable from a test. */
+const PROXY_BASE = 'https://authproxy.test.invalid'
+const VERIFY_URL = `${PROXY_BASE}/v1/otp_verify_v2`
 
 const noopStamper: Stamper = {
   stamp: async () => ({
@@ -160,7 +162,10 @@ describe('auth proxy config id: addressing the proxy with a bad one', () => {
   for (const [label, id] of badIds) {
     it(`still spends a proxy round trip when the id is ${label}`, async () => {
       const calls = respondWith(200, { verificationToken: 'vt' })
-      const proxy = createAuthProxyClient({ authProxyConfigId: id as string })
+      const proxy = createAuthProxyClient({
+        authProxyConfigId: id as string,
+        baseUrl: PROXY_BASE,
+      })
 
       await outcomeOf(
         proxy.verifyOtp({ otpId: 'otp-1', encryptedOtpBundle: 'sealed' }),
@@ -175,7 +180,10 @@ describe('auth proxy config id: addressing the proxy with a bad one', () => {
 
   it('sends a usable id through unchanged', async () => {
     const calls = respondWith(200, { verificationToken: 'vt' })
-    const proxy = createAuthProxyClient({ authProxyConfigId: 'cfg-1' })
+    const proxy = createAuthProxyClient({
+      authProxyConfigId: 'cfg-1',
+      baseUrl: PROXY_BASE,
+    })
 
     await proxy.verifyOtp({ otpId: 'otp-1', encryptedOtpBundle: 'sealed' })
 

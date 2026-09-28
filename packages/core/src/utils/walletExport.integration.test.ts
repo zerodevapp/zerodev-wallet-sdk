@@ -55,8 +55,9 @@ const json = (payload: unknown, status = 200) =>
 
 /** Routes by endpoint: `list_wallets` first, then the export submission. */
 function respond(list: () => Response, submit: () => Response) {
-  const fetchMock = vi.fn(async (url: string | URL | Request) =>
-    String(url).includes('list_wallets') ? list() : submit(),
+  const fetchMock = vi.fn(
+    async (url: string | URL | Request, _init?: RequestInit) =>
+      String(url).includes('list_wallets') ? list() : submit(),
   )
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
@@ -66,8 +67,10 @@ const submitted = (fetchMock: ReturnType<typeof respond>) => {
   const call = fetchMock.mock.calls.find((c) =>
     String(c[0]).includes('submit/export'),
   )
-  return JSON.parse(String((call?.[1] as RequestInit | undefined)?.body))
-    .parameters as Record<string, unknown>
+  return JSON.parse(String(call?.[1]?.body)).parameters as Record<
+    string,
+    unknown
+  >
 }
 
 /** A fix may surface the status in the message or on the error; either counts. */

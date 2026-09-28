@@ -8,14 +8,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAuthProxyClient } from './authProxy.js'
 
-const VERIFY_URL = 'https://authproxy.turnkey.com/v1/otp_verify_v2'
+/** Reserved TLD: the real proxy host must not be reachable from a test. */
+const PROXY_BASE = 'https://authproxy.test.invalid'
+const VERIFY_URL = `${PROXY_BASE}/v1/otp_verify_v2`
 const ATTEMPT = { otpId: 'otp-1', encryptedOtpBundle: 'sealed-bundle' }
 
 /** A well-formed verification token: three segments, `id` in the payload. */
 const TOKEN = `hdr.${btoa(JSON.stringify({ id: 'token-1' }))}.sig`
 
 function client() {
-  return createAuthProxyClient({ authProxyConfigId: 'cfg-1' })
+  return createAuthProxyClient({
+    authProxyConfigId: 'cfg-1',
+    baseUrl: PROXY_BASE,
+  })
 }
 
 /**
