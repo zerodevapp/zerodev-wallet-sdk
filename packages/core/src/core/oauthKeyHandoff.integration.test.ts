@@ -133,7 +133,8 @@ function stubKms(options: KmsOptions) {
       }
       if (path.includes('login-url')) {
         loginUrlPubKeys.push(new URL(path).searchParams.get('pub_key'))
-        return json('https://accounts.google.com/o/oauth2/v2/auth?nonce=abc')
+        // Reserved TLD: nothing here should resolve if a fixture is ever followed.
+        return json('https://oauth.provider.test/authorize?nonce=abc')
       }
       if (path.includes('/auth/oauth')) {
         popSignatures.push(String(body.popSignature))
