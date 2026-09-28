@@ -50,10 +50,8 @@ function keyStore(): ApiKeyStamper & {
       requirePending()
       return stamp()
     },
-    signPending: async () => {
-      requirePending()
-      return 'popsig'
-    },
+    signPending: async (payload: string) =>
+      `pop:${requirePending()}:${payload}`,
     commitKeyRotation: async () => {
       active = requirePending()
       pending = null
@@ -118,6 +116,7 @@ type KmsOptions = {
 
 function stubKms(options: KmsOptions) {
   const loginUrlPubKeys: (string | null)[] = []
+  const popSignatures: string[] = []
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -137,6 +136,7 @@ function stubKms(options: KmsOptions) {
         return json('https://accounts.google.com/o/oauth2/v2/auth?nonce=abc')
       }
       if (path.includes('/auth/oauth')) {
+        popSignatures.push(String(body.popSignature))
         const bound = options.bindTo()
         return json({ session: bound ? token(bound) : undefined })
       }
@@ -154,7 +154,7 @@ function stubKms(options: KmsOptions) {
       return json({}, 404)
     }),
   )
-  return { loginUrlPubKeys }
+  return { loginUrlPubKeys, popSignatures }
 }
 
 const build = (api: ApiKeyStamper, adapter: StorageAdapter) =>
@@ -233,6 +233,9 @@ describe('oauth handoff: the key that leaves is the key that returns', () => {
       publicKey: prepared,
     })
     expect(flow.api.activeKey()).toBe(prepared)
+    expect(flow.kms.popSignatures).toEqual([
+      `pop:${prepared}:${oauth.sessionId}`,
+    ])
   })
 
   it('refuses a session bound to a different key and commits nothing', async () => {
