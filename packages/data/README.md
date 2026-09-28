@@ -34,6 +34,9 @@ const firstPage = await getTransactionHistory(config, {
 `useTransactionHistory` reads the active ZeroDev connector's dapp-facing
 account, stamps every page request with its current P-256 session key, and uses
 the opaque `next` cursor for `fetchNextPage`.
+Every request sends that account as `X-Wallet-Address`, and the stamp signs it
+as `walletAddress`. The server accepts it only if it is the KMS wallet or the
+Kernel account derived from it.
 
 ### Filtering by chain
 
