@@ -19,7 +19,7 @@ vi.mock('@zerodev/wallet-react', async (importOriginal) => ({
 import { getTransactionHistory } from './getTransactionHistory.js'
 
 const NOW = 1_787_688_000_000
-const WALLET_ADDRESS = '0x1111111111111111111111111111111111111111'
+const WALLET_ADDRESS = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
 const PROJECT_ID = 'project-alpha'
 const config = createConfig({
   chains: [mainnet],
@@ -76,7 +76,7 @@ describe('getTransactionHistory', () => {
     ).resolves.toEqual({ items: [], next: 'cursor-2' })
 
     expect(stamper.stamp).toHaveBeenCalledWith(
-      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history","ts":1787688000000}',
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history","ts":1787688000000,"walletAddress":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}',
     )
 
     const call = fetchMock.mock.calls[0]
@@ -89,7 +89,7 @@ describe('getTransactionHistory', () => {
     expect(init.body).toBeUndefined()
     const headers = new Headers(init.headers)
     expect(headers.get('X-Project-Id')).toBe(PROJECT_ID)
-    expect(headers.has('X-Wallet-Address')).toBe(false)
+    expect(headers.get('X-Wallet-Address')).toBe(WALLET_ADDRESS)
     expect(headers.get('X-Timestamp')).toBe(String(NOW))
     expect(headers.get('X-Env')).toBeNull()
     expect(headers.get('X-Stamp')).toBe(
@@ -120,6 +120,30 @@ describe('getTransactionHistory', () => {
     expect(new Headers(init.headers).get('X-Env')).toBe('testnet')
   })
 
+  it('sends and signs the connector account on every page', async () => {
+    const first = await getTransactionHistory(config, {
+      baseUrl: 'https://data.example',
+    })
+    await getTransactionHistory(config, {
+      baseUrl: 'https://data.example',
+      ...(first.next === undefined ? {} : { next: first.next }),
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const [secondUrl] = fetchMock.mock.calls[1] ?? []
+    expect(secondUrl.searchParams.get('next')).toBe('cursor-2')
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(new Headers(init.headers).get('X-Wallet-Address')).toBe(
+        WALLET_ADDRESS,
+      )
+    }
+    for (const [payload] of stamper.stamp.mock.calls) {
+      expect(JSON.parse(payload)).toMatchObject({
+        walletAddress: WALLET_ADDRESS,
+      })
+    }
+  })
+
   it('signs the chainIds filter it sends', async () => {
     await getTransactionHistory(config, {
       baseUrl: 'https://data.example',
@@ -127,7 +151,7 @@ describe('getTransactionHistory', () => {
     })
 
     expect(stamper.stamp).toHaveBeenCalledWith(
-      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history?chainIds=ethereum%2Carbitrum","ts":1787688000000}',
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history?chainIds=ethereum%2Carbitrum","ts":1787688000000,"walletAddress":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}',
     )
 
     const [url] = fetchMock.mock.calls[0] ?? []
