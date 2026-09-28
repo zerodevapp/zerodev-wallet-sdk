@@ -440,11 +440,11 @@ importers:
   packages/data:
     dependencies:
       '@zerodev/data-api-contract':
-        specifier: https://pkg.pr.new/@zerodev/data-api-contract@13
-        version: https://pkg.pr.new/@zerodev/data-api-contract@13(zod@4.4.3)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501(zod@4.4.3)
       '@zerodev/data-api-stamp':
-        specifier: https://pkg.pr.new/@zerodev/data-api-stamp@13
-        version: https://pkg.pr.new/@zerodev/data-api-stamp@13(zod@4.4.3)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501(zod@4.4.3)
       '@zerodev/wallet-core':
         specifier: workspace:*
         version: link:../core
@@ -5778,15 +5778,15 @@ packages:
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/@zerodev/data-api-contract@13':
-    resolution: {tarball: https://pkg.pr.new/@zerodev/data-api-contract@13}
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
       zod: ^4.1.0
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/@zerodev/data-api-stamp@13':
-    resolution: {tarball: https://pkg.pr.new/@zerodev/data-api-stamp@13}
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
@@ -19536,11 +19536,11 @@ snapshots:
 
   '@xmldom/xmldom@0.9.10': {}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/@zerodev/data-api-contract@13(zod@4.4.3)':
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501(zod@4.4.3)':
     dependencies:
       zod: 4.4.3
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/@zerodev/data-api-stamp@13(zod@4.4.3)':
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501(zod@4.4.3)':
     dependencies:
       '@noble/curves': 2.2.0
       json-canonicalize: 2.0.0
