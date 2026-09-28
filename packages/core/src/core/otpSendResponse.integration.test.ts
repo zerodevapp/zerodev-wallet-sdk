@@ -96,9 +96,9 @@ type Reply = { body: unknown; status?: number } | { raw: string }
 const SEND_ACCEPTED = { otpId: 'otp-1', otpEncryptionTargetBundle: 'bundle' }
 
 /**
- * The double answers a script and records paths; it branches on nothing. `sent`
- * is the `init/otp` bodies, `paths` every request, so "the auth proxy was never
- * reached" is assertable.
+ * The double answers a script and records paths; it routes by path and decides
+ * nothing. `sent` is the `init/otp` bodies, `paths` every request, so "no request
+ * was made at all" is assertable.
  */
 async function build(initOtp: Reply) {
   const api = keyStore()
@@ -369,7 +369,7 @@ describe('otp verify: an unusable bundle fails closed', () => {
       )
 
       expect(outcome.ok).toBe(false)
-      expect(paths.some((path) => path.includes('authproxy'))).toBe(false)
+      expect(paths).toHaveLength(0)
       expect(api.state().pending).toBeNull()
       await expect(sdk.getAllSessions()).resolves.toEqual({})
     })

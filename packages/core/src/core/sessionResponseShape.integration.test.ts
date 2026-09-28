@@ -275,13 +275,13 @@ describe('session response: refreshSession is the third unguarded path', () => {
   /** Logs in for real, then makes the NEXT session response degenerate. */
   async function loggedInThenDegenerate(degenerate: unknown) {
     let live = false
-    const { core } = await harness((pk) =>
+    const { core, api } = await harness((pk) =>
       live ? degenerate : { session: token(pk) },
     )
     await core.auth(login)
     const before = await core.getSession()
     live = true
-    return { core, before }
+    return { core, api, before }
   }
 
   it.todo(
@@ -299,14 +299,16 @@ describe('session response: refreshSession is the third unguarded path', () => {
 
   it('leaves the existing session usable when the refresh fails', async () => {
     // The healthy half, and worth locking in: a failed refresh must not drop the
-    // user to unauthenticated. The rotation is discarded, so the active key still
-    // matches the session already stored and it keeps working until it expires.
-    const { core, before } = await loggedInThenDegenerate(ABSENT)
+    // user to unauthenticated.
+    const { core, api, before } = await loggedInThenDegenerate(ABSENT)
+    const keyBefore = await api.getPublicKey()
 
     await core.refreshSession().catch(() => {})
 
     const after = await core.getSession()
     expect(after?.token).toBe(before?.token)
+    expect(api.pendingKey()).toBeNull()
+    await expect(api.getPublicKey()).resolves.toBe(keyBefore)
   })
 })
 

@@ -247,10 +247,15 @@ describe('session commit: the control', () => {
     const api = keyStore()
     const { adapter, store } = storage()
 
-    await (await build({ api, adapter })).auth(login)
+    const core = await build({ api, adapter })
+    await core.auth(login)
 
     expect(api.activeKey()).toBe(sessionKey(1))
     expect(store.has(JOURNAL)).toBe(false)
+
+    await expect(core.getSession()).resolves.toMatchObject({
+      publicKey: sessionKey(1),
+    })
   })
 })
 

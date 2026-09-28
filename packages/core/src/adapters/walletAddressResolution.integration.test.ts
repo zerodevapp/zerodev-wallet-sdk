@@ -11,24 +11,40 @@
  * `walletAddresses` is a plural `Hex[]`, and `getUserWallet`'s own docstring
  * shows two entries, but `toViemAccount` takes `[0]`.
  */
-import type { Hex } from 'viem'
+import { type Hex, isAddressEqual, recoverMessageAddress } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, it, vi } from 'vitest'
 import type { ZeroDevWalletClient } from '../client/index.js'
 import { toViemAccount } from './viem.js'
 
-const ADDR_A = '0x1111111111111111111111111111111111111111' as Hex
-const ADDR_B = '0x2222222222222222222222222222222222222222' as Hex
+/** Real keys, so an account built on either address can actually sign:
+ *  `toViemAccount` rejects any signature that does not recover to its wallet. */
+const OWNER_A = privateKeyToAccount(`0x${'11'.repeat(32)}` as Hex)
+const OWNER_B = privateKeyToAccount(`0x${'22'.repeat(32)}` as Hex)
+const ADDR_A = OWNER_A.address
+const ADDR_B = OWNER_B.address
 const ZERO = '0x0000000000000000000000000000000000000000' as Hex
 
-/** A client whose only job is to answer `getUserWallet` however we want. */
+/** A client whose only job is to answer `getUserWallet` however we want, and to
+ *  sign with whichever owner the caller names. */
 function clientReturning(...responses: { walletAddresses: Hex[] }[]) {
   const getUserWallet = vi.fn(async () => {
     const next = responses.length > 1 ? responses.shift() : responses[0]
     return next as { walletAddresses: Hex[] }
   })
+  const signMessage = vi.fn(
+    async ({ address, message }: { address: Hex; message: string }) => {
+      const owner = [OWNER_A, OWNER_B].find((o) =>
+        isAddressEqual(o.address, address),
+      )
+      if (!owner) throw new Error(`No key for ${address}`)
+      return owner.signMessage({ message })
+    },
+  )
   return {
-    client: { getUserWallet } as unknown as ZeroDevWalletClient,
+    client: { getUserWallet, signMessage } as unknown as ZeroDevWalletClient,
     getUserWallet,
+    signMessage,
   }
 }
 
@@ -161,23 +177,24 @@ describe('wallet address resolution: the response shape itself', () => {
 })
 
 describe('wallet address resolution: ambiguity a user can actually hit', () => {
-  it('builds a fully usable account for EITHER address, so a dropped entry is a real wallet', async () => {
-    const accountA = await buildAccount(
-      clientReturning({ walletAddresses: [ADDR_A] }).client,
-    )
-    const accountB = await buildAccount(
-      clientReturning({ walletAddresses: [ADDR_B] }).client,
-    )
+  it('drops the second address, and that dropped entry is a wallet that signs', async () => {
+    // The ambiguity itself: KMS answers with BOTH, `toViemAccount` takes `[0]`.
+    const both = clientReturning({ walletAddresses: [ADDR_A, ADDR_B] })
+    const chosen = await buildAccount(both.client)
+    expect(chosen.address).toBe(ADDR_A)
 
-    expect(accountA.address).toBe(ADDR_A)
-    expect(accountB.address).toBe(ADDR_B)
-    expect(accountA.address).not.toBe(accountB.address)
-    for (const account of [accountA, accountB]) {
-      expect(account.type).toBe('local')
-      expect(typeof account.signMessage).toBe('function')
-      expect(typeof account.signTransaction).toBe('function')
-      expect(typeof account.signTypedData).toBe('function')
-    }
+    const b = clientReturning({ walletAddresses: [ADDR_B] })
+    const dropped = await buildAccount(b.client)
+
+    expect(dropped.address).toBe(ADDR_B)
+    expect(dropped.type).toBe('local')
+    const signature = await dropped.signMessage({ message: 'hello' })
+    await expect(
+      recoverMessageAddress({ message: 'hello', signature }),
+    ).resolves.toBe(ADDR_B)
+    expect(b.signMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ address: ADDR_B }),
+    )
   })
 
   it('reflects a changed wallet address rather than reusing the first answer', async () => {
