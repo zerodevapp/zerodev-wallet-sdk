@@ -15,7 +15,8 @@
       "**/*.json",
       "**/*.jsonc",
       "!apps/zerodev-signer-demo",
-      "!apps/qa-lab-testing"
+      "!apps/qa-lab-testing",
+      "!**/next-env.d.ts"
     ],
     "experimentalScannerIgnores": [
       "**/dist/**",
