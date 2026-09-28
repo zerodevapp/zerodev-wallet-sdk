@@ -19,6 +19,7 @@ export type DataApiGetParameters = {
   query: Record<string, string>
   signal?: AbortSignal
   stamper: Pick<ApiKeyStamper, 'stamp'>
+  walletAddress: string
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -69,6 +70,7 @@ export async function requestDataApiGet(
     projectId: parameters.projectId,
     environment: parameters.environment,
     ts,
+    walletAddress: parameters.walletAddress,
   })
   const url = new URL(requestTarget, baseUrl)
   const stamp = await parameters.stamper.stamp(payload)
@@ -77,6 +79,7 @@ export async function requestDataApiGet(
   const contractHeaders = {
     'x-project-id': parameters.projectId,
     'x-timestamp': String(ts),
+    'x-wallet-address': parameters.walletAddress,
     ...(parameters.environment === 'testnet'
       ? { 'x-env': 'testnet' as const }
       : {}),
