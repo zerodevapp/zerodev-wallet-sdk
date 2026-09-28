@@ -18,7 +18,8 @@ const TRANSACTION_HISTORY_PATH = '/v1/me/transaction-history'
 
 /**
  * Fetch one page for the account that the connector exposes to the dapp
- * (Kernel in 4337 mode, EOA in 7702/EOA mode).
+ * (Kernel in 4337 mode, EOA in 7702/EOA mode). That account is also the
+ * signed `X-Wallet-Address` header.
  */
 export async function getTransactionHistory(
   config: Config,
@@ -48,6 +49,7 @@ export async function getTransactionHistory(
     projectId,
     query,
     stamper: wallet.client.apiKeyStamper,
+    walletAddress: accounts[0],
     ...(parameters.signal === undefined ? {} : { signal: parameters.signal }),
   })
 
