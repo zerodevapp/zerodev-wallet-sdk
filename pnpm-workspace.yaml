@@ -30,9 +30,6 @@ auditConfig:
     # @metamask/utils (uuid ^9) — even their latest releases still pin them.
     # Not exploitable here: requires the caller to pass `buf`, these parents don't.
     - GHSA-w5hq-g745-h8pq
-    # postcss <8.5.10 XSS via unescaped </style> (moderate). next hard-pins
-    # postcss@8.4.31 in every 15.5.x release; build-time only, processes our own CSS.
-    - GHSA-qx2v-qp2m-jg93
     # elliptic risky crypto primitive (low). No patched release exists (advisory has
     # no fix version). Dev-only path: wallet-react-ui docs/build via
     # vite-plugin-node-polyfills -> crypto-browserify.

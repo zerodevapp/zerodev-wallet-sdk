@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-ui exec vite build --watch & (sleep 2 && open http://localhost:3000) & pnpm --filter @zerodev/signer-demo dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
@@ -22,7 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",
-    "next": "15.5.26",
+    "next": "16.3.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.68.0",
