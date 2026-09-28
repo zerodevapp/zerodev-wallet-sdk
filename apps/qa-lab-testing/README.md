@@ -60,6 +60,7 @@ A bad value can't stick around, and one test can't contaminate the next.
 | `rpc.<chainId>` | http(s) URL | `?rpc.421614=https://my-rpc.test` |
 | `authMethods` | csv of `email`｜`google`｜`passkey` | `?authMethods=email,passkey` |
 | `emailAuth` | `otp`｜`magicLink` | `?emailAuth=magicLink` |
+| `mode` | `7702`｜`4337`｜`EOA` | `?mode=4337` |
 
 Anything absent falls back to the values in `lib/wallet-config.ts` — i.e. exactly what
 the app runs with today. Combine freely:
@@ -67,6 +68,11 @@ the app runs with today. Combine freely:
 ```
 /tx-signing/signing?chains=421614&emailAuth=magicLink&authMethods=email,passkey
 ```
+
+`mode` sets the connector's account mode. It defaults to `NEXT_PUBLIC_WALLET_MODE`, or
+`7702` when that is unset or invalid. `4337` makes the connector expose the Kernel
+address instead of the EOA. Like every config change, applying a new mode reloads the
+page and signs you out.
 
 ### Chains
 
@@ -121,6 +127,7 @@ edit the source of that default:
 | Anvil's RPC | `src/app/lib/wallet-config.ts` → `ANVIL_RPC_URL` | |
 | KMS proxy base URL | `.env` → `NEXT_PUBLIC_KMS_PROXY_BASE_URL` | |
 | AA host | `.env` → `NEXT_PUBLIC_ZERODEV_AA_HOST` | |
+| Wallet mode | `.env` → `NEXT_PUBLIC_WALLET_MODE` | `7702`｜`4337`｜`EOA`; unset or invalid means `7702` |
 | Data API origin | `.env` → `NEXT_PUBLIC_DATA_API_BASE_URL` | Env-only; intentionally not URL-overridable. |
 | Project id | `.env` → `NEXT_PUBLIC_ZD_PROJECT_ID` / `NEXT_PUBLIC_ZD_OTP_PROJECT_ID` | also feeds the default transport URL |
 | Arb-Sepolia / Sepolia RPC | `.env` → `NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL`, `NEXT_PUBLIC_SEPOLIA_RPC_URL` | these win over the default template |
@@ -164,6 +171,15 @@ none queries every chain and the `chainIds` readout shows the exact value the
 hook received. The buttons are deliberately not filtered by environment, so
 pairing `testnet` with `ethereum` sends a mismatched filter and renders the
 server's 400 `{ error: 'invalid chainIds' }` in the error block.
+
+In `4337` mode, the address shown on the page and sent as `X-Wallet-Address` is
+the Kernel account, not the EOA. The Data API accepts it because it derives the
+same Kernel address from the KMS wallet. Open `/transaction-history?mode=4337`
+to test it; the `transaction-history-mode` chip shows the active mode.
+Connecting in `4337` mode needs a working RPC, because the connector computes the
+counterfactual Kernel address at connect time. The default staging RPC rejects project
+ids it does not know, such as a local one, so pass a per-chain override with the mode,
+for example `?mode=4337&chains=11155111&rpc.11155111=<sepolia rpc url>`.
 
 Because everything else derives from `wallet-config.ts`, editing a default there updates
 the app, the `/config` builder and the `/environment` readout together — there is no
@@ -267,6 +283,7 @@ actually running with — not what was inlined at build time.
 | `env-transport-<CHAIN_ID>` | One transport chip; `data-explicit="true"｜"false"` |
 | `env-auth-methods` | Auth method chips container |
 | `env-auth-method-<METHOD>` | One method chip, e.g. `env-auth-method-passkey` |
+| `env-mode-<MODE>` | Wallet mode chip, e.g. `env-mode-4337` |
 
 Each pill also carries `data-pass="true"|"false"`, so assert on that rather than
 the label — the label wording differs per check type (`true`/`false` for

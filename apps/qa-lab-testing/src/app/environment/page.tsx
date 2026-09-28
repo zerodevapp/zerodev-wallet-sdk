@@ -264,6 +264,14 @@ export default async function EnvironmentPage({
             </ConfigRow>
 
             <ConfigRow
+              id="mode"
+              label="wallet mode"
+              overridden={isOverridden(PARAM.mode)}
+            >
+              <Chip testId={`env-mode-${resolved.mode}`}>{resolved.mode}</Chip>
+            </ConfigRow>
+
+            <ConfigRow
               id="kms"
               label="kms proxy base url"
               overridden={isOverridden(PARAM.kms)}
