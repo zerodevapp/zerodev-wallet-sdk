@@ -9,6 +9,7 @@ import {
   type DataApiEnvironment,
   useTransactionHistory,
 } from "@zerodev/wallet-data";
+import type { WalletMode } from "@zerodev/wallet-react";
 import { useAccount } from "wagmi";
 import { useResolvedConfig } from "../../lib/use-wallet-config";
 import { cn } from "../../lib/utils";
@@ -55,7 +56,13 @@ function ErrorDetails({ error }: { error: Error }) {
   );
 }
 
-function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
+function ConfiguredTransactionHistoryPanel({
+  baseUrl,
+  mode,
+}: {
+  baseUrl: string;
+  mode: WalletMode;
+}) {
   const [environment, setEnvironment] =
     useState<DataApiEnvironment>("mainnet");
   const [selectedChainIds, setSelectedChainIds] = useState<
@@ -164,7 +171,15 @@ function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
             </dd>
           </div>
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-            <dt className="text-xs font-semibold text-gray-500">Dapp account</dt>
+            <dt className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+              Dapp account
+              <span
+                className="rounded-full border border-gray-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-gray-700"
+                data-testid="transaction-history-mode"
+              >
+                {mode}
+              </span>
+            </dt>
             <dd
               className="mt-1 break-all font-mono text-xs text-gray-800"
               data-testid="transaction-history-address"
@@ -268,7 +283,7 @@ function ConfiguredTransactionHistoryPanel({ baseUrl }: { baseUrl: string }) {
 }
 
 export function TransactionHistoryPanel() {
-  const { dataApiBaseUrl } = useResolvedConfig();
+  const { dataApiBaseUrl, mode } = useResolvedConfig();
 
   if (!dataApiBaseUrl) {
     return (
@@ -282,5 +297,7 @@ export function TransactionHistoryPanel() {
     );
   }
 
-  return <ConfiguredTransactionHistoryPanel baseUrl={dataApiBaseUrl} />;
+  return (
+    <ConfiguredTransactionHistoryPanel baseUrl={dataApiBaseUrl} mode={mode} />
+  );
 }
