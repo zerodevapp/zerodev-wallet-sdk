@@ -120,10 +120,16 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
-  integration-test:
-    name: Integration Tests
+  backend-e2e-test:
+    name: Backend E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Needs the staging secrets, so skip wherever they are unavailable:
+    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
+    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository
+       && github.actor != 'dependabot[bot]')
     needs: [build]
     concurrency:
       group: integration-tests-staging
@@ -144,8 +150,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run integration tests
-        run: pnpm test:integration
+      - name: Run backend e2e tests
+        run: pnpm test:e2e:backend
         env:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
@@ -153,7 +159,13 @@ jobs:
   e2e-test:
     name: Browser E2E Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Needs the staging secrets, so skip wherever they are unavailable:
+    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
+    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository
+       && github.actor != 'dependabot[bot]')
     needs: [build]
     concurrency:
       group: e2e-tests-staging
@@ -220,3 +232,28 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    # No `if:` guard and no `env:` secrets, deliberately: the integration layer
+    # is in-process and must never need a live service. If a test here ever
+    # needs a secret, it belongs in e2e/backend instead.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests
+        run: pnpm test:integration
