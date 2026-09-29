@@ -7,8 +7,8 @@ export type Sign7702AuthorizationParameters = {
   organizationId: string
   /** The project ID for the request */
   projectId: string
-  /** The session token for authorization */
-  token: string
+  /** The session token, required when stamping with a session key. Omit when the stamper is an API key, such as a server wallet's agent key. */
+  token?: string
   /** The address to sign with */
   address: Hex
   /** The hex-encoded EIP-7702 authorization to be signed (without 0x prefix) */

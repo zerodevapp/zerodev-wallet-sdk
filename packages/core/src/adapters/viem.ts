@@ -26,27 +26,40 @@ import type {
 } from 'viem/accounts'
 import { toAccount } from 'viem/accounts'
 import { hashAuthorization } from 'viem/utils'
+import type { ServerWalletClient } from '../client/createServerWalletClient.js'
 import type { ZeroDevWalletClient } from '../client/index.js'
 
 export interface ToViemAccountParams {
-  client: ZeroDevWalletClient
+  client: ZeroDevWalletClient | ServerWalletClient
   organizationId: string
   projectId: string
-  getToken: () => string | Promise<string>
+  /** Returns the session token. Omit for a server wallet client, which stamps with its agent key. */
+  getToken?: () => string | Promise<string>
+  /** The wallet address. Skips the wallet lookup; required for a client without `getUserWallet`. */
+  address?: Hex
 }
 
 export async function toViemAccount(
   params: ToViemAccountParams,
 ): Promise<LocalAccount> {
   const { client, organizationId, projectId, getToken } = params
-  const token = await getToken()
+  const sessionFields = async () =>
+    getToken ? { token: await getToken() } : {}
 
-  const walletResponse = await client.getUserWallet({
-    organizationId,
-    projectId,
-    token,
-  })
-  const address = walletResponse.walletAddresses[0]
+  const fetchWalletAddress = async () => {
+    if (!('getUserWallet' in client) || !getToken) {
+      throw new Error(
+        'Cannot build account: pass `address` for a client without getUserWallet or a session.',
+      )
+    }
+    const walletResponse = await client.getUserWallet({
+      organizationId,
+      projectId,
+      token: await getToken(),
+    })
+    return walletResponse.walletAddresses[0]
+  }
+  const address = params.address ?? (await fetchWalletAddress())
   if (
     !address ||
     !isAddress(address, { strict: false }) ||
@@ -85,7 +98,7 @@ export async function toViemAccount(
     const signature = await client.signTransaction({
       organizationId,
       projectId,
-      token: await getToken(),
+      ...(await sessionFields()),
       address,
       unsignedTransaction: nonHexPrefixedSerializedTx,
     })
@@ -105,7 +118,7 @@ export async function toViemAccount(
         const signature = await client.signMessage({
           organizationId,
           projectId,
-          token: await getToken(),
+          ...(await sessionFields()),
           address,
           message,
           encoding: 'utf8',
@@ -121,7 +134,7 @@ export async function toViemAccount(
       const signature = await client.signMessage({
         organizationId,
         projectId,
-        token: await getToken(),
+        ...(await sessionFields()),
         address,
         message: raw,
         encoding: 'hex',
@@ -168,7 +181,7 @@ export async function toViemAccount(
       const signature = await client.signTypedDataV4({
         organizationId,
         projectId,
-        token: await getToken(),
+        ...(await sessionFields()),
         address,
         unsignedTypedDataV4: serializedTypedData,
         encoding: 'utf8',
@@ -207,7 +220,7 @@ export async function toViemAccount(
       const signature = await client.sign7702Authorization({
         organizationId,
         projectId,
-        token: await getToken(),
+        ...(await sessionFields()),
         address,
         unsignedTransaction,
         hashedAuthorization: hashedAuthorization.slice(2),
