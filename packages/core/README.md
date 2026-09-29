@@ -332,8 +332,7 @@ A server process that holds an agent key talks to a wallet set through the
 `@zerodev/wallet-core/server` entry.
 ```ts
 import {
-  createPrivateKeyStamper,
-  createServerWalletClient,
+  createZeroDevServerWallet,
   generateP256KeyPair,
 } from '@zerodev/wallet-core/server'
 
@@ -342,7 +341,8 @@ import {
 const { publicKey, privateKey } = generateP256KeyPair()
 
 // At runtime
-const client = createServerWalletClient({
+const wallet = createZeroDevServerWallet({
+  projectId,
   organizationId: WALLET_SET_SUB_ORG_ID,
   privateKey: process.env.AGENT_PRIVATE_KEY,
   // Defaults to production. Set to point at another KMS deployment.
@@ -352,14 +352,15 @@ const client = createServerWalletClient({
   fetchOptions: { headers: { Origin: 'https://your-app.example' } },
 })
 
-const { walletAddress } = await client.createServerWallet({ projectId })
-const signature = await client.signMessage({
-  projectId,
-  address: walletAddress,
-  message: 'Hello World!',
-  encoding: 'utf8',
-})
+const { walletAddress } = await wallet.createWallet()
+
+const account = await wallet.toAccount({ address: walletAddress })
+const signature = await account.signMessage({ message: 'Hello World!' })
 ```
+
+`wallet.client` is the underlying `createServerWalletClient` client with the
+raw actions the account is built on: `createServerWallet`, `signMessage`,
+`signTransaction`, `signTypedDataV4`.
 
 ## TypeScript Types
 

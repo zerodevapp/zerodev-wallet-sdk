@@ -1,17 +1,17 @@
-import { createBaseClient } from '../client/createClient.js'
-import {
-  type ServerWalletActions,
-  serverWalletActions,
-} from '../client/decorators/serverWallet.js'
-import {
-  type CreateTransportOptions,
-  zeroDevWalletTransport,
-} from '../client/transports/createTransport.js'
-import type { Client } from '../client/types.js'
 import { KMS_SERVER_URL } from '../constants.js'
 import { createNoopPasskeyStamper } from '../stampers/noopPasskeyStamper.js'
 import { createPrivateKeyStamper } from '../stampers/privateKeyStamper.js'
 import type { SigningStamper } from '../stampers/types.js'
+import { createBaseClient } from './createClient.js'
+import {
+  type ServerWalletActions,
+  serverWalletActions,
+} from './decorators/serverWallet.js'
+import {
+  type CreateTransportOptions,
+  zeroDevWalletTransport,
+} from './transports/createTransport.js'
+import type { Client } from './types.js'
 
 export type ServerWalletClient = Client<ServerWalletActions, SigningStamper>
 

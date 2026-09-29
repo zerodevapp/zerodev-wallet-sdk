@@ -18,8 +18,3 @@ export {
   type SignTypedDataV4ReturnType,
   signTypedDataV4,
 } from './signTypedDataV4.js'
-export {
-  type SignUserOperationParameters,
-  type SignUserOperationReturnType,
-  signUserOperation,
-} from './signUserOperation.js'
