@@ -8,20 +8,19 @@ import {
   type SignTransactionReturnType,
   type SignTypedDataV4Parameters,
   type SignTypedDataV4ReturnType,
-  type SignUserOperationParameters,
-  type SignUserOperationReturnType,
   signMessage,
   signTransaction,
   signTypedDataV4,
-  signUserOperation,
 } from '../../actions/serverWallet/index.js'
+import type { Sign7702AuthorizationParameters } from '../../actions/wallet/index.js'
 import type { SigningStamper } from '../../stampers/types.js'
 import type { Client } from '../types.js'
 
 /**
  * Everything an agent key can do against a wallet set. The KMS checks the
- * key's roles (`create`, `sign`) per route; the client binds all five and
- * lets a 403 report a missing role.
+ * key's roles (`create`, `sign`) per route; the client binds all four and
+ * lets a 403 report a missing role. The sign actions are the ones the viem
+ * adapter needs; a user operation is signed through the account's `signMessage`.
  */
 export type ServerWalletActions = {
   /** Creates a wallet in the wallet set. Role: `create`. */
@@ -42,10 +41,11 @@ export type ServerWalletActions = {
     params: SignTypedDataV4Parameters,
   ) => Promise<SignTypedDataV4ReturnType>
 
-  /** Signs a user operation. Role: `sign`. */
-  signUserOperation: (
-    params: SignUserOperationParameters,
-  ) => Promise<SignUserOperationReturnType>
+  // TODO: sign through the KMS once it has an agent route for EIP-7702
+  // authorizations.
+  sign7702Authorization: (
+    params: Sign7702AuthorizationParameters,
+  ) => Promise<never>
 }
 
 export function serverWalletActions(
@@ -56,6 +56,8 @@ export function serverWalletActions(
     signMessage: (params) => signMessage(client, params),
     signTransaction: (params) => signTransaction(client, params),
     signTypedDataV4: (params) => signTypedDataV4(client, params),
-    signUserOperation: (params) => signUserOperation(client, params),
+    sign7702Authorization: async () => {
+      throw new Error('Server wallets cannot sign EIP-7702 authorizations.')
+    },
   }
 }

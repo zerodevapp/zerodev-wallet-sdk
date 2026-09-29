@@ -66,7 +66,7 @@ export async function sendSigningRequest(
   client: Client<undefined, SigningStamper>,
   params: {
     projectId: string
-    token?: string
+    token?: string | undefined
     path: string
     turnkeyPayload: TurnkeyPayload
     bodyFields: Record<string, unknown>
