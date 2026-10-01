@@ -1,12 +1,13 @@
 'use client'
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
-import {ConnectWallet, SignUp, useAuth} from '@zerodev/wallet-react-ui'
+import {ConnectWallet, SignUp, useAuth, useSolanaAccount} from '@zerodev/wallet-react-ui'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
 import {useRouter} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
+import { SolanaAccountStrip } from './components/SolanaAccountStrip'
 import { Playground } from './components/playground/Playground'
 import {
   DEFAULT_ITEMS,
@@ -46,11 +47,16 @@ function LandingPageInner() {
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
+  // Solana PoC: a connected Solana wallet is a login too — the dashboard
+  // renders a Solana-only state when the EVM side is signed out.
+  const solana = useSolanaAccount()
+  const solanaConnected = solana.isConnected
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
   // loading screen so the page doesn't sit blank and then jump.
-  const isRedirecting = isConnected || authStep === 'authenticated'
+  const isRedirecting =
+    isConnected || solanaConnected || authStep === 'authenticated'
   // wagmi failed to (re)connect — offer a manual Reconnect instead of a
   // misleading CTA.
   const showReconnect =
@@ -77,7 +83,7 @@ function LandingPageInner() {
   }, [])
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected || solanaConnected) {
       router.push('/dashboard')
       return
     }
@@ -90,6 +96,7 @@ function LandingPageInner() {
     }
   }, [
     isConnected,
+    solanaConnected,
     accountStatus,
     connectStatus,
     router,
@@ -141,6 +148,12 @@ function LandingPageInner() {
         </section>
 
         <div className="mx-auto flex w-full flex-col items-center lg:mx-0">
+          {/* Solana PoC: the Solana slot is independent of the wagmi gate, so a
+              connected Solana wallet shows here while the EVM side is signed
+              out. */}
+          <div className="mb-4 w-full max-w-[360px]">
+            <SolanaAccountStrip />
+          </div>
           {showReconnect ? (
             <div className="flex h-[729px] w-[360px] items-center justify-center">
               <button
@@ -226,6 +239,7 @@ function renderSignUpItem(item: PlaygroundItem) {
           key={item.key}
           excludeWalletIds={parseExcludeIds(item.exclude)}
           {...(item.maxWallets !== null && { maxWallets: item.maxWallets })}
+          {...(item.solana && { namespaces: ['eip155', 'solana'] as const })}
         />
       )
     case 'moreWallets':

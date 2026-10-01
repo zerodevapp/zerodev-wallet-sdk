@@ -12,6 +12,7 @@ import { SignUpGoogle } from './Google'
 import { SignUpInstalledWallets } from './InstalledWallets'
 import { SignUpMoreWallets } from './MoreWallets'
 import { SignUpPasskey } from './Passkey'
+import { SignUpSolanaWallets } from './SolanaWallets'
 import { SignUpWallet } from './Wallet'
 import { SignUpWalletConnect } from './WalletConnect'
 
@@ -190,6 +191,7 @@ export const SignUp = Object.assign(SignUpRoot, {
   Wallet: SignUpWallet,
   WalletConnect: SignUpWalletConnect,
   InstalledWallets: SignUpInstalledWallets,
+  SolanaWallets: SignUpSolanaWallets,
   MoreWallets: SignUpMoreWallets,
   Divider: SignUpDivider,
 })

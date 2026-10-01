@@ -10,6 +10,7 @@ import { pickConfigParams, resolveWalletConfig } from '../lib/config-params'
 import { useAuthPreset } from '../lib/use-auth-preset'
 import { AUTH_PRESETS, type AuthUnitId } from '../lib/wallet-config'
 import { AppHeader } from './AppHeader'
+import { SolanaAccountStrip } from './SolanaAccountStrip'
 
 /**
  * Which units a preset renders, and in what order,
@@ -102,6 +103,12 @@ export function LoginScreen() {
             <p className="mb-6 text-center text-sm font-semibold uppercase tracking-[0.22em] text-[#9c958c]">
               Sign in to open the QA Lab
             </p>
+            {/* Solana PoC: the Solana slot is independent of the wagmi gate
+                below, so a connected Solana wallet shows here while the EVM
+                side is still signed out. */}
+            <div className="mb-4 w-full max-w-md">
+              <SolanaAccountStrip />
+            </div>
             <ConnectWallet
               size="md"
               logo={
@@ -116,6 +123,11 @@ export function LoginScreen() {
                   {AUTH_PRESETS[preset].units.map((id) => (
                     <Fragment key={id}>{UNIT_BY_ID[id]()}</Fragment>
                   ))}
+                  {/* Solana PoC: installed Solana wallets (Phantom, Solflare,
+                      Backpack) via the Wallet Standard. Renders nothing when
+                      none is installed. */}
+                  <SignUp.Divider label="or a Solana wallet" />
+                  <SignUp.SolanaWallets />
                 </SignUp>
               )}
             />
