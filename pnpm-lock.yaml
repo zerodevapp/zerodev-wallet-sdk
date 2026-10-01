@@ -440,11 +440,11 @@ importers:
   packages/data:
     dependencies:
       '@zerodev/data-api-contract':
-        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501
-        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501(zod@4.4.3)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@c813b3a
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@c813b3a(zod@4.4.3)
       '@zerodev/data-api-stamp':
-        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501
-        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501(zod@4.4.3)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@c813b3a
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@c813b3a(zod@4.4.3)
       '@zerodev/wallet-core':
         specifier: workspace:*
         version: link:../core
@@ -4515,6 +4515,7 @@ packages:
   '@safe-global/safe-gateway-typescript-sdk@3.23.1':
     resolution: {integrity: sha512-6ORQfwtEJYpalCeVO21L4XXGSdbEMfyp2hEv6cP82afKXSwvse6d3sdelgaPWUxHIsFRkWvHDdzh8IyyKHZKxw==}
     engines: {node: '>=16'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
@@ -5778,15 +5779,15 @@ packages:
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501':
-    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501}
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@c813b3a':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@c813b3a}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
       zod: ^4.1.0
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501':
-    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501}
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@c813b3a':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@c813b3a}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
@@ -11860,24 +11861,6 @@ packages:
 
   zustand@5.0.0:
     resolution: {integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      '@types/react': '>=18.0.0'
-      immer: '>=9.0.6'
-      react: '>=18.0.0'
-      use-sync-external-store: '>=1.2.0'
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      immer:
-        optional: true
-      react:
-        optional: true
-      use-sync-external-store:
-        optional: true
-
-  zustand@5.0.12:
-    resolution: {integrity: sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=18.0.0'
@@ -19536,11 +19519,11 @@ snapshots:
 
   '@xmldom/xmldom@0.9.10': {}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501(zod@4.4.3)':
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@c813b3a(zod@4.4.3)':
     dependencies:
       zod: 4.4.3
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501(zod@4.4.3)':
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@c813b3a(zod@4.4.3)':
     dependencies:
       '@noble/curves': 2.2.0
       json-canonicalize: 2.0.0
@@ -25178,7 +25161,7 @@ snapshots:
       ox: 0.9.17(typescript@5.9.3)(zod@4.4.3)
       viem: 2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
       zod: 4.4.3
-      zustand: 5.0.12(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
+      zustand: 5.0.14(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     optionalDependencies:
       '@tanstack/react-query': 5.101.2(react@19.2.3)
       expo-web-browser: 56.0.5(expo@56.0.15)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10))
@@ -25201,7 +25184,7 @@ snapshots:
       ox: 0.9.17(typescript@5.9.3)(zod@4.4.3)
       viem: 2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
       zod: 4.4.3
-      zustand: 5.0.12(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
+      zustand: 5.0.14(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     optionalDependencies:
       '@tanstack/react-query': 5.101.2(react@19.2.3)
       expo-web-browser: 56.0.5(expo@56.0.15)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10))
@@ -27921,13 +27904,6 @@ snapshots:
       '@types/react': 19.2.17
       react: 19.2.3
       use-sync-external-store: 1.6.0(react@19.2.3)
-
-  zustand@5.0.12(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)):
-    optionalDependencies:
-      '@types/react': 19.2.17
-      react: 19.2.3
-      use-sync-external-store: 1.6.0(react@19.2.3)
-    optional: true
 
   zustand@5.0.14(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)):
     optionalDependencies:
