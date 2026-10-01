@@ -79,7 +79,7 @@ describe('toTxHistoryEntry', () => {
       title: 'Sent USDC',
       value: '25 USDC',
       status: 'Success',
-      timestamp: sendTx.timestamp * 1000,
+      timestampMs: sendTx.timestamp * 1000,
       transaction: sendTx,
     })
     expect(toTxHistoryEntry(receiveTx)?.value).toBe('0.5 ETH')
@@ -142,7 +142,7 @@ describe('toTxHistoryEntry', () => {
       title: 'Unknown transaction',
       chain: unparsedWithTimestamp.chain,
       status: 'Unknown',
-      timestamp: (unparsedWithTimestamp.timestamp ?? 0) * 1000,
+      timestampMs: (unparsedWithTimestamp.timestamp ?? 0) * 1000,
     })
   })
 

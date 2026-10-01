@@ -15,7 +15,7 @@ function entry(id: string, timestamp: number): TxHistoryEntry {
     value: '1 ETH',
     chain: { name: 'Arbitrum One' },
     status: 'Success',
-    timestamp,
+    timestampMs: timestamp,
   }
 }
 
