@@ -2,7 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { TxHistory } from "@zerodev/wallet-react-ui";
+import {
+  ConnectWallet,
+  SignUp,
+  TxHistory,
+  useAuth,
+  useSolanaAccount,
+  useSolanaAutoReconnect,
+} from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
@@ -20,9 +27,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useAccount, useConnect, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
+import { SolanaAccountStrip } from "../components/SolanaAccountStrip";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
@@ -119,6 +127,26 @@ export default function DashboardPage() {
   const { address, status, chain, } = useAccount();
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
+  // Solana PoC: one Logout clears both namespaces, and a connected Solana
+  // wallet keeps the dashboard open with a Solana-only view when the EVM side
+  // is signed out.
+  const solana = useSolanaAccount();
+  const { disconnect: disconnectSolana } = solana;
+  const solanaConnected = solana.isConnected;
+  useSolanaAutoReconnect();
+  // Solana-only state: let the user add an EVM wallet from the dashboard. The
+  // kit connector's connect() opens the sign-up flow (passkey, Google, email,
+  // installed EVM wallets); an external wallet picked there connects through
+  // wagmi and the full dashboard takes over.
+  const { connect: connectEvm, connectors } = useConnect();
+  const { step: authStep } = useAuth();
+  const [evmConnectRequested, setEvmConnectRequested] = useState(false);
+  const openEvmConnect = () => {
+    const kitConnector = connectors.find((c) => c.id === "zerodev-wallet");
+    if (!kitConnector) return;
+    setEvmConnectRequested(true);
+    connectEvm({ connector: kitConnector });
+  };
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
   const authMethodLabel = formatAuthMethod(authenticatorData);
   const walletExplorerUrl =
@@ -200,7 +228,7 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await logout();
+      await Promise.allSettled([logout(), disconnectSolana()]);
     } finally {
       localStorage.setItem("zd:loggedOut", "true");
       window.location.assign("/");
@@ -216,14 +244,14 @@ export default function DashboardPage() {
     }
   }, [status]);
   useEffect(() => {
-    if (status === 'disconnected' && hasConnected) {
+    if (status === 'disconnected' && hasConnected && !solanaConnected) {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
       router.replace(loggedOut ? "/" : "/?session_expired=true");
     }
-  }, [status, hasConnected, router]);
+  }, [status, hasConnected, solanaConnected, router]);
 
   useEffect(() => {
-    if (status !== 'disconnected' || isLoggingOut) return;
+    if (status !== 'disconnected' || isLoggingOut || solanaConnected) return;
 
     const timeout = window.setTimeout(() => {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
@@ -231,7 +259,79 @@ export default function DashboardPage() {
     }, 750);
 
     return () => window.clearTimeout(timeout);
-  }, [status, isLoggingOut]);
+  }, [status, isLoggingOut, solanaConnected]);
+
+  // Solana PoC: no EVM session, but a Solana wallet is connected. The EVM
+  // features below need an EVM account, so show the Solana side on its own.
+  // Stays mounted while an EVM connect is in flight (`connecting`): the
+  // sign-up overlay that completes it lives here.
+  if (
+    !isLoggingOut &&
+    !address &&
+    solanaConnected &&
+    (status === 'disconnected' || status === 'connecting')
+  ) {
+    return (
+      <div className="min-h-screen">
+        <AppHeader />
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="mb-4 sm:mb-6">
+            <SolanaAccountStrip showDisconnect={false} />
+          </div>
+          <div className="rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:p-5 lg:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-[var(--ink)]" />
+                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">
+                  Signed in with a Solana wallet
+                </h1>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                data-testid="logout-button"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border-warm)] px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-warm)]"
+              >
+                Logout
+              </button>
+            </div>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+              Your Solana wallet is connected. The gas sponsorship, batching and
+              signing demos run on an EVM smart account, so connect an EVM
+              wallet to unlock them — both stay connected side by side.
+            </p>
+            <button
+              type="button"
+              onClick={openEvmConnect}
+              data-testid="connect-evm-button"
+              className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2a1c13]"
+            >
+              Connect an EVM wallet
+            </button>
+          </div>
+        </div>
+        {evmConnectRequested && authStep !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <ConnectWallet
+              size="md"
+              onClose={() => setEvmConnectRequested(false)}
+              renderSignUp={() => (
+                <SignUp>
+                  <SignUp.Passkey />
+                  <SignUp.Divider />
+                  <SignUp.Google />
+                  <SignUp.Email />
+                  <SignUp.Divider label="or an EVM wallet" />
+                  <SignUp.InstalledWallets />
+                  <SignUp.WalletConnect />
+                </SignUp>
+              )}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
     return (
@@ -259,6 +359,12 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+          {/* Solana PoC: the kit's Solana slot, beside the EVM wallet card.
+              Approving a multichain wallet's connect prompt (MetaMask,
+              Phantom) can authorise both sides at once, so both show here. */}
+          <div className="mb-4 sm:mb-6">
+            <SolanaAccountStrip showDisconnect={false} />
+          </div>
           {/* Wallet Card */}
           <div className="mb-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

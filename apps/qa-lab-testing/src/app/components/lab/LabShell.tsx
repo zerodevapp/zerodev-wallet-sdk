@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { AppHeader } from "../AppHeader";
+import { SolanaAccountStrip } from "../SolanaAccountStrip";
 import { LoginScreen } from "../LoginScreen";
 import { LabSidebar } from "./LabSidebar";
 import { WalletStrip } from "./WalletStrip";
@@ -50,6 +51,11 @@ export function LabShell({ children }: { children: React.ReactNode }) {
         balance polls hitting the RPC every 10s.
       */}
       <WalletStrip onLogout={() => setIsLoggingOut(true)} />
+      {/* Solana PoC: the connected Solana wallet beside the EVM strip, to show
+          both namespaces connected at once. */}
+      <div className="px-4 pt-3 sm:px-6">
+        <SolanaAccountStrip showDisconnect={false} />
+      </div>
 
       <div className="flex flex-col lg:flex-row">
         <LabSidebar />
