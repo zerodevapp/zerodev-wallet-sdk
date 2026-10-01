@@ -1,69 +1,93 @@
 import { Screen, TopNav } from '@zerodev/react-ui'
-import { useState } from 'react'
-import type { TxHistoryEntry } from '../types'
+import {
+  type DataApiChainId,
+  type DataApiEnvironment,
+  useTransactionHistory,
+} from '@zerodev/wallet-data'
+import { useMemo, useState } from 'react'
+import type { HistoryFeed } from '../types'
+import { toTxHistoryEntry } from '../utils/toTxHistoryEntry'
 import { History } from './History'
-
-/** Current page within the history flow. Single page for now — a
- * transaction-details step slots in beside it later. */
-export type TxHistoryStep = 'history'
-
-const TITLE_BY_STEP: Record<TxHistoryStep, string> = {
-  history: 'History',
-}
+import { TransactionDetails } from './TransactionDetails'
 
 export interface TxHistoryProps {
-  /** Called when the top-right × close button is clicked. */
+  dataApi: {
+    baseUrl: string
+    environment?: DataApiEnvironment
+    chainIds?: readonly DataApiChainId[]
+  }
   onClose: () => void
-  /** Activity feed; defaults to the mock feed until a real source lands. */
-  entries?: TxHistoryEntry[] | undefined
-  /** Fired when a row is tapped. Rows are inert when omitted. */
-  onSelectEntry?: ((entry: TxHistoryEntry) => void) | undefined
-  className?: string | undefined
-  size?: 'sm' | 'md' | 'lg' | undefined
+  className?: string
+  size?: 'sm' | 'md' | 'lg'
 }
 
 /**
- * Transaction history widget.
- *
- * Owns the shared `Screen` + `TopNav` chrome and delegates the body to the
- * current page in this directory — mirrors the layout of
- * `smart-routing-address-react-ui`'s `pages/index.tsx`. Navigation is owned
- * here: pages get callbacks, never the step setter.
+ * Transaction history widget. Fetches the connected ZeroDev wallet's
+ * history from the Data API and stays in its loading state until the
+ * wallet is connected.
  */
 export function TxHistory({
+  dataApi,
   onClose,
-  entries,
-  onSelectEntry,
   className,
   size,
 }: TxHistoryProps) {
-  // Single step today, so the setter is unused; destructure it back in when
-  // the first sub-page (transaction details) lands.
-  const [step] = useState<TxHistoryStep>('history')
+  const history = useTransactionHistory(dataApi)
+  const [selectedId, setSelectedId] = useState<string>()
 
-  const renderStep = () => {
-    switch (step) {
-      case 'history':
-        return (
-          <History
-            {...(entries && { entries })}
-            {...(onSelectEntry && { onSelectEntry })}
-          />
-        )
-    }
-  }
+  const entries = useMemo(
+    () =>
+      (history.data?.pages ?? [])
+        .flatMap((page) => page.items)
+        .flatMap((item) => toTxHistoryEntry(item) ?? []),
+    [history.data],
+  )
+  const selected = entries.find((entry) => entry.id === selectedId)?.transaction
 
-  // Sub-pages will swap the left slot for a back chevron returning to the
-  // parent step (see SRA's pages/index.tsx); the root step has none.
+  const feed: HistoryFeed =
+    history.status === 'pending'
+      ? { status: 'loading' }
+      : history.status === 'error'
+        ? {
+            status: 'error',
+            error: history.error,
+            retry: () => {
+              history.refetch()
+            },
+          }
+        : {
+            status: 'ready',
+            entries,
+            hasMore: history.hasNextPage,
+            loadingMore: history.isFetchingNextPage,
+            loadMore: () => {
+              history.fetchNextPage()
+            },
+          }
+
   return (
     <Screen
       {...(className && { className })}
       {...(size && { size })}
       topNav={
-        <TopNav title={TITLE_BY_STEP[step]} onRightButtonClick={onClose} />
+        <TopNav
+          title={selected ? 'Transaction details' : 'History'}
+          {...(selected && {
+            leftButtonIcon: 'chevronLeft',
+            onLeftButtonClick: () => setSelectedId(undefined),
+          })}
+          onRightButtonClick={onClose}
+        />
       }
     >
-      {renderStep()}
+      {selected ? (
+        <TransactionDetails transaction={selected} />
+      ) : (
+        <History
+          feed={feed}
+          onSelectEntry={(entry) => setSelectedId(entry.id)}
+        />
+      )}
     </Screen>
   )
 }
