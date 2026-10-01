@@ -1,7 +1,7 @@
 import { cn, Icon, type IconName, Text } from '@zerodev/react-ui'
 import type { TxHistoryStatus } from '../../types'
 
-const STATUS_COLOR: Record<TxHistoryStatus, string> = {
+export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
   Pending: 'zd:text-solarOrange',
   Success: 'zd:text-positive',
   Failed: 'zd:text-negative',
@@ -65,7 +65,10 @@ export function TxHistoryItem({
             <Text className="zd:truncate zd:text-body3">{chain.name}</Text>
           </div>
           <Text
-            className={cn('zd:shrink-0 zd:text-body3', STATUS_COLOR[status])}
+            className={cn(
+              'zd:shrink-0 zd:text-body3',
+              TX_HISTORY_STATUS_COLOR[status],
+            )}
           >
             {status}
           </Text>
