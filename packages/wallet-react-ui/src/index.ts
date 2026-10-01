@@ -26,12 +26,10 @@ export type {
 } from './connector.js'
 export { zeroDevWallet } from './connector.js'
 // History
-export {
-  TxHistory,
-  type TxHistoryProps,
-  type TxHistoryStep,
-} from './history/pages'
-export type { TxHistoryEntry } from './history/types'
+export { TxHistory, type TxHistoryProps } from './history/pages'
+export { History, type HistoryProps } from './history/pages/History'
+export type { HistoryFeed, TxHistoryEntry } from './history/types'
+export { toTxHistoryEntry } from './history/utils/toTxHistoryEntry'
 // Kit: both namespaces behind one hook
 export type {
   KitAccount,

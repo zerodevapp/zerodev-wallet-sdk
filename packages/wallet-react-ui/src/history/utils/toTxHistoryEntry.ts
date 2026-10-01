@@ -74,7 +74,7 @@ export function toTxHistoryEntry(
       title: 'Unknown transaction',
       chain: item.chain ?? { name: 'Unknown network' },
       status: 'Unknown',
-      timestamp: item.timestamp * 1000,
+      timestampMs: item.timestamp * 1000,
     }
   }
   const v = value(item)
@@ -85,7 +85,7 @@ export function toTxHistoryEntry(
     ...(v !== undefined && { value: v }),
     chain: item.chain,
     status: STATUS[item.status],
-    timestamp: item.timestamp * 1000,
+    timestampMs: item.timestamp * 1000,
     transaction: item,
   }
 }
