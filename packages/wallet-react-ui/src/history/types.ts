@@ -14,8 +14,7 @@ export interface TxHistoryEntry {
   value?: string
   chain: Pick<TransactionHistoryChain, 'name' | 'iconUri'>
   status: TxHistoryStatus
-  /** Unix epoch milliseconds. */
-  timestamp: number
+  timestampMs: number
   /** Absent for `kind: 'unparsed'` placeholders, which are inert rows. */
   transaction?: TransactionHistoryTransaction
 }
