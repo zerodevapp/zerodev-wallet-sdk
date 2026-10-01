@@ -31,6 +31,7 @@ import { useAccount, useConnect, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
 import { SolanaAccountStrip } from "../components/SolanaAccountStrip";
+import { SolanaSignMessageTest } from "../components/SolanaSignMessageTest";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
@@ -309,6 +310,9 @@ export default function DashboardPage() {
               Connect an EVM wallet
             </button>
           </div>
+          <div className="mt-4 sm:mt-6">
+            <SolanaSignMessageTest />
+          </div>
         </div>
         {evmConnectRequested && authStep !== null && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -362,8 +366,9 @@ export default function DashboardPage() {
           {/* Solana PoC: the kit's Solana slot, beside the EVM wallet card.
               Approving a multichain wallet's connect prompt (MetaMask,
               Phantom) can authorise both sides at once, so both show here. */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-4 flex flex-col gap-4 sm:mb-6">
             <SolanaAccountStrip showDisconnect={false} />
+            <SolanaSignMessageTest />
           </div>
           {/* Wallet Card */}
           <div className="mb-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
