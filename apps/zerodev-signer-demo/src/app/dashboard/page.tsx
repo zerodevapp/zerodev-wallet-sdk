@@ -31,10 +31,8 @@ import { cn } from "../lib/utils";
 
 export const dynamic = 'force-dynamic';
 
-// Transaction history is still under development — only surfaced in local
-// dev (`next dev`). NODE_ENV is inlined at build time, so production builds
-// drop the button and modal entirely.
-const HISTORY_ENABLED = process.env.NODE_ENV === "development";
+const DATA_API_BASE_URL = process.env.NEXT_PUBLIC_DATA_API_BASE_URL;
+const HISTORY_ENABLED = Boolean(DATA_API_BASE_URL);
 
 type ActiveTab = "signing" | "mint" | "send";
 type BatchAsset = "ETH" | "USDC";
@@ -249,9 +247,12 @@ export default function DashboardPage() {
   return (
     <>
       <ExportWalletModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} />
-      {HISTORY_ENABLED && showHistory && (
+      {DATA_API_BASE_URL && showHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <TxHistory onClose={() => setShowHistory(false)} />
+          <TxHistory
+            dataApi={{ baseUrl: DATA_API_BASE_URL, environment: "testnet" }}
+            onClose={() => setShowHistory(false)}
+          />
         </div>
       )}
       <div className="min-h-screen">
