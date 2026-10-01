@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthenticators } from "@zerodev/wallet-react";
+import { useSolanaAccount } from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
@@ -62,6 +63,8 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
   const { address, chain } = useAccount();
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
+  // Solana PoC: one Logout clears both namespaces.
+  const { disconnect: disconnectSolana } = useSolanaAccount();
   const { data: authenticatorData } = useAuthenticators({});
   const authMethodLabel = formatAuthMethod(authenticatorData);
 
@@ -122,7 +125,7 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
   const handleLogout = async () => {
     onLogout();
     try {
-      await logout();
+      await Promise.all([logout(), disconnectSolana()]);
     } finally {
       window.location.assign(configHref("/"));
     }
