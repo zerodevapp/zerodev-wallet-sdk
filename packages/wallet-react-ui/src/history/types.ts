@@ -1,5 +1,8 @@
 import type { IconName } from '@zerodev/react-ui'
-import type { TransactionHistoryChain } from '@zerodev/wallet-data'
+import type {
+  TransactionHistoryChain,
+  TransactionHistoryTransaction,
+} from '@zerodev/wallet-data'
 
 export type TxHistoryStatus = 'Pending' | 'Success' | 'Failed' | 'Unknown'
 
@@ -13,4 +16,17 @@ export interface TxHistoryEntry {
   status: TxHistoryStatus
   /** Unix epoch milliseconds. */
   timestamp: number
+  /** Absent for `kind: 'unparsed'` placeholders, which are inert rows. */
+  transaction?: TransactionHistoryTransaction
 }
+
+export type HistoryFeed =
+  | { status: 'loading' }
+  | { status: 'error'; error: Error; retry: () => void }
+  | {
+      status: 'ready'
+      entries: TxHistoryEntry[]
+      hasMore: boolean
+      loadingMore: boolean
+      loadMore: () => void
+    }
