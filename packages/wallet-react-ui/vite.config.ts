@@ -22,6 +22,7 @@ export default defineConfig({
         '@zerodev/react-ui',
         '@zerodev/wallet-core',
         '@zerodev/wallet-react',
+        '@zerodev/wallet-data',
         '@wagmi/core',
         '@tanstack/react-query',
         // WalletConnect's SDK is large and the host already ships it for wagmi.
@@ -31,6 +32,7 @@ export default defineConfig({
         /^wagmi\//,
         'zustand',
         /^zustand\//,
+        'zod',
       ],
     },
     sourcemap: true,
