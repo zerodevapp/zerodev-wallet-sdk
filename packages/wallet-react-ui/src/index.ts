@@ -34,7 +34,10 @@ export {
   useSolanaAccount,
 } from './solana/hooks/useSolanaAccount.js'
 export { useSolanaAutoReconnect } from './solana/hooks/useSolanaAutoReconnect.js'
-export { useSolanaWallet } from './solana/hooks/useSolanaWallet.js'
+export {
+  type SolanaWalletHandle,
+  useSolanaWallet,
+} from './solana/hooks/useSolanaWallet.js'
 export { useSolanaWallets } from './solana/hooks/useSolanaWallets.js'
 export type {
   SolanaConnection,
