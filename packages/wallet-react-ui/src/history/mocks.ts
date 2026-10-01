@@ -2,8 +2,6 @@ import type { TxHistoryEntry } from './types'
 
 const ARB_ICON =
   'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png'
-const BASE_ICON =
-  'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png'
 
 const HOUR = 60 * 60 * 1000
 
@@ -18,10 +16,7 @@ export const MOCK_HISTORY: TxHistoryEntry[] = [
     icon: 'arrowSwapHorizontalOutline',
     title: 'Swapped ETH → USD₮0',
     value: '2,343 ETH',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    destChainName: 'Base',
-    destChainIconUrl: BASE_ICON,
+    chain: { name: 'Arbitrum One', iconUri: ARB_ICON },
     status: 'Pending',
     timestamp: Date.now() - 1 * HOUR,
   },
@@ -30,10 +25,7 @@ export const MOCK_HISTORY: TxHistoryEntry[] = [
     icon: 'arrowSwapHorizontalOutline',
     title: 'Swapped ETH → USD₮0',
     value: '2,343 ETH',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    destChainName: 'Base',
-    destChainIconUrl: BASE_ICON,
+    chain: { name: 'Arbitrum One', iconUri: ARB_ICON },
     status: 'Pending',
     timestamp: Date.now() - 2 * HOUR,
   },
@@ -42,8 +34,7 @@ export const MOCK_HISTORY: TxHistoryEntry[] = [
     icon: 'lighting',
     title: 'Fixed Yield',
     value: '2,323 PT wstETH (25 Jan 2026)',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
+    chain: { name: 'Arbitrum One', iconUri: ARB_ICON },
     status: 'Success',
     timestamp: Date.now() - 3 * HOUR,
   },
@@ -52,8 +43,7 @@ export const MOCK_HISTORY: TxHistoryEntry[] = [
     icon: 'imageFill',
     title: 'Received NFT',
     value: 'Bored Ape Yacht Club',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
+    chain: { name: 'Arbitrum One', iconUri: ARB_ICON },
     status: 'Success',
     timestamp: Date.now() - 4 * HOUR,
   },
@@ -62,8 +52,7 @@ export const MOCK_HISTORY: TxHistoryEntry[] = [
     icon: 'lighting',
     title: 'Collateral Used',
     value: 'Collateralization enabled for USD₮0',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
+    chain: { name: 'Arbitrum One', iconUri: ARB_ICON },
     status: 'Success',
     timestamp: Date.now() - 14 * 24 * HOUR,
   },
@@ -72,8 +61,7 @@ export const MOCK_HISTORY: TxHistoryEntry[] = [
     icon: 'lighting',
     title: 'Liquid Staked ETH',
     value: '2,323 PT wstETH (25 Jan 2026)',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
+    chain: { name: 'Arbitrum One', iconUri: ARB_ICON },
     status: 'Success',
     timestamp: Date.now() - 14 * 24 * HOUR - 1 * HOUR,
   },
