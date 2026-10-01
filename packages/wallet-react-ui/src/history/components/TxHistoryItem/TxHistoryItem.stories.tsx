@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { TxHistoryItem } from '.'
+import { TxHistoryItem, TxHistoryItemSkeleton } from '.'
 
-const ARB_ICON =
-  'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png'
-const BASE_ICON =
-  'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png'
+const SEPOLIA = {
+  name: 'Ethereum Sepolia',
+  iconUri:
+    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+}
 
 const meta = {
   title: 'History/TxHistoryItem',
@@ -17,8 +18,14 @@ const meta = {
   argTypes: {
     status: {
       control: 'select',
-      options: ['Pending', 'Success', 'Failed'],
+      options: ['Pending', 'Success', 'Failed', 'Unknown'],
     },
+  },
+  args: {
+    icon: 'circleArrowUp',
+    title: 'Sent USDC',
+    chain: SEPOLIA,
+    status: 'Success',
   },
   decorators: [
     (Story) => (
@@ -32,27 +39,18 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const CrossChainSwap: Story = {
+export const Sent: Story = {
   args: {
-    icon: 'arrowSwapHorizontalOutline',
-    title: 'Swapped ETH → USD₮0',
-    value: '2,343 ETH',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    destChainName: 'Base',
-    destChainIconUrl: BASE_ICON,
-    status: 'Pending',
+    value: '25 USDC',
   },
 }
 
-export const FixedYield: Story = {
+export const Swap: Story = {
   args: {
-    icon: 'lighting',
-    title: 'Fixed Yield',
-    value: '2,323 PT wstETH (25 Jan 2026)',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    status: 'Success',
+    icon: 'arrowSwapHorizontalOutline',
+    title: 'Swapped ETH → USDC',
+    value: '2,343 USDC',
+    status: 'Pending',
   },
 }
 
@@ -61,32 +59,46 @@ export const ReceivedNft: Story = {
     icon: 'imageFill',
     title: 'Received NFT',
     value: 'Bored Ape Yacht Club',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    status: 'Success',
   },
 }
 
 export const LongValueTruncates: Story = {
   args: {
-    icon: 'lighting',
-    title: 'Collateral Used',
-    value: 'Collateralization enabled for USD₮0',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    status: 'Success',
+    icon: 'stars',
+    title: 'Minted NFT',
+    value: 'An exceptionally long collection name that cannot fit',
+  },
+}
+
+export const NoValue: Story = {
+  args: {
+    icon: 'bezierCurve',
+    title: 'Deployed contract',
+  },
+}
+
+export const NoChainIcon: Story = {
+  args: {
+    value: '25 USDC',
+    chain: { name: 'Ethereum Sepolia' },
   },
 }
 
 export const Failed: Story = {
   args: {
-    icon: 'arrowSwapHorizontalOutline',
-    title: 'Swapped ETH → USD₮0',
-    value: '2,343 ETH',
-    chainName: 'Arbitrum One',
-    chainIconUrl: ARB_ICON,
-    destChainName: 'Base',
-    destChainIconUrl: BASE_ICON,
+    value: '25 USDC',
     status: 'Failed',
   },
+}
+
+export const Unknown: Story = {
+  args: {
+    icon: 'question',
+    title: 'Unknown transaction',
+    status: 'Unknown',
+  },
+}
+
+export const Skeleton: Story = {
+  render: () => <TxHistoryItemSkeleton />,
 }

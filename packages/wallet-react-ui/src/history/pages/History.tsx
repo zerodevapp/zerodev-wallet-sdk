@@ -52,18 +52,5 @@ export function History({
 }
 
 function EntryRow({ entry }: { entry: TxHistoryEntry }) {
-  return (
-    <TxHistoryItem
-      icon={entry.icon}
-      title={entry.title}
-      value={entry.value}
-      chainName={entry.chainName}
-      {...(entry.chainIconUrl && { chainIconUrl: entry.chainIconUrl })}
-      {...(entry.destChainName && { destChainName: entry.destChainName })}
-      {...(entry.destChainIconUrl && {
-        destChainIconUrl: entry.destChainIconUrl,
-      })}
-      status={entry.status}
-    />
-  )
+  return <TxHistoryItem {...entry} />
 }
