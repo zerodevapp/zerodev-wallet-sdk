@@ -30,7 +30,10 @@ const OPERATION: Record<
   other: { verb: 'Transaction', icon: 'transaction' },
 }
 
-const STATUS: Record<TransactionHistoryStatus, TxHistoryStatus> = {
+export const TX_HISTORY_STATUS: Record<
+  TransactionHistoryStatus,
+  TxHistoryStatus
+> = {
   pending: 'Pending',
   success: 'Success',
   failed: 'Failed',
@@ -84,7 +87,7 @@ export function toTxHistoryEntry(
     title: title(item),
     ...(v !== undefined && { value: v }),
     chain: item.chain,
-    status: STATUS[item.status],
+    status: TX_HISTORY_STATUS[item.status],
     timestampMs: item.timestamp * 1000,
     transaction: item,
   }

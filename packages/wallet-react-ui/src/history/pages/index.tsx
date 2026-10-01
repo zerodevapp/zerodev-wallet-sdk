@@ -4,10 +4,11 @@ import {
   type DataApiEnvironment,
   useTransactionHistory,
 } from '@zerodev/wallet-data'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { HistoryFeed } from '../types'
 import { toTxHistoryEntry } from '../utils/toTxHistoryEntry'
 import { History } from './History'
+import { TransactionDetails } from './TransactionDetails'
 
 export interface TxHistoryProps {
   dataApi: {
@@ -32,6 +33,7 @@ export function TxHistory({
   size,
 }: TxHistoryProps) {
   const history = useTransactionHistory(dataApi)
+  const [selectedId, setSelectedId] = useState<string>()
 
   const entries = useMemo(
     () =>
@@ -40,6 +42,7 @@ export function TxHistory({
         .flatMap((item) => toTxHistoryEntry(item) ?? []),
     [history.data],
   )
+  const selected = entries.find((entry) => entry.id === selectedId)?.transaction
 
   const feed: HistoryFeed =
     history.status === 'pending'
@@ -66,9 +69,25 @@ export function TxHistory({
     <Screen
       {...(className && { className })}
       {...(size && { size })}
-      topNav={<TopNav title="History" onRightButtonClick={onClose} />}
+      topNav={
+        <TopNav
+          title={selected ? 'Transaction details' : 'History'}
+          {...(selected && {
+            leftButtonIcon: 'chevronLeft',
+            onLeftButtonClick: () => setSelectedId(undefined),
+          })}
+          onRightButtonClick={onClose}
+        />
+      }
     >
-      <History feed={feed} />
+      {selected ? (
+        <TransactionDetails transaction={selected} />
+      ) : (
+        <History
+          feed={feed}
+          onSelectEntry={(entry) => setSelectedId(entry.id)}
+        />
+      )}
     </Screen>
   )
 }

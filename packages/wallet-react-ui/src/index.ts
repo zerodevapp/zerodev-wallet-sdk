@@ -24,6 +24,10 @@ export { zeroDevWallet } from './connector.js'
 // History
 export { TxHistory, type TxHistoryProps } from './history/pages'
 export { History, type HistoryProps } from './history/pages/History'
+export {
+  TransactionDetails,
+  type TransactionDetailsProps,
+} from './history/pages/TransactionDetails'
 export type { HistoryFeed, TxHistoryEntry } from './history/types'
 export { toTxHistoryEntry } from './history/utils/toTxHistoryEntry'
 export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
