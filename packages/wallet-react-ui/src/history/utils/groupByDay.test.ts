@@ -13,7 +13,7 @@ function entry(id: string, timestamp: number): TxHistoryEntry {
     icon: 'lighting',
     title: `Entry ${id}`,
     value: '1 ETH',
-    chainName: 'Arbitrum One',
+    chain: { name: 'Arbitrum One' },
     status: 'Success',
     timestamp,
   }
