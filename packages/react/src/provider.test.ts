@@ -260,7 +260,10 @@ describe('wallet_getCallsStatus', () => {
 })
 
 describe('wallet_getCapabilities', () => {
-  it('declares atomic support for requested chains in kernel modes', async () => {
+  it('declares atomic support only for configured chains in kernel modes', async () => {
+    // createTestProvider config.chains is [sepolia] — mainnet (0x1) is not
+    // configured, so we must not claim atomic support for a chain we can never
+    // build a kernel client for.
     const provider = createTestProvider()
 
     const result = await provider.request({
@@ -270,7 +273,7 @@ describe('wallet_getCapabilities', () => {
 
     expect(result).toEqual({
       '0xaa36a7': { atomic: { status: 'supported' } },
-      '0x1': { atomic: { status: 'supported' } },
+      '0x1': { atomic: { status: 'unsupported' } },
     })
   })
 
@@ -567,5 +570,142 @@ describe('provider state safety', () => {
         params: ['0x2222222222222222222222222222222222222222', '{}'],
       }),
     ).rejects.toThrow('Invalid from address')
+  })
+})
+
+describe('lazy chain setup', () => {
+  // Provider seeded on sepolia only; mainnet clients are built on demand via
+  // the injected ensureChain (mirrors the connector's setupChain, which only
+  // builds — it does not switch the active chain).
+  function createLazyProvider(configChains = [sepolia, mainnet]) {
+    const store = createZeroDevWalletStore()
+    store.getState().setActiveChainId(sepolia.id)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+    const ensureChain = vi.fn(async (chainId: number) => {
+      store.getState().setKernelClient(chainId, mockKernelClient)
+    })
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: configChains },
+      chains: configChains,
+      ensureChain,
+    })
+    return { provider, store, ensureChain }
+  }
+
+  it('builds the client on demand before wallet_sendCalls on an unconnected chain', async () => {
+    sendUserOperationMock.mockResolvedValue('0xuserophash')
+    const { provider, ensureChain } = createLazyProvider()
+
+    const result = await provider.request({
+      method: 'wallet_sendCalls',
+      params: [
+        {
+          from: EOA_ADDRESS,
+          chainId: `0x${mainnet.id.toString(16)}`,
+          calls: [{ data: '0x' }],
+        },
+      ],
+    })
+
+    expect(ensureChain).toHaveBeenCalledWith(mainnet.id)
+    expect(sendUserOperationMock).toHaveBeenCalledOnce()
+    expect(result).toEqual({ id: `0xuserophash:${mainnet.id}` })
+  })
+
+  it('rejects wallet_sendCalls for an unconfigured chain (UnsupportedChainIdError)', async () => {
+    const { provider, ensureChain } = createLazyProvider([sepolia])
+
+    await expect(
+      provider.request({
+        method: 'wallet_sendCalls',
+        params: [
+          {
+            from: EOA_ADDRESS,
+            chainId: `0x${mainnet.id.toString(16)}`,
+            calls: [{ data: '0x' }],
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: 5710 })
+    expect(ensureChain).not.toHaveBeenCalled()
+    expect(sendUserOperationMock).not.toHaveBeenCalled()
+  })
+
+  it('wallet_switchEthereumChain rejects an unconfigured chain with a typed error', async () => {
+    const switchChain = vi.fn()
+    const store = createZeroDevWalletStore()
+    store.getState().setActiveChainId(sepolia.id)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+      switchChain,
+    })
+
+    await expect(
+      provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${mainnet.id.toString(16)}` }],
+      }),
+    ).rejects.toMatchObject({ code: 5710 })
+    expect(switchChain).not.toHaveBeenCalled()
+    expect(store.getState().activeChainId).toBe(sepolia.id)
+  })
+
+  it('validates `from` against the built 4337 kernel account on a fresh chain', async () => {
+    // In 4337 the expected sender is the kernel account, which only exists
+    // after prepareChain() builds it. Validation must run after the build, not
+    // silently pass because the account was absent at request start.
+    sendUserOperationMock.mockResolvedValue('0xuserophash')
+    const KERNEL_ADDRESS = `0x${'ab'.repeat(20)}` as const
+    const store = createZeroDevWalletStore()
+    store.getState().setActiveChainId(sepolia.id)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+    const ensureChain = vi.fn(async (chainId: number) => {
+      store
+        .getState()
+        .setKernelAccount(chainId, { address: KERNEL_ADDRESS } as never)
+      store.getState().setKernelClient(chainId, mockKernelClient)
+    })
+    const provider = createProvider({
+      store,
+      config: {
+        projectId: 'proj-test',
+        chains: [sepolia, mainnet],
+        mode: '4337',
+      },
+      chains: [sepolia, mainnet],
+      ensureChain,
+    })
+
+    // The EOA address is NOT the 4337 sender — must be rejected.
+    await expect(
+      provider.request({
+        method: 'wallet_sendCalls',
+        params: [
+          {
+            from: EOA_ADDRESS,
+            chainId: `0x${mainnet.id.toString(16)}`,
+            calls: [{ data: '0x' }],
+          },
+        ],
+      }),
+    ).rejects.toThrow('Invalid from address')
+    expect(sendUserOperationMock).not.toHaveBeenCalled()
+
+    // The kernel address (the real 4337 sender) is accepted.
+    const result = await provider.request({
+      method: 'wallet_sendCalls',
+      params: [
+        {
+          from: KERNEL_ADDRESS,
+          chainId: `0x${mainnet.id.toString(16)}`,
+          calls: [{ data: '0x' }],
+        },
+      ],
+    })
+    expect(result).toEqual({ id: `0xuserophash:${mainnet.id}` })
   })
 })

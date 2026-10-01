@@ -326,3 +326,124 @@ describe('zeroDevWallet connector — mode branching', () => {
     expect(store.getState().eoaAccount).toBe(mockEoaAccount)
   })
 })
+
+describe('lazy cross-chain setup (provider builds on demand)', () => {
+  beforeEach(() => {
+    createKernelAccountMock.mockClear()
+    createKernelAccountClientMock.mockReturnValue({
+      sendUserOperation: vi.fn().mockResolvedValue('0xhash'),
+    })
+  })
+
+  function createMultiChainConnector(): ConnectorInstance {
+    const factory = zeroDevWalletCore({
+      projectId: 'proj-test',
+      chains: [sepolia, mainnet],
+      mode: '7702',
+    })
+    const wagmiConfig = {
+      transports: {},
+      emitter: { emit: vi.fn() },
+      storage: null,
+    } as unknown as Config
+    return factory(wagmiConfig as never) as ConnectorInstance
+  }
+
+  async function sendCallsOnMainnetAfterSepoliaConnect() {
+    const connector = createMultiChainConnector()
+    await seedEoa(connector)
+    await connector.connect({ chainId: sepolia.id })
+    // Ignore the sepolia build done by connect(); count only lazy builds.
+    createKernelAccountMock.mockClear()
+    const provider = (await connector.getProvider()) as {
+      request: (args: {
+        method: string
+        params?: unknown[]
+      }) => Promise<unknown>
+    }
+    return () =>
+      provider.request({
+        method: 'wallet_sendCalls',
+        params: [
+          {
+            from: mockEoaAccount.address,
+            chainId: `0x${mainnet.id.toString(16)}`,
+            calls: [{ data: '0x' }],
+          },
+        ],
+      })
+  }
+
+  it('builds the kernel client for a chain that was never connected to', async () => {
+    const sendCallsOnMainnet = await sendCallsOnMainnetAfterSepoliaConnect()
+
+    const result = await sendCallsOnMainnet()
+
+    // connect() only set up sepolia; mainnet was built lazily by the provider.
+    expect(createKernelAccountMock).toHaveBeenCalledOnce()
+    expect(result).toEqual({ id: `0xhash:${mainnet.id}` })
+  })
+
+  it('de-dupes concurrent builds of the same fresh chain (createKernelAccount runs once)', async () => {
+    const sendCallsOnMainnet = await sendCallsOnMainnetAfterSepoliaConnect()
+
+    await Promise.all([sendCallsOnMainnet(), sendCallsOnMainnet()])
+
+    // Without the in-flight guard both concurrent sends would each build the
+    // account; the guard collapses them to a single createKernelAccount call.
+    expect(createKernelAccountMock).toHaveBeenCalledOnce()
+  })
+
+  it('does not commit a build whose owner changed mid-flight (no signer leak)', async () => {
+    // Deferred kernel construction so we can swap the owner while it's in flight.
+    let started!: () => void
+    const startedP = new Promise<void>((r) => {
+      started = r
+    })
+    let finish!: () => void
+    createKernelAccountMock.mockImplementationOnce(() => {
+      started()
+      return new Promise((resolve) => {
+        finish = () =>
+          resolve({ address: '0xcafecafecafecafecafecafecafecafecafecafe' })
+      })
+    })
+
+    const connector = createMultiChainConnector()
+    await seedEoa(connector) // owner A
+    // @ts-expect-error - getStore is added in the connector's Properties.
+    const store = await connector.getStore()
+    store.getState().setActiveChainId(sepolia.id)
+    const provider = (await connector.getProvider()) as {
+      request: (a: { method: string; params?: unknown[] }) => Promise<unknown>
+    }
+
+    // Start a build on mainnet (never connected) — hangs on the deferred build.
+    const sendP = provider
+      .request({
+        method: 'wallet_sendCalls',
+        params: [
+          {
+            from: mockEoaAccount.address,
+            chainId: `0x${mainnet.id.toString(16)}`,
+            calls: [{ data: '0x' }],
+          },
+        ],
+      })
+      .catch((e) => e)
+
+    await startedP // owner-A build is now in flight
+
+    // Owner changes to B before A's build resolves.
+    store.getState().setEoaAccount({
+      address: '0xB0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0',
+    } as never)
+
+    finish() // A's build resolves now
+    await sendP
+
+    // A's stale build must NOT land in B's store.
+    expect(store.getState().kernelAccounts.get(mainnet.id)).toBeUndefined()
+    expect(store.getState().kernelClients.get(mainnet.id)).toBeUndefined()
+  })
+})
