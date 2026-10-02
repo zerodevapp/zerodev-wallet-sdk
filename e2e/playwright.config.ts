@@ -39,12 +39,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /otp\.spec\.ts/,
+      testIgnore: /(otp|metamask.*)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
     {
       name: 'chromium-otp',
       testMatch: /otp\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
+    },
+    // Project specific for running the MetaMask extension tests.
+    {
+      name: 'chromium-metamask',
+      testMatch: /metamask.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
   ],

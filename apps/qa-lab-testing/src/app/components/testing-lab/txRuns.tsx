@@ -44,7 +44,7 @@ const httpStatus = (err: unknown): number | undefined => {
  * `details` carries the server's own explanation and the status says whether it
  * was the transport, so both are kept.
  */
-const errorMessage = (err: unknown): string => {
+export const errorMessage = (err: unknown): string => {
   const error = asRecord(err);
   const status = httpStatus(err);
   const parts = [

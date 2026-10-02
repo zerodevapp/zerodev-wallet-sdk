@@ -4,54 +4,52 @@ import {
   AUTH_FLAVOR_IDS,
   AUTH_FLAVORS,
   type AuthFlavorId,
-  CHAIN_CATALOG,
+  type AuthPresetId,
+  CHAINS,
   DEFAULT_AUTH_FLAVOR,
-  DEFAULT_AUTH_METHODS,
   defaultTransportUrl,
-  SUPPORTED_CHAINS,
+  isAuthPresetId,
 } from "./wallet-config";
 
 /**
- * URL query params are the ONLY override channel for the wallet config.
+ * Resolves the wallet config for a request, from the URL and the environment
+ * only. Server-safe and storage-free.
  *
- * Nothing is persisted — no localStorage, no cookies. That is deliberate:
- * a persisted bad value would survive reloads and could white-screen the app
- * including the page you'd use to undo it, whereas a bad URL is fixed by
- * editing the URL. It also means no state leaks between Playwright tests.
- *
- * The other reason for the URL specifically: query params travel in the
- * request, so the server resolves exactly what the client resolves. localStorage
- * is invisible to the server, which would guarantee a hydration mismatch on any
- * chain-derived UI.
+ * URL params carry anything the connector is built from, so the server resolves
+ * exactly what the client resolves. The one persisted value, the auth preset,
+ * lives in `use-auth-preset.ts` which is safe there because it never reaches the
+ * connector.
  */
-
-export const AUTH_METHODS = ["email", "google", "passkey"] as const;
-export type AuthMethodId = (typeof AUTH_METHODS)[number];
 
 export const EMAIL_AUTH_METHODS = ["otp", "magicLink"] as const;
 export type EmailAuthMethodId = (typeof EMAIL_AUTH_METHODS)[number];
 
-export { CHAIN_CATALOG } from "./wallet-config";
+export { CHAINS } from "./wallet-config";
 
 /** Where a chain's transport URL came from, for the diagnostics page. */
 export type TransportSource = "param" | "default" | "local" | "chain";
 
 export const PARAM = {
-  kms: "kms",
-  aaHost: "aaHost",
-  chains: "chains",
-  authMethods: "authMethods",
+  preset: "preset",
   authFlavor: "authFlavor",
   /** Per-chain transport, e.g. `rpc.421614`. */
   rpcPrefix: "rpc.",
 } as const;
 
+/**
+ * Retired params, recognised only to warn. A stale URL or spec would otherwise
+ * run against defaults while looking like it tested an override.
+ */
+const RETIRED_PARAMS: Record<string, string> = {
+  kms: "set NEXT_PUBLIC_KMS_PROXY_BASE_URL in .env instead",
+  aaHost: "set NEXT_PUBLIC_ZERODEV_AA_HOST in .env instead",
+  chains: "edit CHAINS in lib/wallet-config.ts instead",
+  authMethods: "use ?preset=preset-1 | preset-2 instead",
+};
+
 /** Every param this module owns; used to carry config across navigation. */
 export const isConfigParam = (key: string) =>
-  key === PARAM.kms ||
-  key === PARAM.aaHost ||
-  key === PARAM.chains ||
-  key === PARAM.authMethods ||
+  key === PARAM.preset ||
   key === PARAM.authFlavor ||
   key.startsWith(PARAM.rpcPrefix);
 
@@ -62,7 +60,11 @@ export interface ResolvedWalletConfig {
   rpcUrls: Record<number, string | undefined>;
   /** Provenance per chain, so `/environment` can show where a transport came from. */
   rpcSources: Record<number, TransportSource>;
-  authMethods: AuthMethodId[];
+  /**
+   * The preset named by `?preset=`. Undefined means the URL said nothing, NOT
+   * the default — a stored preset may win, which only the client can see.
+   */
+  authPreset: AuthPresetId | undefined;
   /** Selected delivery flavor; binds projectId and emailAuthMethod together. */
   authFlavor: AuthFlavorId;
   /** The ZeroDev project the connector authenticates against. */
@@ -74,7 +76,7 @@ export interface ResolvedWalletConfig {
   warnings: string[];
 }
 
-const DEFAULTS = {
+const ENV = {
   kms: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL,
   aaHost: process.env.NEXT_PUBLIC_ZERODEV_AA_HOST,
 };
@@ -88,19 +90,12 @@ const isHttpUrl = (value: string) => {
   }
 };
 
-const splitCsv = (value: string) =>
-  value
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
-
 /**
- * Resolves the effective wallet config from query params, falling back to the
- * values in `wallet-config.ts` for anything absent or invalid.
+ * Resolves the effective wallet config from query params, falling back to
+ * `wallet-config.ts` for anything absent or invalid.
  *
- * Validation lives here rather than only in the builder form because URLs are
- * hand-written and hand-edited — a spec with a typo'd param would otherwise run
- * against defaults while appearing to test an override.
+ * Validation lives here, not only in the builder form, because URLs get
+ * hand-edited.
  */
 export function resolveWalletConfig(
   params?: URLSearchParams | null,
@@ -109,39 +104,18 @@ export function resolveWalletConfig(
   const warnings: string[] = [];
   const get = (key: string) => params?.get(key)?.trim() || undefined;
 
-  const readUrl = (key: string, fallback: string | undefined) => {
-    const raw = get(key);
-    if (raw === undefined) return fallback;
-    if (!isHttpUrl(raw)) {
-      warnings.push(`${key}: "${raw}" is not an http(s) URL — using default.`);
-      return fallback;
-    }
-    applied.push(key);
-    return raw;
-  };
-
-  const kmsProxyBaseUrl = readUrl(PARAM.kms, DEFAULTS.kms);
-  const aaHost = readUrl(PARAM.aaHost, DEFAULTS.aaHost);
-
-  // Chains. wagmi types this as a non-empty tuple, and an empty selection would
-  // leave nothing to connect to, so an empty or fully-invalid list falls back.
-  let chains: readonly [Chain, ...Chain[]] = SUPPORTED_CHAINS;
-  const rawChains = get(PARAM.chains);
-  if (rawChains !== undefined) {
-    const ids = splitCsv(rawChains);
-    const picked: Chain[] = [];
-    for (const id of ids) {
-      const chain = CHAIN_CATALOG.find((c) => String(c.id) === id);
-      if (chain) picked.push(chain);
-      else warnings.push(`${PARAM.chains}: unknown chain id "${id}" — ignored.`);
-    }
-    if (picked.length > 0) {
-      chains = picked as unknown as [Chain, ...Chain[]];
-      applied.push(PARAM.chains);
-    } else {
-      warnings.push(`${PARAM.chains}: no valid chains — using defaults.`);
+  for (const [key, advice] of Object.entries(RETIRED_PARAMS)) {
+    if (get(key) !== undefined) {
+      warnings.push(`${key}: no longer supported — ${advice}.`);
     }
   }
+
+  // Environment only, resolved here so the connector has one source.
+  const kmsProxyBaseUrl = ENV.kms;
+  const aaHost = ENV.aaHost;
+
+  // Not overridable; edit CHAINS.
+  const chains = CHAINS as unknown as readonly [Chain, ...Chain[]];
 
   // Delivery flavor. Resolved before transports because it decides the project
   // id, and the default RPC URL is scoped to that project.
@@ -206,26 +180,17 @@ export function resolveWalletConfig(
     }
   });
 
-  // Auth methods. Empty means no way to sign in, so it falls back too.
-  let authMethods: AuthMethodId[] = [...DEFAULT_AUTH_METHODS];
-  const rawAuth = get(PARAM.authMethods);
-  if (rawAuth !== undefined) {
-    const picked: AuthMethodId[] = [];
-    for (const value of splitCsv(rawAuth)) {
-      if ((AUTH_METHODS as readonly string[]).includes(value)) {
-        picked.push(value as AuthMethodId);
-      } else {
-        warnings.push(
-          `${PARAM.authMethods}: unknown method "${value}" — ignored.`,
-        );
-      }
-    }
-    if (picked.length > 0) {
-      authMethods = picked;
-      applied.push(PARAM.authMethods);
+  // Auth preset. Left undefined when absent rather than defaulted, because a
+  // stored preset outranks the default and only the client can read storage.
+  let authPreset: AuthPresetId | undefined;
+  const rawPreset = get(PARAM.preset);
+  if (rawPreset !== undefined) {
+    if (isAuthPresetId(rawPreset)) {
+      authPreset = rawPreset;
+      applied.push(PARAM.preset);
     } else {
       warnings.push(
-        `${PARAM.authMethods}: no valid methods — using defaults.`,
+        `${PARAM.preset}: unknown preset "${rawPreset}" — using the stored or default preset.`,
       );
     }
   }
@@ -236,7 +201,7 @@ export function resolveWalletConfig(
     chains,
     rpcUrls,
     rpcSources,
-    authMethods,
+    authPreset,
     authFlavor,
     projectId,
     emailAuthMethod,
@@ -292,29 +257,22 @@ export function toURLSearchParams(
   return params;
 }
 
-/** Builder output: only non-default values become params. */
+/**
+ * Builder output: only non-default values become params.
+ *
+ * The preset is always emitted, even at its default. A bare URL means
+ * "whatever is stored", so `?preset=preset-1` is the only way to write a link
+ * that reliably lands on preset 1.
+ */
 export function serializeOverrides(overrides: {
-  kms?: string;
-  aaHost?: string;
-  chainIds?: number[];
   rpcUrls?: Record<number, string>;
-  authMethods?: AuthMethodId[];
+  preset?: AuthPresetId;
   authFlavor?: AuthFlavorId;
 }): URLSearchParams {
   const params = new URLSearchParams();
-  const defaultChainIds = SUPPORTED_CHAINS.map((chain) => chain.id);
 
-  if (overrides.kms && overrides.kms !== DEFAULTS.kms) {
-    params.set(PARAM.kms, overrides.kms);
-  }
-  if (overrides.aaHost && overrides.aaHost !== DEFAULTS.aaHost) {
-    params.set(PARAM.aaHost, overrides.aaHost);
-  }
-  if (
-    overrides.chainIds &&
-    overrides.chainIds.join(",") !== defaultChainIds.join(",")
-  ) {
-    params.set(PARAM.chains, overrides.chainIds.join(","));
+  if (overrides.preset) {
+    params.set(PARAM.preset, overrides.preset);
   }
   const activeProjectId =
     AUTH_FLAVORS[overrides.authFlavor ?? DEFAULT_AUTH_FLAVOR].projectId;
@@ -323,12 +281,6 @@ export function serializeOverrides(overrides: {
     if (url && url !== defaultTransportUrl(chainId, activeProjectId)) {
       params.set(`${PARAM.rpcPrefix}${chainId}`, url);
     }
-  }
-  if (
-    overrides.authMethods &&
-    overrides.authMethods.join(",") !== DEFAULT_AUTH_METHODS.join(",")
-  ) {
-    params.set(PARAM.authMethods, overrides.authMethods.join(","));
   }
   if (overrides.authFlavor && overrides.authFlavor !== DEFAULT_AUTH_FLAVOR) {
     params.set(PARAM.authFlavor, overrides.authFlavor);
