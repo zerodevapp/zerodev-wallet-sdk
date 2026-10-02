@@ -1,0 +1,64 @@
+# Layer 1 of review routing: apply review:* labels from path rules
+# (.github/labeler.yml). See the review playbook, Part 2.
+name: review-routing
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          # keep labels in sync when a push removes the risky files
+          sync-labels: true
+
+  # File-level attention. Two surfaces, because each has a blind spot:
+  # annotations render inline in Files changed (but only when anchored to a
+  # line that's in the diff), and the sticky comment gives a ranked map with
+  # jump links that's always visible in Conversation.
+  attention:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Annotate files in the diff
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE=$(git merge-base "origin/$BASE_REF" HEAD)
+          node scripts/review-attention.mjs "$BASE"
+
+      - name: Post/update the attention map comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE=$(git merge-base "origin/$BASE_REF" HEAD)
+          MARKER="<!-- review-attention-map -->"
+          {
+            echo "$MARKER"
+            node scripts/review-attention.mjs "$BASE" --markdown
+          } > map.md
+
+          # Sticky: update the existing map instead of stacking a new
+          # comment on every push.
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq "[.[] | select(.body | contains(\"$MARKER\"))] | first | .id // empty")
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@map.md --jq .html_url
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@map.md --jq .html_url
+          fi
