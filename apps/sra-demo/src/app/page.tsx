@@ -1,5 +1,6 @@
 'use client'
 
+import { Button } from '@zerodev/react-ui'
 import {
   SmartRoutingAddress,
   type SmartRoutingAddressConfig,
@@ -33,6 +34,9 @@ import {
 // enter their own address before any real deposit address is generated.
 const SIMULATED_DEFAULT_RECIPIENT: Address =
   '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+
+const SRA_PACKAGE_URL =
+  'https://www.npmjs.com/package/@zerodev/smart-routing-address-react-ui'
 
 // Destination chains offered in the "Settings" configurator.
 // Robinhood is the only chain with USDG — pick it to see same-chain
@@ -235,17 +239,13 @@ export default function Home() {
                 Address — the whole deposit flow, ready to drop into your app
                 and cut the funding friction that hurts onboarding conversion.
               </p>
-              {/* "React package coming soon" chip — only shown in simulated
-                  mode so nothing implies the mainnet flow is a prototype. */}
-              {mode === 'simulated' && (
-                <span className="mt-0.5 inline-flex items-center gap-[7px] self-start rounded-full border border-border-warm bg-white/55 px-[11px] py-[5px] text-xs font-semibold tracking-[0.01em] text-muted">
-                  <span
-                    aria-hidden="true"
-                    className="h-1.5 w-1.5 rounded-full bg-primary"
-                  />
-                  React package coming soon
-                </span>
-              )}
+              <Button
+                className="mt-1 self-start"
+                text="Get the React package"
+                onClick={() =>
+                  window.open(SRA_PACKAGE_URL, '_blank', 'noopener,noreferrer')
+                }
+              />
             </header>
 
             {/* Simulated wallet — mock fetch layer intercepts every SRA
