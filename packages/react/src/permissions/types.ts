@@ -41,6 +41,8 @@ export type GrantPermissionsParameters = {
   permissions: readonly SessionPermission[]
   /** Unix seconds after which the session key stops working. */
   expiry: number
+  /** Most user operations the session key can send in total, enforced on-chain. Unlimited when omitted. */
+  maxUses?: number
   /** Chain the permission is for. Defaults to the connected chain. */
   chainId?: number
 }

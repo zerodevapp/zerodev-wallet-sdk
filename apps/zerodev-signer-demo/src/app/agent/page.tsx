@@ -48,6 +48,9 @@ const HOUR = 3600
 const TICK_MS = 45_000
 // Keeps a forgotten tab from minting forever on staging.
 const MAX_CLAIMS = 10
+// The grant's on-chain cap. Below MAX_CLAIMS on purpose: the agent's next
+// claim is refused by the chain, and calling the tick route directly can't exceed it.
+const MAX_USES = 5
 
 type ActivityEvent = {
   at: number
@@ -134,7 +137,11 @@ export default function AutoClaimPage() {
     .filter((p) => agentAddress && p.signer.toLowerCase() === agentAddress.toLowerCase())
     .sort((a, b) => b.grantedAt - a.grantedAt)[0]
   const expiresIn = agentGrant ? agentGrant.expiry - nowSeconds() : null
-  const claims = events.filter((e) => e.kind === 'claimed').length
+  // Claims in this run: events are newest first, and each run starts with 'started'.
+  const runStart = events.findIndex((e) => e.kind === 'started')
+  const claims = (runStart < 0 ? events : events.slice(0, runStart)).filter(
+    (e) => e.kind === 'claimed',
+  ).length
 
   const log = useCallback(
     (e: Omit<ActivityEvent, 'at'>) =>
@@ -174,9 +181,15 @@ export default function AutoClaimPage() {
         if (cancelled || !result) return
         if (result.ok) {
           log({ kind: 'claimed', text: 'Claimed your NFT', txHash: result.transactionHash })
-          void granted.refetch()
+          // ponytail: the wallet's RPC can trail the bundler by a few blocks; re-read once it catches up.
+          setTimeout(() => void granted.refetch(), 4000)
         } else if (result.kind === 'expired') {
           log({ kind: 'expired', text: 'Permission expired, agent stopped' })
+          setOn(false)
+          return
+        } else if (result.kind === 'denied' && result.reason === 'usage-limit') {
+          log({ kind: 'blocked', text: 'Claim refused on-chain: the permission is used up' })
+          log({ kind: 'stopped', text: 'Agent stopped' })
           setOn(false)
           return
         } else {
@@ -214,6 +227,7 @@ export default function AutoClaimPage() {
       signer: agentAddress,
       chainId: arbitrumSepolia.id,
       expiry: nowSeconds() + HOUR,
+      maxUses: MAX_USES,
       permissions: [
         {
           type: 'contract-call',
@@ -266,6 +280,7 @@ export default function AutoClaimPage() {
                 type: { custom: ZERODEV_ARG_RULES },
                 data: { call: MINT_SIGNATURE, args: [{ condition: 'equal', value: address }] },
               },
+              { type: 'rate-limit', data: { count: MAX_USES, interval: 0 } },
             ],
             required: true,
           },
@@ -403,6 +418,8 @@ export default function AutoClaimPage() {
                 {agentGrant && (
                   <LimitsCard
                     expiresIn={expiresIn ?? 0}
+                    used={claims}
+                    maxUses={agentGrant.maxUses}
                     agent={agentAddress}
                     busy={rogueBusy}
                     onSimulateRogue={simulateRogue}
@@ -558,6 +575,8 @@ function AutoClaimCard(props: {
 
 function LimitsCard(props: {
   expiresIn: number
+  used: number
+  maxUses: number | undefined
   agent: Address | null
   busy: boolean
   onSimulateRogue: () => void
@@ -577,6 +596,14 @@ function LimitsCard(props: {
           <Clock className="h-3.5 w-3.5 text-[var(--muted)]" />
           in {mins} min
         </dd>
+        {props.maxUses && (
+          <>
+            <dt className="text-[var(--muted)]">Uses</dt>
+            <dd className="text-[var(--ink)]">
+              {Math.min(props.used, props.maxUses)} of {props.maxUses}, enforced on-chain
+            </dd>
+          </>
+        )}
         <dt className="text-[var(--muted)]">Agent</dt>
         <dd className="font-mono text-xs text-[var(--ink)]">{props.agent ? short(props.agent) : '…'}</dd>
       </dl>
@@ -635,6 +662,7 @@ function GrantedCard(props: {
                   <p className="truncate text-sm text-[var(--ink)]">{what}</p>
                   <p className="text-xs text-[var(--muted)]">
                     {isAgent ? 'Auto-claim agent' : short(p.signer)} · {mins} min left
+                    {p.maxUses && ` · max ${p.maxUses} use${p.maxUses === 1 ? '' : 's'}`}
                   </p>
                 </div>
                 <span
@@ -697,7 +725,14 @@ function ActivityCard({ events, on }: { events: ActivityEvent[]; on: boolean }) 
               <span className={cn('grid h-7 w-7 shrink-0 place-items-center rounded-full', EVENT_STYLE[e.kind].tone)}>
                 {EVENT_STYLE[e.kind].icon}
               </span>
-              <p className="min-w-0 flex-1 truncate text-sm text-[var(--ink)]">{e.text}</p>
+              <p
+                className={cn(
+                  'min-w-0 flex-1 truncate text-sm text-[var(--ink)]',
+                  e.kind === 'blocked' && 'agent-shake font-semibold',
+                )}
+              >
+                {e.text}
+              </p>
               {e.txHash && (
                 <a
                   href={EXPLORER + e.txHash}

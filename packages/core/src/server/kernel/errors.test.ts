@@ -14,6 +14,15 @@ describe('parsePermissionError', () => {
     expect((parsed as PermissionDeniedError).cause).toBe(raw)
   })
 
+  it('maps a spent maxUses (PolicyFailed) seen on staging', () => {
+    const parsed = parsePermissionError(
+      new Error(
+        'RPC Request failed. (AA23 reverted 0x3e4983f60000000000000000000000000000000000000000000000000000000000000002)',
+      ),
+    )
+    expect((parsed as PermissionDeniedError).reason).toBe('usage-limit')
+  })
+
   it('maps AA22 to an expired permission', () => {
     expect(
       parsePermissionError(new Error('AA22 expired or not due')),

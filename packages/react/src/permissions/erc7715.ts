@@ -19,12 +19,17 @@ import type {
  * `grantPermissions` (viem/experimental) sends it: custom types are plain
  * strings and amounts are hex.
  *
+ * `maxUses` travels as the standard `rate-limit` policy on every permission,
+ * with `interval: 0` meaning over the grant's whole life. Kernel counts uses
+ * across the whole grant.
+ *
  * Standard 7715 `contract-call` only lists function signatures. ZeroDev adds:
  * - policy `zerodev-arg-rules`: per-argument rules and a value limit for one call
  * - permission `zerodev-sudo`: everything the account can do (consent must warn)
  */
 export const ZERODEV_ARG_RULES = 'zerodev-arg-rules'
 export const ZERODEV_SUDO = 'zerodev-sudo'
+export const RATE_LIMIT = 'rate-limit'
 
 export type Erc7715Policy =
   | {
@@ -36,6 +41,7 @@ export type Erc7715Policy =
         valueLimit?: Hex
       }
     }
+  | { type: typeof RATE_LIMIT; data: { count: number; interval: number } }
   | { type: string; data: unknown }
 
 export type Erc7715Permission =
@@ -99,13 +105,21 @@ function decodeRuleValue(value: unknown, type: string | undefined): unknown {
 export function toErc7715Request(
   params: GrantPermissionsParameters,
 ): Erc7715GrantPermissionsRequest {
+  const rateLimit: Erc7715Policy[] = params.maxUses
+    ? [{ type: RATE_LIMIT, data: { count: params.maxUses, interval: 0 } }]
+    : []
   return {
     ...(params.chainId && { chainId: numberToHex(params.chainId) }),
     expiry: params.expiry,
     signer: { type: 'account', data: { id: params.signer } },
     permissions: params.permissions.map((p): Erc7715Permission => {
       if (p.type === 'sudo') {
-        return { type: ZERODEV_SUDO, data: {}, policies: [], required: true }
+        return {
+          type: ZERODEV_SUDO,
+          data: {},
+          policies: rateLimit,
+          required: true,
+        }
       }
       const fn = p.abi.find(
         (item): item is AbiFunction =>
@@ -144,8 +158,9 @@ export function toErc7715Request(
                   }),
                 },
               },
+              ...rateLimit,
             ]
-          : [],
+          : rateLimit,
         required: true,
       }
     }),
@@ -161,6 +176,25 @@ export function fromErc7715Request(
       "wallet_grantPermissions: only an 'account' signer (the session key's address) is supported",
     )
   }
+  const counts = new Set<number>()
+  for (const p of request.permissions) {
+    for (const policy of p.policies) {
+      if (policy.type !== RATE_LIMIT) continue
+      const d = policy.data as { count: number; interval: number }
+      if (d.interval !== 0) {
+        throw new Error(
+          'wallet_grantPermissions: only a rate-limit over the whole grant (interval 0) is supported',
+        )
+      }
+      counts.add(d.count)
+    }
+  }
+  if (counts.size > 1) {
+    throw new Error(
+      'wallet_grantPermissions: rate-limit counts differ between permissions',
+    )
+  }
+  const [maxUses] = counts
   const permissions = request.permissions.flatMap((p): SessionPermission[] => {
     if (p.type === ZERODEV_SUDO) return [{ type: 'sudo' as const }]
     if (p.type !== 'contract-call') {
@@ -174,6 +208,7 @@ export function fromErc7715Request(
       { args?: readonly (ArgRule | null)[]; valueLimit?: Hex }
     >()
     for (const policy of p.policies) {
+      if (policy.type === RATE_LIMIT) continue
       if (policy.type !== ZERODEV_ARG_RULES) {
         throw new Error(
           `wallet_grantPermissions: policy type ${policy.type} is not supported`,
@@ -213,6 +248,7 @@ export function fromErc7715Request(
     signer: request.signer.data.id,
     permissions,
     expiry: request.expiry,
+    ...(maxUses !== undefined && { maxUses }),
     ...(request.chainId && { chainId: Number.parseInt(request.chainId, 16) }),
   }
 }

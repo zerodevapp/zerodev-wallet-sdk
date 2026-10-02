@@ -3,6 +3,7 @@ import {
   CallPolicyVersion,
   ParamCondition,
   toCallPolicy,
+  toRateLimitPolicy,
   toSudoPolicy,
   toTimestampPolicy,
 } from '@zerodev/permissions/policies'
@@ -21,18 +22,25 @@ const CONDITIONS: Record<ArgRule['condition'], ParamCondition> = {
 /**
  * Turns a grant request into Kernel permission-plugin policies: one call
  * policy for all contract calls (or a sudo policy), plus a timestamp policy
- * for the expiry. Every grant expires; there is no way to request one that
- * does not.
+ * for the expiry and, with `maxUses`, a rate-limit policy. Every grant
+ * expires; there is no way to request one that does not.
  */
 export function toPolicies(params: GrantPermissionsParameters): Policy[] {
-  const { permissions, expiry } = params
+  const { permissions, expiry, maxUses } = params
   if (permissions.length === 0) {
     throw new Error('grantPermissions: request at least one permission')
   }
   if (expiry <= Math.floor(Date.now() / 1000)) {
     throw new Error('grantPermissions: expiry must be in the future')
   }
-  const timestamp = toTimestampPolicy({ validUntil: expiry })
+  if (maxUses !== undefined && !(Number.isInteger(maxUses) && maxUses > 0)) {
+    throw new Error('grantPermissions: maxUses must be a positive integer')
+  }
+  const limits = [
+    toTimestampPolicy({ validUntil: expiry }),
+    // Total uses over the grant's life: interval 0 never refills the count.
+    ...(maxUses ? [toRateLimitPolicy({ count: maxUses })] : []),
+  ]
 
   if (permissions.some((p) => p.type === 'sudo')) {
     if (permissions.length > 1) {
@@ -40,7 +48,7 @@ export function toPolicies(params: GrantPermissionsParameters): Policy[] {
         'grantPermissions: a sudo permission already allows everything; do not combine it with others',
       )
     }
-    return [toSudoPolicy({}), timestamp]
+    return [toSudoPolicy({}), ...limits]
   }
 
   const calls = permissions.flatMap((p) =>
@@ -70,6 +78,6 @@ export function toPolicies(params: GrantPermissionsParameters): Policy[] {
         Parameters<typeof toCallPolicy>[0]['permissions']
       >,
     }),
-    timestamp,
+    ...limits,
   ]
 }

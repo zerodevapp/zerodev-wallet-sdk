@@ -77,7 +77,7 @@ export function GrantPermissions({
   reject,
 }: GrantPermissionsProps) {
   const { address: you } = useAccount()
-  const { signer, permissions, expiry } = fromErc7715Request(request)
+  const { signer, permissions, expiry, maxUses } = fromErc7715Request(request)
   const appName =
     typeof window === 'undefined' ? 'This app' : window.location.host
   const unrestricted = permissions.some((p) => p.type === 'sudo')
@@ -117,6 +117,12 @@ export function GrantPermissions({
 
         <Section title="Until" iconName="clock">
           <DataRow label="Expires" value={formatExpiry(expiry)} />
+          {maxUses && (
+            <DataRow
+              label="Uses"
+              value={`At most ${maxUses} transaction${maxUses === 1 ? '' : 's'}`}
+            />
+          )}
         </Section>
 
         <Section title="Key" iconName="shield">

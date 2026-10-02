@@ -73,6 +73,24 @@ describe('ERC-7715 translation', () => {
     })
   })
 
+  it('carries maxUses as a standard rate-limit policy', () => {
+    const req = toErc7715Request({ ...params, maxUses: 10 })
+    expect(req.permissions[0]?.policies).toContainEqual({
+      type: 'rate-limit',
+      data: { count: 10, interval: 0 },
+    })
+    expect(fromErc7715Request(req).maxUses).toBe(10)
+    expect(fromErc7715Request(toErc7715Request(params)).maxUses).toBeUndefined()
+  })
+
+  it('rejects a rate-limit that refills', () => {
+    const req = toErc7715Request({ ...params, maxUses: 10 })
+    req.permissions[0]!.policies = [
+      { type: 'rate-limit', data: { count: 1, interval: 60 } },
+    ]
+    expect(() => fromErc7715Request(req)).toThrow(/interval 0/)
+  })
+
   it('maps sudo both ways', () => {
     const req = toErc7715Request({
       signer,
