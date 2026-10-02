@@ -28,6 +28,23 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
+// Solana (external wallets via the Wallet Standard; the kit signs nothing)
+export {
+  type SolanaAccount,
+  useSolanaAccount,
+} from './solana/hooks/useSolanaAccount.js'
+export { useSolanaAutoReconnect } from './solana/hooks/useSolanaAutoReconnect.js'
+export {
+  type SolanaWalletHandle,
+  useSolanaWallet,
+} from './solana/hooks/useSolanaWallet.js'
+export { useSolanaWallets } from './solana/hooks/useSolanaWallets.js'
+export type {
+  SolanaConnection,
+  SolanaConnectionSource,
+  SolanaConnectionStatus,
+  SolanaStandardWallet,
+} from './solana/types.js'
 export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
 
 // Signing
