@@ -15,6 +15,7 @@ import {
   type StateStorage,
   subscribeWithSelector,
 } from 'zustand/middleware'
+import type { GrantRecord } from './permissions/grantStatus.js'
 
 // Internal OAuth config stored in the state (derived from connector params)
 type InternalOAuthConfig = {
@@ -45,6 +46,13 @@ export type ZeroDevWalletState = {
   // OAuth config (derived from connector params)
   oauthConfig: InternalOAuthConfig | null
 
+  /**
+   * Permissions this wallet granted (ERC-7715), for
+   * wallet_getGrantedExecutionPermissions. Keyed by account, kept across
+   * logout, persisted. Contexts hold no key.
+   */
+  grants: GrantRecord[]
+
   // Actions
   setWallet: (wallet: ZeroDevWalletSDK) => void
   setEoaAccount: (account: LocalAccount | null) => void
@@ -61,6 +69,8 @@ export type ZeroDevWalletState = {
   setActiveChainId: (chainId: number | null) => void
   setIsExpiring: (isExpiring: boolean) => void
   setOAuthConfig: (config: InternalOAuthConfig | null) => void
+  addGrant: (grant: GrantRecord) => void
+  removeGrant: (permissionsContext: string) => void
   clear: () => void
 }
 
@@ -82,6 +92,7 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) => {
           kernelAccounts: new Map(),
           kernelClients: new Map(),
           walletClients: new Map(),
+          grants: [],
           isExpiring: false,
           oauthConfig: null,
 
@@ -129,6 +140,21 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) => {
 
           setOAuthConfig: (config) => set({ oauthConfig: config }),
 
+          addGrant: (grant) =>
+            set({
+              grants: [
+                ...get().grants.filter(
+                  (g) => g.permissionsContext !== grant.permissionsContext,
+                ),
+                grant,
+              ],
+            }),
+          removeGrant: (permissionsContext) =>
+            set({
+              grants: get().grants.filter(
+                (g) => g.permissionsContext !== permissionsContext,
+              ),
+            }),
           clear: () =>
             set({
               eoaAccount: null,
@@ -146,6 +172,7 @@ export const createZeroDevWalletStore = (options?: CreateStoreOptions) => {
           // the preferred chain; duplicating JWT state creates stale identities.
           partialize: (state) => ({
             activeChainId: state.activeChainId,
+            grants: state.grants,
           }),
           ...(storage && {
             storage: createJSONStorage(() => storage),

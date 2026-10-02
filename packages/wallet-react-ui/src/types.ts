@@ -1,3 +1,4 @@
+import type { Erc7715GrantPermissionsRequest } from '@zerodev/wallet-react'
 import type { Address, Hex, RpcTransactionRequest } from 'viem'
 import type { createStore } from './store.js'
 
@@ -37,6 +38,10 @@ export type Request =
   | {
       method: 'eth_signTypedData_v4'
       params: [address: Hex, typedData: string]
+    }
+  | {
+      method: 'wallet_grantPermissions'
+      params: [request: Erc7715GrantPermissionsRequest]
     }
 
 export type RequestMethod = Request['method']

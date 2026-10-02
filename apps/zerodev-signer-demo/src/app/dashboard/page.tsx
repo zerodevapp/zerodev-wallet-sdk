@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
 import { TxHistory } from "@zerodev/wallet-react-ui";
 import {
+  Bot,
   Check,
   Copy,
   ExternalLink,
@@ -17,6 +18,7 @@ import {
   Sparkles,
   Wallet
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
@@ -281,6 +283,14 @@ export default function DashboardPage() {
                     History
                   </button>
                 )}
+                <Link
+                  href="/agent"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-[var(--accent-warm)] bg-white px-3 text-xs font-semibold text-[var(--accent-warm)] transition-colors hover:bg-orange-50"
+                  title="Let an agent act for you within limits"
+                >
+                  <Bot className="h-3.5 w-3.5" />
+                  Agents
+                </Link>
                 <button
                   onClick={() => setShowExportModal(true)}
                   className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"

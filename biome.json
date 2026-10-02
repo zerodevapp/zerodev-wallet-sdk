@@ -146,7 +146,8 @@
         "**/wallet/index.ts",
         "**/client/index.ts",
         "**/serverWallet/index.ts",
-        "**/server/index.ts"
+        "**/server/index.ts",
+        "**/server/kernel/index.ts"
       ],
       "linter": {
         "rules": {

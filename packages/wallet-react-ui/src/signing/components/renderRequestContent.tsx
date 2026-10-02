@@ -7,6 +7,7 @@ import { Erc20Approval } from '../pages/Erc20Approval.js'
 import { Erc20Transfer } from '../pages/Erc20Transfer.js'
 import { EthTransfer } from '../pages/EthTransfer.js'
 import { GenericRequest } from '../pages/GenericRequest.js'
+import { GrantPermissions } from '../pages/GrantPermissions.js'
 import { MintNft } from '../pages/MintNft.js'
 import { PersonalSign } from '../pages/PersonalSign.js'
 import { SignTypedData } from '../pages/SignTypedData.js'
@@ -112,6 +113,16 @@ export function renderRequestContent(
         <PersonalSign
           data={data}
           address={address}
+          confirm={confirm}
+          reject={reject}
+        />
+      )
+    }
+
+    case 'wallet_grantPermissions': {
+      return (
+        <GrantPermissions
+          request={request.params[0]}
           confirm={confirm}
           reject={reject}
         />

@@ -5,6 +5,17 @@ import type { Chain, LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
 import type { ConnectorCoreParams, WalletMode } from './core/connector.js'
 import { NotAuthenticatedError } from './errors.js'
+import { createPermissionContext } from './permissions/createPermissionContext.js'
+import {
+  type Erc7715GrantPermissionsRequest,
+  type Erc7715GrantPermissionsResponse,
+  fromErc7715Request,
+} from './permissions/erc7715.js'
+import {
+  classifyGrant,
+  readGrantChainState,
+} from './permissions/grantStatus.js'
+import { revokePermissionContext } from './permissions/revokePermission.js'
 import type { createZeroDevWalletStore } from './store.js'
 
 const SESSION_WARNING_THRESHOLD_MS = 60 * 1000 // 1 minute before expiry
@@ -349,6 +360,125 @@ export function createProvider({
           return { id: `${userOpHash}:${chainId}` }
         }
 
+        // ERC-7715: let a session key (e.g. a server wallet) act on the
+        // user's smart account within limits. Keyless: only the key's address
+        // is installed, and the returned context holds no private key.
+        case 'wallet_grantPermissions': {
+          if (mode === 'EOA') {
+            throw new Error(
+              'wallet_grantPermissions needs a smart account; the connector is in EOA mode',
+            )
+          }
+          const [request] = (params ?? []) as [Erc7715GrantPermissionsRequest]
+          if (!request) throw new Error('Missing permissions request')
+          const grant = fromErc7715Request(request)
+          const chainId = grant.chainId ?? activeChainId
+          const owner = state.eoaAccount
+          if (!owner) throw new NotAuthenticatedError()
+          const kernelAccount = state.kernelAccounts.get(chainId)
+          if (!kernelAccount) {
+            throw new Error(
+              `No smart account for chain ${chainId}; switch to it first`,
+            )
+          }
+
+          const { permissionsContext, account, permissionId, enableNonce } =
+            await createPermissionContext({
+              client: kernelAccount.client,
+              owner,
+              mode,
+              params: grant,
+            })
+          store.getState().addGrant({
+            permissionsContext,
+            account,
+            chainId,
+            expiry: request.expiry,
+            permissionId,
+            enableNonce,
+            request,
+            grantedAt: Date.now(),
+          })
+          return {
+            expiry: request.expiry,
+            grantedPermissions: request.permissions,
+            permissionsContext,
+            signerData: { submitToAddress: account },
+            chainId: `0x${chainId.toString(16)}`,
+          } satisfies Erc7715GrantPermissionsResponse
+        }
+
+        // ERC-7715: make a granted permission unusable, on-chain, from the
+        // user's account. Works whatever the session key's holder does.
+        case 'wallet_revokeExecutionPermission': {
+          if (mode === 'EOA') {
+            throw new Error(
+              'wallet_revokeExecutionPermission needs a smart account; the connector is in EOA mode',
+            )
+          }
+          const [request] = (params ?? []) as [
+            { permissionContext?: string; chainId?: `0x${string}` },
+          ]
+          if (!request?.permissionContext) {
+            throw new Error('Missing permissionContext')
+          }
+          const chainId = request.chainId
+            ? Number.parseInt(request.chainId, 16)
+            : activeChainId
+          const kernelClient = store.getState().kernelClients.get(chainId)
+          if (!kernelClient) {
+            throw new Error(`No kernel client for chain ${chainId}`)
+          }
+          const result = await revokePermissionContext(
+            kernelClient,
+            request.permissionContext,
+          )
+          store.getState().removeGrant(request.permissionContext)
+          return result
+        }
+
+        // ERC-7715: permissions this wallet granted that can still be used,
+        // checked against the chain. Grants made on another device are not
+        // listed: the record is local.
+        case 'wallet_getGrantedExecutionPermissions': {
+          const current = store.getState()
+          const accounts = new Set(
+            [
+              current.eoaAccount?.address,
+              ...[...current.kernelAccounts.values()].map((a) => a.address),
+            ]
+              .filter((a): a is `0x${string}` => Boolean(a))
+              .map((a) => a.toLowerCase()),
+          )
+          const now = Math.floor(Date.now() / 1000)
+          const results = await Promise.all(
+            current.grants
+              .filter((g) => accounts.has(g.account.toLowerCase()))
+              .map(async (g) => {
+                const kernelAccount = current.kernelAccounts.get(g.chainId)
+                if (!kernelAccount) return null
+                const status = classifyGrant(
+                  g,
+                  await readGrantChainState(kernelAccount.client, g),
+                  now,
+                )
+                if (status !== 'active' && status !== 'pending') {
+                  current.removeGrant(g.permissionsContext)
+                  return null
+                }
+                return {
+                  ...g.request,
+                  chainId: `0x${g.chainId.toString(16)}`,
+                  permissionsContext: g.permissionsContext,
+                  signerData: { submitToAddress: g.account },
+                  status,
+                  grantedAt: g.grantedAt,
+                }
+              }),
+          )
+          return results.filter(Boolean)
+        }
+
         case 'wallet_getCallsStatus': {
           if (!params || params.length === 0) {
             throw new Error('Missing call bundle id')
@@ -409,7 +539,24 @@ export function createProvider({
           // paymasterService.
           const atomic =
             mode === 'EOA' ? { status: 'unsupported' } : { status: 'supported' }
-          return Object.fromEntries(chains.map((cid) => [cid, { atomic }]))
+          // ERC-7715 discovery: what wallet_grantPermissions accepts.
+          const permissions =
+            mode === 'EOA'
+              ? undefined
+              : {
+                  supported: true,
+                  signerTypes: ['account'],
+                  permissionTypes: ['contract-call', 'zerodev-sudo'],
+                  policyTypes: ['zerodev-arg-rules'],
+                  revoke: true,
+                  listGranted: true,
+                }
+          return Object.fromEntries(
+            chains.map((cid) => [
+              cid,
+              { atomic, ...(permissions && { permissions }) },
+            ]),
+          )
         }
 
         case 'personal_sign': {

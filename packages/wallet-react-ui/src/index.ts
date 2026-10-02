@@ -23,11 +23,11 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
-export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
-
 // Signing
-// export type { SignatureRequestProps } from './signing'
-// export { SignatureRequest } from './signing'
+export type { SignatureRequestProps } from './signing'
+export { SignatureRequest } from './signing'
+export type { Request } from './types.js'
+export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
 // export { usePendingRequest } from './signing/hooks/usePendingRequest.js'
 // export { usePendingRequests } from './signing/hooks/usePendingRequests.js'
 //

@@ -84,6 +84,11 @@
       "types": "./dist/_types/server/index.d.ts",
       "import": "./dist/_esm/server/index.js",
       "require": "./dist/_cjs/server/index.js"
+    },
+    "./server/kernel": {
+      "types": "./dist/_types/server/kernel/index.d.ts",
+      "import": "./dist/_esm/server/kernel/index.js",
+      "require": "./dist/_cjs/server/kernel/index.js"
     }
   },
   "files": [
@@ -134,7 +139,9 @@
     "@turnkey/react-native-passkey-stamper": ">=1.2.0",
     "expo-secure-store": ">=14.0.0",
     "react-native": ">=0.73.0",
-    "uuid": ">=11.0.0"
+    "uuid": ">=11.0.0",
+    "@zerodev/sdk": "^5.5.4",
+    "@zerodev/permissions": "^5.6.3"
   },
   "peerDependenciesMeta": {
     "@react-native-async-storage/async-storage": {
@@ -157,6 +164,12 @@
     },
     "uuid": {
       "optional": true
+    },
+    "@zerodev/sdk": {
+      "optional": true
+    },
+    "@zerodev/permissions": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -168,7 +181,9 @@
     "@types/node": "^20.0.0",
     "expo-secure-store": "55.0.9",
     "typescript": "5.9.3",
-    "uuid": "^13.0.2"
+    "uuid": "^13.0.2",
+    "@zerodev/sdk": "5.5.4",
+    "@zerodev/permissions": "5.6.3"
   },
   "type": "module"
 }
