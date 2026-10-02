@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@zerodev/react-ui'
 import {
   SmartRoutingAddress,
   type SmartRoutingAddressConfig,
@@ -239,13 +238,28 @@ export default function Home() {
                 Address — the whole deposit flow, ready to drop into your app
                 and cut the funding friction that hurts onboarding conversion.
               </p>
-              <Button
-                className="mt-1 self-start"
-                text="Get the React package"
-                onClick={() =>
-                  window.open(SRA_PACKAGE_URL, '_blank', 'noopener,noreferrer')
-                }
-              />
+              <a
+                href={SRA_PACKAGE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex h-12 items-center gap-2 self-start rounded-xl bg-ink px-5 text-[15px] font-semibold text-white no-underline transition-colors duration-150 hover:bg-[#2a1d12]"
+              >
+                Install from npm
+                <svg
+                  aria-hidden="true"
+                  className="size-4 shrink-0"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17.3333 14.6664L28.2666 3.73303" />
+                  <path d="M29.3324 9.06663V2.66663H22.9324" />
+                  <path d="M14.6667 2.66663H12.0001C5.33341 2.66663 2.66675 5.33329 2.66675 12V20C2.66675 26.6666 5.33341 29.3333 12.0001 29.3333H20.0001C26.6667 29.3333 29.3334 26.6666 29.3334 20V17.3333" />
+                </svg>
+              </a>
             </header>
 
             {/* Simulated wallet — mock fetch layer intercepts every SRA
