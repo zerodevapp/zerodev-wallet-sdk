@@ -3,7 +3,15 @@
   "compilerOptions": {
     "rootDir": "./src",
     "jsx": "react-jsx",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@zerodev/permissions/policies": [
+        "./node_modules/@zerodev/permissions/_types/policies/index.d.ts"
+      ],
+      "@zerodev/permissions/signers": [
+        "./node_modules/@zerodev/permissions/_types/signers/index.d.ts"
+      ]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]

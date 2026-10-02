@@ -16,6 +16,7 @@ const DEFAULT_SIGNING_PROMPT_METHODS: RequestMethod[] = [
   'wallet_sendCalls',
   'personal_sign',
   'eth_signTypedData_v4',
+  'wallet_grantPermissions',
 ]
 
 /** The kit connector takes exactly the base connector's param

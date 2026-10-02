@@ -13,6 +13,8 @@ export type ZeroDevServerWalletConfig = ServerWalletClientConfig & {
 }
 
 export type ZeroDevServerWallet = {
+  /** The project every request is made for. */
+  projectId: string
   /** The underlying client, for the raw actions the account is built on. */
   client: ServerWalletClient
   /** Creates a wallet in the wallet set. Role: `create`. */
@@ -36,6 +38,7 @@ export function createZeroDevServerWallet(
   const { projectId, organizationId } = config
   const client = createServerWalletClient(config)
   return {
+    projectId,
     client,
     createWallet: () => client.createServerWallet({ projectId }),
     toAccount: ({ address }) =>

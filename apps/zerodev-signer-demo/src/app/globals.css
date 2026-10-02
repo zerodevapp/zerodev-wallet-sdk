@@ -34,3 +34,16 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Agent demo: a refused call shakes once when it lands in the feed. */
+@keyframes agent-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+.agent-shake {
+  animation: agent-shake 0.4s ease-in-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-shake { animation: none; }
+}

@@ -10,6 +10,14 @@
   "include": ["src/**/*"],
   "compilerOptions": {
     "rootDir": "./src",
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "paths": {
+      "@zerodev/permissions/policies": [
+        "../node_modules/@zerodev/permissions/_types/policies/index.d.ts"
+      ],
+      "@zerodev/permissions/signers": [
+        "../node_modules/@zerodev/permissions/_types/signers/index.d.ts"
+      ]
+    }
   }
 }

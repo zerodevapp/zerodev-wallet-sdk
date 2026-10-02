@@ -259,6 +259,15 @@ describe('wallet_getCallsStatus', () => {
   })
 })
 
+const PERMISSIONS = {
+  supported: true,
+  signerTypes: ['account'],
+  permissionTypes: ['contract-call', 'zerodev-sudo'],
+  policyTypes: ['zerodev-arg-rules'],
+  revoke: true,
+  listGranted: true,
+}
+
 describe('wallet_getCapabilities', () => {
   it('declares atomic support for requested chains in kernel modes', async () => {
     const provider = createTestProvider()
@@ -269,8 +278,8 @@ describe('wallet_getCapabilities', () => {
     })
 
     expect(result).toEqual({
-      '0xaa36a7': { atomic: { status: 'supported' } },
-      '0x1': { atomic: { status: 'supported' } },
+      '0xaa36a7': { atomic: { status: 'supported' }, permissions: PERMISSIONS },
+      '0x1': { atomic: { status: 'supported' }, permissions: PERMISSIONS },
     })
   })
 
@@ -284,6 +293,7 @@ describe('wallet_getCapabilities', () => {
     expect(result).toEqual({
       [`0x${sepolia.id.toString(16)}`]: {
         atomic: { status: 'supported' },
+        permissions: PERMISSIONS,
       },
     })
   })
