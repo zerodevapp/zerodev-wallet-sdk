@@ -1,6 +1,10 @@
-import { p256 } from '@noble/curves/nist.js'
 import { IndexedDbStamper as TurnkeyIndexedDbStamper } from '@turnkey/indexed-db-stamper'
-import { generateCompressedPublicKeyFromKeyPair } from '../utils/utils.js'
+import { TURNKEY_STAMP_HEADER } from '../constants.js'
+import {
+  compactSignatureToDerHex,
+  encodeStamp,
+  generateCompressedPublicKeyFromKeyPair,
+} from '../utils/utils.js'
 import type { ApiKeyStamper } from './types.js'
 
 async function signWithKeyPair(
@@ -14,16 +18,7 @@ async function signWithKeyPair(
       new TextEncoder().encode(payload),
     ),
   )
-  return p256.Signature.fromBytes(rawSignature, 'compact').toHex('der')
-}
-
-function encodeStamp(publicKey: string, signature: string): string {
-  const json = JSON.stringify({
-    publicKey,
-    scheme: 'SIGNATURE_SCHEME_TK_API_P256',
-    signature,
-  })
-  return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+  return compactSignatureToDerHex(rawSignature)
 }
 
 export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
@@ -71,7 +66,7 @@ export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
       const publicKey = await generateCompressedPublicKeyFromKeyPair(keyPair)
       const signature = await signWithKeyPair(keyPair, payload)
       return {
-        stampHeaderName: 'X-Stamp',
+        stampHeaderName: TURNKEY_STAMP_HEADER,
         stampHeaderValue: encodeStamp(publicKey, signature),
       }
     },

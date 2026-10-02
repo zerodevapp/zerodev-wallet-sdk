@@ -1,18 +1,19 @@
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
+import { AGENT_STAMP_HEADER } from '../../constants.js'
+import type { SigningStamper } from '../../stampers/types.js'
 import {
   buildTurnkeyPayload,
   computeMessagePayloadHash,
   sendSigningRequest,
-} from './signingUtils.js'
+} from '../wallet/signingUtils.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
 export type SignMessageParameters = {
-  /** The organization ID */
-  organizationId: string
+  /** The wallet set's sub-organization ID. Defaults to the client's `organizationId`. */
+  organizationId?: string
   /** The project ID for the request */
   projectId: string
-  /** The session token, required when stamping with a session key. Omit when the stamper is an API key, such as a server wallet's agent key. */
-  token?: string
   /** The address to sign with */
   address: Hex
   /** The message to sign */
@@ -23,25 +24,25 @@ export type SignMessageParameters = {
 
 export type SignMessageReturnType = Hex
 
+/** Signs a message with a server wallet. Requires the `sign` role. */
 export async function signMessage(
-  client: Client,
+  client: Client<undefined, SigningStamper>,
   params: SignMessageParameters,
 ): Promise<SignMessageReturnType> {
-  const { organizationId, projectId, token, address, message, encoding } =
-    params
+  const { projectId, address, message, encoding } = params
+  const organizationId = resolveOrganizationId(client, params, 'signMessage')
 
-  const payloadHash = computeMessagePayloadHash(message, encoding)
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
-    payloadHash,
+    computeMessagePayloadHash(message, encoding),
   )
 
   return sendSigningRequest(client, {
     projectId,
-    token,
-    path: 'sign/message',
+    path: 'server-wallet/sign/message',
     turnkeyPayload,
     bodyFields: { message, encoding },
+    outerStampHeader: AGENT_STAMP_HEADER,
   })
 }

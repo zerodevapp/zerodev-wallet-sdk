@@ -1,14 +1,18 @@
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
-import { buildTurnkeyPayload, sendSigningRequest } from './signingUtils.js'
+import { AGENT_STAMP_HEADER } from '../../constants.js'
+import type { SigningStamper } from '../../stampers/types.js'
+import {
+  buildTurnkeyPayload,
+  sendSigningRequest,
+} from '../wallet/signingUtils.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
 export type SignTypedDataV4Parameters = {
-  /** The organization ID */
-  organizationId: string
+  /** The wallet set's sub-organization ID. Defaults to the client's `organizationId`. */
+  organizationId?: string
   /** The project ID for the request */
   projectId: string
-  /** The session token, required when stamping with a session key. Omit when the stamper is an API key, such as a server wallet's agent key. */
-  token?: string
   /** The address to sign with */
   address: Hex
   /** The serialized EIP-712 typed data to sign */
@@ -21,32 +25,30 @@ export type SignTypedDataV4Parameters = {
 
 export type SignTypedDataV4ReturnType = Hex
 
+/** Signs EIP-712 typed data with a server wallet. Requires the `sign` role. */
 export async function signTypedDataV4(
-  client: Client,
+  client: Client<undefined, SigningStamper>,
   params: SignTypedDataV4Parameters,
 ): Promise<SignTypedDataV4ReturnType> {
-  const {
-    organizationId,
-    projectId,
-    token,
-    address,
-    unsignedTypedDataV4,
-    encoding,
-    typedDataHash,
-  } = params
+  const { projectId, address, unsignedTypedDataV4, encoding, typedDataHash } =
+    params
+  const organizationId = resolveOrganizationId(
+    client,
+    params,
+    'signTypedDataV4',
+  )
 
-  const payloadHash = typedDataHash
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
-    payloadHash,
+    typedDataHash,
   )
 
   return sendSigningRequest(client, {
     projectId,
-    token,
-    path: 'sign/typed-data-v4',
+    path: 'server-wallet/sign/typed-data-v4',
     turnkeyPayload,
     bodyFields: { unsignedTypedDataV4, encoding },
+    outerStampHeader: AGENT_STAMP_HEADER,
   })
 }

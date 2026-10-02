@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
+import { derToRawSignature } from './derToRawSignature.js'
 import {
   base64UrlEncode,
+  compactSignatureToDerHex,
+  encodeStamp,
   generateCompressedPublicKeyFromKeyPair,
   generateRandomBuffer,
   humanReadableDateTime,
@@ -226,6 +229,43 @@ describe('base64UrlEncode', () => {
     const result = base64UrlEncode(buffer)
 
     expect(result).toBe('')
+  })
+
+  it('encodes a Uint8Array the same as its ArrayBuffer', () => {
+    const bytes = new Uint8Array([251, 239, 190, 72, 101])
+
+    expect(base64UrlEncode(bytes)).toBe(base64UrlEncode(bytes.buffer))
+  })
+})
+
+describe('compactSignatureToDerHex', () => {
+  // r has its high bit set, so DER must prepend a 0x00 to keep it positive.
+  const r = 'f1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'
+  const s = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+  const compact = new Uint8Array(Buffer.from(r + s, 'hex'))
+
+  it('encodes r || s as a DER SEQUENCE with a padded high-bit integer', () => {
+    expect(compactSignatureToDerHex(compact)).toBe(`3045022100${r}0220${s}`)
+  })
+
+  it('round-trips through derToRawSignature', () => {
+    expect(derToRawSignature(compactSignatureToDerHex(compact))).toBe(r + s)
+  })
+})
+
+describe('encodeStamp', () => {
+  it('base64url-encodes the Turnkey envelope without padding, as Go RawURLEncoding requires', () => {
+    const publicKey = `02${'ab'.repeat(32)}`
+    const signature = `3045022100${'cd'.repeat(32)}0220${'ef'.repeat(32)}`
+
+    const stamp = encodeStamp(publicKey, signature)
+
+    expect(stamp).toMatch(/^[A-Za-z0-9_-]+$/)
+    expect(JSON.parse(Buffer.from(stamp, 'base64url').toString())).toEqual({
+      publicKey,
+      scheme: 'SIGNATURE_SCHEME_TK_API_P256',
+      signature,
+    })
   })
 })
 

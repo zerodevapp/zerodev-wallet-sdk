@@ -1,18 +1,19 @@
 import type { Hex } from 'viem'
 import type { Client } from '../../client/types.js'
+import { AGENT_STAMP_HEADER } from '../../constants.js'
+import type { SigningStamper } from '../../stampers/types.js'
 import {
   buildTurnkeyPayload,
   computeDataPayloadHash,
   sendSigningRequest,
-} from './signingUtils.js'
+} from '../wallet/signingUtils.js'
+import { resolveOrganizationId } from './resolveOrganizationId.js'
 
 export type SignTransactionParameters = {
-  /** The organization ID */
-  organizationId: string
+  /** The wallet set's sub-organization ID. Defaults to the client's `organizationId`. */
+  organizationId?: string
   /** The project ID for the request */
   projectId: string
-  /** The session token, required when stamping with a session key. Omit when the stamper is an API key, such as a server wallet's agent key. */
-  token?: string
   /** The address to sign with */
   address: Hex
   /** The unsigned transaction to sign (hex without 0x prefix) */
@@ -21,25 +22,29 @@ export type SignTransactionParameters = {
 
 export type SignTransactionReturnType = Hex
 
+/** Signs a transaction with a server wallet. Requires the `sign` role. */
 export async function signTransaction(
-  client: Client,
+  client: Client<undefined, SigningStamper>,
   params: SignTransactionParameters,
 ): Promise<SignTransactionReturnType> {
-  const { organizationId, projectId, token, address, unsignedTransaction } =
-    params
+  const { projectId, address, unsignedTransaction } = params
+  const organizationId = resolveOrganizationId(
+    client,
+    params,
+    'signTransaction',
+  )
 
-  const payloadHash = computeDataPayloadHash(unsignedTransaction, 'hex')
   const turnkeyPayload = buildTurnkeyPayload(
     organizationId,
     address,
-    payloadHash,
+    computeDataPayloadHash(unsignedTransaction, 'hex'),
   )
 
   return sendSigningRequest(client, {
     projectId,
-    token,
-    path: 'sign/transaction',
+    path: 'server-wallet/sign/transaction',
     turnkeyPayload,
     bodyFields: { unsignedTransaction },
+    outerStampHeader: AGENT_STAMP_HEADER,
   })
 }
