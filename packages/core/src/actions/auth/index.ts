@@ -27,6 +27,8 @@ export {
   type GetOAuthLoginUrlParameters,
   type GetOAuthLoginUrlReturnType,
   getOAuthLoginUrl,
+  OAUTH_PROVIDERS,
+  type OAuthProvider,
 } from './getOAuthLoginUrl.js'
 export {
   type GetParentOrgIdReturnType,

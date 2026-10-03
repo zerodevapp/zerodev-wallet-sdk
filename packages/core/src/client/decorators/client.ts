@@ -171,7 +171,7 @@ export type ZeroDevWalletActions = {
   getParentOrgId: () => Promise<GetParentOrgIdReturnType>
 
   /**
-   * Fetches the Google OAuth authorization URL from the backend.
+   * Fetches the provider's OAuth authorization URL from the backend.
    * The caller must verify the URL's `nonce` against `sha256(utf8(publicKey))`
    * before opening it (audit finding TOB-KMS-1).
    */
