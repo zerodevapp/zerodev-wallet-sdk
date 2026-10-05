@@ -65,11 +65,13 @@
     "@tanstack/react-query": "^5.0.0",
     "@wagmi/core": "^2.22.0 || ^3.0.0",
     "@zerodev/wallet-core": "workspace:*",
+    "@zerodev/wallet-data": "workspace:*",
     "@zerodev/wallet-react": "workspace:*",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",
     "viem": "^2.47.18",
-    "wagmi": "^2.19.0 || ^3.0.0"
+    "wagmi": "^2.19.0 || ^3.0.0",
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.3.3",
@@ -82,6 +84,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.7.0",
+    "@zerodev/wallet-data": "workspace:*",
     "postcss": "^8.5.16",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -90,7 +93,8 @@
     "typescript": "5.9.3",
     "vite": "^6.4.3",
     "vite-plugin-node-polyfills": "^0.25.0",
-    "vocs": "^1.4.1"
+    "vocs": "^1.4.1",
+    "zod": "^4.1.0"
   },
   "type": "module"
 }

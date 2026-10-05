@@ -1,27 +1,20 @@
 import { cn, Icon, type IconName, Text } from '@zerodev/react-ui'
+import type { TxHistoryStatus } from '../../types'
 
-export type TxHistoryStatus = 'Pending' | 'Success' | 'Failed'
-
-const STATUS_COLOR: Record<TxHistoryStatus, string> = {
+export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
   Pending: 'zd:text-solarOrange',
   Success: 'zd:text-positive',
   Failed: 'zd:text-negative',
+  Unknown: 'zd:text-greyScale/50',
 }
 
 export interface TxHistoryItemProps {
-  /** Leading glyph for the activity kind, e.g. `'arrowSwapHorizontalOutline'`
-   * for swaps, `'lighting'` for staking/yield, `'imageFill'` for NFTs. */
   icon: IconName
-  /** Activity label, e.g. `"Swapped ETH → USD₮0"`. Never truncated. */
+  /** Never truncated. */
   title: string
-  /** Pre-formatted outcome, e.g. `"2,343 ETH"`. Truncates when long. */
-  value: string
-  /** Chain the transaction ran on (source chain for cross-chain rows). */
-  chainName: string
-  chainIconUrl?: string
-  /** Destination chain. When present the row renders `chain → destChain`. */
-  destChainName?: string
-  destChainIconUrl?: string
+  /** Truncates when long. */
+  value?: string
+  chain: { name: string; iconUri?: string | undefined }
   status: TxHistoryStatus
   className?: string
 }
@@ -30,10 +23,7 @@ export function TxHistoryItem({
   icon,
   title,
   value,
-  chainName,
-  chainIconUrl,
-  destChainName,
-  destChainIconUrl,
+  chain,
   status,
   className,
 }: TxHistoryItemProps) {
@@ -53,33 +43,32 @@ export function TxHistoryItem({
           <Text className="zd:shrink-0 zd:whitespace-nowrap zd:text-body1">
             {title}
           </Text>
-          <Text className="zd:min-w-0 zd:truncate zd:text-right zd:text-body1">
-            {value}
-          </Text>
+          {value && (
+            <Text className="zd:min-w-0 zd:truncate zd:text-right zd:text-body1">
+              {value}
+            </Text>
+          )}
         </div>
 
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
-          <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-2">
-            <ChainTag
-              name={chainName}
-              {...(chainIconUrl && { iconUrl: chainIconUrl })}
-            />
-            {destChainName && (
-              <>
-                <Icon
-                  name="arrowRightFill"
+          <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-[5px]">
+            {chain.iconUri && (
+              <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-white">
+                <img
+                  src={chain.iconUri}
+                  alt=""
                   aria-hidden
-                  className="zd:size-3 zd:shrink-0 zd:opacity-30"
+                  className="zd:size-full zd:object-cover"
                 />
-                <ChainTag
-                  name={destChainName}
-                  {...(destChainIconUrl && { iconUrl: destChainIconUrl })}
-                />
-              </>
+              </span>
             )}
+            <Text className="zd:truncate zd:text-body3">{chain.name}</Text>
           </div>
           <Text
-            className={cn('zd:shrink-0 zd:text-body3', STATUS_COLOR[status])}
+            className={cn(
+              'zd:shrink-0 zd:text-body3',
+              TX_HISTORY_STATUS_COLOR[status],
+            )}
           >
             {status}
           </Text>
@@ -89,20 +78,26 @@ export function TxHistoryItem({
   )
 }
 
-function ChainTag({ name, iconUrl }: { name: string; iconUrl?: string }) {
+export function TxHistoryItemSkeleton({ className }: { className?: string }) {
   return (
-    <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-[5px]">
-      {iconUrl && (
-        <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-white">
-          <img
-            src={iconUrl}
-            alt=""
-            aria-hidden
-            className="zd:size-full zd:object-cover"
-          />
-        </span>
+    <div
+      data-testid="tx-history-item-skeleton"
+      className={cn(
+        'zd:flex zd:w-full zd:items-center zd:gap-2 zd:p-2',
+        className,
       )}
-      <Text className="zd:truncate zd:text-body3">{name}</Text>
+    >
+      <div className="zd:size-11 zd:shrink-0 zd:rounded-xl zd:bg-greyScale/15 zd:animate-skel-pulse" />
+      <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
+        <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
+          <div className="zd:h-3 zd:w-28 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-16 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        </div>
+        <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
+          <div className="zd:h-3 zd:w-20 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-12 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        </div>
+      </div>
     </div>
   )
 }

@@ -12,13 +12,13 @@ screen for passkey / email / Google. UI styling comes from
 
 ```bash
 pnpm add @zerodev/wallet-react-ui \
-  @zerodev/wallet-core @zerodev/wallet-react \
-  wagmi viem @wagmi/core @tanstack/react-query zustand
+  @zerodev/wallet-core @zerodev/wallet-react @zerodev/wallet-data \
+  wagmi viem @wagmi/core @tanstack/react-query zustand zod
 ```
 
-> `@zerodev/wallet-core`, `@zerodev/wallet-react`, `wagmi`, `viem`,
-> `@wagmi/core`, `@tanstack/react-query`, and `zustand` are **peer
-> dependencies** — install them alongside this package.
+> `@zerodev/wallet-core`, `@zerodev/wallet-react`, `@zerodev/wallet-data`,
+> `wagmi`, `viem`, `@wagmi/core`, `@tanstack/react-query`, `zustand`, and
+> `zod` are **peer dependencies** — install them alongside this package.
 
 ## Setup
 
@@ -196,10 +196,15 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 | `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `onClose`. |
 | `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Wallet`, `WalletConnect`, `InstalledWallets`, `MoreWallets`, `Divider`). |
 | `useAuth` | Read / drive the auth flow state. |
+| `<TxHistory />` | Transaction history for the connected ZeroDev wallet, fetched from the Data API, with a details page per transaction. Props: `dataApi` (`{ baseUrl, environment?, chainIds? }`), `onClose`, `size`, `className`. Shows its loading state until the wallet connects. |
+| `<History />` | The list view on its own. Renders a `HistoryFeed` (`loading`, `error`, or `ready` with Load more). Props: `feed`, `onSelectEntry`. |
+| `<TransactionDetails />` | The details view on its own for one Data API transaction. Props: `transaction`. |
+| `toTxHistoryEntry` | Maps a Data API transaction history item to a `TxHistoryEntry` row, or `undefined` for an unparsed item without a timestamp. |
 
 ### Types
 
-`AuthMethod`, `AuthStep`, `EmailAuthMethod`, `WalletId`,
+`AuthMethod`, `AuthStep`, `EmailAuthMethod`, `HistoryFeed`, `HistoryProps`,
+`TransactionDetailsProps`, `TxHistoryEntry`, `TxHistoryProps`, `WalletId`,
 `ZeroDevKitConnectorParams`.
 
 ## Development
