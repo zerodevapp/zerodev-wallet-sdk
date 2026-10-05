@@ -1,4 +1,9 @@
-import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
+import {
+  Badge,
+  ListItem,
+  ListItemChevron,
+  ListItemIcon,
+} from '@zerodev/react-ui'
 import { useState } from 'react'
 import { useConnectors } from 'wagmi'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
@@ -198,6 +203,7 @@ export function InstalledWalletsMultichain({
               >
                 <ListItem
                   title="Ethereum"
+                  icon={<ListItemIcon name="ethereum" />}
                   subtitle={<Badge text="EVM" variant="secondary" />}
                   trailing={<ListItemChevron />}
                   disabled={authPending}
@@ -205,6 +211,7 @@ export function InstalledWalletsMultichain({
                 />
                 <ListItem
                   title="Solana"
+                  icon={<ListItemIcon name="solana" />}
                   subtitle={<Badge text="SOLANA" variant="secondary" />}
                   trailing={<ListItemChevron />}
                   disabled={authPending || connectedSolanaName === row.name}

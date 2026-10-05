@@ -31,7 +31,6 @@ import { useAccount, useConnect, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
 import { SolanaAccountStrip } from "../components/SolanaAccountStrip";
-import { SolanaSignMessageTest } from "../components/SolanaSignMessageTest";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
@@ -117,7 +116,7 @@ export default function DashboardPage() {
   const [selectedAsset, setSelectedAsset] = useState<BatchAsset>("ETH");
   const [balance, setBalance] = useState<string>("0");
   const [usdcBalance, setUsdcBalance] = useState<string>("0");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"evm" | "solana" | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [gaslessTxCount, setGaslessTxCount] = useState(0);
@@ -219,11 +218,10 @@ export default function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [loadBalances]);
 
-  const handleCopy = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async (network: "evm" | "solana", value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopied(network);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   const handleLogout = async () => {
@@ -310,8 +308,10 @@ export default function DashboardPage() {
               Connect an EVM wallet
             </button>
           </div>
-          <div className="mt-4 sm:mt-6">
-            <SolanaSignMessageTest />
+          {/* Same signing card as the EVM dashboard: the EVM button stays
+              disabled until an EVM wallet is connected. */}
+          <div className="mt-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mt-6 sm:p-5 lg:p-6">
+            <SigningTest />
           </div>
         </div>
         {evmConnectRequested && authStep !== null && (
@@ -363,13 +363,6 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-          {/* Solana PoC: the kit's Solana slot, beside the EVM wallet card.
-              Approving a multichain wallet's connect prompt (MetaMask,
-              Phantom) can authorise both sides at once, so both show here. */}
-          <div className="mb-4 flex flex-col gap-4 sm:mb-6">
-            <SolanaAccountStrip showDisconnect={false} />
-            <SolanaSignMessageTest />
-          </div>
           {/* Wallet Card */}
           <div className="mb-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -457,32 +450,74 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex min-w-0 items-center justify-center gap-2">
-                  <p className="min-w-0 truncate text-center font-mono text-sm font-semibold text-[var(--ink)]">
-                    {address}
-                  </p>
-                  <button
-                    onClick={handleCopy}
-                    className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
-                    title="Copy address"
+            {/* One address per connected network. A multichain wallet
+                (MetaMask, Phantom) can authorise the EVM and Solana sides
+                in one prompt, so both can show here; the Solana row is
+                hidden while that slot is disconnected. */}
+            <div className="mt-4 flex flex-col items-center gap-2">
+              {[
+                {
+                  network: "evm" as const,
+                  label: chain?.name ?? "EVM",
+                  value: address,
+                  explorerUrl: walletExplorerUrl,
+                  badgeClass: "border-blue-100 bg-blue-50 text-blue-700",
+                },
+                {
+                  network: "solana" as const,
+                  label: "Solana",
+                  value: solanaConnected ? solana.address : undefined,
+                  explorerUrl: solana.address
+                    ? `https://explorer.solana.com/address/${solana.address}`
+                    : undefined,
+                  badgeClass: "border-[#cdeedb] bg-[#e9f7ef] text-[#1f7a4d]",
+                },
+              ]
+                .filter((row) => row.value)
+                .map((row) => (
+                  <div
+                    key={row.network}
+                    data-testid={`${row.network}-address`}
+                    className="flex min-w-0 max-w-full items-center justify-center gap-2"
                   >
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                  {walletExplorerUrl && (
-                    <a
-                      href={walletExplorerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-[#423a32] transition-colors hover:text-[var(--ink)]"
-                      title="View wallet on explorer"
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                        row.badgeClass
+                      )}
                     >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
+                      {row.label}
+                    </span>
+                    <p
+                      className="min-w-0 truncate font-mono text-sm font-semibold text-[var(--ink)]"
+                      title={row.value}
+                    >
+                      {row.value}
+                    </p>
+                    <button
+                      onClick={() => row.value && handleCopy(row.network, row.value)}
+                      className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                      title={`Copy ${row.label} address`}
+                    >
+                      {copied === row.network ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                    {row.explorerUrl && (
+                      <a
+                        href={row.explorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                        title={`View ${row.label} address on explorer`}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                ))}
             </div>
           </div>
 
