@@ -124,7 +124,13 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     fireEvent.click(screen.getByText('Phantom'))
     expect(startWalletConnection).not.toHaveBeenCalled()
     expect(phantom.connect).not.toHaveBeenCalled()
-    expect(screen.getByTestId('chain-choice-Phantom')).toBeTruthy()
+    const choice = screen.getByTestId('chain-choice-Phantom')
+    expect(choice).toBeTruthy()
+    // Each chain row carries its chain icon in the leading tile (the
+    // trailing chevron sits outside that tile, so it is not counted).
+    expect(
+      choice.querySelectorAll('button > div > div:first-child > svg').length,
+    ).toBe(2)
 
     // Solana connects through the Wallet Standard and fills the Solana slot.
     fireEvent.click(screen.getByText('Solana'))
