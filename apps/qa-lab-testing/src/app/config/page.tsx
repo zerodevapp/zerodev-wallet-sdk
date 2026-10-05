@@ -3,6 +3,7 @@
 import { ArrowLeft, Check, Copy, RotateCcw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import type { WalletMode } from "@zerodev/wallet-react";
 import { AppHeader } from "../components/AppHeader";
 import { ConfigLink } from "../components/ConfigLink";
 import {
@@ -12,6 +13,7 @@ import {
   PARAM,
   resolveWalletConfig,
   serializeOverrides,
+  WALLET_MODES,
 } from "../lib/config-params";
 import { AUTH_FLAVOR_IDS, type AuthFlavorId } from "../lib/wallet-config";
 import { LAB_FEATURES, areaHref, featureHref } from "../lib/features";
@@ -54,6 +56,7 @@ export default function ConfigBuilderPage() {
   const [authFlavor, setAuthFlavor] = useState<AuthFlavorId>(
     current.authFlavor,
   );
+  const [mode, setMode] = useState<WalletMode>(current.mode);
   const [target, setTarget] = useState("/");
   const [copied, setCopied] = useState(false);
 
@@ -68,6 +71,7 @@ export default function ConfigBuilderPage() {
     ),
     authMethods,
     authFlavor,
+    mode,
   }).toString();
 
   const url = query ? `${target}?${query}` : target;
@@ -214,6 +218,26 @@ export default function ConfigBuilderPage() {
                     testId={`config-auth-flavor-${flavor}`}
                   >
                     {flavor}
+                  </Toggle>
+                ))}
+              </div>
+            </Field>
+
+            {/*
+              `4337` makes the connector expose the Kernel address instead of
+              the EOA. That is the address the transaction history harness
+              sends as the wallet address.
+            */}
+            <Field label="wallet mode" param={PARAM.mode}>
+              <div className="flex flex-wrap gap-2">
+                {WALLET_MODES.map((value) => (
+                  <Toggle
+                    key={value}
+                    checked={mode === value}
+                    onChange={() => setMode(value)}
+                    testId={`config-mode-${value}`}
+                  >
+                    {value}
                   </Toggle>
                 ))}
               </div>
