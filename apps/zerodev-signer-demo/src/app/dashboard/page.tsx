@@ -500,79 +500,12 @@ export default function DashboardPage() {
     </div>
   );
 
-  // Solana PoC: no EVM session, but a Solana wallet is connected. The EVM
-  // features below need an EVM account, so show the Solana side on its own.
-  // Stays mounted while an EVM connect is in flight (`connecting`, or
-  // `reconnecting` for the silent path): the sign-up overlay that completes
-  // it lives here.
-  if (
-    !isLoggingOut &&
-    !address &&
-    solanaConnected &&
-    (status === 'disconnected' || status === 'connecting' || status === 'reconnecting')
-  ) {
-    return (
-      <div className="min-h-screen">
-        <AppHeader />
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-          {/* Wallet Card: same chrome as the EVM dashboard, minus the parts
-              that need an EVM smart account (balances, chain selector,
-              export keys). */}
-          <div className="mb-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mb-6 sm:p-5 lg:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-[var(--ink)]" />
-                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">Your Wallet</h1>
-                <span className="rounded-full border border-[#cdeedb] bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#1f7a4d]">
-                  Signed in with {solana.walletName ?? "a Solana wallet"}
-                </span>
-              </div>
-              <button
-                onClick={handleLogout}
-                data-testid="logout-button"
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 cursor-pointer"
-                title="Logout"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Logout
-              </button>
-            </div>
-            <p className="mt-3 text-center text-sm leading-6 text-[var(--muted)]">
-              Balances, gas sponsorship and batching need an EVM smart account.
-              Add an EVM wallet to unlock them; both stay connected side by side.
-            </p>
-            {walletAddresses}
-          </div>
-          {/* Same signing card as the EVM dashboard: the EVM button stays
-              disabled until an EVM wallet is connected. */}
-          <div className="mt-4 rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:mt-6 sm:p-5 lg:p-6">
-            <SigningTest />
-          </div>
-        </div>
-        {evmConnectRequested && authStep !== null && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <ConnectWallet
-              size="md"
-              onClose={() => setEvmConnectRequested(false)}
-              renderSignUp={() => (
-                <SignUp>
-                  <SignUp.Passkey />
-                  <SignUp.Divider />
-                  <SignUp.Google />
-                  <SignUp.Email />
-                  <SignUp.Divider label="or an EVM wallet" />
-                  <SignUp.InstalledWallets />
-                  <SignUp.WalletConnect />
-                </SignUp>
-              )}
-            />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
+  // The EVM side is ready once wagmi reports an address; a connected Solana
+  // wallet keeps the dashboard open on its own, with the EVM-only parts
+  // (balances, chain selector, export keys, the tx demos) hidden until an
+  // EVM wallet is added. Both sides show their address rows below.
+  const evmReady = !!address && status === "connected";
+  if (isLoggingOut || (!evmReady && !solanaConnected)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2">
@@ -593,6 +526,25 @@ export default function DashboardPage() {
           <TxHistory onClose={() => setShowHistory(false)} />
         </div>
       )}
+      {evmConnectRequested && authStep !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <ConnectWallet
+            size="md"
+            onClose={() => setEvmConnectRequested(false)}
+            renderSignUp={() => (
+              <SignUp>
+                <SignUp.Passkey />
+                <SignUp.Divider />
+                <SignUp.Google />
+                <SignUp.Email />
+                <SignUp.Divider label="or an EVM wallet" />
+                <SignUp.InstalledWallets />
+                <SignUp.WalletConnect />
+              </SignUp>
+            )}
+          />
+        </div>
+      )}
       <div className="min-h-screen">
         <AppHeader />
 
@@ -603,14 +555,22 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-[var(--ink)]" />
-                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">Your Smart Wallet</h1>
-                <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                  Created with {authMethodLabel}
-                </span>
+                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">
+                  {evmReady ? "Your Smart Wallet" : "Your Wallet"}
+                </h1>
+                {evmReady ? (
+                  <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                    Created with {authMethodLabel}
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-[#cdeedb] bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#1f7a4d]">
+                    Signed in with {solana.walletName ?? "a Solana wallet"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                <ChainSelector className="h-9 rounded-full px-3 text-xs" />
-                {HISTORY_ENABLED && (
+                {evmReady && <ChainSelector className="h-9 rounded-full px-3 text-xs" />}
+                {evmReady && HISTORY_ENABLED && (
                   <button
                     onClick={() => setShowHistory(true)}
                     className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
@@ -620,15 +580,18 @@ export default function DashboardPage() {
                     History
                   </button>
                 )}
+                {evmReady && (
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
+                    title="Export keys"
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Export keys
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowExportModal(true)}
-                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
-                  title="Export keys"
-                >
-                  <Key className="h-3.5 w-3.5" />
-                  Export keys
-                </button>
-                <button
+                  data-testid="logout-button"
                   onClick={handleLogout}
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 cursor-pointer"
                   title="Logout"
@@ -639,6 +602,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {!evmReady && (
+              <p className="mt-3 text-center text-sm leading-6 text-[var(--muted)]">
+                Balances, gas sponsorship and batching need an EVM smart account.
+                Add an EVM wallet to unlock them; both stay connected side by side.
+              </p>
+            )}
+            {evmReady && (
             <div className="mt-5 border-t border-[var(--border-warm)] pt-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <div className="flex items-center justify-center gap-3">
@@ -684,11 +654,20 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            )}
 
             {walletAddresses}
           </div>
 
+          {/* Without an EVM account only the signing demo applies; the EVM
+              button inside it stays disabled until one is added. */}
+          {!evmReady && (
+            <div className="rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:p-5 lg:p-6">
+              <SigningTest />
+            </div>
+          )}
           {/* Tabs */}
+          {evmReady && (
           <div className="overflow-hidden rounded-lg border border-[var(--border-warm)] bg-white">
             <div className="border-b border-[var(--border-warm)] bg-[var(--surface-warm)]">
               <nav className="grid grid-cols-3">
@@ -737,6 +716,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     </>
