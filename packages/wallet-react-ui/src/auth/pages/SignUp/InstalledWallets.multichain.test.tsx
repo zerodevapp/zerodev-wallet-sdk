@@ -16,6 +16,17 @@ import { SignUp } from './index'
 afterEach(cleanup)
 
 // The SignUp root preloads the page-level pairing — inert here.
+// The root vitest config aliases @zerodev/react-ui to source without the SVG
+// plugin, so real icons render nothing there; stand in for them by name.
+vi.mock('@zerodev/react-ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@zerodev/react-ui')>()
+  const React = await import('react')
+  return {
+    ...actual,
+    ListItemIcon: ({ name }: { name: string }) =>
+      React.createElement('svg', { 'data-testid': `icon-${name}` }),
+  }
+})
 vi.mock('../../hooks/useWalletConnectPairing', () => ({
   useWalletConnectPairing: () => ({
     uri: null,
@@ -135,11 +146,9 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(phantom.connect).not.toHaveBeenCalled()
     const choice = screen.getByTestId('chain-choice-Phantom')
     expect(choice).toBeTruthy()
-    // Each chain row carries its chain icon in the leading tile (the
-    // trailing chevron sits outside that tile, so it is not counted).
-    expect(
-      choice.querySelectorAll('button > div > div:first-child > svg').length,
-    ).toBe(2)
+    // Each chain row carries its chain icon.
+    expect(choice.querySelector('[data-testid="icon-ethereum"]')).toBeTruthy()
+    expect(choice.querySelector('[data-testid="icon-solana"]')).toBeTruthy()
 
     // Solana connects through the Wallet Standard and fills the Solana slot.
     fireEvent.click(screen.getByText('Solana'))
