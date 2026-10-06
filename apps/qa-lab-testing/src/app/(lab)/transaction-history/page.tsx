@@ -1,5 +1,6 @@
 import { FeatureHeader } from "../../components/lab/FeatureHeader";
 import { TransactionHistoryPanel } from "../../components/transaction-history/TransactionHistoryPanel";
+import { TxHistoryWidget } from "../../components/transaction-history/TxHistoryWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,9 @@ export default function TransactionHistoryPage() {
         </p>
       </FeatureHeader>
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-4">
         <TransactionHistoryPanel />
+        <TxHistoryWidget />
       </div>
     </>
   );
