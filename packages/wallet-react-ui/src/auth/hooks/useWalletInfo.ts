@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useConfig } from 'wagmi'
+import { createStore, useStore } from 'zustand'
+import { getStore } from '../../shared/utils/store'
 import {
   matchesWallet,
   WALLET_GUIDE,
@@ -7,8 +9,14 @@ import {
   type WalletId,
 } from '../walletGuide'
 
-/** How the active connection reaches the wallet. */
-export type WalletSource = 'injected' | 'walletconnect' | 'embedded' | 'other'
+/** How the active connection reaches the wallet. `wallet-standard` is a
+ * Solana browser wallet reached through the Wallet Standard registry. */
+export type WalletSource =
+  | 'injected'
+  | 'walletconnect'
+  | 'embedded'
+  | 'wallet-standard'
+  | 'other'
 
 export type WalletInfo = {
   /** Human-readable wallet name ('MetaMask', 'Trust Wallet', …). */
@@ -132,14 +140,43 @@ function useResolvedWalletInfo(): WalletInfo | undefined {
  * `undefined` while disconnected, and the WalletConnect case resolves
  * asynchronously (briefly `name: undefined` after connect/reload).
  *
- * @param _namespace - Accepted for AppKit call-compatibility ('eip155');
- * ignored — the kit is EVM-only.
+ * @param namespace - `'eip155'` (default) reads the wagmi connection;
+ * `'solana'` reads the kit's Solana wallet slot (the external Solana wallet
+ * connected through `SignUp.SolanaWallets`). Any other string reads as EVM,
+ * as before. Same shape as AppKit's `useWalletInfo(namespace)`.
  */
-export function useWalletInfo(_namespace?: string): {
+export function useWalletInfo(namespace: string = 'eip155'): {
   walletInfo: WalletInfo | undefined
 } {
-  const walletInfo = useResolvedWalletInfo()
+  const evmWalletInfo = useResolvedWalletInfo()
+  const solanaWalletInfo = useSolanaWalletInfo()
+  const walletInfo = namespace === 'solana' ? solanaWalletInfo : evmWalletInfo
   // The wrapper is memoized too, so the returned object is stable for
   // consumers that depend on it whole rather than destructuring.
   return useMemo(() => ({ walletInfo }), [walletInfo])
 }
+
+/** Identity of the Solana wallet in the kit's Solana slot. Resolves to
+ * undefined without the kit connector (plain wagmi setups) or while no
+ * Solana wallet is connected. */
+function useSolanaWalletInfo(): WalletInfo | undefined {
+  const config = useConfig()
+  const store = getStore(config)
+  const connection = useStore(
+    // No kit connector: subscribe to an inert store so hook order is stable.
+    store ?? NO_STORE,
+    (s) => s.solana?.connection ?? null,
+  )
+  return useMemo((): WalletInfo | undefined => {
+    if (!connection) return undefined
+    return {
+      name: connection.wallet.name,
+      icon: connection.wallet.icon,
+      source: 'wallet-standard',
+    }
+  }, [connection])
+}
+
+// Stand-in store for setups without the kit connector: `useStore` needs a
+// store on every render, and a selector on this one always yields null.
+const NO_STORE = createStore<{ solana?: undefined }>()(() => ({}))

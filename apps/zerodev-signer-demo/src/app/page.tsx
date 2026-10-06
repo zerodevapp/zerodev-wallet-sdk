@@ -1,7 +1,7 @@
 'use client'
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
-import {ConnectWallet, SignUp, useAuth} from '@zerodev/wallet-react-ui'
+import {ConnectWallet, SignUp, useAuth, useSolanaAccount} from '@zerodev/wallet-react-ui'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
 import {useRouter} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
@@ -46,11 +46,16 @@ function LandingPageInner() {
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
+  // Solana PoC: a connected Solana wallet is a login too — the dashboard
+  // renders a Solana-only state when the EVM side is signed out.
+  const solana = useSolanaAccount()
+  const solanaConnected = solana.isConnected
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
   // loading screen so the page doesn't sit blank and then jump.
-  const isRedirecting = isConnected || authStep === 'authenticated'
+  const isRedirecting =
+    isConnected || solanaConnected || authStep === 'authenticated'
   // wagmi failed to (re)connect — offer a manual Reconnect instead of a
   // misleading CTA.
   const showReconnect =
@@ -77,7 +82,7 @@ function LandingPageInner() {
   }, [])
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected || solanaConnected) {
       router.push('/dashboard')
       return
     }
@@ -90,6 +95,7 @@ function LandingPageInner() {
     }
   }, [
     isConnected,
+    solanaConnected,
     accountStatus,
     connectStatus,
     router,
@@ -226,6 +232,7 @@ function renderSignUpItem(item: PlaygroundItem) {
           key={item.key}
           excludeWalletIds={parseExcludeIds(item.exclude)}
           {...(item.maxWallets !== null && { maxWallets: item.maxWallets })}
+          {...(item.solana && { namespaces: ['eip155', 'solana'] as const })}
         />
       )
     case 'moreWallets':
