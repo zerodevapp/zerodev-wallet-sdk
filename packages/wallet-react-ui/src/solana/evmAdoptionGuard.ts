@@ -1,7 +1,5 @@
 import type { Config } from 'wagmi'
-
-const sameWallet = (a: string, b: string) =>
-  a.trim().toLowerCase() === b.trim().toLowerCase()
+import { sameWalletName } from '../shared/utils/sameWalletName'
 
 /** How long after the Solana connect settles to keep watching for a late
  * adoption (the wallet's EVM provider emits its accounts asynchronously). */
@@ -13,8 +11,8 @@ const GRACE_MS = 1500
  * (`wallet_revokePermissions`), and MetaMask answers that by revoking the
  * whole site, which also ends the Solana connection it shares with the EVM
  * side. Mirrors the rest of wagmi's disconnect action, except the
- * self-connect listener is not restored, so an account switch in the wallet
- * cannot re-adopt the EVM side on its own.
+ * self-connect listener is removed rather than restored, so an account switch
+ * in the wallet cannot re-adopt the EVM side on its own.
  */
 function detachFromWagmiState(config: Config, uid: string): void {
   const connection = config.state.connections.get(uid)
@@ -23,6 +21,10 @@ function detachFromWagmiState(config: Config, uid: string): void {
   const { events } = config._internal
   connector.emitter.off('change', events.change)
   connector.emitter.off('disconnect', events.disconnect)
+  // wagmi's adoption handler means to drop this listener but calls `off` with
+  // the wrong function, so it survives an adoption; without this an account
+  // switch in the wallet would adopt the EVM side all over again.
+  connector.emitter.off('connect', events.connect)
   config.setState((x) => {
     const connections = new Map(x.connections)
     connections.delete(uid)
@@ -88,7 +90,7 @@ export async function withoutEvmAdoption<T>(
   const detach = (uid: string) => {
     const connection = config.state.connections.get(uid)
     if (!connection) return
-    if (!sameWallet(connection.connector.name, walletName)) return
+    if (!sameWalletName(connection.connector.name, walletName)) return
     detachFromWagmiState(config, uid)
   }
 
