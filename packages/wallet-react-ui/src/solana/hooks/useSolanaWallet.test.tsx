@@ -1,16 +1,25 @@
 /**
  * @vitest-environment happy-dom
  */
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import type { WalletAccount } from '@wallet-standard/base'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from '../../store'
 import type { SolanaStandardWallet } from '../types'
+import { useSolanaAccount } from './useSolanaAccount'
 import { useSolanaWallet } from './useSolanaWallet'
 
 let store = createStore()
 vi.mock('../../shared/hooks/useKitStore', () => ({
   useKitStore: () => store,
+}))
+vi.mock('wagmi', () => ({
+  useConfig: () => ({
+    state: { connections: new Map(), current: null, status: 'disconnected' },
+    setState: () => {},
+    subscribe: () => () => {},
+    _internal: { events: { change() {}, disconnect() {}, connect() {} } },
+  }),
 }))
 
 const account: WalletAccount = {
@@ -110,5 +119,24 @@ describe('useSolanaWallet', () => {
     expect(result.current?.signMessage).toBeNull()
     expect(result.current?.signTransaction).toBeNull()
     expect(result.current?.signAndSendTransaction).toBeNull()
+  })
+})
+
+describe('useSolanaAccount', () => {
+  it('connects and disconnects a wallet outside the sign-up flow', async () => {
+    const { result } = renderHook(() => useSolanaAccount())
+    expect(result.current.isConnected).toBe(false)
+
+    await act(async () => {
+      await result.current.connect(walletWith({}))
+    })
+    expect(result.current.isConnected).toBe(true)
+    expect(result.current.address).toBe(account.address)
+    expect(result.current.walletName).toBe('Phantom')
+
+    await act(async () => {
+      await result.current.disconnect()
+    })
+    expect(result.current.isConnected).toBe(false)
   })
 })
