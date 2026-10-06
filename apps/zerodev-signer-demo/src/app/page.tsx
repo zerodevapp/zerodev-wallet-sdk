@@ -7,7 +7,6 @@ import {useRouter} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
-import { SolanaAccountStrip } from './components/SolanaAccountStrip'
 import { Playground } from './components/playground/Playground'
 import {
   DEFAULT_ITEMS,
@@ -148,12 +147,6 @@ function LandingPageInner() {
         </section>
 
         <div className="mx-auto flex w-full flex-col items-center lg:mx-0">
-          {/* Solana PoC: the Solana slot is independent of the wagmi gate, so a
-              connected Solana wallet shows here while the EVM side is signed
-              out. */}
-          <div className="mb-4 w-full max-w-[360px]">
-            <SolanaAccountStrip />
-          </div>
           {showReconnect ? (
             <div className="flex h-[729px] w-[360px] items-center justify-center">
               <button

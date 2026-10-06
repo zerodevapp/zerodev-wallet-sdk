@@ -76,6 +76,9 @@ function fakeConfig() {
     _internal: { events },
   }
   const adopt = (connector: FakeConnector) => {
+    // wagmi registers `connect` at connector setup and fails to remove it on
+    // adoption (it calls off() with the change handler), so it is still there.
+    connector.emitter.on('connect', events.connect)
     connector.emitter.on('change', events.change)
     connector.emitter.on('disconnect', events.disconnect)
     config.setState((x) => ({

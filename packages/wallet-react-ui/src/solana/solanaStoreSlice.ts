@@ -103,9 +103,10 @@ export const createSolanaStoreSlice: StateCreator<
         if (!accounts) return
         // Multichain wallets (Phantom) announce Solana, EVM, Bitcoin and Sui
         // accounts under one Wallet Standard wallet and may emit a `change`
-        // for another namespace's accounts. Read the wallet's own account
-        // list first, then the event payload, so such an event never reads
-        // as "Solana revoked".
+        // for another namespace's accounts only. Read the wallet's own
+        // account list first, then the event payload, so such an event never
+        // reads as "Solana revoked". No Solana account on either list means
+        // the wallet dropped it (alone, or with everything): a disconnect.
         const account =
           pickSolanaAccount(wallet.accounts) ?? pickSolanaAccount(accounts)
         if (account) {
@@ -117,13 +118,8 @@ export const createSolanaStoreSlice: StateCreator<
           }))
           return
         }
-        if (accounts.length === 0) {
-          // The wallet revoked every account — that is a disconnect.
-          clear()
-          writeLastWalletName(null)
-        }
-        // Non-empty list without a Solana account: another namespace changed;
-        // the Solana connection stands.
+        clear()
+        writeLastWalletName(null)
       }) ?? null
   }
 

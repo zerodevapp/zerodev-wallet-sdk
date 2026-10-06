@@ -122,6 +122,8 @@ export function SigningTest() {
     setMode(next);
     setPayload(next === "message" ? message : JSON.stringify(typedData, null, 2));
     setError(null);
+    // Earlier signatures belong to the other payload kind.
+    setResults({});
   };
 
   const loadSample = () => setPayload(samplePayload);
