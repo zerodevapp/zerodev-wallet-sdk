@@ -48,9 +48,14 @@ function buildHandle(connection: SolanaConnection): SolanaWalletHandle {
   >
   const defaultChain = connection.chains[0]
 
-  const signMessageFeature = features['solana:signMessage']
-  const signTransactionFeature = features['solana:signTransaction']
-  const signAndSendFeature = features['solana:signAndSendTransaction']
+  // Capabilities are declared per wallet and per account: a wallet can
+  // expose a feature that the selected account (a hardware or watch-only
+  // account, say) cannot use. Offer a method only when both agree.
+  const forAccount = <K extends keyof typeof features>(name: K) =>
+    account.features.includes(name) ? features[name] : undefined
+  const signMessageFeature = forAccount('solana:signMessage')
+  const signTransactionFeature = forAccount('solana:signTransaction')
+  const signAndSendFeature = forAccount('solana:signAndSendTransaction')
 
   return {
     wallet,
@@ -102,7 +107,8 @@ function buildHandle(connection: SolanaConnection): SolanaWalletHandle {
  * signs: `signMessage`, `signTransaction` and `signAndSendTransaction` call
  * the wallet's own Wallet Standard features, so the wallet (Phantom,
  * MetaMask, …) shows its prompt and returns the signature. Each is `null`
- * when the wallet does not expose that feature; the raw `wallet` and
+ * when the wallet, or the connected account, does not expose that feature;
+ * the raw `wallet` and
  * `account` are there for anything else (for example a `@solana/kit`
  * signer). `null` while disconnected.
  */
