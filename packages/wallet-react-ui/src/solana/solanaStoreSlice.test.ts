@@ -153,6 +153,19 @@ describe('solana store slice', () => {
     expect(store.getState().solana.connection?.address).toBe(SOL_ADDRESS)
   })
 
+  it('disconnects when the wallet drops its Solana account but keeps another namespace', async () => {
+    const store = createStore()
+    const { wallet, emitChange } = fakeWallet('Phantom', [account()])
+    await store.getState().solana.connect(wallet)
+
+    // Solana revoked in the wallet; its EVM account is still authorised.
+    emitChange({ accounts: [account(`0x${'c'.repeat(40)}`, ['eip155:1'])] })
+
+    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.connection).toBeNull()
+    expect(window.localStorage.length).toBe(0)
+  })
+
   it('restores the last wallet silently, and only that one', async () => {
     const store = createStore()
     window.localStorage.setItem('zerodev:solana:lastWallet', 'Phantom')
