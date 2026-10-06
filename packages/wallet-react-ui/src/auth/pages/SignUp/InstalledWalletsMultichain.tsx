@@ -5,25 +5,20 @@ import {
   ListItemIcon,
 } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { useConnectors } from 'wagmi'
+import { sameWalletName } from '../../../shared/utils/sameWalletName'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import type { SolanaStandardWallet } from '../../../solana/types'
 import { useAuth } from '../../hooks/useAuth'
-import { matchesWallet, WALLET_GUIDE } from '../../walletGuide'
+import { WALLET_GUIDE } from '../../walletGuide'
 import { useSignUpContext } from './context'
+import {
+  type InstalledEvmRow,
+  useInstalledEvmRows,
+} from './useInstalledEvmRows'
 import { useSolanaConnect } from './useSolanaConnect'
 
 export type InstalledWalletNamespace = 'eip155' | 'solana'
-
-type EvmRow = {
-  connector: ReturnType<typeof useConnectors>[number]
-  walletId: string | undefined
-  name: string
-  icon: string | undefined
-  ids: string[]
-  rank: number
-}
 
 /** One row per installed wallet, across namespaces. A wallet that announces
  * both an EVM provider (EIP-6963) and a Solana wallet (Wallet Standard) under
@@ -32,13 +27,10 @@ type Row = {
   key: string
   name: string
   icon: string | undefined
-  evm: EvmRow | undefined
+  evm: InstalledEvmRow | undefined
   solana: SolanaStandardWallet | undefined
   rank: number
 }
-
-const sameWallet = (a: string, b: string) =>
-  a.trim().toLowerCase() === b.trim().toLowerCase()
 
 /**
  * Multichain variant of `SignUp.InstalledWallets`, mounted when `namespaces`
@@ -58,7 +50,6 @@ export function InstalledWalletsMultichain({
 }) {
   const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement, registeredWallets } = useSignUpContext()
-  const connectors = useConnectors()
   const solanaWallets = useSolanaWallets()
   useSolanaAutoReconnect()
   const { connectSolana, pendingSolanaName, connectedSolanaName } =
@@ -69,32 +60,14 @@ export function InstalledWalletsMultichain({
   const withEvm = namespaces.includes('eip155')
   const withSolana = namespaces.includes('solana')
 
-  // Same rule as the EVM-only unit: only a 6963 announcement proves a live
-  // extension.
-  const evmRows: EvmRow[] = withEvm
-    ? connectors
-        .filter(
-          (c) =>
-            c.type === 'injected' &&
-            c.id !== 'injected' &&
-            c.id !== 'zerodev-wallet',
-        )
-        .map((connector) => {
-          const wallet = WALLET_GUIDE.find((w) => matchesWallet(connector, w))
-          return {
-            connector,
-            walletId: wallet?.id,
-            name: wallet?.name ?? connector.name,
-            icon: wallet?.icon ?? connector.icon,
-            ids: wallet ? [wallet.id, connector.id] : [connector.id],
-            rank: wallet ? WALLET_GUIDE.indexOf(wallet) : WALLET_GUIDE.length,
-          }
-        })
-        .filter(
-          (row) => !(row.walletId && registeredWallets.includes(row.walletId)),
-        )
-        .filter((row) => !row.ids.some((id) => excludeWalletIds.includes(id)))
-    : []
+  const installedEvmRows = useInstalledEvmRows(excludeWalletIds)
+  const evmRows = withEvm ? installedEvmRows : []
+  // A wallet pinned through `SignUp.Wallet` is excluded by guide id on the
+  // EVM side; its Solana registration carries the guide name instead.
+  const registeredNames = registeredWallets.flatMap((id) => {
+    const entry = WALLET_GUIDE.find((w) => w.id === id)
+    return entry ? [entry.name] : []
+  })
 
   const rows: Row[] = evmRows.map((evm) => ({
     key: evm.connector.uid,
@@ -107,8 +80,11 @@ export function InstalledWalletsMultichain({
 
   if (withSolana) {
     for (const wallet of solanaWallets) {
-      if (excludeWalletIds.some((id) => sameWallet(id, wallet.name))) continue
-      const merged = rows.find((r) => sameWallet(r.name, wallet.name))
+      if (excludeWalletIds.some((id) => sameWalletName(id, wallet.name))) {
+        continue
+      }
+      if (registeredNames.some((n) => sameWalletName(n, wallet.name))) continue
+      const merged = rows.find((r) => sameWalletName(r.name, wallet.name))
       if (merged) {
         merged.solana = wallet
         merged.icon ??= wallet.icon
@@ -193,7 +169,10 @@ export function InstalledWalletsMultichain({
               }
               subtitle={badgesFor(row)}
               trailing={<ListItemChevron />}
-              disabled={authPending}
+              disabled={
+                authPending ||
+                (!row.evm && connectedSolanaName === row.solana?.name)
+              }
               onClick={() => onRowClick(row)}
             />
             {expanded && (
