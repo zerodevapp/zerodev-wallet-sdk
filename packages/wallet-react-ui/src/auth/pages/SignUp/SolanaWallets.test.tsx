@@ -30,7 +30,16 @@ vi.mock('./Passkey', () => ({ SignUpPasskey: () => null }))
 vi.mock('./Google', () => ({ SignUpGoogle: () => null }))
 vi.mock('./Email', () => ({ SignUpEmail: () => null }))
 vi.mock('./MoreWallets', () => ({ SignUpMoreWallets: () => null }))
-vi.mock('wagmi', () => ({ useConnectors: () => [] }))
+const fakeWagmiConfig = {
+  state: { connections: new Map(), current: null, status: 'disconnected' },
+  setState: () => {},
+  subscribe: () => () => {},
+  _internal: { events: { change() {}, disconnect() {}, connect() {} } },
+}
+vi.mock('wagmi', () => ({
+  useConnectors: () => [],
+  useConfig: () => fakeWagmiConfig,
+}))
 vi.mock('../../components/BlobAnimation', () => ({
   BlobAnimation: () => null,
 }))

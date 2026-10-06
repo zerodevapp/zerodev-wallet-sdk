@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useConfig } from 'wagmi'
 import { useStore } from 'zustand'
 import { useKitStore } from '../../../shared/hooks/useKitStore'
+import { withoutEvmAdoption } from '../../../solana/evmAdoptionGuard'
 import type { SolanaStandardWallet } from '../../../solana/types'
 import { useAuth } from '../../hooks/useAuth'
 import { isCancellationError } from '../../utils/isCancellationError'
@@ -18,6 +20,7 @@ export function useSolanaConnect() {
   const { authPending, guardAgreement, setError } = useSignUpContext()
   const { goToStep } = useAuth()
   const store = useKitStore()
+  const wagmiConfig = useConfig()
   const status = useStore(store, (s) => s.solana.status)
   const connectedName = useStore(store, (s) => s.solana.connection?.wallet.name)
 
@@ -29,7 +32,11 @@ export function useSolanaConnect() {
     if (!guardAgreement()) return
     setPendingName(wallet.name)
     try {
-      await store.getState().solana.connect(wallet)
+      // Solana only: a multichain wallet (MetaMask) authorises its EVM side
+      // in the same prompt, and wagmi would adopt it on its own.
+      await withoutEvmAdoption(wagmiConfig, wallet.name, () =>
+        store.getState().solana.connect(wallet),
+      )
       goToStep(null)
     } catch (err) {
       if (!isCancellationError(err)) {

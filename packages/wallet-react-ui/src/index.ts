@@ -28,6 +28,7 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
+export { detachEvmConnection } from './solana/evmAdoptionGuard.js'
 // Solana (external wallets via the Wallet Standard; the kit signs nothing)
 export {
   type SolanaAccount,
