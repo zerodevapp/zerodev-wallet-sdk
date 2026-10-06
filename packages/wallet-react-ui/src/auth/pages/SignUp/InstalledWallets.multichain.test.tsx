@@ -220,6 +220,40 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(screen.queryByText('Solflare')).toBeNull()
   })
 
+  it('swallows a declined Solana prompt and surfaces other failures', async () => {
+    const declined = solanaWallet('Phantom')
+    declined.connect.mockRejectedValue({ code: 4001 })
+    const broken = solanaWallet('Solflare')
+    broken.connect.mockRejectedValue(new Error('Wallet is locked'))
+    solanaWallets = [declined.wallet, broken.wallet]
+    render(
+      <SignUp>
+        <SignUp.SolanaWallets />
+      </SignUp>,
+    )
+
+    fireEvent.click(screen.getByText('Phantom'))
+    await waitFor(() => expect(declined.connect).toHaveBeenCalledTimes(1))
+    // Settled once the page-level pending lock re-enables the rows.
+    const rowButton = (name: string) =>
+      screen.getByText(name).closest('button') as HTMLButtonElement
+    await waitFor(() => expect(rowButton('Solflare').disabled).toBe(false), {
+      timeout: 3000,
+    })
+    expect(goToStep).not.toHaveBeenCalled()
+    expect(screen.queryByText('Error occurred')).toBeNull()
+
+    fireEvent.click(screen.getByText('Solflare'))
+    await waitFor(
+      () => expect(screen.getByText('Error occurred')).toBeTruthy(),
+      {
+        timeout: 3000,
+      },
+    )
+    expect(screen.getByText('Wallet is locked')).toBeTruthy()
+    expect(store.getState().solana.status).toBe('disconnected')
+  })
+
   it('keeps the EVM-only behaviour by default', () => {
     connectors = [announced('app.phantom', 'Phantom')]
     solanaWallets = [solanaWallet('Phantom').wallet]
