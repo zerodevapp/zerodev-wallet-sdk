@@ -26,20 +26,27 @@ const account: WalletAccount = {
   address: '7S3P4HxJpyyigGzodYwHtCxZyUQe9JiBMHyRWXArAaKv',
   publicKey: new Uint8Array(32).fill(1),
   chains: ['solana:mainnet', 'solana:devnet'],
-  features: ['solana:signMessage'],
+  features: [
+    'solana:signMessage',
+    'solana:signTransaction',
+    'solana:signAndSendTransaction',
+  ],
 }
 
-function walletWith(features: Record<string, unknown>) {
+function walletWith(
+  features: Record<string, unknown>,
+  connectedAccount: WalletAccount = account,
+) {
   return {
     version: '1.0.0',
     name: 'Phantom',
     icon: 'data:image/svg+xml;base64,',
     chains: ['solana:mainnet'],
-    accounts: [account],
+    accounts: [connectedAccount],
     features: {
       'standard:connect': {
         version: '1.0.0',
-        connect: async () => ({ accounts: [account] }),
+        connect: async () => ({ accounts: [connectedAccount] }),
       },
       ...features,
     },
@@ -119,6 +126,25 @@ describe('useSolanaWallet', () => {
     expect(result.current?.signMessage).toBeNull()
     expect(result.current?.signTransaction).toBeNull()
     expect(result.current?.signAndSendTransaction).toBeNull()
+  })
+
+  it('exposes null for features the connected account lacks', async () => {
+    // The wallet signs transactions, but this account (hardware, say) only
+    // signs messages.
+    const signTransaction = vi.fn()
+    const wallet = walletWith(
+      {
+        'solana:signMessage': { version: '1.0.0', signMessage: vi.fn() },
+        'solana:signTransaction': { version: '1.0.0', signTransaction },
+      },
+      { ...account, features: ['solana:signMessage'] },
+    )
+    await store.getState().solana.connect(wallet)
+    const { result } = renderHook(() => useSolanaWallet())
+    expect(result.current?.signMessage).not.toBeNull()
+    expect(result.current?.signTransaction).toBeNull()
+    expect(result.current?.signAndSendTransaction).toBeNull()
+    expect(signTransaction).not.toHaveBeenCalled()
   })
 })
 

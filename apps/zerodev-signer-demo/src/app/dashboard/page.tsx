@@ -526,7 +526,12 @@ export default function DashboardPage() {
           <TxHistory onClose={() => setShowHistory(false)} />
         </div>
       )}
-      {evmConnectRequested && authStep !== null && (
+      {/* The terminal `authenticated` step renders nothing inside ConnectWallet
+          (passkey, Google or email from "More options"), so the overlay must
+          not outlive it, or it would sit over the dashboard. */}
+      {evmConnectRequested &&
+        authStep !== null &&
+        authStep !== "authenticated" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <ConnectWallet
             size="md"
