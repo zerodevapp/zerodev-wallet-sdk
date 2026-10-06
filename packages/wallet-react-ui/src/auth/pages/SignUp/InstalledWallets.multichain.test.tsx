@@ -55,7 +55,16 @@ type FakeConnector = {
   icon?: string
 }
 let connectors: FakeConnector[] = []
-vi.mock('wagmi', () => ({ useConnectors: () => connectors }))
+const fakeWagmiConfig = {
+  state: { connections: new Map(), current: null, status: 'disconnected' },
+  setState: () => {},
+  subscribe: () => () => {},
+  _internal: { events: { change() {}, disconnect() {}, connect() {} } },
+}
+vi.mock('wagmi', () => ({
+  useConnectors: () => connectors,
+  useConfig: () => fakeWagmiConfig,
+}))
 
 let solanaWallets: SolanaStandardWallet[] = []
 vi.mock('../../../solana/hooks/useSolanaWallets', () => ({
