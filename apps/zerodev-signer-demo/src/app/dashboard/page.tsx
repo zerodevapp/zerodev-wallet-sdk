@@ -8,6 +8,8 @@ import {
   TxHistory,
   useAuth,
   detachEvmConnection,
+  isCancellationError,
+  sameWalletName,
   useSolanaAccount,
   useSolanaAutoReconnect,
   useSolanaWallets,
@@ -36,6 +38,7 @@ import { AppHeader } from "../components/AppHeader";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
+import { WalletPill } from "../components/WalletPill";
 import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
@@ -150,9 +153,10 @@ export default function DashboardPage() {
       await solana.connect(wallet);
     } catch (err) {
       // A declined prompt is the user's choice, not an error to show.
-      const message = err instanceof Error ? err.message : "";
-      if (!/reject|denied|cancel/i.test(message)) {
-        setSolanaConnectError(message || `Couldn't connect to ${wallet.name}.`);
+      if (!isCancellationError(err)) {
+        setSolanaConnectError(
+          (err instanceof Error && err.message) || `Couldn't connect to ${wallet.name}.`,
+        );
       }
     } finally {
       setSolanaConnecting(null);
@@ -193,9 +197,10 @@ export default function DashboardPage() {
       const silent = await reconnectAsync({ connectors: [connector] });
       if (silent.length === 0) await connectEvmAsync({ connector });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "";
-      if (!/reject|denied|cancel/i.test(message)) {
-        setEvmConnectError(message || `Couldn't connect to ${connector.name}.`);
+      if (!isCancellationError(err)) {
+        setEvmConnectError(
+          (err instanceof Error && err.message) || `Couldn't connect to ${connector.name}.`,
+        );
       }
     } finally {
       setEvmConnecting(null);
@@ -297,9 +302,7 @@ export default function DashboardPage() {
   // revokes the whole site, Solana included; so in that case the EVM side is
   // detached at wagmi's level only, leaving the wallet's permission alone.
   const sharesSolanaWallet =
-    !!connector &&
-    !!solana.walletName &&
-    connector.name.trim().toLowerCase() === solana.walletName.trim().toLowerCase();
+    !!connector && !!solana.walletName && sameWalletName(connector.name, solana.walletName);
   const handleDisconnect = async (network: "evm" | "solana") => {
     const isLast = network === "evm" ? !solanaConnected : !address;
     if (isLast) localStorage.setItem("zd:loggedOut", "true");
@@ -337,16 +340,21 @@ export default function DashboardPage() {
     }
   }, [status, hasConnected, solanaConnected, router]);
 
+  // On a reload wagmi settles to `disconnected` before the Solana slot has
+  // had a chance to restore silently (the wallet registers, then answers a
+  // silent connect), so hold the redirect while that restore is in flight
+  // and give it a wider window than wagmi's own reconnect needs.
+  const solanaRestoring = solana.status === "connecting";
   useEffect(() => {
-    if (status !== 'disconnected' || isLoggingOut || solanaConnected) return;
+    if (status !== 'disconnected' || isLoggingOut || solanaConnected || solanaRestoring) return;
 
     const timeout = window.setTimeout(() => {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
       window.location.replace(loggedOut ? "/" : "/?session_expired=true");
-    }, 750);
+    }, 2000);
 
     return () => window.clearTimeout(timeout);
-  }, [status, isLoggingOut, solanaConnected]);
+  }, [status, isLoggingOut, solanaConnected, solanaRestoring]);
 
   // Shared by both dashboard states so an EVM-first and a Solana-first
   // session look the same: one labelled address row per connected
@@ -442,23 +450,16 @@ export default function DashboardPage() {
         >
           <span className="text-xs text-[var(--muted)]">Add a Solana wallet:</span>
           {solanaWallets.map((wallet) => (
-            <button
+            <WalletPill
               key={wallet.name}
-              type="button"
-              onClick={() => connectSolanaWallet(wallet)}
+              label={wallet.name}
+              icon={wallet.icon}
+              pending={solanaConnecting === wallet.name}
               disabled={solanaConnecting !== null}
-              data-testid={`connect-solana-${wallet.name}`}
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-default disabled:opacity-60"
               title={`Connect ${wallet.name} on Solana`}
-            >
-              {solanaConnecting === wallet.name ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element -- wallet icons are data: URIs from the wallet itself
-                <img src={wallet.icon} alt="" className="h-4 w-4 rounded" />
-              )}
-              {wallet.name}
-            </button>
+              testId={`connect-solana-${wallet.name}`}
+              onClick={() => connectSolanaWallet(wallet)}
+            />
           ))}
           {solanaConnectError && (
             <span className="basis-full text-center text-xs text-red-600">{solanaConnectError}</span>
@@ -472,36 +473,25 @@ export default function DashboardPage() {
         >
           <span className="text-xs text-[var(--muted)]">Add an EVM wallet:</span>
           {evmWallets.map((connector) => (
-            <button
+            <WalletPill
               key={connector.uid}
-              type="button"
-              onClick={() => connectEvmWallet(connector)}
+              label={connector.name}
+              icon={connector.icon}
+              pending={evmConnecting === connector.uid}
               disabled={evmConnecting !== null}
-              data-testid={`connect-evm-${connector.name}`}
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-default disabled:opacity-60"
               title={`Connect ${connector.name} on EVM`}
-            >
-              {evmConnecting === connector.uid ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : connector.icon ? (
-                // eslint-disable-next-line @next/next/no-img-element -- wallet icons are data: URIs from the wallet itself
-                <img src={connector.icon} alt="" className="h-4 w-4 rounded" />
-              ) : (
-                <Wallet className="h-3.5 w-3.5" />
-              )}
-              {connector.name}
-            </button>
+              testId={`connect-evm-${connector.name}`}
+              onClick={() => connectEvmWallet(connector)}
+            />
           ))}
-          <button
-            type="button"
-            onClick={openEvmConnect}
+          <WalletPill
+            dashed
+            label={evmWallets.length > 0 ? "More options" : "Connect"}
             disabled={evmConnecting !== null}
-            data-testid="connect-evm-button"
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-default disabled:opacity-60"
             title="Passkey, Google, email or another EVM wallet"
-          >
-            {evmWallets.length > 0 ? "More options" : "Connect"}
-          </button>
+            testId="connect-evm-button"
+            onClick={openEvmConnect}
+          />
           {evmConnectError && (
             <span className="basis-full text-center text-xs text-red-600">{evmConnectError}</span>
           )}

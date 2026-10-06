@@ -1,7 +1,12 @@
 'use client'
 
 import { ZeroDevLogo } from '@zerodev/react-ui'
-import { ConnectWallet, SignUp, useAuth } from '@zerodev/wallet-react-ui'
+import {
+  ConnectWallet,
+  SignUp,
+  useAuth,
+  useSolanaAccount,
+} from '@zerodev/wallet-react-ui'
 import { Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { Fragment, useEffect, useMemo } from 'react'
@@ -32,6 +37,7 @@ export function LoginScreen() {
   const { connect, connectors, status: connectStatus } = useConnect()
   const { isConnected, status: accountStatus } = useAccount()
   const { step: authStep } = useAuth()
+  const solanaConnected = useSolanaAccount().isConnected
 
   // Resolve the same URL params the connector was built from, so the rendered
   // methods and email flow match the config under test (see Providers).
@@ -81,24 +87,27 @@ export function LoginScreen() {
         {showLoading ? (
           <Loader2 className="h-10 w-10 animate-spin text-[var(--muted)]" />
         ) : showReconnect ? (
-          <button
-            type="button"
-            onClick={handleReconnect}
-            className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
-          >
-            Reconnect
-          </button>
+          <>
+            {/* Solana PoC: a Solana-only sign-in lands here, because closing
+                the sign-up flow rejects the kit connector's pending EVM
+                connect. The lab itself needs an EVM account, so keep the
+                Solana connection visible and offer the EVM sign-in. */}
+            <div className="mb-4 w-full max-w-md">
+              <SolanaAccountStrip />
+            </div>
+            <button
+              type="button"
+              onClick={handleReconnect}
+              className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
+            >
+              {solanaConnected ? 'Sign in with an EVM wallet' : 'Reconnect'}
+            </button>
+          </>
         ) : (
           <>
             <p className="mb-6 text-center text-sm font-semibold uppercase tracking-[0.22em] text-[#9c958c]">
               Sign in to open the QA Lab
             </p>
-            {/* Solana PoC: the Solana slot is independent of the wagmi gate
-                below, so a connected Solana wallet shows here while the EVM
-                side is still signed out. */}
-            <div className="mb-4 w-full max-w-md">
-              <SolanaAccountStrip />
-            </div>
             <ConnectWallet
               size="md"
               logo={
