@@ -9,6 +9,7 @@ import {
 } from '@zerodev/wallet-react'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
+import { version } from './version.js'
 
 const DEFAULT_SIGNING_PROMPT_METHODS: RequestMethod[] = [
   'eth_sendTransaction',
@@ -62,7 +63,10 @@ function waitForAuthFlow(store: ReturnType<typeof createStore>): Promise<void> {
 export function zeroDevWallet(
   params: ZeroDevKitConnectorParams,
 ): CreateConnectorFn {
-  const baseFactory = baseZeroDevWallet(params)
+  const baseFactory = baseZeroDevWallet({
+    ...params,
+    sdkVersion: params.sdkVersion ?? `@zerodev/wallet-react-ui@${version}`,
+  })
   const store = createStore()
 
   return (wagmiConfig) => {

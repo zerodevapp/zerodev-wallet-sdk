@@ -29,6 +29,11 @@ export interface ZeroDevWalletConfigCore {
   apiKeyStamper: ApiKeyStamper
   passkeyStamper?: PasskeyStamper
   fetchOptions?: CreateTransportOptions['fetchOptions']
+  /**
+   * @internal The package reported in the `X-SDK-Version` header. Wrapper
+   * packages set their own name and version; apps should not set it.
+   */
+  sdkVersion?: string
 }
 
 export type { StorageAdapter, StorageManager } from '../storage/manager.js'
@@ -128,6 +133,7 @@ export async function createZeroDevWalletCore(
     transport: zeroDevWalletTransport({
       baseUrl: config.proxyBaseUrl || `${KMS_SERVER_URL}/api/v1`,
       ...(config.fetchOptions && { fetchOptions: config.fetchOptions }),
+      ...(config.sdkVersion && { sdkVersion: config.sdkVersion }),
     }),
   })
 

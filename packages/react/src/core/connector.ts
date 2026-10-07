@@ -27,6 +27,7 @@ import { createProvider } from '../provider.js'
 import { type CreateStoreOptions, createZeroDevWalletStore } from '../store.js'
 import { getAAUrl } from '../utils/aaUtils.js'
 import { isReactNative } from '../utils/platform.js'
+import { version } from '../version.js'
 
 /**
  * Account mode the connector exposes to wagmi.
@@ -60,6 +61,11 @@ export type ConnectorCoreParams = {
    * header. Web consumers don't need it (browsers ignore Origin overrides).
    */
   fetchOptions?: CreateTransportOptions['fetchOptions']
+  /**
+   * @internal The package reported in the `X-SDK-Version` header. Wrapper
+   * packages set their own name and version; apps should not set it.
+   */
+  sdkVersion?: string
   autoRefreshSession?: boolean
   sessionWarningThreshold?: number
   /**
@@ -257,6 +263,7 @@ export function zeroDevWalletCore(
         ...(apiKeyStamper && { apiKeyStamper }),
         ...(passkeyStamper && { passkeyStamper }),
         ...(params.fetchOptions && { fetchOptions: params.fetchOptions }),
+        sdkVersion: params.sdkVersion ?? `@zerodev/wallet-react@${version}`,
       })
 
       // Create store
