@@ -141,7 +141,8 @@ export function createProvider({
         // logout() here would revoke the other tab's live key.
         if (
           newSession &&
-          newSession.organizationId !== session.organizationId
+          (newSession.organizationId !== session.organizationId ||
+            newSession.userId !== session.userId)
         ) {
           store.getState().clear()
           return

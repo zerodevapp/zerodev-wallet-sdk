@@ -118,14 +118,17 @@ export interface ZeroDevWalletSDK {
 let keyTransitionTail = Promise.resolve()
 
 // Tabs of one origin share the key vault and session storage but not the queue
-// above, so every tab's timer would refresh at the same instant and Turnkey
-// fails concurrent stamp logins for one sub-org (DPL-798). A Web Lock spans
-// tabs. Without Web Locks (React Native, very old browsers) there is one
+// above. A Web Lock spans tabs. It covers a whole refresh, so every tab's timer
+// firing at the same instant sends one stamp login (Turnkey fails concurrent
+// ones for a sub-org, DPL-798), and every write of the shared vault and
+// session, so one tab cannot consume another's transition journal. It never
+// spans a passkey prompt or OAuth popup: an abandoned prompt would block every
+// other tab. Without Web Locks (React Native, very old browsers) there is one
 // instance per app or the queue above is all we have.
-const SESSION_REFRESH_LOCK = '@zerodev/session_refresh'
+const KEY_TRANSITION_LOCK = '@zerodev/key_transition'
 const withCrossTabLock = async <T>(task: () => Promise<T>): Promise<T> => {
   const locks = typeof navigator === 'undefined' ? undefined : navigator.locks
-  return locks ? await locks.request(SESSION_REFRESH_LOCK, task) : task()
+  return locks ? await locks.request(KEY_TRANSITION_LOCK, task) : task()
 }
 
 export async function createZeroDevWalletCore(
@@ -208,7 +211,8 @@ export async function createZeroDevWalletCore(
     }
   }
 
-  const commitReplacementSession = async (
+  // Callers must hold the cross-tab lock; see commitReplacementSession.
+  const commitReplacementSessionLocked = async (
     session: ZeroDevWalletSession,
     targetPublicKey: string,
   ) => {
@@ -242,26 +246,41 @@ export async function createZeroDevWalletCore(
       if (!recovered) throw error
     }
   }
+  const commitReplacementSession = (
+    session: ZeroDevWalletSession,
+    targetPublicKey: string,
+  ) =>
+    withCrossTabLock(() =>
+      commitReplacementSessionLocked(session, targetPublicKey),
+    )
 
-  await withKeyTransition(async () => {
-    const activePublicKey = await client.apiKeyStamper.getPublicKey()
-    await sessionStorageManager.recoverSessionTransition(activePublicKey)
-    const restoredSession = await sessionStorageManager.getActiveSession()
-    if (restoredSession) {
-      try {
-        const restoredPublicKey = parseSession(restoredSession.token).publicKey
-        if (
-          !activePublicKey ||
-          !restoredPublicKey ||
-          normalizeKey(activePublicKey) !== normalizeKey(restoredPublicKey)
-        ) {
+  await withKeyTransition(() =>
+    withCrossTabLock(async () => {
+      // The stamper read the vault before this tab got the lock; another tab
+      // may have committed a new key since. A stale key here would look like a
+      // mismatch and clear that tab's valid session.
+      await client.apiKeyStamper.reload?.()
+      const activePublicKey = await client.apiKeyStamper.getPublicKey()
+      await sessionStorageManager.recoverSessionTransition(activePublicKey)
+      const restoredSession = await sessionStorageManager.getActiveSession()
+      if (restoredSession) {
+        try {
+          const restoredPublicKey = parseSession(
+            restoredSession.token,
+          ).publicKey
+          if (
+            !activePublicKey ||
+            !restoredPublicKey ||
+            normalizeKey(activePublicKey) !== normalizeKey(restoredPublicKey)
+          ) {
+            await sessionStorageManager.clearAllSessions()
+          }
+        } catch {
           await sessionStorageManager.clearAllSessions()
         }
-      } catch {
-        await sessionStorageManager.clearAllSessions()
       }
-    }
-  })
+    }),
+  )
 
   return {
     client,
@@ -306,46 +325,63 @@ export async function createZeroDevWalletCore(
     },
 
     async clearAllSessions() {
-      if (await sessionStorageManager.getActiveSession()) {
-        throw new Error(
-          'Refusing to clear the active session locally; use logout() to revoke its remote key first.',
-        )
-      }
-      await sessionStorageManager.clearAllSessions()
+      // Under the lock, so it cannot remove another tab's in-flight journal.
+      return withKeyTransition(() =>
+        withCrossTabLock(async () => {
+          if (await sessionStorageManager.getActiveSession()) {
+            throw new Error(
+              'Refusing to clear the active session locally; use logout() to revoke its remote key first.',
+            )
+          }
+          await sessionStorageManager.clearAllSessions()
+        }),
+      )
     },
 
     async refreshSession(sessionId?: string) {
-      return withCrossTabLock(() =>
-        withKeyTransition(async () => {
-          // Another tab may have refreshed while this one waited for the lock.
-          // Pick up the key it committed to the shared vault.
-          const keyBefore = await client.apiKeyStamper.getPublicKey()
-          await client.apiKeyStamper.reload?.()
-          const activePublicKey = await client.apiKeyStamper.getPublicKey()
+      // Without an id, refresh the session active when called, so a tab that
+      // then waits behind another tab's refresh adopts it instead of rotating
+      // again. Read now but awaited inside, so the call keeps its queue place.
+      const expected =
+        sessionId === undefined
+          ? sessionStorageManager.getActiveSessionKey()
+          : Promise.resolve(sessionId)
+      expected.catch(() => undefined)
+      return withKeyTransition(() =>
+        withCrossTabLock(async () => {
+          const expectedId = await expected
           const activeSessionKey =
             await sessionStorageManager.getActiveSessionKey()
           const activeSession = await sessionStorageManager.getActiveSession()
-          if (sessionId && sessionId !== activeSessionKey) {
-            // Adopt the stored session only when another tab replaced the key
-            // under this one; within one tab, an inactive session stays an
-            // error. Callers should still compare the identity: the other tab
-            // may have signed in to a different account.
-            if (
-              keyBefore !== activePublicKey &&
-              activeSession?.stamperType === 'apiKey' &&
-              normalizeTimestamp(activeSession.expiry) > Date.now() &&
-              activePublicKey &&
-              normalizeKey(activePublicKey) ===
-                normalizeKey(activeSession.publicKey ?? '')
-            ) {
-              return activeSession
-            }
-            throw new Error(
-              'Refreshing an inactive session is not supported with a single active key vault',
-            )
-          }
           if (!activeSession) {
             throw new Error('No active session')
+          }
+          if (expectedId && expectedId !== activeSessionKey) {
+            // Another tab replaced the session while this one waited. Adopt it
+            // only when that tab also replaced the key under this one. Within
+            // one tab, a call without an id refreshes the current session and
+            // an inactive id stays an error. Callers should still compare the
+            // identity: the other tab may have signed in to a different account.
+            if (activeSession.stamperType === 'apiKey') {
+              const keyBefore = await client.apiKeyStamper.getPublicKey()
+              await client.apiKeyStamper.reload?.()
+              const activePublicKey = await client.apiKeyStamper.getPublicKey()
+              if (
+                activePublicKey &&
+                normalizeKey(activePublicKey) !==
+                  normalizeKey(keyBefore ?? '') &&
+                normalizeKey(activePublicKey) ===
+                  normalizeKey(activeSession.publicKey ?? '') &&
+                normalizeTimestamp(activeSession.expiry) > Date.now()
+              ) {
+                return activeSession
+              }
+            }
+            if (sessionId !== undefined) {
+              throw new Error(
+                'Refreshing an inactive session is not supported with a single active key vault',
+              )
+            }
           }
           if (activeSession.stamperType !== 'apiKey') {
             throw new Error('Invalid session type')
@@ -369,7 +405,7 @@ export async function createZeroDevWalletCore(
               'indexedDb',
               SessionType.READ_WRITE,
             )
-            await commitReplacementSession(session, targetPublicKey)
+            await commitReplacementSessionLocked(session, targetPublicKey)
             return session
           } catch (error) {
             await client.apiKeyStamper.discardKeyRotation()
@@ -444,24 +480,28 @@ export async function createZeroDevWalletCore(
                   encodedPublicKey: registrationPublicKey,
                 })
 
-                // Registration proves the temporary key exists remotely. Make
-                // it active so it can authorize the durable replacement key.
-                await client.apiKeyStamper.commitKeyRotation()
-                const targetPublicKey = await prepareFreshKeyRotation()
-                const loginData = await client.loginWithStamp({
-                  projectId,
-                  targetPublicKey,
-                  // Sign against the parent org (see refreshSession note) — the
-                  // backend derives the sub-org from the stamped credential.
-                  organizationId: await resolveOrganizationId(),
+                // From here the shared vault changes, so hold the cross-tab
+                // lock; the passkey prompt above stays outside it.
+                return await withCrossTabLock(async () => {
+                  // Registration proves the temporary key exists remotely. Make
+                  // it active so it can authorize the durable replacement key.
+                  await client.apiKeyStamper.commitKeyRotation()
+                  const targetPublicKey = await prepareFreshKeyRotation()
+                  const loginData = await client.loginWithStamp({
+                    projectId,
+                    targetPublicKey,
+                    // Sign against the parent org (see refreshSession note) — the
+                    // backend derives the sub-org from the stamped credential.
+                    organizationId: await resolveOrganizationId(),
+                  })
+                  const session = createReplacementSession(
+                    loginData.session,
+                    targetPublicKey,
+                    'indexedDb',
+                  )
+                  await commitReplacementSessionLocked(session, targetPublicKey)
+                  return data
                 })
-                const session = createReplacementSession(
-                  loginData.session,
-                  targetPublicKey,
-                  'indexedDb',
-                )
-                await commitReplacementSession(session, targetPublicKey)
-                return data
               } catch (error) {
                 await client.apiKeyStamper.discardKeyRotation()
                 throw error
@@ -655,19 +695,34 @@ export async function createZeroDevWalletCore(
         }
 
         preparedOAuthPublicKey = undefined
-        let cleanupError: unknown
-        try {
-          await client.apiKeyStamper.clear()
-        } catch (error) {
-          cleanupError = error
-        }
-        try {
-          await sessionStorageManager.clearAllSessions()
-        } catch (error) {
-          cleanupError ??= error
-        }
-        if (cleanupError) throw cleanupError
-        return true
+        return withCrossTabLock(async () => {
+          // Another tab may have signed in while the revoke was in flight. Keep
+          // a session for a different account, or one that appeared after a
+          // signed-out start; a same-account refresh is still ours to clear.
+          const current = await sessionStorageManager.getActiveSession()
+          if (
+            current &&
+            (!session ||
+              current.organizationId !== session.organizationId ||
+              current.userId !== session.userId)
+          ) {
+            await client.apiKeyStamper.discardKeyRotation()
+            return true
+          }
+          let cleanupError: unknown
+          try {
+            await client.apiKeyStamper.clear()
+          } catch (error) {
+            cleanupError = error
+          }
+          try {
+            await sessionStorageManager.clearAllSessions()
+          } catch (error) {
+            cleanupError ??= error
+          }
+          if (cleanupError) throw cleanupError
+          return true
+        })
       })
     },
 
