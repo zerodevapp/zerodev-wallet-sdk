@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { rest } from './rest.js'
 
@@ -111,6 +112,37 @@ describe('rest transport — timestamp stamp position (GET behind StampCheckUser
     expect(JSON.parse(init.body)).toEqual(body)
     expect((init.headers as Record<string, string>)['X-Stamp']).toBe(
       `signed:${signedPayload}`,
+    )
+  })
+})
+
+describe('rest transport — X-SDK-Version', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('names the package and the version in package.json on every request', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ ok: true }),
+      text: async () => '{"ok":true}',
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { version } = JSON.parse(
+      // Tests run from the repo root.
+      readFileSync('packages/core/package.json', 'utf8'),
+    )
+
+    await rest('https://kms.test/api/v1', {
+      apiKeyStamper: makeStamper('X-Stamp'),
+      passkeyStamper: makeStamper('X-Stamp-Webauthn'),
+    }).request({ path: 'server-info/parent-org-id', method: 'GET' })
+
+    const [, init] = fetchMock.mock.calls[0]!
+    expect((init.headers as Record<string, string>)['X-SDK-Version']).toBe(
+      `@zerodev/wallet-core@${version}`,
     )
   })
 })

@@ -29,7 +29,7 @@
     "check:publishable": "node scripts/check-publishable.mjs",
     "prepare": "husky",
     "changeset": "changeset",
-    "changeset:version": "changeset version && pnpm install --lockfile-only",
+    "changeset:version": "changeset version && node scripts/sync-version.mjs && pnpm install --lockfile-only",
     "changeset:release": "pnpm build && bash scripts/remove-type.sh && changeset publish && bash scripts/restore-type.sh && pnpm format",
     "changeset:release:ci": "pnpm build && bash scripts/remove-type.sh && changeset publish && bash scripts/restore-type.sh"
   },
