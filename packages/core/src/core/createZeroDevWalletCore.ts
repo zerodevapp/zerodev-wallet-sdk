@@ -19,7 +19,11 @@ import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
 import { createOrganizationIdResolver } from '../utils/resolveOrganizationId.js'
-import { humanReadableDateTime, parseSession } from '../utils/utils.js'
+import {
+  humanReadableDateTime,
+  normalizeTimestamp,
+  parseSession,
+} from '../utils/utils.js'
 export interface ZeroDevWalletConfigCore {
   organizationId?: string
   proxyBaseUrl?: string
@@ -112,6 +116,17 @@ export interface ZeroDevWalletSDK {
 // The browser/native key vault is a single physical slot shared by SDK
 // instances, so key transitions must be serialized across projects.
 let keyTransitionTail = Promise.resolve()
+
+// Tabs of one origin share the key vault and session storage but not the queue
+// above, so every tab's timer would refresh at the same instant and Turnkey
+// fails concurrent stamp logins for one sub-org (DPL-798). A Web Lock spans
+// tabs. Without Web Locks (React Native, very old browsers) there is one
+// instance per app or the queue above is all we have.
+const SESSION_REFRESH_LOCK = '@zerodev/session_refresh'
+const withCrossTabLock = async <T>(task: () => Promise<T>): Promise<T> => {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks
+  return locks ? await locks.request(SESSION_REFRESH_LOCK, task) : task()
+}
 
 export async function createZeroDevWalletCore(
   config: ZeroDevWalletConfigCore,
@@ -300,47 +315,68 @@ export async function createZeroDevWalletCore(
     },
 
     async refreshSession(sessionId?: string) {
-      return withKeyTransition(async () => {
-        const activeSessionKey =
-          await sessionStorageManager.getActiveSessionKey()
-        if (sessionId && sessionId !== activeSessionKey) {
-          throw new Error(
-            'Refreshing an inactive session is not supported with a single active key vault',
-          )
-        }
-        const activeSession = await sessionStorageManager.getActiveSession()
-        if (!activeSession) {
-          throw new Error('No active session')
-        }
-        if (activeSession.stamperType !== 'apiKey') {
-          throw new Error('Invalid session type')
-        }
+      return withCrossTabLock(() =>
+        withKeyTransition(async () => {
+          // Another tab may have refreshed while this one waited for the lock.
+          // Pick up the key it committed to the shared vault.
+          const keyBefore = await client.apiKeyStamper.getPublicKey()
+          await client.apiKeyStamper.reload?.()
+          const activePublicKey = await client.apiKeyStamper.getPublicKey()
+          const activeSessionKey =
+            await sessionStorageManager.getActiveSessionKey()
+          const activeSession = await sessionStorageManager.getActiveSession()
+          if (sessionId && sessionId !== activeSessionKey) {
+            // Adopt the stored session only when another tab replaced the key
+            // under this one; within one tab, an inactive session stays an
+            // error. Callers should still compare the identity: the other tab
+            // may have signed in to a different account.
+            if (
+              keyBefore !== activePublicKey &&
+              activeSession?.stamperType === 'apiKey' &&
+              normalizeTimestamp(activeSession.expiry) > Date.now() &&
+              activePublicKey &&
+              normalizeKey(activePublicKey) ===
+                normalizeKey(activeSession.publicKey ?? '')
+            ) {
+              return activeSession
+            }
+            throw new Error(
+              'Refreshing an inactive session is not supported with a single active key vault',
+            )
+          }
+          if (!activeSession) {
+            throw new Error('No active session')
+          }
+          if (activeSession.stamperType !== 'apiKey') {
+            throw new Error('Invalid session type')
+          }
 
-        const targetPublicKey = await prepareFreshKeyRotation()
-        try {
-          const data = await client.loginWithStamp({
-            targetPublicKey,
-            projectId,
-            // Stamp-login is signed against the Turnkey parent org; the backend
-            // resolves the sub-org from the stamped credential. Signing the
-            // sub-org here makes the relayed payload's org mismatch the
-            // signature → Turnkey SIGNATURE_INVALID.
-            organizationId: await resolveOrganizationId(),
-            stampWith: 'apiKey',
-          })
-          const session = createReplacementSession(
-            data.session,
-            targetPublicKey,
-            'indexedDb',
-            SessionType.READ_WRITE,
-          )
-          await commitReplacementSession(session, targetPublicKey)
-          return session
-        } catch (error) {
-          await client.apiKeyStamper.discardKeyRotation()
-          throw error
-        }
-      })
+          const targetPublicKey = await prepareFreshKeyRotation()
+          try {
+            const data = await client.loginWithStamp({
+              targetPublicKey,
+              projectId,
+              // Stamp-login is signed against the Turnkey parent org; the backend
+              // resolves the sub-org from the stamped credential. Signing the
+              // sub-org here makes the relayed payload's org mismatch the
+              // signature → Turnkey SIGNATURE_INVALID.
+              organizationId: await resolveOrganizationId(),
+              stampWith: 'apiKey',
+            })
+            const session = createReplacementSession(
+              data.session,
+              targetPublicKey,
+              'indexedDb',
+              SessionType.READ_WRITE,
+            )
+            await commitReplacementSession(session, targetPublicKey)
+            return session
+          } catch (error) {
+            await client.apiKeyStamper.discardKeyRotation()
+            throw error
+          }
+        }),
+      )
     },
 
     // [TODO] refactor to smaller utils/actions

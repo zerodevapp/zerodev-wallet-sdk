@@ -372,6 +372,45 @@ describe('provider state safety', () => {
     provider.destroy()
   })
 
+  it('clears locally when another tab refreshed into a different account', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    const store = createZeroDevWalletStore()
+    const session = {
+      id: 'session-1',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      token: 'jwt',
+      expiry: Date.now() + 30_000,
+      createdAt: Date.now(),
+    }
+    const otherAccount = {
+      ...session,
+      id: 'session-2',
+      userId: 'user-2',
+      organizationId: 'org-2',
+    }
+    const wallet = {
+      refreshSession: vi.fn().mockResolvedValue(otherAccount),
+      logout: vi.fn(),
+    }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession(session)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    await vi.waitFor(() => expect(store.getState().session).toBeNull())
+
+    expect(store.getState().eoaAccount).toBeNull()
+    expect(wallet.logout).not.toHaveBeenCalled()
+    provider.destroy()
+  })
+
   it('clears a session that expired while hidden without refreshing it', () => {
     vi.useFakeTimers()
     vi.setSystemTime(1_700_000_000_000)

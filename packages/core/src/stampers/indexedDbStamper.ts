@@ -88,5 +88,8 @@ export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
     async discardKeyRotation() {
       pendingKeyPair = null
     },
+    async reload() {
+      await inner.init()
+    },
   }
 }
