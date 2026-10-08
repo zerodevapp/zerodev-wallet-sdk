@@ -1,14 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const h = vi.hoisted(() => ({
   activePublicKey: 'active-public-key',
   expectedPendingPublicKey: '',
   resetKeyPair: vi.fn(),
+  init: vi.fn(),
 }))
 
 vi.mock('@turnkey/indexed-db-stamper', () => ({
   IndexedDbStamper: class {
-    async init() {}
+    async init() {
+      h.init()
+    }
     async getPublicKey() {
       return h.activePublicKey
     }
@@ -118,5 +121,46 @@ describe('createIndexedDbStamper', () => {
       'active-signature',
     )
     await expect(stamper.signPending('proof')).resolves.toMatch(/^30[0-9a-f]+$/)
+  })
+})
+
+describe('cross-tab lock', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('initializes under the lock, so it cannot overwrite a key another tab is committing', async () => {
+    const held = deferred()
+    const request = vi.fn(
+      async (_name: string, task: () => Promise<unknown>) => {
+        await held.promise
+        return task()
+      },
+    )
+    vi.stubGlobal('navigator', { locks: { request } })
+
+    const creating = createIndexedDbStamper()
+    await Promise.resolve()
+    expect(request).toHaveBeenCalledWith(
+      '@zerodev/key_transition',
+      expect.any(Function),
+    )
+    expect(h.init).not.toHaveBeenCalled()
+
+    held.release()
+    await creating
+    expect(h.init).toHaveBeenCalledOnce()
+  })
+
+  it('reloads without taking the lock, which its callers already hold', async () => {
+    const stamper = await createIndexedDbStamper()
+    const request = vi.fn()
+    vi.stubGlobal('navigator', { locks: { request } })
+    h.init.mockClear()
+
+    await stamper.reload?.()
+
+    expect(request).not.toHaveBeenCalled()
+    expect(h.init).toHaveBeenCalledOnce()
   })
 })

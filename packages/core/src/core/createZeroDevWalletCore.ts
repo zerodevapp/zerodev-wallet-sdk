@@ -17,6 +17,7 @@ import {
 } from '../storage/manager.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 import { buildClientSignature } from '../utils/buildClientSignature.js'
+import { withCrossTabLock } from '../utils/crossTabLock.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
 import { createOrganizationIdResolver } from '../utils/resolveOrganizationId.js'
 import {
@@ -116,20 +117,6 @@ export interface ZeroDevWalletSDK {
 // The browser/native key vault is a single physical slot shared by SDK
 // instances, so key transitions must be serialized across projects.
 let keyTransitionTail = Promise.resolve()
-
-// Tabs of one origin share the key vault and session storage but not the queue
-// above. A Web Lock spans tabs. It covers a whole refresh, so every tab's timer
-// firing at the same instant sends one stamp login (Turnkey fails concurrent
-// ones for a sub-org, DPL-798), and every write of the shared vault and
-// session, so one tab cannot consume another's transition journal. It never
-// spans a passkey prompt or OAuth popup: an abandoned prompt would block every
-// other tab. Without Web Locks (React Native, very old browsers) there is one
-// instance per app or the queue above is all we have.
-const KEY_TRANSITION_LOCK = '@zerodev/key_transition'
-const withCrossTabLock = async <T>(task: () => Promise<T>): Promise<T> => {
-  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks
-  return locks ? await locks.request(KEY_TRANSITION_LOCK, task) : task()
-}
 
 export async function createZeroDevWalletCore(
   config: ZeroDevWalletConfigCore,
