@@ -1,6 +1,6 @@
 {
   "name": "@zerodev/wallet-core",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "ZeroDev Wallet SDK built on Turnkey",
   "repository": {
     "type": "git",
