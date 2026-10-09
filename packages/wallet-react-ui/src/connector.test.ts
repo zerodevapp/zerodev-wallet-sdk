@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ZeroDevKitConnectorParams } from './connector'
 import { zeroDevWallet } from './connector'
 import type { createStore } from './store'
+import { version } from './version.js'
 
 type Provider = {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>
@@ -28,8 +29,12 @@ const baseSetup = vi.hoisted(() => ({
   impl: () => Promise.resolve(),
 }))
 
+/** The params the kit passed to wallet-react's connector. */
+const baseParams = vi.hoisted(() => ({ last: undefined as unknown }))
+
 vi.mock('@zerodev/wallet-react', () => ({
-  zeroDevWallet: () => {
+  zeroDevWallet: (params: unknown) => {
+    baseParams.last = params
     const provider = createMockProvider()
     return () => ({
       id: 'zerodev-wallet',
@@ -359,5 +364,14 @@ describe('connector', () => {
     //   // Auth state should still be present after signing
     //   expect(store.getState().auth.email).toBe('test@example.com')
     // })
+  })
+})
+
+describe('connector — X-SDK-Version', () => {
+  it('reports the kit to wallet-react', () => {
+    createKitConnector()
+    expect(baseParams.last).toMatchObject({
+      sdkVersion: `@zerodev/wallet-react-ui@${version}`,
+    })
   })
 })
