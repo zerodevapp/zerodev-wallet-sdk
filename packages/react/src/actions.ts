@@ -229,6 +229,17 @@ export async function refreshSession(
   }
 
   const newSession = await wallet.refreshSession(currentSession.id)
+  // Another tab may have refreshed first, and core returns its session. If
+  // that tab signed in to a different account, keep this tab's account from
+  // pairing with it: drop local state, as the provider's auto-refresh does.
+  if (
+    newSession &&
+    (newSession.organizationId !== currentSession.organizationId ||
+      newSession.userId !== currentSession.userId)
+  ) {
+    store.getState().clear()
+    throw new Error('Another tab signed in to a different account')
+  }
   store.getState().setSession(newSession || null)
   return newSession
 }

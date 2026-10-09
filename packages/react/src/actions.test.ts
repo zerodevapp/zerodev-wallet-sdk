@@ -53,7 +53,11 @@ function createMockWallet() {
 // Create a mock store
 function createMockStore(
   wallet: ReturnType<typeof createMockWallet> | null = createMockWallet(),
-  session: { id: string } | null = null,
+  session: {
+    id: string
+    organizationId?: string
+    userId?: string
+  } | null = null,
   oauthConfig: { backendUrl: string; projectId: string } | null = {
     backendUrl: 'https://api.example.com',
     projectId: 'proj-123',
@@ -65,6 +69,7 @@ function createMockStore(
     oauthConfig,
     setEoaAccount: vi.fn(),
     setSession: vi.fn(),
+    clear: vi.fn(),
   }
   return {
     getState: vi.fn().mockReturnValue(state),
@@ -393,6 +398,28 @@ describe('React Actions', () => {
         id: 'new-session-456',
       })
       expect(result).toEqual({ id: 'new-session-456' })
+    })
+
+    it('drops local state instead of pairing this account with another account adopted from a different tab', async () => {
+      const wallet = createMockWallet()
+      wallet.refreshSession.mockResolvedValue({
+        id: 'other-tab-session',
+        organizationId: 'org-1',
+        userId: 'user-2',
+      })
+      const currentSession = {
+        id: 'current-session-123',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }
+      const store = createMockStore(wallet, currentSession)
+      const connector = createMockConnector(store)
+      const config = createMockConfig(connector)
+
+      await expect(refreshSession(config)).rejects.toThrow(/different account/)
+
+      expect(store.getState().clear).toHaveBeenCalledOnce()
+      expect(store.getState().setSession).not.toHaveBeenCalled()
     })
 
     it('sets session to null when refresh returns falsy', async () => {
