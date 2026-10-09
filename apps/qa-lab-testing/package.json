@@ -20,7 +20,7 @@
     "@zerodev/wallet-react": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",
-    "next": "15.5.20",
+    "next": "15.5.27",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.3.1",
