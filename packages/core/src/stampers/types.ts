@@ -46,6 +46,11 @@ export type ApiKeyStamper = Stamper & {
   /** Forget the prepared key while keeping the active key untouched. */
   discardKeyRotation: () => Promise<void>
   /**
+   * Re-read the active key from the shared vault, which another tab may have
+   * rotated. Omit when each app has its own vault (React Native).
+   */
+  reload?: () => Promise<void>
+  /**
    * Sign `payload` with the currently active key. Returns a hex-encoded
    * ECDSA-P256 / SHA-256 signature in ASN.1 DER form.
    */

@@ -1,5 +1,6 @@
 import { p256 } from '@noble/curves/nist.js'
 import { IndexedDbStamper as TurnkeyIndexedDbStamper } from '@turnkey/indexed-db-stamper'
+import { withCrossTabLock } from '../utils/crossTabLock.js'
 import { generateCompressedPublicKeyFromKeyPair } from '../utils/utils.js'
 import type { ApiKeyStamper } from './types.js'
 
@@ -28,7 +29,9 @@ function encodeStamp(publicKey: string, signature: string): string {
 
 export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
   const inner = new TurnkeyIndexedDbStamper()
-  await inner.init()
+  // On an empty vault init() generates and stores a key; under the lock it
+  // cannot overwrite a key another tab is committing.
+  await withCrossTabLock(() => inner.init())
 
   let pendingKeyPair: CryptoKeyPair | null = null
 
@@ -87,6 +90,10 @@ export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
     },
     async discardKeyRotation() {
       pendingKeyPair = null
+    },
+    // Unlocked: its callers already hold the cross-tab lock.
+    async reload() {
+      await inner.init()
     },
   }
 }
