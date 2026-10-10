@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Send,
   Sparkles,
+  TrendingUp,
   Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
 import { useAccount, useDisconnect, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
+import { EarnTest } from "../components/earn/EarnTest";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
@@ -36,13 +38,14 @@ export const dynamic = 'force-dynamic';
 // drop the button and modal entirely.
 const HISTORY_ENABLED = process.env.NODE_ENV === "development";
 
-type ActiveTab = "signing" | "mint" | "send";
+type ActiveTab = "signing" | "mint" | "send" | "earn";
 type BatchAsset = "ETH" | "USDC";
 
 const tabs = [
   { id: "mint" as const, name: "Gas-free Mint", icon: Sparkles },
   { id: "signing" as const, name: "Sign Anything", icon: FileSignature },
   { id: "send" as const, name: "Batch Transactions", icon: Send },
+  { id: "earn" as const, name: "Earn", icon: TrendingUp },
 ];
 
 const USDC_CONTRACTS: Record<number, `0x${string}`> = {
@@ -378,7 +381,7 @@ export default function DashboardPage() {
           {/* Tabs */}
           <div className="overflow-hidden rounded-lg border border-[var(--border-warm)] bg-white">
             <div className="border-b border-[var(--border-warm)] bg-[var(--surface-warm)]">
-              <nav className="grid grid-cols-3">
+              <nav className="grid grid-cols-4">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -421,6 +424,7 @@ export default function DashboardPage() {
                   onGaslessTransaction={() => setGaslessTxCount((count) => count + 1)}
                 />
               )}
+              {activeTab === "earn" && <EarnTest />}
               </div>
             </div>
           </div>

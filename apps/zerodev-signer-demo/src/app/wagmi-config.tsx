@@ -3,11 +3,17 @@
 import { type WalletMode } from '@zerodev/wallet-react'
 import { zeroDevWallet, zeroDevWalletConnect } from '@zerodev/wallet-react-ui'
 import { createConfig, http } from 'wagmi'
-import { arbitrumSepolia, sepolia } from 'wagmi/chains'
+import { arbitrum, arbitrumSepolia, base, sepolia } from 'wagmi/chains'
+
+// Mainnets the Earn tab deposits on. The hosted Earn server routes mainnet
+// only, so these sit next to the testnets the other tabs use.
+export const earnChains = [arbitrum, base] as const
 
 const rpcUrls: Record<number, string | undefined> = {
   [arbitrumSepolia.id]: process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL,
   [sepolia.id]: process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL,
+  [arbitrum.id]: process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL,
+  [base.id]: process.env.NEXT_PUBLIC_BASE_RPC_URL,
 }
 
 // Local testing toggle for the connector's account mode.
@@ -20,12 +26,12 @@ const mode = process.env.NEXT_PUBLIC_WALLET_MODE as WalletMode | undefined
 const wcProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 
 export const config = createConfig({
-  chains: [arbitrumSepolia, sepolia],
+  chains: [arbitrumSepolia, sepolia, ...earnChains],
   connectors: [
     zeroDevWallet({
       projectId: process.env.NEXT_PUBLIC_ZERODEV_PROJECT_ID!,
       proxyBaseUrl: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL!,
-      chains: [arbitrumSepolia, sepolia],
+      chains: [arbitrumSepolia, sepolia, ...earnChains],
       // Bundler/paymaster host override (defaults to the SDK's prod host).
       // CI/e2e sets this to staging to match NEXT_PUBLIC_KMS_PROXY_BASE_URL.
       ...(process.env.NEXT_PUBLIC_ZERODEV_AA_HOST && {
@@ -46,5 +52,7 @@ export const config = createConfig({
   transports: {
     [arbitrumSepolia.id]: http(rpcUrls[arbitrumSepolia.id]),
     [sepolia.id]: http(rpcUrls[sepolia.id]),
+    [arbitrum.id]: http(rpcUrls[arbitrum.id]),
+    [base.id]: http(rpcUrls[base.id]),
   },
 })
