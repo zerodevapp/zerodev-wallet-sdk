@@ -84,15 +84,11 @@ export type ZeroDevWalletConnectParams = Omit<
   solana?: boolean | undefined
 }
 
-/** What the Solana side reads back off a stamped connector. */
+/** What the Solana side reads back off a stamped connector: the connector's
+ * own parameters, so its session is configured exactly like the EVM one. */
 export type ZeroDevWalletConnectStamp = {
   zdWalletConnect: true
-  zdWalletConnectParams: {
-    projectId: string
-    metadata: WalletConnectParameters['metadata']
-    relayUrl: WalletConnectParameters['relayUrl']
-    solana: boolean
-  }
+  zdWalletConnectParams: ZeroDevWalletConnectParams
 }
 
 export function zeroDevWalletConnect(
@@ -101,7 +97,7 @@ export function zeroDevWalletConnect(
   if (!params.projectId) {
     throw new Error('zeroDevWalletConnect requires a WalletConnect projectId')
   }
-  const { solana = false, ...wcParams } = params
+  const { solana: _solana, ...wcParams } = params
   const create = walletConnect({ ...wcParams, showQrModal: false })
   return (config) => {
     // Stamp the connector instance so the kit's discovery can tell a
@@ -110,12 +106,7 @@ export function zeroDevWalletConnect(
     // session with the same configuration.
     const stamp: ZeroDevWalletConnectStamp = {
       zdWalletConnect: true,
-      zdWalletConnectParams: {
-        projectId: wcParams.projectId,
-        metadata: wcParams.metadata,
-        relayUrl: wcParams.relayUrl,
-        solana,
-      },
+      zdWalletConnectParams: params,
     }
     const connector = Object.assign(create(config), stamp)
     const getProvider = connector.getProvider.bind(connector)

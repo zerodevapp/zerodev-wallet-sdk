@@ -91,6 +91,39 @@ describe('useSolanaWalletAdapterSync', () => {
     expect(adapter.disconnect).toHaveBeenCalledTimes(1)
   })
 
+  it('attempts the adapter connect once per kit connection, even when refused', async () => {
+    const adapter = fakeAdapter()
+    adapter.connect = vi.fn(async () => {
+      // A real adapter flips `connecting` on, then off again on refusal.
+      adapter.connecting = false
+      throw new Error('User rejected the request')
+    })
+    const { rerender } = renderHook(() =>
+      useSolanaWalletAdapterSync({ ...adapter }),
+    )
+    await act(async () => {
+      await store.getState().solana.connect(wallet('Phantom'))
+    })
+    rerender() // selects
+    rerender() // connects (and is refused)
+    await act(async () => {})
+    rerender() // `connecting` went true -> false: must not ask again
+    rerender()
+    expect(adapter.connect).toHaveBeenCalledTimes(1)
+
+    // A fresh kit connection gets a fresh attempt.
+    await act(async () => {
+      await store.getState().solana.disconnect()
+    })
+    rerender()
+    await act(async () => {
+      await store.getState().solana.connect(wallet('Phantom'))
+    })
+    rerender()
+    rerender()
+    expect(adapter.connect).toHaveBeenCalledTimes(2)
+  })
+
   it('leaves a wallet the app selected itself alone', async () => {
     const adapter = fakeAdapter()
     adapter.select('Solflare')
