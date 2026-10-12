@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  caip2ToSolanaChain,
-  parseSessionAccount,
-  SOLANA_CAIP2,
-  solanaChainToCaip2,
-} from './chains'
+import { caip2ToSolanaChain, parseSessionAccount, SOLANA_CAIP2 } from './chains'
 
 describe('solana chain ids', () => {
   it('maps CAIP-2 ids, deprecated ones included, to Wallet Standard names', () => {
@@ -17,11 +12,6 @@ describe('solana chain ids', () => {
       'solana:devnet',
     )
     expect(caip2ToSolanaChain('solana:nope')).toBeUndefined()
-  })
-
-  it('maps Wallet Standard names to the canonical CAIP-2 id', () => {
-    expect(solanaChainToCaip2('solana:mainnet')).toBe(SOLANA_CAIP2.mainnet)
-    expect(solanaChainToCaip2('solana:localnet')).toBeUndefined()
   })
 
   it('parses a session account', () => {

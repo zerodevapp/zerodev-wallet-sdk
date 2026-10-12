@@ -1,78 +1,49 @@
-import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
+import { Badge } from '@zerodev/react-ui'
 import { useSolanaWalletConnect } from '../../../solana/hooks/useSolanaWalletConnect'
-import { walletConnectLogo } from '../../brandAssets'
 import { WalletSheet } from '../../components/WalletSheet'
 import { useSolanaWalletConnectPairing } from '../../hooks/useSolanaWalletConnectPairing'
 import { useSignUpContext } from './context'
+import { WalletConnectRow } from './WalletConnect'
 
 /**
- * WalletConnect row for Solana wallets on another device (Phantom or
- * Solflare on a phone): opens a pairing sheet whose QR any Solana wallet's
- * scanner can claim. Renders nothing unless the wagmi config's
- * `zeroDevWalletConnect` has `solana: true`. The session lands in the kit's
- * Solana slot, beside any EVM connection, and restores silently on reload.
+ * WalletConnect row for Solana wallets on another device: opens a pairing
+ * sheet whose QR a Solana wallet's scanner can claim. Renders nothing unless
+ * the wagmi config's `zeroDevWalletConnect` has `solana: true`. The session
+ * lands in the kit's Solana slot, beside any EVM connection, and restores
+ * silently on reload.
  */
 export function SignUpSolanaWalletConnect() {
-  const { authPending, guardAgreement, openSolanaWalletSheet } =
-    useSignUpContext()
-  const { enabled } = useSolanaWalletConnect()
+  const { openSolanaWalletSheet } = useSignUpContext()
+  // `enabled` alone: the provider loads when the sheet opens, not before.
+  const { enabled } = useSolanaWalletConnect(false)
 
   if (!enabled) return null
 
-  const handleClick = () => {
-    if (authPending) return
-    if (!guardAgreement()) return
-    openSolanaWalletSheet()
-  }
-
   return (
-    <ListItem
-      title="WalletConnect"
-      icon={<img src={walletConnectLogo} alt="" className="zd:w-6 zd:h-6" />}
-      subtitle={
-        <span className="zd:flex zd:gap-1">
-          <Badge text="SOLANA" variant="secondary" />
-          <Badge text="QR CODE" />
-        </span>
-      }
-      trailing={<ListItemChevron />}
-      disabled={authPending}
-      onClick={handleClick}
+    <WalletConnectRow
+      badge={<Badge text="SOLANA" variant="secondary" />}
+      onOpen={openSolanaWalletSheet}
     />
   )
 }
 
 /**
- * The root's Solana pairing sheet. The pairing hook lives in a child that
- * mounts only while the sheet is open, so a session is proposed when the
- * user asks for one and abandoned when they close the sheet.
+ * The root's Solana pairing sheet. Mounted only while open, so a session is
+ * proposed when the user asks for one and abandoned when they close it.
  */
-export function SolanaWalletConnectSheet({
-  open,
-  onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  if (!open) return null
-  return <OpenSheet onOpenChange={onOpenChange} />
-}
-
-function OpenSheet({
-  onOpenChange,
-}: {
-  onOpenChange: (open: boolean) => void
-}) {
+export function SolanaWalletConnectSheet({ onClose }: { onClose: () => void }) {
   const pairing = useSolanaWalletConnectPairing()
   return (
     <WalletSheet
       open
       pairing={pairing}
-      onOpenChange={onOpenChange}
-      // A phone camera hands a wc: link to whichever app owns the scheme,
-      // and MetaMask mobile does not settle a Solana session (checked
-      // 2026-10-12), so the scan has to start inside a Solana wallet.
-      hint="Scan with the in-app scanner of Phantom or Solflare. MetaMask does not connect Solana over WalletConnect."
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+      // A phone camera hands a wc: link to whichever app owns the scheme, so
+      // the scan has to start inside a Solana wallet. A wallet that approves
+      // without a Solana account is reported by the connect error itself.
+      hint="Scan with the in-app scanner of a Solana wallet such as Phantom or Solflare."
     />
   )
 }

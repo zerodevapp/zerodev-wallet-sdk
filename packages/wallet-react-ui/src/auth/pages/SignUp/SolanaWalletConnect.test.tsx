@@ -2,35 +2,21 @@
  * @vitest-environment happy-dom
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { WalletSheetProps } from '../../components/WalletSheet'
 import { SignUp } from './index'
 
 afterEach(cleanup)
 
-// The bottom sheet portals and animates; render it inline for the assertion.
-vi.mock('@zerodev/react-ui', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@zerodev/react-ui')>()
-  return {
-    ...actual,
-    BottomSheet: ({
-      open,
-      children,
-    }: {
-      open: boolean
-      children: ReactNode
-    }) => (open ? <div data-testid="wallet-sheet">{children}</div> : null),
-    BottomSheetContent: ({ children }: { children: ReactNode }) => (
-      <div>{children}</div>
-    ),
-    BottomSheetTitle: () => null,
-    BottomSheetClose: ({ children }: { children: ReactNode }) => children,
-    QrCode: ({ value }: { value: string }) => (
-      <div data-testid="qr" data-value={value} />
-    ),
-  }
-})
-
+// The sheet is covered by its own test; here it is a probe for what the
+// Solana unit hands it.
+const sheet = vi.hoisted(() => ({ props: null as WalletSheetProps | null }))
+vi.mock('../../components/WalletSheet', () => ({
+  WalletSheet: (props: WalletSheetProps) => {
+    sheet.props = props
+    return null
+  },
+}))
 vi.mock('../../hooks/useWalletConnectPairing', () => ({
   useWalletConnectPairing: () => ({
     uri: null,
@@ -66,6 +52,7 @@ vi.mock('../../../solana/hooks/useSolanaWalletConnect', () => ({
     enabled: walletConnect.enabled,
     wallet: null,
     error: null,
+    retry: () => {},
   }),
 }))
 vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
@@ -83,7 +70,7 @@ describe('SignUp.SolanaWalletConnect', () => {
     expect(screen.queryByText('WalletConnect')).toBeNull()
   })
 
-  it('opens the Solana pairing sheet with its QR', () => {
+  it('opens the Solana pairing sheet with its pairing', () => {
     walletConnect.enabled = true
     render(
       <SignUp>
@@ -91,10 +78,12 @@ describe('SignUp.SolanaWalletConnect', () => {
       </SignUp>,
     )
     expect(screen.getByText('SOLANA')).toBeTruthy()
+    // The root's EVM sheet renders closed; the Solana one mounts on click.
+    const last = () => sheet.props
+    expect(last()?.open).toBe(false)
     fireEvent.click(screen.getByText('WalletConnect'))
-    // The sheet mounts the pairing hook; its QR carries the pairing URI.
-    expect(screen.getByTestId('qr').getAttribute('data-value')).toBe(
-      'wc:solana@2?relay',
-    )
+    expect(last()?.open).toBe(true)
+    expect(last()?.pairing.uri).toBe('wc:solana@2?relay')
+    expect(last()?.hint).toMatch(/Phantom/)
   })
 })

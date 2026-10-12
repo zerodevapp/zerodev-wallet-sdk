@@ -9,39 +9,43 @@ import { getSolanaWalletConnectWallet } from '../walletconnect/wallet'
 export type SolanaWalletConnect = {
   /** True when the wagmi config's `zeroDevWalletConnect` has `solana` on. */
   enabled: boolean
-  /** The WalletConnect wallet, once the SDK has loaded; null before that
-   * and when disabled. Whether it holds a session is `wallet.accounts`. */
+  /** The WalletConnect wallet, once the SDK has loaded; null before that,
+   * when disabled, or when `load` is false. Whether it holds a session is
+   * `wallet.accounts`. */
   wallet: SolanaStandardWallet | null
   error: string | null
+  /** Load the SDK again after `error` (a failed import or init). */
+  retry: () => void
 }
 
 /**
  * The Solana-over-WalletConnect door, configured from the wagmi config's
- * `zeroDevWalletConnect({ solana: true })`. Initialises the provider on first
- * use (restoring any persisted session) and hands back the wallet the rest
- * of the kit connects through.
+ * `zeroDevWalletConnect({ solana: true })`. With `load`, initialises the
+ * provider (restoring any persisted session) and hands back the wallet the
+ * rest of the kit connects through; the provider is cached per project id,
+ * so every caller gets the same wallet. Without `load`, only `enabled` is
+ * answered, at no cost: a second WalletConnect core is worth starting only
+ * when a pairing or a restore needs it.
  */
-export function useSolanaWalletConnect(): SolanaWalletConnect {
+export function useSolanaWalletConnect(load = true): SolanaWalletConnect {
   const connectors = useConnectors()
-  const stamped = connectors.find(isZeroDevWalletConnect) as
-    | (ReturnType<typeof useConnectors>[number] & ZeroDevWalletConnectStamp)
-    | undefined
-  const params = stamped?.zdWalletConnectParams
+  const params = (
+    connectors.find(isZeroDevWalletConnect) as
+      | (ReturnType<typeof useConnectors>[number] & ZeroDevWalletConnectStamp)
+      | undefined
+  )?.zdWalletConnectParams
   const enabled = !!params?.solana
-  const projectId = params?.projectId
 
   const [wallet, setWallet] = useState<SolanaStandardWallet | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: metadata/relayUrl ride with the project id; the provider is cached per id
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the provider is cached per project id, so the rest of `params` cannot change it; `attempt` is the retry trigger
   useEffect(() => {
-    if (!enabled || !projectId || !params) return
+    if (!enabled || !load || !params) return
     let disposed = false
-    getSolanaWalletConnectProvider({
-      projectId,
-      metadata: params.metadata,
-      relayUrl: params.relayUrl,
-    })
+    setError(null)
+    getSolanaWalletConnectProvider(params)
       .then((provider) => {
         if (!disposed) setWallet(getSolanaWalletConnectWallet(provider))
       })
@@ -52,7 +56,12 @@ export function useSolanaWalletConnect(): SolanaWalletConnect {
     return () => {
       disposed = true
     }
-  }, [enabled, projectId])
+  }, [enabled, load, params?.projectId, attempt])
 
-  return { enabled, wallet: enabled ? wallet : null, error }
+  return {
+    enabled,
+    wallet: enabled && load ? wallet : null,
+    error,
+    retry: () => setAttempt((n) => n + 1),
+  }
 }

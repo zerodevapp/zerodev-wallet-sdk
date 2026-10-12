@@ -59,7 +59,6 @@ export {
   findSolanaUiAccount,
   type SolanaUiWalletLike,
 } from './solana/uiAccount.js'
-export { SOLANA_CAIP2 } from './solana/walletconnect/chains.js'
 export {
   type ZeroDevWalletConnectParams,
   zeroDevWalletConnect,

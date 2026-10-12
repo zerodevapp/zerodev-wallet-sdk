@@ -162,10 +162,9 @@ function SignUpRoot({
         }}
         wallet={walletSheet?.wallet}
       />
-      <SolanaWalletConnectSheet
-        open={solanaSheetOpen}
-        onOpenChange={setSolanaSheetOpen}
-      />
+      {solanaSheetOpen && (
+        <SolanaWalletConnectSheet onClose={() => setSolanaSheetOpen(false)} />
+      )}
     </SignUpContext.Provider>
   )
 }
