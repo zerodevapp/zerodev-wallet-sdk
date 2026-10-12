@@ -1,5 +1,4 @@
 import {
-  isSolanaChain,
   SOLANA_DEVNET_CHAIN,
   SOLANA_MAINNET_CHAIN,
   type SolanaChain,
@@ -33,7 +32,7 @@ import { base58, base64, withSignature } from './transaction'
 
 /** The slice of a WalletConnect session this module reads. */
 export type SolanaWcSession = {
-  namespaces: Record<string, { accounts: string[] }>
+  namespaces: Record<string, { accounts: string[]; methods?: string[] }>
   peer: { metadata: { name?: string; icons?: string[] } }
 }
 
@@ -57,46 +56,52 @@ export type SolanaWcProvider = {
   abortPairingAttempt?: () => void
 }
 
-const ACCOUNT_FEATURES = [
-  'solana:signMessage',
-  'solana:signTransaction',
-  'solana:signAndSendTransaction',
-] as const
+/** Wallet Standard feature per `solana_*` method. The settled namespace
+ * names the methods the wallet approved; the account advertises only those,
+ * so the signing handle exposes `null` for the rest instead of a request
+ * the SDK would refuse. */
+const FEATURE_BY_METHOD: Record<string, IdentifierString> = {
+  solana_signMessage: 'solana:signMessage',
+  solana_signTransaction: 'solana:signTransaction',
+  solana_signAndSendTransaction: 'solana:signAndSendTransaction',
+}
 
 type SessionAccount = WalletAccount & {
-  /** The CAIP-2 ids the wallet approved this account on, keyed by the
-   * Wallet Standard chain they map to: requests must name the id the
-   * wallet knows, deprecated or not. */
-  readonly caip2ByChain: ReadonlyMap<SolanaChain, string>
+  /** The CAIP-2 ids the wallet approved this account on. Requests must name
+   * the id the wallet knows, deprecated or not. */
+  readonly caip2s: readonly string[]
 }
 
 function accountsOf(session: SolanaWcSession | undefined): SessionAccount[] {
-  const byAddress = new Map<string, Map<SolanaChain, string>>()
+  const byAddress = new Map<string, string[]>()
   for (const entry of session?.namespaces.solana?.accounts ?? []) {
     const parsed = parseSessionAccount(entry)
-    if (!parsed) continue
-    const chain = caip2ToSolanaChain(parsed.caip2)
-    if (!chain) continue
-    const chains = byAddress.get(parsed.address) ?? new Map()
-    if (!chains.has(chain)) chains.set(chain, parsed.caip2)
-    byAddress.set(parsed.address, chains)
+    if (!parsed || !caip2ToSolanaChain(parsed.caip2)) continue
+    byAddress.set(parsed.address, [
+      ...(byAddress.get(parsed.address) ?? []),
+      parsed.caip2,
+    ])
   }
-  return [...byAddress.entries()].map(([address, caip2ByChain]) => ({
+  // The spec requires a method list; a wallet that omits it is taken to have
+  // approved what was proposed.
+  const methods =
+    session?.namespaces.solana?.methods ?? SOLANA_WALLETCONNECT_METHODS
+  const features = Object.entries(FEATURE_BY_METHOD)
+    .filter(([method]) => methods.includes(method))
+    .map(([, feature]) => feature)
+  return [...byAddress.entries()].map(([address, caip2s]) => ({
     address,
     publicKey: base58.decode(address),
-    chains: [...caip2ByChain.keys()],
-    features: ACCOUNT_FEATURES,
-    caip2ByChain,
+    chains: [
+      ...new Set(caip2s.map((c) => caip2ToSolanaChain(c) as SolanaChain)),
+    ],
+    features,
+    caip2s,
   }))
 }
 
 const wallets = new WeakMap<SolanaWcProvider, SolanaStandardWallet>()
 const providersByWallet = new WeakMap<object, SolanaWcProvider>()
-
-/** True for a wallet made by `getSolanaWalletConnectWallet`. */
-export function isSolanaWalletConnectWallet(wallet: object): boolean {
-  return providersByWallet.has(wallet)
-}
 
 /** The provider behind a WalletConnect wallet, for the pairing UI. */
 export function providerOfSolanaWalletConnectWallet(
@@ -119,23 +124,22 @@ export function getSolanaWalletConnectWallet(
   const existing = wallets.get(provider)
   if (existing) return existing
 
-  const accountFor = (account: WalletAccount): SessionAccount => {
-    const found = accountsOf(provider.session).find(
+  /** One `solana_*` request for `account`, on the approved id of `chain`
+   * (the account's first chain when none is given). */
+  const relay = <T>(
+    account: WalletAccount,
+    chain: IdentifierString | undefined,
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<T> => {
+    const session = accountsOf(provider.session).find(
       (a) => a.address === account.address,
     )
-    if (!found) throw new Error('This account is not in the session')
-    return found
-  }
-  const caip2For = (
-    account: SessionAccount,
-    chain?: IdentifierString,
-  ): string => {
-    const target = chain && isSolanaChain(chain) ? chain : account.chains[0]
-    const caip2 = target
-      ? account.caip2ByChain.get(target as SolanaChain)
-      : undefined
+    if (!session) throw new Error('This account is not in the session')
+    const target = chain ?? session.chains[0]
+    const caip2 = session.caip2s.find((c) => caip2ToSolanaChain(c) === target)
     if (!caip2) throw new Error(`The session does not include ${target}`)
-    return caip2
+    return provider.request({ method, params }, caip2) as Promise<T>
   }
 
   const listeners = new Set<StandardEventsListeners['change']>()
@@ -214,17 +218,12 @@ export function getSolanaWalletConnectWallet(
       signMessage: async (...inputs) =>
         Promise.all(
           inputs.map(async ({ account, message }) => {
-            const session = accountFor(account)
-            const { signature } = (await provider.request(
-              {
-                method: 'solana_signMessage',
-                params: {
-                  message: base58.encode(message),
-                  pubkey: account.address,
-                },
-              },
-              caip2For(session),
-            )) as { signature: string }
+            const { signature } = await relay<{ signature: string }>(
+              account,
+              undefined,
+              'solana_signMessage',
+              { message: base58.encode(message), pubkey: account.address },
+            )
             return {
               signedMessage: message,
               signature: base58.decode(signature),
@@ -239,14 +238,12 @@ export function getSolanaWalletConnectWallet(
       signTransaction: async (...inputs) =>
         Promise.all(
           inputs.map(async ({ account, transaction, chain }) => {
-            const session = accountFor(account)
-            const result = (await provider.request(
-              {
-                method: 'solana_signTransaction',
-                params: { transaction: base64.encode(transaction) },
-              },
-              caip2For(session, chain),
-            )) as { signature?: string; transaction?: string }
+            const result = await relay<{
+              signature?: string
+              transaction?: string
+            }>(account, chain, 'solana_signTransaction', {
+              transaction: base64.encode(transaction),
+            })
             // Newer wallets return the signed transaction; the spec's
             // baseline is the signature alone, which we splice in.
             if (result.transaction) {
@@ -260,7 +257,7 @@ export function getSolanaWalletConnectWallet(
             return {
               signedTransaction: withSignature(
                 transaction,
-                session.publicKey as Uint8Array,
+                base58.decode(account.address),
                 base58.decode(result.signature),
               ),
             }
@@ -273,17 +270,15 @@ export function getSolanaWalletConnectWallet(
       signAndSendTransaction: async (...inputs) =>
         Promise.all(
           inputs.map(async ({ account, transaction, chain, options }) => {
-            const session = accountFor(account)
-            const { signature } = (await provider.request(
+            const { signature } = await relay<{ signature: string }>(
+              account,
+              chain,
+              'solana_signAndSendTransaction',
               {
-                method: 'solana_signAndSendTransaction',
-                params: {
-                  transaction: base64.encode(transaction),
-                  ...(options && { sendOptions: options }),
-                },
+                transaction: base64.encode(transaction),
+                ...(options && { sendOptions: options }),
               },
-              caip2For(session, chain),
-            )) as { signature: string }
+            )
             return { signature: base58.decode(signature) }
           }),
         ),
@@ -292,6 +287,7 @@ export function getSolanaWalletConnectWallet(
 
   const wallet: SolanaStandardWallet = {
     version: '1.0.0',
+    source: 'walletconnect',
     get name() {
       return provider.session?.peer.metadata.name ?? 'WalletConnect'
     },

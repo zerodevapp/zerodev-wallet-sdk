@@ -39,6 +39,13 @@ export function useSolanaWalletAdapterSync(adapter: SolanaWalletAdapter): void {
   // The wallet this hook last pushed into the adapter: a disconnect is
   // mirrored only for that one, never for a wallet the app chose itself.
   const syncedName = useRef<string | null>(null)
+  // The kit wallet a connect was already attempted for. wallet-adapter flips
+  // `connecting` back to false when the user refuses or the connect fails,
+  // which re-runs this effect; without the latch that would reopen the
+  // prompt for as long as the kit connection stands. One attempt per kit
+  // connection; a new kit connection (another wallet, or a reconnect) gets
+  // a fresh one.
+  const attemptedFor = useRef<string | null>(null)
 
   const adapterName = adapter.wallet?.adapter.name ?? null
   const { connected, connecting, select, connect, disconnect } = adapter
@@ -51,15 +58,18 @@ export function useSolanaWalletAdapterSync(adapter: SolanaWalletAdapter): void {
         select(kitName)
         return
       }
-      if (!connected && !connecting) {
+      if (!connected && !connecting && attemptedFor.current !== kitName) {
+        attemptedFor.current = kitName
         syncedName.current = kitName
         connect().catch(() => {
           // The adapter prompts or refuses on its own terms; the kit's
-          // connection stands either way.
+          // connection stands either way, and the latch above keeps this
+          // from asking again.
         })
       }
       return
     }
+    attemptedFor.current = null
     if (
       syncedName.current &&
       adapterName &&

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useKitStore } from '../../shared/hooks/useKitStore'
+import { readLastSolanaWallet } from '../solanaStoreSlice'
 import { useSolanaWalletConnect } from './useSolanaWalletConnect'
 import { useSolanaWallets } from './useSolanaWallets'
 
@@ -11,13 +12,16 @@ import { useSolanaWallets } from './useSolanaWallets'
  * no session of their own, so this is how a Solana connection survives a
  * reload: `standard:connect({ silent: true })` returns the accounts the
  * wallet still authorises for this origin, without a prompt. A WalletConnect
- * session persists in the SDK's storage; the same silent connect reads it
- * back once the provider has loaded.
+ * session persists in the SDK's storage; the provider is loaded, and the
+ * same silent connect reads the session back, only when the last connection
+ * was one.
  */
 export function useSolanaAutoReconnect(): void {
   const store = useKitStore()
   const wallets = useSolanaWallets()
-  const { wallet: walletConnect } = useSolanaWalletConnect()
+  const { wallet: walletConnect } = useSolanaWalletConnect(
+    readLastSolanaWallet()?.source === 'walletconnect',
+  )
   useEffect(() => {
     const candidates = walletConnect ? [...wallets, walletConnect] : wallets
     if (candidates.length === 0) return

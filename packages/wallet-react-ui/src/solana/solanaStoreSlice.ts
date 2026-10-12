@@ -7,24 +7,26 @@ import type {
   SolanaConnectionStatus,
   SolanaStandardWallet,
 } from './types'
-import { isSolanaWalletConnectWallet } from './walletconnect/wallet'
 
 const LAST_WALLET_STORAGE_KEY = 'zerodev:solana:lastWallet'
 
-type LastWallet = { name: string; source: SolanaConnectionSource }
-
-function sourceOf(wallet: SolanaStandardWallet): SolanaConnectionSource {
-  return isSolanaWalletConnectWallet(wallet) ? 'walletconnect' : 'standard'
+/** What restore() needs to find the wallet again: an installed Phantom and
+ * Phantom over WalletConnect share a name, so the source is stored too. */
+export type LastSolanaWallet = {
+  name: string
+  source: SolanaConnectionSource
 }
 
-function readLastWallet(): LastWallet | null {
+const sourceOf = (wallet: SolanaStandardWallet): SolanaConnectionSource =>
+  wallet.source ?? 'standard'
+
+/** The wallet connected last time, as persisted; null when none or unreadable. */
+export function readLastSolanaWallet(): LastSolanaWallet | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = window.localStorage.getItem(LAST_WALLET_STORAGE_KEY)
     if (!raw) return null
-    // Before WalletConnect the key held the bare wallet name.
-    if (!raw.startsWith('{')) return { name: raw, source: 'standard' }
-    const parsed = JSON.parse(raw) as Partial<LastWallet>
+    const parsed = JSON.parse(raw) as Partial<LastSolanaWallet>
     return parsed.name
       ? { name: parsed.name, source: parsed.source ?? 'standard' }
       : null
@@ -33,7 +35,7 @@ function readLastWallet(): LastWallet | null {
   }
 }
 
-function writeLastWallet(last: LastWallet | null): void {
+function writeLastWallet(last: LastSolanaWallet | null): void {
   if (typeof window === 'undefined') return
   try {
     if (last === null) window.localStorage.removeItem(LAST_WALLET_STORAGE_KEY)
@@ -192,7 +194,7 @@ export const createSolanaStoreSlice: StateCreator<
       restore: async (wallets) => {
         const { status } = get().solana
         if (status !== 'disconnected') return
-        const last = readLastWallet()
+        const last = readLastSolanaWallet()
         if (!last) return
         const wallet = wallets.find(
           (w) => w.name === last.name && sourceOf(w) === last.source,
