@@ -20,7 +20,7 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@zerodev/*'
 
-# Acknowledged audit findings we cannot fix by bumping (verified 2026-09-28).
+# Acknowledged audit findings we cannot fix by bumping (verified 2026-10-12).
 # All are pinned by upstream packages or have no patched release. Re-check when
 # the named upstream moves; remove the entry once the finding no longer applies.
 auditConfig:
@@ -36,3 +36,20 @@ auditConfig:
     # Only the expo-example app pulls it in. Remove this entry once expo-router
     # depends on query-string >=9.5.
     - GHSA-vcc3-ghjq-m6fr
+    # node-forge RSA PKCS#1 v1.5 signature check accepts extra nested
+    # DigestAlgorithm elements (high). No patched release: every version up to
+    # 1.4.0, the latest, is affected. Pulled in by @expo/cli and
+    # @expo/code-signing-certificates, development tooling only, through
+    # expo-example and the expo peer chain behind wagmi's porto connector.
+    # Remove this entry once node-forge ships a fix.
+    - GHSA-86w9-cpqp-85rv
+    # braces stack-exhaustion DoS through deeply nested patterns (high). No
+    # patched release: 3.0.3, the latest, is affected, and micromatch 4.0.8,
+    # also the latest, requires it. Reached through Metro, Changesets and the
+    # Tailwind CLI, which only expand the repo's own glob patterns.
+    - GHSA-vfj7-8cjw-p6xm
+    # sprintf-js DoS through unbounded precision specifiers (moderate). No
+    # patched release: every version up to 1.1.3, the latest, is affected.
+    # Pulled in by argparse 1 through js-yaml 3, from Changesets 2, Istanbul's
+    # nyc config loader and nativewind. They only format their own strings.
+    - GHSA-hp3w-g68c-fv3c
