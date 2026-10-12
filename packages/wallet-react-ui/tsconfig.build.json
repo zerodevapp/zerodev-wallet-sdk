@@ -15,6 +15,7 @@
     "src/signing/**",
     "**/*.test.ts",
     "**/*.test.tsx",
+    "**/*.fixture.ts",
     "**/*.stories.ts",
     "**/*.stories.tsx"
   ]
