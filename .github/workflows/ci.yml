@@ -258,6 +258,24 @@ jobs:
       - name: Run integration tests
         run: pnpm test:integration
 
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level moderate
+
   ci-gate:
     name: All checks passed
     runs-on: ubuntu-latest
@@ -269,6 +287,7 @@ jobs:
       - integration-test
       - backend-e2e-test
       - e2e-test
+      - audit
     if: always()
     steps:
       - name: Verify every job succeeded
