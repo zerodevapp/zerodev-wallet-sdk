@@ -14,6 +14,9 @@ import type {
 export type SolanaStandardWallet = Omit<Wallet, 'features'> & {
   readonly features: StandardConnectFeature &
     Partial<StandardDisconnectFeature & StandardEventsFeature>
+  /** Set by the kit's own wallet wrappers (WalletConnect); an installed
+   * wallet from the registry has none and counts as `'standard'`. */
+  readonly source?: SolanaConnectionSource
 }
 
 /** How the kit reached the connected Solana wallet: an installed Wallet

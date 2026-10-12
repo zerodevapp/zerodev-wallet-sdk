@@ -3,16 +3,14 @@ import type {
   SolanaSignMessageFeature,
   SolanaSignTransactionFeature,
 } from '@solana/wallet-standard-features'
-import { describe, expect, it, type Mock, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SolanaStandardWallet } from '../types'
 import { SOLANA_CAIP2 } from './chains'
+import { fakeWcProvider, fakeWcSession } from './fakeProvider.fixture'
 import { base58, base64 } from './transaction'
 import {
   getSolanaWalletConnectWallet,
-  isSolanaWalletConnectWallet,
   providerOfSolanaWalletConnectWallet,
-  type SolanaWcProvider,
-  type SolanaWcSession,
 } from './wallet'
 
 /** The signing features the WalletConnect wallet adds beyond the base type. */
@@ -23,87 +21,72 @@ const signing = (wallet: SolanaStandardWallet) =>
 
 const PUBKEY = new Uint8Array(32).fill(7)
 const ADDRESS = base58.encode(PUBKEY)
+const mainnet = (address = ADDRESS) => `${SOLANA_CAIP2.mainnet}:${address}`
 
-function session(
-  accounts: string[],
-  metadata: SolanaWcSession['peer']['metadata'] = {
-    name: 'Phantom',
-    icons: ['https://phantom.app/icon.png'],
-  },
-): SolanaWcSession {
-  return { namespaces: { solana: { accounts } }, peer: { metadata } }
-}
-
-function fakeProvider(initial?: SolanaWcSession) {
-  const listeners = new Map<string, Set<(...args: unknown[]) => void>>()
-  const provider: SolanaWcProvider & {
-    emit: (event: string, ...args: unknown[]) => void
-    request: Mock<SolanaWcProvider['request']>
-    connect: Mock<SolanaWcProvider['connect']>
-    disconnect: Mock<SolanaWcProvider['disconnect']>
-    abortPairingAttempt: Mock<() => void>
-  } = {
-    session: initial,
-    connect: vi.fn(async () => {
-      provider.session = session([`${SOLANA_CAIP2.mainnet}:${ADDRESS}`])
-    }),
-    disconnect: vi.fn(async () => {
-      provider.session = undefined
-    }),
-    request: vi.fn(),
-    abortPairingAttempt: vi.fn(),
-    on: (event, listener) => {
-      listeners.set(event, (listeners.get(event) ?? new Set()).add(listener))
-    },
-    off: (event, listener) => {
-      listeners.get(event)?.delete(listener)
-    },
-    emit: (event, ...args) => {
-      for (const l of listeners.get(event) ?? []) l(...args)
-    },
-  }
-  return provider
+/** A wallet whose session holds one mainnet account. */
+function connected(session = fakeWcSession([mainnet()])) {
+  const provider = fakeWcProvider(session)
+  const wallet = getSolanaWalletConnectWallet(provider)
+  const [account] = wallet.accounts
+  if (!account) throw new Error('fixture has no account')
+  return { provider, wallet, account }
 }
 
 describe('getSolanaWalletConnectWallet', () => {
-  it('is one wallet per provider, recognisable as WalletConnect-backed', () => {
-    const provider = fakeProvider()
+  it('is one wallet per provider, marked as WalletConnect-sourced', () => {
+    const provider = fakeWcProvider()
     const wallet = getSolanaWalletConnectWallet(provider)
     expect(getSolanaWalletConnectWallet(provider)).toBe(wallet)
-    expect(isSolanaWalletConnectWallet(wallet)).toBe(true)
-    expect(isSolanaWalletConnectWallet({})).toBe(false)
+    expect(wallet.source).toBe('walletconnect')
     expect(providerOfSolanaWalletConnectWallet(wallet)).toBe(provider)
   })
 
   it('reads name, icon and accounts from the session, merging chains per address', () => {
-    const provider = fakeProvider(
-      session([
-        `${SOLANA_CAIP2.mainnet}:${ADDRESS}`,
+    const { wallet, account } = connected(
+      fakeWcSession([
+        mainnet(),
         `${SOLANA_CAIP2.deprecatedMainnet}:${ADDRESS}`,
         `${SOLANA_CAIP2.devnet}:${ADDRESS}`,
         'eip155:1:0xabc',
       ]),
     )
-    const wallet = getSolanaWalletConnectWallet(provider)
     expect(wallet.name).toBe('Phantom')
     expect(wallet.icon).toBe('https://phantom.app/icon.png')
     expect(wallet.accounts).toHaveLength(1)
-    const [account] = wallet.accounts
-    expect(account?.address).toBe(ADDRESS)
-    expect(new Uint8Array(account?.publicKey ?? [])).toEqual(PUBKEY)
-    expect(account?.chains).toEqual(['solana:mainnet', 'solana:devnet'])
-    expect(account?.features).toContain('solana:signMessage')
+    expect(account.address).toBe(ADDRESS)
+    expect(new Uint8Array(account.publicKey)).toEqual(PUBKEY)
+    expect(account.chains).toEqual(['solana:mainnet', 'solana:devnet'])
+    expect(account.features).toEqual([
+      'solana:signMessage',
+      'solana:signTransaction',
+      'solana:signAndSendTransaction',
+    ])
+  })
+
+  it('advertises only the features the wallet approved', () => {
+    const { account } = connected(
+      fakeWcSession([mainnet()], {
+        methods: ['solana_signMessage', 'solana_signTransaction'],
+      }),
+    )
+    expect(account.features).toEqual([
+      'solana:signMessage',
+      'solana:signTransaction',
+    ])
   })
 
   it('falls back to a generic name and logo without a session', () => {
-    const wallet = getSolanaWalletConnectWallet(fakeProvider())
+    const wallet = getSolanaWalletConnectWallet(fakeWcProvider())
     expect(wallet.name).toBe('WalletConnect')
     expect(wallet.icon.startsWith('data:')).toBe(true)
     expect(wallet.accounts).toEqual([])
   })
 
   it('connect proposes a solana session when there is none, silent refuses', async () => {
-    const provider = fakeProvider()
+    const provider = fakeWcProvider()
+    provider.connect.mockImplementation(async () => {
+      provider.session = fakeWcSession([mainnet()])
+    })
     const wallet = getSolanaWalletConnectWallet(provider)
     await expect(
       wallet.features['standard:connect'].connect({ silent: true }),
@@ -118,6 +101,7 @@ describe('getSolanaWalletConnectWallet', () => {
             SOLANA_CAIP2.mainnet,
             SOLANA_CAIP2.devnet,
             SOLANA_CAIP2.deprecatedMainnet,
+            SOLANA_CAIP2.deprecatedDevnet,
           ]),
           methods: expect.arrayContaining(['solana_signMessage']),
         }),
@@ -129,17 +113,30 @@ describe('getSolanaWalletConnectWallet', () => {
     expect(provider.connect).toHaveBeenCalledTimes(1)
   })
 
-  it('relays signMessage as solana_signMessage on the session chain', async () => {
-    const provider = fakeProvider(
-      session([`${SOLANA_CAIP2.deprecatedMainnet}:${ADDRESS}`]),
+  it('names the namespaces a wallet approved when none is Solana', async () => {
+    const provider = fakeWcProvider()
+    provider.connect.mockImplementation(async () => {
+      provider.session = {
+        namespaces: { eip155: { accounts: ['eip155:1:0xabc'] } },
+        peer: { metadata: { name: 'MetaMask' } },
+      }
+    })
+    await expect(
+      getSolanaWalletConnectWallet(provider).features[
+        'standard:connect'
+      ].connect(),
+    ).rejects.toThrow('MetaMask approved eip155 but no Solana account')
+  })
+
+  it('relays signMessage as solana_signMessage on the id the wallet approved', async () => {
+    const { provider, wallet, account } = connected(
+      fakeWcSession([`${SOLANA_CAIP2.deprecatedMainnet}:${ADDRESS}`]),
     )
-    const wallet = getSolanaWalletConnectWallet(provider)
     const sig = new Uint8Array(64).fill(3)
     provider.request.mockResolvedValueOnce({ signature: base58.encode(sig) })
-    const [account] = wallet.accounts
     const message = new TextEncoder().encode('hi')
     const [out] = await signing(wallet)['solana:signMessage'].signMessage({
-      account: account as never,
+      account,
       message,
     })
     expect(provider.request).toHaveBeenCalledWith(
@@ -147,7 +144,6 @@ describe('getSolanaWalletConnectWallet', () => {
         method: 'solana_signMessage',
         params: { message: base58.encode(message), pubkey: ADDRESS },
       },
-      // The id the wallet approved, deprecated or not.
       SOLANA_CAIP2.deprecatedMainnet,
     )
     expect(out?.signature).toEqual(sig)
@@ -155,18 +151,8 @@ describe('getSolanaWalletConnectWallet', () => {
   })
 
   it('signTransaction takes the returned transaction, or splices the signature', async () => {
-    const provider = fakeProvider(
-      session([`${SOLANA_CAIP2.mainnet}:${ADDRESS}`]),
-    )
-    const wallet = getSolanaWalletConnectWallet(provider)
-    const [account] = wallet.accounts
+    const { provider, wallet, account } = connected()
     const feature = signing(wallet)['solana:signTransaction']
-
-    const signedByWallet = new Uint8Array([9, 9, 9])
-    provider.request.mockResolvedValueOnce({
-      signature: 'x',
-      transaction: base64.encode(signedByWallet),
-    })
     // 1 signature slot, then a legacy message: header (1 signer), 1 key.
     const tx = new Uint8Array([
       1,
@@ -178,8 +164,14 @@ describe('getSolanaWalletConnectWallet', () => {
       ...PUBKEY,
       5,
     ])
+
+    const signedByWallet = new Uint8Array([9, 9, 9])
+    provider.request.mockResolvedValueOnce({
+      signature: 'x',
+      transaction: base64.encode(signedByWallet),
+    })
     let [out] = await feature.signTransaction({
-      account: account as never,
+      account,
       transaction: tx,
       chain: 'solana:mainnet',
     })
@@ -194,42 +186,33 @@ describe('getSolanaWalletConnectWallet', () => {
 
     const sig = new Uint8Array(64).fill(4)
     provider.request.mockResolvedValueOnce({ signature: base58.encode(sig) })
-    ;[out] = await feature.signTransaction({
-      account: account as never,
-      transaction: tx,
-    })
+    ;[out] = await feature.signTransaction({ account, transaction: tx })
     expect(out?.signedTransaction.subarray(1, 65)).toEqual(sig)
     expect(out?.signedTransaction.subarray(65)).toEqual(tx.subarray(65))
   })
 
   it('refuses a chain the session does not include', async () => {
-    const provider = fakeProvider(
-      session([`${SOLANA_CAIP2.mainnet}:${ADDRESS}`]),
-    )
-    const wallet = getSolanaWalletConnectWallet(provider)
-    const [account] = wallet.accounts
+    const { wallet, account } = connected()
     await expect(
       signing(wallet)['solana:signAndSendTransaction'].signAndSendTransaction({
-        account: account as never,
+        account,
         transaction: new Uint8Array([1]),
-        chain: 'solana:testnet',
+        chain: 'solana:devnet',
       }),
-    ).rejects.toThrow('does not include solana:testnet')
+    ).rejects.toThrow('does not include solana:devnet')
   })
 
   it('signAndSendTransaction forwards send options and decodes the signature', async () => {
-    const provider = fakeProvider(
-      session([`${SOLANA_CAIP2.devnet}:${ADDRESS}`]),
+    const { provider, wallet, account } = connected(
+      fakeWcSession([`${SOLANA_CAIP2.devnet}:${ADDRESS}`]),
     )
-    const wallet = getSolanaWalletConnectWallet(provider)
-    const [account] = wallet.accounts
     const sig = new Uint8Array(64).fill(8)
     provider.request.mockResolvedValueOnce({ signature: base58.encode(sig) })
     const tx = new Uint8Array([2, 2])
     const [out] = await signing(wallet)[
       'solana:signAndSendTransaction'
     ].signAndSendTransaction({
-      account: account as never,
+      account,
       transaction: tx,
       chain: 'solana:devnet',
       options: { skipPreflight: true },
@@ -248,10 +231,7 @@ describe('getSolanaWalletConnectWallet', () => {
   })
 
   it('emits change with no accounts when the session goes away', async () => {
-    const provider = fakeProvider(
-      session([`${SOLANA_CAIP2.mainnet}:${ADDRESS}`]),
-    )
-    const wallet = getSolanaWalletConnectWallet(provider)
+    const { provider, wallet } = connected()
     const listener = vi.fn()
     const off = wallet.features['standard:events']?.on('change', listener)
     provider.session = undefined

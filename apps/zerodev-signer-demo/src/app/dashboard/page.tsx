@@ -146,14 +146,13 @@ export default function DashboardPage() {
   const solanaWallets = useSolanaWallets();
   // Solana over WalletConnect (a phone wallet): the pairing lives in the
   // sign-up flow, so the pill opens that flow with only the Solana row.
-  const solanaWalletConnect = useSolanaWalletConnect();
-  const [solanaConnectRequested, setSolanaConnectRequested] = useState(false);
+  const solanaWalletConnect = useSolanaWalletConnect(false);
   const openSolanaWalletConnect = () => {
-    setSolanaConnectRequested(true);
+    setConnectRequested("solana");
     goToStep("sign-up");
   };
   useEffect(() => {
-    if (solanaConnected) setSolanaConnectRequested(false);
+    if (solanaConnected) setConnectRequested(null);
   }, [solanaConnected]);
   const [solanaConnecting, setSolanaConnecting] = useState<string | null>(null);
   const [solanaConnectError, setSolanaConnectError] = useState<string | null>(null);
@@ -180,11 +179,12 @@ export default function DashboardPage() {
   const { connect: connectEvm, connectAsync: connectEvmAsync, connectors } = useConnect();
   const { reconnectAsync } = useReconnect();
   const { step: authStep, goToStep } = useAuth();
-  const [evmConnectRequested, setEvmConnectRequested] = useState(false);
+  // Which side the sign-up overlay below is adding, if any.
+  const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | null>(null);
   const openEvmConnect = () => {
     const kitConnector = connectors.find((c) => c.id === "zerodev-wallet");
     if (!kitConnector) return;
-    setEvmConnectRequested(true);
+    setConnectRequested("evm");
     connectEvm({ connector: kitConnector });
   };
   // Installed EVM wallets, as wagmi discovered them through EIP-6963. Same
@@ -552,39 +552,30 @@ export default function DashboardPage() {
       {/* The terminal `authenticated` step renders nothing inside ConnectWallet
           (passkey, Google or email from "More options"), so the overlay must
           not outlive it, or it would sit over the dashboard. */}
-      {evmConnectRequested &&
+      {connectRequested &&
         authStep !== null &&
         authStep !== "authenticated" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <ConnectWallet
             size="md"
-            onClose={() => setEvmConnectRequested(false)}
-            renderSignUp={() => (
-              <SignUp>
-                <SignUp.Passkey />
-                <SignUp.Divider />
-                <SignUp.Google />
-                <SignUp.Email />
-                <SignUp.Divider label="or an EVM wallet" />
-                <SignUp.InstalledWallets />
-                <SignUp.WalletConnect />
-              </SignUp>
-            )}
-          />
-        </div>
-      )}
-      {solanaConnectRequested &&
-        authStep !== null &&
-        authStep !== "authenticated" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <ConnectWallet
-            size="md"
-            onClose={() => setSolanaConnectRequested(false)}
-            renderSignUp={() => (
-              <SignUp>
-                <SignUp.SolanaWalletConnect />
-              </SignUp>
-            )}
+            onClose={() => setConnectRequested(null)}
+            renderSignUp={() =>
+              connectRequested === "evm" ? (
+                <SignUp>
+                  <SignUp.Passkey />
+                  <SignUp.Divider />
+                  <SignUp.Google />
+                  <SignUp.Email />
+                  <SignUp.Divider label="or an EVM wallet" />
+                  <SignUp.InstalledWallets />
+                  <SignUp.WalletConnect />
+                </SignUp>
+              ) : (
+                <SignUp>
+                  <SignUp.SolanaWalletConnect />
+                </SignUp>
+              )
+            }
           />
         </div>
       )}

@@ -2,21 +2,15 @@
  * @vitest-environment happy-dom
  */
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  type Mock,
-  vi,
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SOLANA_CAIP2 } from '../../solana/walletconnect/chains'
-import { base58 } from '../../solana/walletconnect/transaction'
 import {
-  getSolanaWalletConnectWallet,
-  type SolanaWcProvider,
-} from '../../solana/walletconnect/wallet'
+  type FakeWcProvider,
+  fakeWcProvider,
+  fakeWcSession,
+} from '../../solana/walletconnect/fakeProvider.fixture'
+import { base58 } from '../../solana/walletconnect/transaction'
+import { getSolanaWalletConnectWallet } from '../../solana/walletconnect/wallet'
 import { createStore } from '../../store'
 import { useSolanaWalletConnectPairing } from './useSolanaWalletConnectPairing'
 
@@ -34,6 +28,7 @@ const walletConnect = vi.hoisted(() => ({
     enabled: true,
     wallet: null as unknown,
     error: null as string | null,
+    retry: () => {},
   },
 }))
 vi.mock('../../solana/hooks/useSolanaWalletConnect', () => ({
@@ -42,47 +37,33 @@ vi.mock('../../solana/hooks/useSolanaWalletConnect', () => ({
 
 const ADDRESS = base58.encode(new Uint8Array(32).fill(1))
 
-function fakeProvider() {
-  const listeners = new Map<string, Set<(...args: unknown[]) => void>>()
-  let resolveConnect: (() => void) | undefined
-  let rejectConnect: ((err: Error) => void) | undefined
-  const provider: SolanaWcProvider & {
-    emit: (event: string, ...args: unknown[]) => void
-    approve: () => void
-    fail: (message: string) => void
-    abortPairingAttempt: Mock<() => void>
-  } = {
-    session: undefined,
-    connect: () =>
+/** A provider whose pairing stays open until the test approves or fails it,
+ * emitting the pairing URI as the real one does; wired into the mocked
+ * discovery hook. */
+function pairing() {
+  const provider = fakeWcProvider()
+  let settle: { resolve: () => void; reject: (err: Error) => void } | undefined
+  provider.connect.mockImplementation(
+    () =>
       new Promise<void>((resolve, reject) => {
-        resolveConnect = resolve
-        rejectConnect = reject
+        settle = { resolve, reject }
         provider.emit('display_uri', 'wc:abc@2?relay')
       }),
-    disconnect: async () => {},
-    request: vi.fn(),
-    abortPairingAttempt: vi.fn(),
-    on: (event, listener) => {
-      listeners.set(event, (listeners.get(event) ?? new Set()).add(listener))
-    },
-    off: (event, listener) => {
-      listeners.get(event)?.delete(listener)
-    },
-    emit: (event, ...args) => {
-      for (const l of listeners.get(event) ?? []) l(...args)
-    },
-    approve: () => {
-      provider.session = {
-        namespaces: {
-          solana: { accounts: [`${SOLANA_CAIP2.mainnet}:${ADDRESS}`] },
-        },
-        peer: { metadata: { name: 'Phantom', icons: [] } },
-      }
-      resolveConnect?.()
-    },
-    fail: (message) => rejectConnect?.(new Error(message)),
+  )
+  walletConnect.value = {
+    enabled: true,
+    wallet: getSolanaWalletConnectWallet(provider),
+    error: null,
+    retry: () => {},
   }
-  return provider
+  return {
+    provider: provider as FakeWcProvider,
+    approve: () => {
+      provider.session = fakeWcSession([`${SOLANA_CAIP2.mainnet}:${ADDRESS}`])
+      settle?.resolve()
+    },
+    fail: (message: string) => settle?.reject(new Error(message)),
+  }
 }
 
 beforeEach(() => {
@@ -92,49 +73,50 @@ beforeEach(() => {
 })
 
 describe('useSolanaWalletConnectPairing', () => {
-  it('shows the pairing URI, then hands the approved session to the store', async () => {
-    const provider = fakeProvider()
-    walletConnect.value = {
-      enabled: true,
-      wallet: getSolanaWalletConnectWallet(provider),
-      error: null,
-    }
+  it('shows the pairing URI, then the approved session is in the store', async () => {
+    const { approve } = pairing()
     const { result } = renderHook(() => useSolanaWalletConnectPairing())
     await waitFor(() => expect(result.current.uri).toBe('wc:abc@2?relay'))
-    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.status).toBe('connecting')
 
-    await act(async () => provider.approve())
+    await act(async () => approve())
     await waitFor(() => expect(goToStep).toHaveBeenCalledWith(null))
-    expect(store.getState().solana.status).toBe('connected')
-    expect(store.getState().solana.connection?.source).toBe('walletconnect')
-    expect(store.getState().solana.connection?.address).toBe(ADDRESS)
-    expect(store.getState().solana.connection?.wallet.name).toBe('Phantom')
+    const { status, connection } = store.getState().solana
+    expect(status).toBe('connected')
+    expect(connection?.source).toBe('walletconnect')
+    expect(connection?.address).toBe(ADDRESS)
+    expect(connection?.wallet.name).toBe('Phantom')
   })
 
   it('surfaces a failed proposal and retries on demand', async () => {
-    const provider = fakeProvider()
-    walletConnect.value = {
-      enabled: true,
-      wallet: getSolanaWalletConnectWallet(provider),
-      error: null,
-    }
+    const { fail } = pairing()
     const { result } = renderHook(() => useSolanaWalletConnectPairing())
     await waitFor(() => expect(result.current.uri).toBeTruthy())
-    await act(async () => provider.fail('Proposal expired'))
+    await act(async () => fail('Proposal expired'))
     await waitFor(() => expect(result.current.error).toBe('Proposal expired'))
+    expect(store.getState().solana.status).toBe('disconnected')
 
     await act(async () => result.current.retry())
     await waitFor(() => expect(result.current.error).toBeNull())
     expect(result.current.uri).toBe('wc:abc@2?relay')
   })
 
-  it('abandons the proposal when unmounted mid-pairing', async () => {
-    const provider = fakeProvider()
+  it('retries the SDK load, not the pairing, after a failed load', () => {
+    const retryLoad = vi.fn()
     walletConnect.value = {
       enabled: true,
-      wallet: getSolanaWalletConnectWallet(provider),
-      error: null,
+      wallet: null,
+      error: 'Failed to fetch',
+      retry: retryLoad,
     }
+    const { result } = renderHook(() => useSolanaWalletConnectPairing())
+    expect(result.current.error).toBe('Failed to fetch')
+    act(() => result.current.retry())
+    expect(retryLoad).toHaveBeenCalledTimes(1)
+  })
+
+  it('abandons the proposal when unmounted mid-pairing', async () => {
+    const { provider } = pairing()
     const { result, unmount } = renderHook(() =>
       useSolanaWalletConnectPairing(),
     )

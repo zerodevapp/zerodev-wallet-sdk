@@ -33,6 +33,13 @@ export function getSolanaWalletConnectProvider(
         }),
     )
     providers.set(config.projectId, provider)
+    // A failed init (network, storage) must not be remembered, or every
+    // retry would get the same rejection until a page reload.
+    provider.catch(() => {
+      if (providers.get(config.projectId) === provider) {
+        providers.delete(config.projectId)
+      }
+    })
   }
   return provider
 }
