@@ -93,9 +93,11 @@ describe('solana store slice', () => {
     expect(connection.source).toBe('standard')
     expect(store.getState().solana.status).toBe('connected')
     expect(store.getState().solana.connection?.wallet).toBe(wallet)
-    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBe(
-      'Phantom',
-    )
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
+      ),
+    ).toEqual({ name: 'Phantom', source: 'standard' })
   })
 
   it('rejects a wallet that authorises no Solana account', async () => {
@@ -177,6 +179,30 @@ describe('solana store slice', () => {
     expect(phantom.connect).toHaveBeenCalledWith({ silent: true })
     expect(solflare.connect).not.toHaveBeenCalled()
     expect(store.getState().solana.connection?.wallet).toBe(phantom.wallet)
+  })
+
+  it('remembers the source and restores only a wallet of that source', async () => {
+    const store = createStore()
+    const { wallet } = fakeWallet('Phantom', [account()])
+    await store.getState().solana.connect(wallet)
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
+      ),
+    ).toEqual({ name: 'Phantom', source: 'standard' })
+
+    const again = createStore()
+    await again.getState().solana.restore([wallet])
+    expect(again.getState().solana.connection?.source).toBe('standard')
+  })
+
+  it('reads the pre-WalletConnect stored value as an installed wallet', async () => {
+    window.localStorage.setItem('zerodev:solana:lastWallet', 'Phantom')
+    const store = createStore()
+    const { wallet, connect } = fakeWallet('Phantom', [account()])
+    await store.getState().solana.restore([wallet])
+    expect(connect).toHaveBeenCalledWith({ silent: true })
+    expect(store.getState().solana.status).toBe('connected')
   })
 
   it('restore is a no-op without a stored wallet or when it is absent', async () => {

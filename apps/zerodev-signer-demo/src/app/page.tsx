@@ -227,6 +227,8 @@ function renderSignUpItem(item: PlaygroundItem) {
       return <SignUp.Wallet key={item.key} walletId={item.walletId} />
     case 'walletConnect':
       return <SignUp.WalletConnect key={item.key} />
+    case 'solanaWalletConnect':
+      return <SignUp.SolanaWalletConnect key={item.key} />
     case 'installedWallets':
       return (
         <SignUp.InstalledWallets
