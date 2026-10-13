@@ -38,7 +38,9 @@ export function TokenSummary({
         variant="ghost"
         className="zd:flex zd:w-full zd:flex-col zd:items-center zd:gap-2 zd:rounded-2xl zd:px-2 zd:pt-16 zd:pb-2"
       >
-        <Text className="zd:whitespace-nowrap zd:text-h1">{primaryValue}</Text>
+        <Text className="zd:max-w-full zd:truncate zd:text-h1">
+          {primaryValue}
+        </Text>
         {secondaryValue && (
           <Text className="zd:whitespace-nowrap zd:text-center zd:text-h3">
             {secondaryValue}
