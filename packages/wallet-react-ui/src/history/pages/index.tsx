@@ -1,14 +1,12 @@
-import { Screen, TopNav } from '@zerodev/react-ui'
 import {
   type DataApiChainId,
   type DataApiEnvironment,
   useTransactionHistory,
 } from '@zerodev/wallet-data'
-import { useMemo, useState } from 'react'
-import type { HistoryFeed } from '../types'
+import { useMemo } from 'react'
+import type { HistoryFeed, TxHistoryEntry } from '../types'
 import { toTxHistoryEntry } from '../utils/toTxHistoryEntry'
-import { History } from './History'
-import { TransactionDetails } from './TransactionDetails'
+import { TxHistoryView } from './TxHistoryView'
 
 export interface TxHistoryProps {
   dataApi: {
@@ -33,7 +31,6 @@ export function TxHistory({
   size,
 }: TxHistoryProps) {
   const history = useTransactionHistory(dataApi)
-  const [selectedId, setSelectedId] = useState<string>()
 
   const entries = useMemo(
     () =>
@@ -42,52 +39,43 @@ export function TxHistory({
         .flatMap((item) => toTxHistoryEntry(item) ?? []),
     [history.data],
   )
-  const selected = entries.find((entry) => entry.id === selectedId)?.transaction
 
-  const feed: HistoryFeed =
-    history.status === 'pending'
-      ? { status: 'loading' }
-      : history.status === 'error'
-        ? {
-            status: 'error',
-            error: history.error,
-            retry: () => {
-              history.refetch()
-            },
-          }
-        : {
-            status: 'ready',
-            entries,
-            hasMore: history.hasNextPage,
-            loadingMore: history.isFetchingNextPage,
-            loadMore: () => {
-              history.fetchNextPage()
-            },
-          }
+  const feed = toFeed(history, entries)
 
   return (
-    <Screen
+    <TxHistoryView
+      feed={feed}
+      onClose={onClose}
       {...(className && { className })}
       {...(size && { size })}
-      topNav={
-        <TopNav
-          title={selected ? 'Transaction details' : 'History'}
-          {...(selected && {
-            leftButtonIcon: 'chevronLeft',
-            onLeftButtonClick: () => setSelectedId(undefined),
-          })}
-          onRightButtonClick={onClose}
-        />
-      }
-    >
-      {selected ? (
-        <TransactionDetails transaction={selected} />
-      ) : (
-        <History
-          feed={feed}
-          onSelectEntry={(entry) => setSelectedId(entry.id)}
-        />
-      )}
-    </Screen>
+    />
   )
+}
+
+function toFeed(
+  history: ReturnType<typeof useTransactionHistory>,
+  entries: TxHistoryEntry[],
+): HistoryFeed {
+  if (history.status === 'pending') return { status: 'loading' }
+  if (history.status === 'error' && !history.isFetchNextPageError) {
+    return {
+      status: 'error',
+      error: history.error,
+      retry: () => {
+        history.refetch()
+      },
+    }
+  }
+  // TanStack reports a failed fetchNextPage as status 'error' but keeps the
+  // loaded pages, so the list stays and the error shows inline.
+  return {
+    status: 'ready',
+    entries,
+    hasMore: history.status === 'error' || history.hasNextPage,
+    loadingMore: history.isFetchingNextPage,
+    loadMore: () => {
+      history.fetchNextPage()
+    },
+    ...(history.status === 'error' && { loadMoreError: history.error }),
+  }
 }

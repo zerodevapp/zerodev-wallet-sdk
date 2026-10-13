@@ -28,4 +28,6 @@ export type HistoryFeed =
       hasMore: boolean
       loadingMore: boolean
       loadMore: () => void
+      /** Set when fetching the next page failed; the loaded entries stay. */
+      loadMoreError?: Error
     }
