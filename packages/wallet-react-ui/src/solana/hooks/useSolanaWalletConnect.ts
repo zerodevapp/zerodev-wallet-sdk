@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useConnectors } from 'wagmi'
 import { isZeroDevWalletConnect } from '../../auth/utils/isZeroDevWalletConnect'
+import { errorMessage } from '../../shared/utils/errorMessage'
 import type { ZeroDevWalletConnectStamp } from '../../zeroDevWalletConnect'
 import type { SolanaStandardWallet } from '../types'
 import { getSolanaWalletConnectProvider } from '../walletconnect/provider'
@@ -50,8 +51,7 @@ export function useSolanaWalletConnect(load = true): SolanaWalletConnect {
         if (!disposed) setWallet(getSolanaWalletConnectWallet(provider))
       })
       .catch((err) => {
-        if (!disposed)
-          setError(err instanceof Error ? err.message : String(err))
+        if (!disposed) setError(errorMessage(err))
       })
     return () => {
       disposed = true
