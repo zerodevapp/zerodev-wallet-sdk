@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useKitStore } from '../../shared/hooks/useKitStore'
+import { errorMessage } from '../../shared/utils/errorMessage'
 import { useSolanaWalletConnect } from '../../solana/hooks/useSolanaWalletConnect'
 import { providerOfSolanaWalletConnectWallet } from '../../solana/walletconnect/wallet'
 import { isCancellationError } from '../utils/isCancellationError'
@@ -49,7 +50,7 @@ export function useSolanaWalletConnectPairing(): WalletConnectPairing {
       .catch((err) => {
         settled = true
         if (isCancellationError(err)) return
-        setError(err instanceof Error ? err.message : String(err))
+        setError(errorMessage(err))
       })
     return () => {
       provider.off('display_uri', onUri)
