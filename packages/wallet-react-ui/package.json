@@ -32,6 +32,7 @@
     "!src/**/*.test.tsx",
     "!src/**/*.stories.ts",
     "!src/**/*.stories.tsx",
+    "!src/**/__stories__/**",
     "!.changeset"
   ],
   "scripts": {
