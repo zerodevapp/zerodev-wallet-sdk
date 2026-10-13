@@ -85,11 +85,9 @@ export function DataRow({
               data-testid="data-row-info"
             >
               <Icon
-                name={isWarning ? 'infoOutline' : 'info'}
+                name="infoOutline"
                 className={cn(
                   'zd:w-3.5 zd:h-3.5',
-                  // Warning rows use the thin outline glyph at half opacity
-                  // (Figma 20002:36053) instead of the filled disc.
                   isWarning
                     ? 'zd:text-solarOrange zd:opacity-50'
                     : 'zd:text-greyScale/50',
@@ -112,11 +110,9 @@ export function DataRow({
               data-testid="data-row-info"
             >
               <Icon
-                name={isWarning ? 'infoOutline' : 'info'}
+                name="infoOutline"
                 className={cn(
                   'zd:w-3.5 zd:h-3.5',
-                  // Warning rows use the thin outline glyph at half opacity
-                  // (Figma 20002:36053) instead of the filled disc.
                   isWarning
                     ? 'zd:text-solarOrange zd:opacity-50'
                     : 'zd:text-greyScale/50',

@@ -1,5 +1,35 @@
 # @zerodev/wallet-react
 
+## 0.0.9
+
+### Patch Changes
+
+- 15716b2: Fix concurrent session refreshes across browser tabs. Every open tab refreshed at the same instant and sent its own stamp login, which Turnkey fails for one sub-org. Refresh now takes a cross-tab Web Lock and adopts a session another tab already refreshed. Writes of the shared key vault and session are serialized across tabs, while passkey prompts and OAuth popups stay outside the lock. The React provider clears local state if another tab signed in to a different account.
+- Updated dependencies [15716b2]
+  - @zerodev/wallet-core@0.0.6
+
+## 0.0.8
+
+### Patch Changes
+
+- b3eaf7c: feat: `useWalletInfo` + WalletConnect compat fixes
+
+  - New `useWalletInfo` hook: identity of the wallet behind the active wagmi
+    connection. Call-compatible with AppKit's `useWalletInfo` (same name, same
+    `{ walletInfo }` return shape, optional ignored namespace arg), so
+    migrating from AppKit is an import swap. `walletInfo` carries
+    `{ name, icon, walletId, source }`, or is `undefined` while disconnected.
+    Injected wallets resolve from the
+    connector, WalletConnect connections from the session's peer metadata
+    (the actual wallet on the other end, resolved asynchronously), the
+    embedded wallet reports `source: 'embedded'`.
+  - `zustand` moved from peerDependencies to dependencies in both packages.
+    The kit's store never crosses into host code, so there is no singleton to
+    share — as a peer it only produced unmet-peer warnings for hosts on
+    zustand 4.
+  - Test mocks for wagmi's `useConnect` now match its real return shape
+    (`connect`, not `mutate`), keeping the suite valid on wagmi v2 and v3.
+
 ## 0.0.7
 
 ### Patch Changes

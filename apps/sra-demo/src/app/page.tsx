@@ -10,7 +10,14 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import type { Chain } from 'viem'
 import { type Address, isAddress } from 'viem'
-import { arbitrum, base, mainnet, optimism, polygon } from 'viem/chains'
+import {
+  arbitrum,
+  base,
+  mainnet,
+  optimism,
+  polygon,
+  robinhood,
+} from 'viem/chains'
 import { MockPanel } from './components/MockPanel'
 import {
   installMockFetch,
@@ -27,8 +34,13 @@ import {
 const SIMULATED_DEFAULT_RECIPIENT: Address =
   '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
 
+const SRA_PACKAGE_URL =
+  'https://www.npmjs.com/package/@zerodev/smart-routing-address-react-ui'
+
 // Destination chains offered in the "Settings" configurator.
-const CHAINS: Chain[] = [arbitrum, base, optimism, polygon, mainnet]
+// Robinhood is the only chain with USDG — pick it to see same-chain
+// USDG deposits alongside bridged ETH/WETH.
+const CHAINS: Chain[] = [arbitrum, base, optimism, polygon, mainnet, robinhood]
 
 /** Demo run mode. In `simulated` the mock fetch layer intercepts every SRA
  * server call so the widget can be exercised without any real network / funds
@@ -76,6 +88,10 @@ export default function Home() {
   // producing a UI ↔ mock mismatch).
   const [mockErrorMode, setMockErrorMode] = useState<MockErrorMode>('none')
   const [mockSponsored, setMockSponsored] = useState(false)
+  // Lifted for the same reason as the toggles above: the mock-controls
+  // <details> would otherwise reset to closed every time an action bumps
+  // `mockNonce` and remounts the subtree.
+  const [mockControlsOpen, setMockControlsOpen] = useState(false)
 
   const [draftRecipient, setDraftRecipient] = useState<string>(
     SIMULATED_DEFAULT_RECIPIENT,
@@ -222,17 +238,28 @@ export default function Home() {
                 Address — the whole deposit flow, ready to drop into your app
                 and cut the funding friction that hurts onboarding conversion.
               </p>
-              {/* "React package coming soon" chip — only shown in simulated
-                  mode so nothing implies the mainnet flow is a prototype. */}
-              {mode === 'simulated' && (
-                <span className="mt-0.5 inline-flex items-center gap-[7px] self-start rounded-full border border-border-warm bg-white/55 px-[11px] py-[5px] text-xs font-semibold tracking-[0.01em] text-muted">
-                  <span
-                    aria-hidden="true"
-                    className="h-1.5 w-1.5 rounded-full bg-primary"
-                  />
-                  React package coming soon
-                </span>
-              )}
+              <a
+                href={SRA_PACKAGE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex h-12 items-center gap-2 self-start rounded-xl bg-ink px-5 text-[15px] font-semibold text-white no-underline transition-colors duration-150 hover:bg-[#2a1d12]"
+              >
+                Install from npm
+                <svg
+                  aria-hidden="true"
+                  className="size-4 shrink-0"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17.3333 14.6664L28.2666 3.73303" />
+                  <path d="M29.3324 9.06663V2.66663H22.9324" />
+                  <path d="M14.6667 2.66663H12.0001C5.33341 2.66663 2.66675 5.33329 2.66675 12V20C2.66675 26.6666 5.33341 29.3333 12.0001 29.3333H20.0001C26.6667 29.3333 29.3334 26.6666 29.3334 20V17.3333" />
+                </svg>
+              </a>
             </header>
 
             {/* Simulated wallet — mock fetch layer intercepts every SRA
@@ -248,6 +275,8 @@ export default function Home() {
                 setMockErrorMode={setMockErrorMode}
                 mockSponsored={mockSponsored}
                 setMockSponsored={setMockSponsored}
+                controlsOpen={mockControlsOpen}
+                setControlsOpen={setMockControlsOpen}
               />
             )}
 

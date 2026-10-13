@@ -22,6 +22,12 @@ function createMockProvider(): Provider {
   }
 }
 
+/** Base setup resolution, overridable per test — the restore-ordering test
+ * holds it pending; everything else keeps the default instant resolve. */
+const baseSetup = vi.hoisted(() => ({
+  impl: () => Promise.resolve(),
+}))
+
 vi.mock('@zerodev/wallet-react', () => ({
   zeroDevWallet: () => {
     const provider = createMockProvider()
@@ -29,7 +35,7 @@ vi.mock('@zerodev/wallet-react', () => ({
       id: 'zerodev-wallet',
       name: 'ZeroDevWallet',
       type: 'injected',
-      setup: vi.fn(),
+      setup: vi.fn(() => baseSetup.impl()),
       connect: vi.fn(),
       disconnect: vi.fn(),
       getAccounts: vi.fn(),
@@ -263,6 +269,42 @@ describe('connector', () => {
       expect(store.getState().auth.otpEncryptionTargetBundle).toBe(
         'bundle-stored',
       )
+    })
+
+    it('restores the OTP session synchronously, before base setup settles', async () => {
+      window.localStorage.setItem(
+        'zerodev:auth:otpSession',
+        JSON.stringify({
+          otpId: 'otp-stored',
+          otpEncryptionTargetBundle: 'bundle-stored',
+        }),
+      )
+      // Hold base setup pending: `Verifying` reads the session in a mount
+      // effect that can run while base setup is still in flight, so the
+      // restore must not be gated behind it — a gated restore made the
+      // magic-link page see an empty session and strip the code.
+      let releaseBaseSetup = () => {}
+      baseSetup.impl = () =>
+        new Promise<void>((resolve) => {
+          releaseBaseSetup = resolve
+        })
+      try {
+        const connector = createKitConnector()
+        const store = connector.getKitStore()
+
+        const setup = connector.setup?.()
+
+        // No await before this point: the session must already be visible.
+        expect(store.getState().auth.otpId).toBe('otp-stored')
+        expect(store.getState().auth.otpEncryptionTargetBundle).toBe(
+          'bundle-stored',
+        )
+
+        releaseBaseSetup()
+        await setup
+      } finally {
+        baseSetup.impl = () => Promise.resolve()
+      }
     })
 
     it('disconnect resets auth state to null step', async () => {

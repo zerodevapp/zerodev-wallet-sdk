@@ -21,6 +21,7 @@ import { AddressDisplay } from '../components/AddressDisplay'
 import { ErrorRetryCard } from '../components/ErrorRetryCard'
 import {
   FeeBreakdownRows,
+  FeeDisclosureButton,
   FeeSummary,
   LiveValue,
 } from '../components/FeeBreakdown'
@@ -36,7 +37,6 @@ import { CHAIN_ICONS, PROVIDER_ICONS, TOKEN_ICONS } from '../iconAssets'
 import type { SourceToken } from '../types'
 import {
   getSourceTokenSymbol,
-  resolveBaseUrl,
   resolveDestChain,
   sourceTokensFromFees,
 } from '../utils/config'
@@ -82,7 +82,7 @@ export function Deposit({
   const address = success?.address
   const estimatedFees = success?.estimatedFees ?? []
 
-  // allowPartialRoutes lets the server drop source tokens it can't route, so
+  // The server only returns estimates for source tokens it can route, so
   // the routable set is exactly the tokens the fee estimates came back with.
   const srcTokens = useMemo(
     () => sourceTokensFromFees(estimatedFees),
@@ -136,7 +136,7 @@ export function Deposit({
     refetch: refetchDeposits,
   } = useDepositStatus({
     address,
-    baseUrl: resolveBaseUrl(config),
+    baseUrl: config.baseUrl,
   })
   const newDeposits = useNewDeposits(deposits, hasLoaded)
   const pastDepositsCount = deposits.length - newDeposits.length
@@ -417,12 +417,19 @@ export function Deposit({
                   label="Estimated fee"
                   value={
                     breakdown ? (
-                      <LiveValue
-                        loading={providerFees.loading}
-                        flashKey={feeFlashKey}
+                      // The whole value (summary + chevron) toggles the
+                      // breakdown, not just the arrow.
+                      <FeeDisclosureButton
+                        open={feeOpen}
+                        onToggle={() => setFeeOpen((prev) => !prev)}
                       >
-                        <FeeSummary breakdown={breakdown} />
-                      </LiveValue>
+                        <LiveValue
+                          loading={providerFees.loading}
+                          flashKey={feeFlashKey}
+                        >
+                          <FeeSummary breakdown={breakdown} />
+                        </LiveValue>
+                      </FeeDisclosureButton>
                     ) : (
                       // Match Min deposit's skeleton so both loading
                       // affordances share one visual language.
@@ -431,24 +438,6 @@ export function Deposit({
                   }
                   info
                   infoTooltip={FEE_INFO.estimatedFee}
-                  trailing={
-                    breakdown ? (
-                      <button
-                        type="button"
-                        onClick={() => setFeeOpen((prev) => !prev)}
-                        aria-expanded={feeOpen}
-                        aria-label={
-                          feeOpen ? 'Hide fee details' : 'Show fee details'
-                        }
-                        className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-pointer"
-                      >
-                        <Icon
-                          name={feeOpen ? 'chevronUp' : 'chevronDown'}
-                          className="zd:w-3.5 zd:h-3.5 zd:text-greyScale"
-                        />
-                      </button>
-                    ) : null
-                  }
                 />
                 {feeOpen && breakdown && (
                   <FeeBreakdownRows breakdown={breakdown} />
@@ -476,6 +465,7 @@ export function Deposit({
                     label={destChain.name}
                     {...(destChainLogo && { logoUri: destChainLogo })}
                     disabled
+                    loading={!tokenSymbol}
                   />
                 }
               />

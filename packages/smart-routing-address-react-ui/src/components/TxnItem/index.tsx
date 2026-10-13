@@ -1,11 +1,6 @@
 import { cn, Icon, Text } from '@zerodev/react-ui'
 
-export type TxnStatus =
-  | 'Routing'
-  | 'Detected'
-  | 'Received'
-  | 'Delivered'
-  | 'Failed'
+export type TxnStatus = 'Routing' | 'Detected' | 'Delivered' | 'Failed'
 
 export interface TxnItemProps {
   /** Pre-formatted deposited amount, e.g. `"$248.00 USD"`. */
@@ -41,9 +36,6 @@ export interface TxnItemProps {
 const STATUS_COLOR: Record<TxnStatus, string> = {
   Routing: 'zd:text-solarOrange',
   Detected: 'zd:text-greyScale/50',
-  // In-flight arrival reads in plain ink (Figma 20002:36061); the green
-  // celebration is reserved for the terminal Delivered state.
-  Received: 'zd:text-greyScale',
   Delivered: 'zd:text-positive',
   Failed: 'zd:text-negative',
 }

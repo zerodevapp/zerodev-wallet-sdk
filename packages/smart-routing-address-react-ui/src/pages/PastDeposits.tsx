@@ -9,7 +9,6 @@ import type { DepositStage, DepositWithTimestamp } from '../types'
 import { getTxUrl } from '../utils/chains'
 import {
   getSourceTokenSymbol,
-  resolveBaseUrl,
   resolveDestChain,
   sourceTokensFromFees,
 } from '../utils/config'
@@ -24,8 +23,6 @@ import {
 const STAGE_TO_STATUS: Record<DepositStage, TxnStatus> = {
   pending: 'Detected',
   bridging: 'Routing',
-  // Past deposits use the terminal label — "Received" (plain ink) is the
-  // active list's arrival state; "Delivered" renders green.
   completed: 'Delivered',
   failed: 'Failed',
 }
@@ -93,7 +90,7 @@ export function PastDeposits({ onSelectDeposit }: PastDepositsProps) {
 
   const { deposits, hasLoaded } = useDepositStatus({
     address,
-    baseUrl: resolveBaseUrl(config),
+    baseUrl: config.baseUrl,
   })
 
   const destChain = resolveDestChain(config)
