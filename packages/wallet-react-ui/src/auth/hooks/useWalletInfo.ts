@@ -142,7 +142,7 @@ function useResolvedWalletInfo(): WalletInfo | undefined {
  *
  * @param namespace - `'eip155'` (default) reads the wagmi connection;
  * `'solana'` reads the kit's Solana wallet slot (the external Solana wallet
- * connected through `SignUp.SolanaWallets`). Any other string reads as EVM,
+ * connected through `SignUp.InstalledWallets` with a `solana` namespace). Any other string reads as EVM,
  * as before. Same shape as AppKit's `useWalletInfo(namespace)`.
  */
 export function useWalletInfo(namespace: string = 'eip155'): {

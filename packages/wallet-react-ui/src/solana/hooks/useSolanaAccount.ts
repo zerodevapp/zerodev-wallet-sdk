@@ -33,7 +33,7 @@ export type SolanaAccount = {
 
 /**
  * Connection state of the kit's Solana wallet slot: the external Solana
- * wallet the user connected through `SignUp.SolanaWallets`. Independent of
+ * wallet the user connected through `SignUp.InstalledWallets` with a `solana` namespace. Independent of
  * the wagmi (EVM) connection, so both can be connected at once.
  *
  * Address, status, connect and disconnect are what a host like the Arbitrum
