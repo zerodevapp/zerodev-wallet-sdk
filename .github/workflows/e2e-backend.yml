@@ -16,6 +16,14 @@ on:
         type: string
         required: false
         default: https://kms.staging.zerodev.app/api/v1
+      job_name:
+        description: >-
+          Display name for the job. A calling repo sees it as
+          "<its own job name> / <this>", so it can set wording that reads in
+          its own Actions tab.
+        type: string
+        required: false
+        default: Backend E2E Tests
       ref:
         description: Debug escape hatch. Unset pins the tests to this workflow's commit.
         type: string
@@ -29,7 +37,7 @@ on:
 
 jobs:
   backend-e2e:
-    name: Backend E2E Tests
+    name: ${{ inputs.job_name }}
     runs-on: ubuntu-latest
     # Serializes runs against one staging. Groups are scoped to the caller's
     # repo, so two different repos calling this can still collide.
