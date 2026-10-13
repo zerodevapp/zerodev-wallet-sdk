@@ -1,14 +1,23 @@
+/** EIP-1193 `4001` "user rejected"; WalletConnect's `5000` USER_REJECTED and
+ * `5001`-`5003` for rejected chains, methods and events (a Solana pairing
+ * rejects with the raw sign-client object, not an Error). */
+const CANCELLATION_CODES = new Set([4001, 5000, 5001, 5002, 5003])
+
 /**
  * The user cancelled, rather than something failed: passkey prompt dismissed,
  * OAuth popup closed, or a wallet connection request rejected.
  */
 export function isCancellationError(err: unknown): boolean {
-  // EIP-1193 `4001` "user rejected", on any object: viem's
-  // UserRejectedRequestError, a wallet's own ProviderRpcError (an Error with
-  // `code`), or wagmi's rethrown raw JSON-RPC object. Walk `.cause`.
+  // The code may sit on any object: viem's UserRejectedRequestError, a
+  // wallet's own ProviderRpcError (an Error with `code`), wagmi's rethrown
+  // raw JSON-RPC object, or WalletConnect's rejection. Walk `.cause`.
   let current: unknown = err
   for (let depth = 0; depth < 5 && isObject(current); depth++) {
-    if (current.code === 4001) return true
+    if (
+      typeof current.code === 'number' &&
+      CANCELLATION_CODES.has(current.code)
+    )
+      return true
     current = current.cause
   }
 
