@@ -57,6 +57,7 @@ const UNIT_ICON: Record<UnitType, LucideIcon> = {
   email: Mail,
   wallet: Wallet,
   walletConnect: QrCode,
+  solanaWalletConnect: QrCode,
   installedWallets: ScanSearch,
   moreWallets: WalletCards,
   divider: Minus,

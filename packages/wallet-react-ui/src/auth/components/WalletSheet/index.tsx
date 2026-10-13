@@ -22,6 +22,8 @@ export type WalletSheetProps = {
   /** Page-level pairing (preloaded by the SignUp root) shared by every wallet
    * surface. */
   pairing: WalletConnectPairing
+  /** One line under the QR in generic mode, e.g. which wallets can scan it. */
+  hint?: string | undefined
 }
 
 /**
@@ -36,6 +38,7 @@ export function WalletSheet({
   onOpenChange,
   wallet,
   pairing,
+  hint,
 }: WalletSheetProps) {
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange}>
@@ -43,7 +46,7 @@ export function WalletSheet({
         <BottomSheetTitle>
           {wallet ? `Connect ${wallet.name}` : 'WalletConnect'}
         </BottomSheetTitle>
-        <SheetBody wallet={wallet} pairing={pairing} />
+        <SheetBody wallet={wallet} pairing={pairing} hint={hint} />
       </BottomSheetContent>
     </BottomSheet>
   )
@@ -52,9 +55,11 @@ export function WalletSheet({
 function SheetBody({
   wallet,
   pairing,
+  hint,
 }: {
   wallet?: WalletGuideEntry | undefined
   pairing: WalletConnectPairing
+  hint?: string | undefined
 }) {
   const { startWalletConnection } = useAuth()
   const { uri, error, retry } = pairing
@@ -161,6 +166,11 @@ function SheetBody({
                 </div>
               )}
             </div>
+            {!wallet && hint && (
+              <Text className="zd:text-center zd:text-body3 zd:text-greyScale/60">
+                {hint}
+              </Text>
+            )}
             {qrValue && wallet?.mobileLink && (
               <a
                 href={qrValue}

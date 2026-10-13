@@ -16,9 +16,9 @@ export type SolanaStandardWallet = Omit<Wallet, 'features'> & {
     Partial<StandardDisconnectFeature & StandardEventsFeature>
 }
 
-/** How the kit reached the connected Solana wallet. WalletConnect is the
- * planned second door (RFC phase 2); only the Wallet Standard path exists. */
-export type SolanaConnectionSource = 'standard'
+/** How the kit reached the connected Solana wallet: an installed Wallet
+ * Standard wallet, or a WalletConnect session wrapped to look like one. */
+export type SolanaConnectionSource = 'standard' | 'walletconnect'
 
 export type SolanaConnectionStatus = 'disconnected' | 'connecting' | 'connected'
 

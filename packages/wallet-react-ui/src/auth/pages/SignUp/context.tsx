@@ -25,6 +25,8 @@ export type SignUpContextValue = {
   /** Opens the root's single WalletSheet — a wallet's connection paths, or
    * the generic WalletConnect pairing when called without one. */
   openWalletSheet: (wallet?: WalletGuideEntry) => void
+  /** Opens the root's Solana-over-WalletConnect pairing sheet. */
+  openSolanaWalletSheet: () => void
 }
 
 export const SignUpContext = createContext<SignUpContextValue | null>(null)
