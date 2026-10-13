@@ -689,6 +689,9 @@ importers:
 
   packages/wallet-react-ui:
     dependencies:
+      '@scure/base':
+        specifier: ^1.2.6
+        version: 1.2.6
       '@solana/wallet-standard-chains':
         specifier: 1.1.1
         version: 1.1.1
@@ -709,7 +712,14 @@ importers:
         version: 1.1.0
       '@walletconnect/ethereum-provider':
         specifier: ^2.21.1
+<<<<<<< HEAD
         version: 2.23.2(@react-native-async-storage/async-storage@2.2.0(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10)))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
+=======
+        version: 2.21.1(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@walletconnect/universal-provider':
+        specifier: ^2.21.1
+        version: 2.21.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+>>>>>>> 65fc6ca7 (feat(wallet-ui): Solana phase 2, WalletConnect session and wallet-adapter sync)
       '@zerodev/react-ui':
         specifier: workspace:*
         version: link:../react-ui
@@ -14426,8 +14436,13 @@ snapshots:
   '@walletconnect/keyvaluestorage@1.1.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10)))':
     dependencies:
       '@walletconnect/safe-json': 1.0.2
+<<<<<<< HEAD
       idb-keyval: 6.3.0
       unstorage: 1.17.3(idb-keyval@6.3.0)
+=======
+      idb-keyval: 6.2.2
+      unstorage: 1.17.3(idb-keyval@6.2.2)
+>>>>>>> 65fc6ca7 (feat(wallet-ui): Solana phase 2, WalletConnect session and wallet-adapter sync)
     optionalDependencies:
       '@react-native-async-storage/async-storage': 2.2.0(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10))
     transitivePeerDependencies:
@@ -17024,7 +17039,11 @@ snapshots:
   idb-keyval@6.2.1:
     optional: true
 
+<<<<<<< HEAD
   idb-keyval@6.3.0: {}
+=======
+  idb-keyval@6.2.2: {}
+>>>>>>> 65fc6ca7 (feat(wallet-ui): Solana phase 2, WalletConnect session and wallet-adapter sync)
 
   ieee754@1.2.1: {}
 
@@ -20167,7 +20186,11 @@ snapshots:
       '@unrs/resolver-binding-win32-ia32-msvc': 1.12.2
       '@unrs/resolver-binding-win32-x64-msvc': 1.12.2
 
+<<<<<<< HEAD
   unstorage@1.17.3(idb-keyval@6.3.0):
+=======
+  unstorage@1.17.3(idb-keyval@6.2.2):
+>>>>>>> 65fc6ca7 (feat(wallet-ui): Solana phase 2, WalletConnect session and wallet-adapter sync)
     dependencies:
       anymatch: 3.1.3
       chokidar: 4.0.3
@@ -20178,7 +20201,11 @@ snapshots:
       ofetch: 1.5.1
       ufo: 1.6.4
     optionalDependencies:
+<<<<<<< HEAD
       idb-keyval: 6.3.0
+=======
+      idb-keyval: 6.2.2
+>>>>>>> 65fc6ca7 (feat(wallet-ui): Solana phase 2, WalletConnect session and wallet-adapter sync)
 
   update-browserslist-db@1.3.3(browserslist@4.29.1):
     dependencies:

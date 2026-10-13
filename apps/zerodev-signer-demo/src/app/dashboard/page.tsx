@@ -11,6 +11,7 @@ import {
   isCancellationError,
   useSolanaAccount,
   useSolanaAutoReconnect,
+  useSolanaWalletConnect,
   useSolanaWallets,
 } from "@zerodev/wallet-react-ui";
 import {
@@ -143,6 +144,17 @@ export default function DashboardPage() {
   // Connecting Solana first already offers the reverse ("Connect an EVM
   // wallet" below), so both orders end with both namespaces connected.
   const solanaWallets = useSolanaWallets();
+  // Solana over WalletConnect (a phone wallet): the pairing lives in the
+  // sign-up flow, so the pill opens that flow with only the Solana row.
+  const solanaWalletConnect = useSolanaWalletConnect();
+  const [solanaConnectRequested, setSolanaConnectRequested] = useState(false);
+  const openSolanaWalletConnect = () => {
+    setSolanaConnectRequested(true);
+    goToStep("sign-up");
+  };
+  useEffect(() => {
+    if (solanaConnected) setSolanaConnectRequested(false);
+  }, [solanaConnected]);
   const [solanaConnecting, setSolanaConnecting] = useState<string | null>(null);
   const [solanaConnectError, setSolanaConnectError] = useState<string | null>(null);
   const connectSolanaWallet = async (wallet: (typeof solanaWallets)[number]) => {
@@ -167,7 +179,7 @@ export default function DashboardPage() {
   // wagmi and the full dashboard takes over.
   const { connect: connectEvm, connectAsync: connectEvmAsync, connectors } = useConnect();
   const { reconnectAsync } = useReconnect();
-  const { step: authStep } = useAuth();
+  const { step: authStep, goToStep } = useAuth();
   const [evmConnectRequested, setEvmConnectRequested] = useState(false);
   const openEvmConnect = () => {
     const kitConnector = connectors.find((c) => c.id === "zerodev-wallet");
@@ -444,7 +456,7 @@ export default function DashboardPage() {
             </button>
           </div>
         ))}
-      {!solanaConnected && solanaWallets.length > 0 && (
+      {!solanaConnected && (solanaWallets.length > 0 || solanaWalletConnect.enabled) && (
         <div
           data-testid="connect-solana"
           className="mt-1 flex flex-wrap items-center justify-center gap-2"
@@ -462,6 +474,16 @@ export default function DashboardPage() {
               onClick={() => connectSolanaWallet(wallet)}
             />
           ))}
+          {solanaWalletConnect.enabled && (
+            <WalletPill
+              dashed
+              label="WalletConnect"
+              disabled={solanaConnecting !== null}
+              title="A Solana wallet on your phone, by QR code"
+              testId="connect-solana-walletconnect"
+              onClick={openSolanaWalletConnect}
+            />
+          )}
           {solanaConnectError && (
             <span className="basis-full text-center text-xs text-red-600">{solanaConnectError}</span>
           )}
@@ -546,6 +568,21 @@ export default function DashboardPage() {
                 <SignUp.Divider label="or an EVM wallet" />
                 <SignUp.InstalledWallets />
                 <SignUp.WalletConnect />
+              </SignUp>
+            )}
+          />
+        </div>
+      )}
+      {solanaConnectRequested &&
+        authStep !== null &&
+        authStep !== "authenticated" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <ConnectWallet
+            size="md"
+            onClose={() => setSolanaConnectRequested(false)}
+            renderSignUp={() => (
+              <SignUp>
+                <SignUp.SolanaWalletConnect />
               </SignUp>
             )}
           />

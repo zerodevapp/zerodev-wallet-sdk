@@ -39,7 +39,7 @@ export const config = createConfig({
       ...(mode && { mode }),
     }),
     ...(wcProjectId
-      ? [zeroDevWalletConnect({ projectId: wcProjectId })]
+      ? [zeroDevWalletConnect({ projectId: wcProjectId, solana: true })]
       : []),
   ],
   ssr: true,
