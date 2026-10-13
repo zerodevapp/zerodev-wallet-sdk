@@ -136,6 +136,17 @@ export function createProvider({
       try {
         const newSession = await wallet.refreshSession(session.id)
         if (store.getState().session?.id !== session.id) return
+        // Another tab refreshed first and core handed back its session. If that
+        // tab signed in to a different account, drop this tab's state locally;
+        // logout() here would revoke the other tab's live key.
+        if (
+          newSession &&
+          (newSession.organizationId !== session.organizationId ||
+            newSession.userId !== session.userId)
+        ) {
+          store.getState().clear()
+          return
+        }
         console.log('Session refreshed successfully')
         store.getState().setSession(newSession || null)
         store.getState().setIsExpiring(false)

@@ -1,5 +1,5 @@
 import * as path from 'node:path'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
@@ -44,6 +44,13 @@ export default defineConfig({
       'packages/*/src/**/*.test.ts',
       'packages/*/src/**/*.test.tsx',
       'e2e/mocks/**/*.test.ts',
+    ],
+    // `*.integration.test.ts` matches the include glob above, so without this
+    // the unit suite silently swallows the whole integration layer. It has its
+    // own runner: `pnpm test:integration`.
+    exclude: [
+      ...configDefaults.exclude,
+      'packages/*/src/**/*.integration.test.ts',
     ],
   },
 })

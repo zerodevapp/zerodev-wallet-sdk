@@ -1,5 +1,6 @@
 import { IndexedDbStamper as TurnkeyIndexedDbStamper } from '@turnkey/indexed-db-stamper'
 import { TURNKEY_STAMP_HEADER } from '../constants.js'
+import { withCrossTabLock } from '../utils/crossTabLock.js'
 import {
   compactSignatureToDerHex,
   encodeStamp,
@@ -23,7 +24,9 @@ async function signWithKeyPair(
 
 export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
   const inner = new TurnkeyIndexedDbStamper()
-  await inner.init()
+  // On an empty vault init() generates and stores a key; under the lock it
+  // cannot overwrite a key another tab is committing.
+  await withCrossTabLock(() => inner.init())
 
   let pendingKeyPair: CryptoKeyPair | null = null
 
@@ -82,6 +85,10 @@ export async function createIndexedDbStamper(): Promise<ApiKeyStamper> {
     },
     async discardKeyRotation() {
       pendingKeyPair = null
+    },
+    // Unlocked: its callers already hold the cross-tab lock.
+    async reload() {
+      await inner.init()
     },
   }
 }

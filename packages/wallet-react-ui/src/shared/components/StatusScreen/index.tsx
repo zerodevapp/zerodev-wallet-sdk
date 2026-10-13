@@ -34,7 +34,7 @@ export function StatusScreen({
       <img
         src={STATE_IMAGES[imageName]}
         alt={imageName}
-        className="zd:w-[118px] zd:h-[118px] zd:bg-transparent"
+        className="zd:w-[118px] zd:h-[118px] zd:object-contain zd:bg-transparent"
       />
       <div className="zd:flex zd:flex-col zd:gap-4 zd:items-center">
         <Text className="zd:text-h2 zd:text-center zd:whitespace-pre-wrap">

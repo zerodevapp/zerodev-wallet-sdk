@@ -27,13 +27,13 @@ export type SourceToken = {
 
 export type SmartRoutingAddressConfig = {
   /**
-   * ZeroDev project id; when non-empty it is appended to the server URL
-   * for every request
+   * ZeroDev project id, sent with every address-creation request (the SDK
+   * appends it to the server URL)
    */
   projectId?: string
   /** Chain id where funds settle */
   targetChainId: number
-  /** Smart routing address version, defaults to the latest stable */
+  /** Smart routing address version, defaults to the latest supported */
   version?: SmartRoutingAddressVersion
   /**
    * Destination actions per token type. When omitted, funds are simply
@@ -44,10 +44,7 @@ export type SmartRoutingAddressConfig = {
    * Max slippage in basis points (50 = 0.5%).
    */
   slippage: number
-  /**
-   * Override the smart routing address server root URL; the projectId is
-   * appended to it
-   */
+  /** Override the smart routing address server root URL */
   baseUrl?: string
 }
 

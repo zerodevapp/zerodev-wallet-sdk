@@ -62,6 +62,11 @@ export type ApiKeyStamper = SigningStamper & {
   commitKeyRotation: () => Promise<void>
   /** Forget the prepared key while keeping the active key untouched. */
   discardKeyRotation: () => Promise<void>
+  /**
+   * Re-read the active key from the shared vault, which another tab may have
+   * rotated. Omit when each app has its own vault (React Native).
+   */
+  reload?: () => Promise<void>
 }
 
 export type Attestation = {

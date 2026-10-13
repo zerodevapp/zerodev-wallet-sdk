@@ -1,5 +1,5 @@
 /**
- * E2E integration test for wallet export.
+ * Backend E2E test for wallet export.
  *
  * After OTP login, verifies that the SDK's export functions succeed against the
  * real backend / Turnkey and return well-formed encrypted export bundles:

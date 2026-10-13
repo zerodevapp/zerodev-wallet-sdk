@@ -1,13 +1,12 @@
 import type {
-  CreateSmartRoutingAddressParams,
+  CALL,
   SmartRoutingAddressVersion,
   TOKEN_TYPE,
 } from '@zerodev/smart-routing-address'
 import {
   createCall,
   FLEX,
-  SMART_ROUTING_ADDRESS_SERVER_URL,
-  SMART_ROUTING_ADDRESS_V0_2_1,
+  SMART_ROUTING_ADDRESS_V1_0_0,
   SUPPORTED_TOKENS,
 } from '@zerodev/smart-routing-address'
 import { type Address, type Chain, erc20Abi } from 'viem'
@@ -23,21 +22,7 @@ import { tokenAddressMatches } from './fees'
 export function resolveVersion(
   config: SmartRoutingAddressConfig,
 ): SmartRoutingAddressVersion {
-  return config.version ?? SMART_ROUTING_ADDRESS_V0_2_1
-}
-
-/**
- * Server URL for all smart routing address requests: the server root
- * (default or `config.baseUrl`) with the ZeroDev project id appended.
- * Without a project id the URL is only overridden when `config.baseUrl`
- * is set; undefined leaves the SDK default in place.
- */
-export function resolveBaseUrl(
-  config: SmartRoutingAddressConfig,
-): string | undefined {
-  if (!config.projectId) return config.baseUrl
-  const root = config.baseUrl ?? SMART_ROUTING_ADDRESS_SERVER_URL
-  return `${root.replace(/\/+$/, '')}/${config.projectId}`
+  return config.version ?? SMART_ROUTING_ADDRESS_V1_0_0
 }
 
 export function resolveDashboardUrl(address?: string): string {
@@ -102,11 +87,16 @@ function uniqueTokenTypes(sources: SourceToken[]): TOKEN_TYPE[] {
  * Destination actions for every resolved source token type: ERC-20 deposits
  * are transferred to the recipient and native deposits are forwarded as
  * value. FLEX placeholders are resolved by the server per deposit.
+ *
+ * v0.x managers additionally run `fallBack` when `action` reverts, so legacy
+ * versions get the same calls as the fallback; v1 managers have no fallback
+ * and reject the field.
  */
 export function resolveActions(
   config: SmartRoutingAddressConfig,
   recipient: Address,
-): CreateSmartRoutingAddressParams['actions'] {
+  version: SmartRoutingAddressVersion,
+): { [key in TOKEN_TYPE]?: { action: CALL[]; fallBack?: CALL[] } } {
   const erc20Call = createCall({
     target: FLEX.TOKEN_ADDRESS,
     value: 0n,
@@ -118,15 +108,13 @@ export function resolveActions(
     target: recipient,
     value: FLEX.NATIVE_AMOUNT,
   })
+  const legacy = version !== SMART_ROUTING_ADDRESS_V1_0_0
 
   return Object.fromEntries(
-    uniqueTokenTypes(resolveSourceTokens(config)).map((tokenType) => [
-      tokenType,
-      {
-        action: tokenType === 'NATIVE' ? [nativeCall] : [erc20Call],
-        fallBack: tokenType === 'NATIVE' ? [nativeCall] : [erc20Call],
-      },
-    ]),
+    uniqueTokenTypes(resolveSourceTokens(config)).map((tokenType) => {
+      const action = tokenType === 'NATIVE' ? [nativeCall] : [erc20Call]
+      return [tokenType, { action, ...(legacy && { fallBack: action }) }]
+    }),
   )
 }
 

@@ -27,7 +27,19 @@ export default function VerifyPage() {
 function VerifyPageInner() {
   const router = useRouter()
   const { isConnected } = useAccount()
-  const { otpId } = useAuth()
+  const { otpId, step, reset } = useAuth()
+
+  // "Choose another sign-in method" on the error screens moves the step to
+  // 'sign-up' — nothing else does on /verify (reconnect rethrows without
+  // touching the step). Hand the flow back to the home login screen instead
+  // of restarting sign-up inside /verify: reset first so LoginScreen's
+  // auto-connect reopens the widget through the normal connect path.
+  useEffect(() => {
+    if (step === 'sign-up') {
+      reset()
+      router.push('/')
+    }
+  }, [step, reset, router])
 
   /**
    * Don't mount `ConnectWallet` until the OTP session has been restored.
