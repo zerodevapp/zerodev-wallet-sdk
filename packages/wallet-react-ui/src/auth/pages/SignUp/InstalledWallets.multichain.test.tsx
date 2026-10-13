@@ -237,7 +237,7 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     solanaWallets = [declined.wallet, broken.wallet]
     render(
       <SignUp>
-        <SignUp.SolanaWallets />
+        <SignUp.InstalledWallets namespaces={['solana']} />
       </SignUp>,
     )
 
