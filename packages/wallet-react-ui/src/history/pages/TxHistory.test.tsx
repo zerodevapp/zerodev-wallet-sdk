@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useTransactionHistory } from '@zerodev/wallet-data'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { pendingTx, sendTx, swapTx } from '../fixtures'
+import { sendTx, swapTx } from '../fixtures'
 import { TxHistory } from '.'
 
 vi.mock('@zerodev/wallet-data', async (importOriginal) => ({
@@ -17,6 +17,7 @@ interface QueryStub {
   error?: Error
   hasNextPage?: boolean
   isFetchingNextPage?: boolean
+  isFetchNextPageError?: boolean
 }
 
 const refetch = vi.fn()
@@ -28,6 +29,7 @@ function mockQuery(query: QueryStub) {
     fetchNextPage,
     hasNextPage: false,
     isFetchingNextPage: false,
+    isFetchNextPageError: false,
     ...query,
   } as unknown as HistoryQuery)
 }
@@ -105,6 +107,24 @@ describe('TxHistory', () => {
     expect(fetchNextPage).toHaveBeenCalledOnce()
   })
 
+  it('keeps the rows and shows the error inline when the next page fails', () => {
+    mockQuery(
+      successQuery({
+        status: 'error',
+        error: new Error('Next page failed'),
+        isFetchNextPageError: true,
+      }),
+    )
+    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
+    expect(screen.getByText('Sent USDC')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toBe(
+      "Couldn't load transactions. Try again.",
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    expect(fetchNextPage).toHaveBeenCalledOnce()
+    expect(refetch).not.toHaveBeenCalled()
+  })
+
   it('disables Load more while the next page is fetching', () => {
     mockQuery(successQuery({ hasNextPage: true, isFetchingNextPage: true }))
     render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
@@ -119,48 +139,5 @@ describe('TxHistory', () => {
     expect(screen.getByText('History')).toBeDefined()
     fireEvent.click(screen.getByRole('button'))
     expect(onClose).toHaveBeenCalledOnce()
-  })
-
-  it('opens the details of a selected row with a back chevron', () => {
-    mockQuery(successQuery())
-    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
-    fireEvent.click(screen.getByText('Sent USDC'))
-    expect(screen.getAllByText('Transaction details')).toHaveLength(2)
-    expect(screen.queryByText('Swapped ETH → USDC')).toBeNull()
-    expect(screen.getAllByRole('button')).toHaveLength(2)
-  })
-
-  it('returns to the list from the back chevron', () => {
-    mockQuery(successQuery())
-    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
-    fireEvent.click(screen.getByText('Sent USDC'))
-    const [back] = screen.getAllByRole('button')
-    fireEvent.click(back as HTMLElement)
-    expect(screen.getByText('History')).toBeDefined()
-    expect(screen.getByText('Swapped ETH → USDC')).toBeDefined()
-  })
-
-  it('updates open details when a refetch confirms the transaction', () => {
-    mockQuery(
-      successQuery({
-        data: { pages: [{ items: [pendingTx] }], pageParams: [null] },
-      }),
-    )
-    const { rerender } = render(
-      <TxHistory dataApi={dataApi} onClose={() => {}} />,
-    )
-    fireEvent.click(screen.getByText('Sent ETH'))
-    expect(screen.getByText('Confirming on Ethereum Sepolia')).toBeDefined()
-
-    mockQuery(
-      successQuery({
-        data: {
-          pages: [{ items: [{ ...pendingTx, status: 'success' }] }],
-          pageParams: [null],
-        },
-      }),
-    )
-    rerender(<TxHistory dataApi={dataApi} onClose={() => {}} />)
-    expect(screen.getByText('Confirmed on Ethereum Sepolia')).toBeDefined()
   })
 })

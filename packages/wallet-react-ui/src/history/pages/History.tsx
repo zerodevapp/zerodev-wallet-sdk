@@ -46,6 +46,7 @@ export function History({ feed, onSelectEntry }: HistoryProps) {
               hasMore={feed.hasMore}
               loading={feed.loadingMore}
               onLoadMore={feed.loadMore}
+              {...(feed.loadMoreError && { error: feed.loadMoreError })}
             />
           </>
         )}
@@ -124,14 +125,21 @@ function LoadMore({
   hasMore,
   loading,
   onLoadMore,
+  error,
 }: {
   hasMore: boolean
   loading: boolean
   onLoadMore: () => void
+  error?: Error
 }) {
   if (!hasMore) return null
   return (
-    <div className="zd:flex zd:justify-center zd:py-2">
+    <div className="zd:flex zd:flex-col zd:items-center zd:gap-2 zd:py-2">
+      {error && (
+        <Text role="alert" className="zd:text-center zd:text-greyScale/50">
+          {errorMessage(error)}
+        </Text>
+      )}
       <Button
         action="secondary"
         text={loading ? 'Loading…' : 'Load more'}
