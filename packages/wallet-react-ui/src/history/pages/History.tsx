@@ -93,17 +93,28 @@ function EmptyState() {
   )
 }
 
+const ERROR_COPY: Partial<Record<number, string>> = {
+  401: 'Your session expired. Sign in again.',
+  429: 'Too many requests. Try again in a moment.',
+}
+const GENERIC_ERROR_COPY = "Couldn't load transactions. Try again."
+
+function errorMessage(error: Error): string {
+  return (
+    (error instanceof DataApiError && ERROR_COPY[error.status]) ||
+    GENERIC_ERROR_COPY
+  )
+}
+
 function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
-  const message =
-    error instanceof DataApiError && error.status === 401
-      ? 'Your session expired. Sign in again.'
-      : error.message
   return (
     <div
       role="alert"
       className="zd:flex zd:flex-1 zd:flex-col zd:items-center zd:justify-center zd:gap-3 zd:py-8"
     >
-      <Text className="zd:text-center zd:text-greyScale/50">{message}</Text>
+      <Text className="zd:text-center zd:text-greyScale/50">
+        {errorMessage(error)}
+      </Text>
       <Button action="secondary" text="Try again" onClick={onRetry} />
     </div>
   )

@@ -8,6 +8,7 @@ import {
   Section,
   Text,
   TokenSummary,
+  type TokenSummaryProps,
 } from '@zerodev/react-ui'
 import type {
   TransactionHistoryChain,
@@ -20,7 +21,11 @@ import type {
 import { shortenHex } from '../../shared/utils/common'
 import { TX_HISTORY_STATUS_COLOR } from '../components/TxHistoryItem'
 import { formatDateTime, formatUsd } from '../utils/format'
-import { formatQuantity, TX_HISTORY_STATUS } from '../utils/toTxHistoryEntry'
+import {
+  formatQuantity,
+  TX_HISTORY_STATUS,
+  tokenUnit,
+} from '../utils/toTxHistoryEntry'
 
 export interface TransactionDetailsProps {
   transaction: TransactionHistoryTransaction
@@ -40,23 +45,13 @@ export function TransactionDetails({
           to: { quantity: tx.destQuantity, token: tx.destToken },
         }
       : undefined
-  const hero =
-    swap?.to ??
-    (tx.quantity && tx.token
-      ? { quantity: tx.quantity, token: tx.token }
-      : undefined)
+  const hero = heroProps(tx, swap?.to)
 
   return (
     <div className="zd:flex zd:w-full zd:flex-col zd:gap-3 zd:pt-4 zd:pb-6">
       {hero && (
         <TokenSummary
-          primaryValue={amount(hero.quantity, hero.token)}
-          {...(hero.token.priceUsd !== null && {
-            secondaryValue: formatUsd(
-              hero.quantity.float * hero.token.priceUsd,
-            ),
-          })}
-          {...(hero.token.imageUri && { tokenLogoUrl: hero.token.imageUri })}
+          {...hero}
           {...(tx.chain.iconUri && { badgeLogoUrl: tx.chain.iconUri })}
         />
       )}
@@ -106,6 +101,45 @@ export function TransactionDetails({
   )
 }
 
+interface Side {
+  quantity: TransactionHistoryQuantity
+  token: TransactionHistoryToken
+}
+
+type Hero = Pick<
+  TokenSummaryProps,
+  'primaryValue' | 'secondaryValue' | 'tokenLogoUrl'
+>
+
+/** The headline card: the NFT when there is one, else the received side of
+ * a swap, else the transaction's own amount. */
+function heroProps(
+  tx: TransactionHistoryTransaction,
+  swapTo: Side | undefined,
+): Hero | undefined {
+  if (tx.nft) {
+    const tokenId = `#${tx.nft.tokenId}`
+    return {
+      primaryValue: tx.nft.name ?? tokenId,
+      ...(tx.nft.name && { secondaryValue: tokenId }),
+      ...(tx.nft.imageUri && { tokenLogoUrl: tx.nft.imageUri }),
+    }
+  }
+  const side =
+    swapTo ??
+    (tx.quantity && tx.token
+      ? { quantity: tx.quantity, token: tx.token }
+      : undefined)
+  if (!side) return undefined
+  return {
+    primaryValue: amount(side.quantity, side.token),
+    ...(side.token.priceUsd !== null && {
+      secondaryValue: formatUsd(side.quantity.float * side.token.priceUsd),
+    }),
+    ...(side.token.imageUri && { tokenLogoUrl: side.token.imageUri }),
+  }
+}
+
 const PROGRESS_LABEL: Record<
   TransactionHistoryStatus,
   (chain: string) => string
@@ -130,7 +164,7 @@ function amount(
   quantity: TransactionHistoryQuantity,
   token: TransactionHistoryToken,
 ): string {
-  return `${formatQuantity(quantity)} ${token.symbol ?? ''}`.trim()
+  return `${formatQuantity(quantity)} ${tokenUnit(token)}`
 }
 
 function formatFee(fee: TransactionHistoryFee): string {

@@ -39,8 +39,13 @@ describe('TransactionDetails', () => {
     expect(screen.getByText('2.5 USDC ($2.50)')).toBeDefined()
   })
 
-  it('renders an NFT mint without a token amount', () => {
-    render(<TransactionDetails transaction={nftMintTx} />)
+  it('renders an NFT mint with the NFT as the hero and no token amount', () => {
+    const { container } = render(<TransactionDetails transaction={nftMintTx} />)
+    expect(screen.getByText('ZeroDev Pass')).toBeDefined()
+    expect(screen.getByText('#42')).toBeDefined()
+    expect(
+      container.querySelector('img[src="https://cdn.zerion.io/nft/42.png"]'),
+    ).not.toBeNull()
     expect(screen.queryAllByText(/^[\d.,]+ [A-Z]+$/)).toHaveLength(0)
     expect(screen.getByText('Transaction details')).toBeDefined()
     expect(screen.getByText('Confirmed on Ethereum Sepolia')).toBeDefined()

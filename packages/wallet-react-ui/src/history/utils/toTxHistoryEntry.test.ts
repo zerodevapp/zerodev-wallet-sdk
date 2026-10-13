@@ -11,6 +11,7 @@ import {
   receiveTx,
   sendTx,
   swapTx,
+  USDC,
   unknownStatusTx,
   unparsedWithoutTimestamp,
   unparsedWithTimestamp,
@@ -83,6 +84,13 @@ describe('toTxHistoryEntry', () => {
       transaction: sendTx,
     })
     expect(toTxHistoryEntry(receiveTx)?.value).toBe('0.5 ETH')
+  })
+
+  it('uses the shortened address as the unit when a token has no symbol', () => {
+    const { symbol: _symbol, ...token } = USDC
+    const entry = toTxHistoryEntry({ ...sendTx, token })
+    expect(entry?.title).toBe('Sent')
+    expect(entry?.value).toBe('25 0x1c7d...7238')
   })
 
   it('passes the item chain through', () => {
@@ -159,8 +167,17 @@ describe('toTxHistoryEntry', () => {
 })
 
 describe('formatQuantity', () => {
-  it('groups thousands and keeps six significant digits', () => {
-    expect(formatQuantity(quantity(1234.56789, 6))).toBe('1,234.57')
-    expect(formatQuantity(quantity(0.000123456789, 18))).toBe('0.000123457')
+  it.each([
+    [0, '0'],
+    [0.000000000000000001, '<0.000001'],
+    [0.000001234567, '0.000001235'],
+    [0.1234567, '0.1235'],
+    [7.654321, '7.6543'],
+    [99.99, '99.99'],
+    [1234.56789, '1,234.57'],
+    [999999.99, '999,999.99'],
+    [123456789012.12, '123.46B'],
+  ])('formats %s as %s', (float, expected) => {
+    expect(formatQuantity(quantity(float, 18))).toBe(expected)
   })
 })

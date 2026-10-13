@@ -10,9 +10,9 @@ export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
 
 export interface TxHistoryItemProps {
   icon: IconName
-  /** Never truncated. */
+  /** Truncates when long; the value keeps its space. */
   title: string
-  /** Truncates when long. */
+  /** Truncates past roughly half the row. */
   value?: string
   chain: { name: string; iconUri?: string | undefined }
   status: TxHistoryStatus
@@ -40,11 +40,9 @@ export function TxHistoryItem({
 
       <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
-          <Text className="zd:shrink-0 zd:whitespace-nowrap zd:text-body1">
-            {title}
-          </Text>
+          <Text className="zd:min-w-0 zd:truncate zd:text-body1">{title}</Text>
           {value && (
-            <Text className="zd:min-w-0 zd:truncate zd:text-right zd:text-body1">
+            <Text className="zd:max-w-[55%] zd:shrink-0 zd:truncate zd:text-right zd:text-body1">
               {value}
             </Text>
           )}
