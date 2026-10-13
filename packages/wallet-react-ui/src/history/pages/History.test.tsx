@@ -102,6 +102,22 @@ describe('History', () => {
     expect((button as HTMLButtonElement).disabled).toBe(true)
   })
 
+  it('shows a load-more error above the button and keeps the rows', () => {
+    const loadMore = vi.fn()
+    const loadMoreError = new DataApiError({
+      status: 401,
+      body: null,
+      url: 'x',
+    })
+    render(<History feed={ready({ hasMore: true, loadMore, loadMoreError })} />)
+    expect(screen.getByText('Sent USDC')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Your session expired. Sign in again.',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    expect(loadMore).toHaveBeenCalledOnce()
+  })
+
   it('makes rows with a transaction selectable', () => {
     const onSelectEntry = vi.fn<(entry: TxHistoryEntry) => void>()
     render(<History feed={ready({})} onSelectEntry={onSelectEntry} />)
