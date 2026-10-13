@@ -102,3 +102,19 @@ export const Unknown: Story = {
 export const Skeleton: Story = {
   render: () => <TxHistoryItemSkeleton />,
 }
+
+export const LongSymbol: Story = {
+  args: {
+    icon: 'circleArrowDown',
+    title: 'Received SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
+    value: '1,234.57 SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
+  },
+}
+
+export const LongValue: Story = {
+  args: {
+    icon: 'circleArrowDown',
+    title: 'Received ETH',
+    value: '0.000000000000000001 ETH',
+  },
+}
