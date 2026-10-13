@@ -4,7 +4,7 @@ name: Nightly E2E
 # shows in the Actions tab before the first PR of the day.
 #
 # Separate from `ci.yml`: a scheduled run has no PR and no `build` job to wait
-# on. Separate from `e2e.yml`, which stays `workflow_call` only.
+# on. The two suite workflows it calls stay `workflow_call` only.
 on:
   schedule:
     # 01:07 local year round; `timezone` holds 1AM across the DST change.
