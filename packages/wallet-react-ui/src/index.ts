@@ -40,6 +40,14 @@ export {
   type SolanaWalletHandle,
   useSolanaWallet,
 } from './solana/hooks/useSolanaWallet.js'
+export {
+  type SolanaWalletAdapter,
+  useSolanaWalletAdapterSync,
+} from './solana/hooks/useSolanaWalletAdapterSync.js'
+export {
+  type SolanaWalletConnect,
+  useSolanaWalletConnect,
+} from './solana/hooks/useSolanaWalletConnect.js'
 export { useSolanaWallets } from './solana/hooks/useSolanaWallets.js'
 export type {
   SolanaConnection,
@@ -47,7 +55,15 @@ export type {
   SolanaConnectionStatus,
   SolanaStandardWallet,
 } from './solana/types.js'
-export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
+export {
+  findSolanaUiAccount,
+  type SolanaUiWalletLike,
+} from './solana/uiAccount.js'
+export { SOLANA_CAIP2 } from './solana/walletconnect/chains.js'
+export {
+  type ZeroDevWalletConnectParams,
+  zeroDevWalletConnect,
+} from './zeroDevWalletConnect.js'
 
 // Signing
 // export type { SignatureRequestProps } from './signing'

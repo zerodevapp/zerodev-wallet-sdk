@@ -72,18 +72,52 @@ function watchSession(provider: WcSessionProvider) {
  * The kit only pairs through connectors created here — a raw `walletConnect()`
  * in the config is ignored, since its `showQrModal` can't be read back.
  */
+export type ZeroDevWalletConnectParams = Omit<
+  WalletConnectParameters,
+  'showQrModal'
+> & {
+  /**
+   * Also offer Solana wallets over WalletConnect (`SignUp.SolanaWalletConnect`
+   * and a silent restore of that session). Opens a second session with the
+   * same project id and metadata; the SDK is loaded only when this is on.
+   */
+  solana?: boolean | undefined
+}
+
+/** What the Solana side reads back off a stamped connector. */
+export type ZeroDevWalletConnectStamp = {
+  zdWalletConnect: true
+  zdWalletConnectParams: {
+    projectId: string
+    metadata: WalletConnectParameters['metadata']
+    relayUrl: WalletConnectParameters['relayUrl']
+    solana: boolean
+  }
+}
+
 export function zeroDevWalletConnect(
-  params: Omit<WalletConnectParameters, 'showQrModal'>,
+  params: ZeroDevWalletConnectParams,
 ): CreateConnectorFn {
   if (!params.projectId) {
     throw new Error('zeroDevWalletConnect requires a WalletConnect projectId')
   }
-  const create = walletConnect({ ...params, showQrModal: false })
+  const { solana = false, ...wcParams } = params
+  const create = walletConnect({ ...wcParams, showQrModal: false })
   return (config) => {
     // Stamp the connector instance so the kit's discovery can tell a
     // correctly-configured connector from a raw walletConnect(), where
-    // showQrModal defaults to true.
-    const connector = Object.assign(create(config), { zdWalletConnect: true })
+    // showQrModal defaults to true, and so the Solana side can open its own
+    // session with the same configuration.
+    const stamp: ZeroDevWalletConnectStamp = {
+      zdWalletConnect: true,
+      zdWalletConnectParams: {
+        projectId: wcParams.projectId,
+        metadata: wcParams.metadata,
+        relayUrl: wcParams.relayUrl,
+        solana,
+      },
+    }
+    const connector = Object.assign(create(config), stamp)
     const getProvider = connector.getProvider.bind(connector)
     connector.getProvider = async (...args: Parameters<typeof getProvider>) => {
       const provider = await getProvider(...args)
