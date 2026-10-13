@@ -4,8 +4,10 @@ import type {
   TransactionHistoryOperation,
   TransactionHistoryQuantity,
   TransactionHistoryStatus,
+  TransactionHistoryToken,
   TransactionHistoryTransaction,
 } from '@zerodev/wallet-data'
+import { shortenHex } from '../../shared/utils/common'
 import type { TxHistoryEntry, TxHistoryStatus } from '../types'
 
 const OPERATION: Record<
@@ -40,8 +42,37 @@ export const TX_HISTORY_STATUS: Record<
   unknown: 'Unknown',
 }
 
+const compact = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  maximumFractionDigits: 2,
+})
+const thousands = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
+const units = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 })
+const fraction = new Intl.NumberFormat('en-US', {
+  maximumSignificantDigits: 4,
+})
+
+/**
+ * Amount text that stays short enough to keep its symbol on a row: compact
+ * from a billion up ("123.46B"), two decimals from a thousand up, four below
+ * that, four significant digits below one, and a floor for dust.
+ */
 export function formatQuantity(q: TransactionHistoryQuantity): string {
-  return q.float.toLocaleString('en-US', { maximumSignificantDigits: 6 })
+  const abs = Math.abs(q.float)
+  if (abs === 0) return '0'
+  if (abs < 0.000001) return '<0.000001'
+  if (abs >= 1e9) return compact.format(q.float)
+  if (abs >= 1000) return thousands.format(q.float)
+  if (abs >= 1) return units.format(q.float)
+  return fraction.format(q.float)
+}
+
+/** Symbol, else the shortened contract address, else a placeholder. */
+export function tokenUnit(token: TransactionHistoryToken): string {
+  return (
+    token.symbol ??
+    (token.address ? shortenHex(token.address) : 'Unknown token')
+  )
 }
 
 function title(tx: TransactionHistoryTransaction): string {
@@ -63,7 +94,7 @@ function value(tx: TransactionHistoryTransaction): string | undefined {
         ? { quantity: tx.quantity, token: tx.token }
         : undefined
   if (!side) return undefined
-  return `${formatQuantity(side.quantity)} ${side.token.symbol ?? ''}`.trim()
+  return `${formatQuantity(side.quantity)} ${tokenUnit(side.token)}`
 }
 
 export function toTxHistoryEntry(

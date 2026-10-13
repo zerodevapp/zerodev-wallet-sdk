@@ -37,7 +37,9 @@ describe('History', () => {
         feed={{ status: 'error', error: new Error('Network down'), retry }}
       />,
     )
-    expect(screen.getByRole('alert').textContent).toContain('Network down')
+    expect(screen.getByRole('alert').textContent).toContain(
+      "Couldn't load transactions. Try again.",
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(retry).toHaveBeenCalledOnce()
   })
@@ -51,10 +53,21 @@ describe('History', () => {
     expect(screen.queryByText(error.message)).toBeNull()
   })
 
-  it('shows the raw message for other Data API errors', () => {
+  it('asks the user to wait on a 429', () => {
+    const error = new DataApiError({ status: 429, body: null, url: 'x' })
+    render(<History feed={{ status: 'error', error, retry: () => {} }} />)
+    expect(
+      screen.getByText('Too many requests. Try again in a moment.'),
+    ).toBeDefined()
+  })
+
+  it('never shows the raw message for other Data API errors', () => {
     const error = new DataApiError({ status: 500, body: null, url: 'x' })
     render(<History feed={{ status: 'error', error, retry: () => {} }} />)
-    expect(screen.getByText(error.message)).toBeDefined()
+    expect(screen.queryByText(error.message)).toBeNull()
+    expect(
+      screen.getByText("Couldn't load transactions. Try again."),
+    ).toBeDefined()
   })
 
   it('renders the empty state when the feed has no entries', () => {
