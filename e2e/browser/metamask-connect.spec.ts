@@ -96,9 +96,24 @@ test.describe('Preset 2 — real MetaMask', () => {
 
     await metamask.rejectPendingRequest()
 
-    await expect(page.getByRole('button', { name: /^MetaMask/ })).toBeVisible({
+    // A decline holds the connecting step and explains itself; it does not drop
+    // back to the wallet list, so leaving is what returns the list.
+    //
+    // `describeConnectError` has three branches and only this one says
+    // "declined" — the others blame the wallet or report a generic failure.
+    // Asserting the title is what proves a *real* extension rejection reaches
+    // `isCancellationError`. WalletConnecting's unit tests pin the same copy,
+    // but they construct the error themselves, so they cannot show what the
+    // extension, the injected connector and wagmi actually hand this app.
+    await expect(page.getByText('Request declined')).toBeVisible({
       timeout: LAB_TIMEOUT_MS,
     })
     await expect(page.getByTestId('wallet-address')).toBeHidden()
+
+    await page
+      .getByRole('button', { name: 'Choose another sign-in method' })
+      .click()
+
+    await expect(page.getByRole('button', { name: /^MetaMask/ })).toBeVisible()
   })
 })
