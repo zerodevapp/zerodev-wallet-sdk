@@ -126,7 +126,7 @@ export function LoginScreen() {
                       Backpack) via the Wallet Standard. Renders nothing when
                       none is installed. */}
                   <SignUp.Divider label="or a Solana wallet" />
-                  <SignUp.SolanaWallets />
+                  <SignUp.InstalledWallets namespaces={['solana']} />
                 </SignUp>
               )}
             />
