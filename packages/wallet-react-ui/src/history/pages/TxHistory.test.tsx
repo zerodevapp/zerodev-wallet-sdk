@@ -67,7 +67,9 @@ describe('TxHistory', () => {
   it('shows the error and retries through refetch', () => {
     mockQuery({ status: 'error', error: new Error('Network down') })
     render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
-    expect(screen.getByRole('alert').textContent).toContain('Network down')
+    expect(screen.getByRole('alert').textContent).toContain(
+      "Couldn't load transactions. Try again.",
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(refetch).toHaveBeenCalledOnce()
   })
