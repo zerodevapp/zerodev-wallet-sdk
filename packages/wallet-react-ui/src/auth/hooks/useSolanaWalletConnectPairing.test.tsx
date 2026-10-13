@@ -62,7 +62,8 @@ function pairing() {
       provider.session = fakeWcSession([`${SOLANA_CAIP2.mainnet}:${ADDRESS}`])
       settle?.resolve()
     },
-    fail: (message: string) => settle?.reject(new Error(message)),
+    fail: (reason: Error | { code: number; message: string }) =>
+      settle?.reject(reason as Error),
   }
 }
 
@@ -92,13 +93,37 @@ describe('useSolanaWalletConnectPairing', () => {
     const { fail } = pairing()
     const { result } = renderHook(() => useSolanaWalletConnectPairing())
     await waitFor(() => expect(result.current.uri).toBeTruthy())
-    await act(async () => fail('Proposal expired'))
+    await act(async () => fail(new Error('Proposal expired')))
     await waitFor(() => expect(result.current.error).toBe('Proposal expired'))
     expect(store.getState().solana.status).toBe('disconnected')
 
     await act(async () => result.current.retry())
     await waitFor(() => expect(result.current.error).toBeNull())
     expect(result.current.uri).toBe('wc:abc@2?relay')
+  })
+
+  it('shows a raw WalletConnect rejection message, and hides a user rejection', async () => {
+    const first = pairing()
+    const { result, unmount } = renderHook(() =>
+      useSolanaWalletConnectPairing(),
+    )
+    await waitFor(() => expect(result.current.uri).toBeTruthy())
+    await act(async () =>
+      first.fail({ code: 5100, message: 'Unsupported chains.' }),
+    )
+    await waitFor(() =>
+      expect(result.current.error).toBe('Unsupported chains.'),
+    )
+    unmount()
+
+    const second = pairing()
+    const rendered = renderHook(() => useSolanaWalletConnectPairing())
+    await waitFor(() => expect(rendered.result.current.uri).toBeTruthy())
+    await act(async () =>
+      second.fail({ code: 5000, message: 'User rejected.' }),
+    )
+    await act(async () => {})
+    expect(rendered.result.current.error).toBeNull()
   })
 
   it('retries the SDK load, not the pairing, after a failed load', () => {
