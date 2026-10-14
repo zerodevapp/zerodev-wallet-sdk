@@ -63,7 +63,6 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
   const { address, chain } = useAccount();
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
-  // Solana PoC: one Logout clears both namespaces.
   const { disconnect: disconnectSolana } = useSolanaAccount();
   const { data: authenticatorData } = useAuthenticators({});
   const authMethodLabel = formatAuthMethod(authenticatorData);
