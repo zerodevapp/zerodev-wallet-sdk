@@ -142,7 +142,7 @@ export default function DashboardPage() {
   const wagmiConfig = useConfig();
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
-  // Solana PoC: one Logout clears both namespaces, and a connected Solana
+  // Solana: one Logout clears both namespaces, and a connected Solana
   // wallet keeps the dashboard open with a Solana-only view when the EVM side
   // is signed out.
   const solana = useSolanaAccount();

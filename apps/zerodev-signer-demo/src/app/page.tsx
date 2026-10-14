@@ -46,7 +46,7 @@ function LandingPageInner() {
   const {connect, connectors, status: connectStatus} = useConnect()
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
-  // Solana PoC: a connected Solana wallet is a login too — the dashboard
+  // Solana: a connected Solana wallet is a login too — the dashboard
   // renders a Solana-only state when the EVM side is signed out.
   const solana = useSolanaAccount()
   const solanaConnected = solana.isConnected
