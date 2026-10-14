@@ -1,5 +1,13 @@
 # @zerodev/wallet-react
 
+## 0.0.10
+
+### Patch Changes
+
+- 60666a9: Send an `X-SDK-Version` header on every KMS request so ZeroDev can see which SDK package and version each project runs. Apps using the UI kit report `@zerodev/wallet-react-ui@<version>`, React apps `@zerodev/wallet-react@<version>`, and core-only apps `@zerodev/wallet-core@<version>`. Requests sent directly to Turnkey don't carry it.
+- Updated dependencies [60666a9]
+  - @zerodev/wallet-core@0.0.7
+
 ## 0.0.9
 
 ### Patch Changes
