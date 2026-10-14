@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useStore } from 'zustand'
 import { useKitStore } from '../../shared/hooks/useKitStore'
-import { sameWalletName } from '../../shared/utils/sameWalletName'
+import { equalsIgnoreCase } from '../../shared/utils/common'
 
 /**
  * The slice of `@solana/wallet-adapter-react`'s `useWallet()` the sync
@@ -52,7 +52,7 @@ export function useSolanaWalletAdapterSync(adapter: SolanaWalletAdapter): void {
 
   useEffect(() => {
     if (kitName) {
-      if (!adapterName || !sameWalletName(adapterName, kitName)) {
+      if (!adapterName || !equalsIgnoreCase(adapterName, kitName)) {
         // wallet-adapter matches by the adapter's registered name, which for
         // Wallet Standard wallets is the name the wallet announces.
         select(kitName)
@@ -73,7 +73,7 @@ export function useSolanaWalletAdapterSync(adapter: SolanaWalletAdapter): void {
     if (
       syncedName.current &&
       adapterName &&
-      sameWalletName(adapterName, syncedName.current) &&
+      equalsIgnoreCase(adapterName, syncedName.current) &&
       connected
     ) {
       syncedName.current = null
