@@ -9,7 +9,6 @@ import {
   useAuth,
   detachEvmConnection,
   isCancellationError,
-  sameWalletName,
   useSolanaAccount,
   useSolanaAutoReconnect,
   useSolanaWallets,
@@ -302,7 +301,9 @@ export default function DashboardPage() {
   // revokes the whole site, Solana included; so in that case the EVM side is
   // detached at wagmi's level only, leaving the wallet's permission alone.
   const sharesSolanaWallet =
-    !!connector && !!solana.walletName && sameWalletName(connector.name, solana.walletName);
+    !!connector &&
+    !!solana.walletName &&
+    connector.name.trim().toLowerCase() === solana.walletName.trim().toLowerCase();
   const handleDisconnect = async (network: "evm" | "solana") => {
     const isLast = network === "evm" ? !solanaConnected : !address;
     if (isLast) localStorage.setItem("zd:loggedOut", "true");
