@@ -88,7 +88,7 @@ export function LoginScreen() {
           <Loader2 className="h-10 w-10 animate-spin text-[var(--muted)]" />
         ) : showReconnect ? (
           <>
-            {/* Solana PoC: a Solana-only sign-in lands here, because closing
+            {/* Solana: a Solana-only sign-in lands here, because closing
                 the sign-up flow rejects the kit connector's pending EVM
                 connect. The lab itself needs an EVM account, so keep the
                 Solana connection visible and offer the EVM sign-in. */}
@@ -122,7 +122,7 @@ export function LoginScreen() {
                   {pickedMethods.map((method) => (
                     <Fragment key={method}>{UNIT_BY_METHOD[method]()}</Fragment>
                   ))}
-                  {/* Solana PoC: installed Solana wallets (Phantom, Solflare,
+                  {/* Solana: installed Solana wallets (Phantom, Solflare,
                       Backpack) via the Wallet Standard. Renders nothing when
                       none is installed. */}
                   <SignUp.Divider label="or a Solana wallet" />
