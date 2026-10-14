@@ -1,4 +1,4 @@
-import { sameWalletName } from '../shared/utils/sameWalletName'
+import { equalsIgnoreCase } from '../shared/utils/common'
 import type { SolanaConnection } from './types'
 
 /** The slice of a Wallet Standard UI wallet (`@wallet-standard/react`'s
@@ -22,6 +22,6 @@ export function findSolanaUiAccount<A extends { address: string }>(
 ): A | undefined {
   if (!connection) return undefined
   return wallets
-    .find((w) => sameWalletName(w.name, connection.wallet.name))
+    .find((w) => equalsIgnoreCase(w.name, connection.wallet.name))
     ?.accounts.find((a) => a.address === connection.address)
 }
