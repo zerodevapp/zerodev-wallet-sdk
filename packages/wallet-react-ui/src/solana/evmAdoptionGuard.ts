@@ -1,5 +1,5 @@
 import type { Config } from 'wagmi'
-import { sameWalletName } from '../shared/utils/sameWalletName'
+import { equalsIgnoreCase } from '../shared/utils/common'
 
 /** How long after the Solana connect settles to keep watching for a late
  * adoption (the wallet's EVM provider emits its accounts asynchronously). */
@@ -90,7 +90,7 @@ export async function withoutEvmAdoption<T>(
   const detach = (uid: string) => {
     const connection = config.state.connections.get(uid)
     if (!connection) return
-    if (!sameWalletName(connection.connector.name, walletName)) return
+    if (!equalsIgnoreCase(connection.connector.name, walletName)) return
     detachFromWagmiState(config, uid)
   }
 

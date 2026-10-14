@@ -5,7 +5,7 @@ import {
   ListItemIcon,
 } from '@zerodev/react-ui'
 import { useState } from 'react'
-import { sameWalletName } from '../../../shared/utils/sameWalletName'
+import { equalsIgnoreCase } from '../../../shared/utils/common'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import type { SolanaStandardWallet } from '../../../solana/types'
@@ -80,11 +80,12 @@ export function InstalledWalletsMultichain({
 
   if (withSolana) {
     for (const wallet of solanaWallets) {
-      if (excludeWalletIds.some((id) => sameWalletName(id, wallet.name))) {
+      if (excludeWalletIds.some((id) => equalsIgnoreCase(id, wallet.name))) {
         continue
       }
-      if (registeredNames.some((n) => sameWalletName(n, wallet.name))) continue
-      const merged = rows.find((r) => sameWalletName(r.name, wallet.name))
+      if (registeredNames.some((n) => equalsIgnoreCase(n, wallet.name)))
+        continue
+      const merged = rows.find((r) => equalsIgnoreCase(r.name, wallet.name))
       if (merged) {
         merged.solana = wallet
         merged.icon ??= wallet.icon
