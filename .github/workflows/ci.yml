@@ -135,6 +135,8 @@ jobs:
        && github.actor != 'dependabot[bot]')
     needs: [build]
     uses: ./.github/workflows/e2e-backend.yml
+    with:
+      job_name: vitest, live KMS
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
@@ -148,6 +150,8 @@ jobs:
        && github.actor != 'dependabot[bot]')
     needs: [build]
     uses: ./.github/workflows/e2e-browser.yml
+    with:
+      job_name: Playwright, chromium
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
