@@ -62,7 +62,9 @@
     "@wallet-standard/app": "1.1.0",
     "@wallet-standard/base": "1.1.0",
     "@wallet-standard/features": "1.1.0",
+    "@scure/base": "^1.2.6",
     "@walletconnect/ethereum-provider": "^2.21.1",
+    "@walletconnect/universal-provider": "^2.21.1",
     "@zerodev/react-ui": "workspace:*",
     "zustand": "^5.0.3"
   },

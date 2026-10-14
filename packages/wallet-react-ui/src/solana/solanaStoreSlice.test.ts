@@ -93,9 +93,11 @@ describe('solana store slice', () => {
     expect(connection.source).toBe('standard')
     expect(store.getState().solana.status).toBe('connected')
     expect(store.getState().solana.connection?.wallet).toBe(wallet)
-    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBe(
-      'Phantom',
-    )
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
+      ),
+    ).toEqual({ name: 'Phantom', source: 'standard' })
   })
 
   it('rejects a wallet that authorises no Solana account', async () => {
@@ -168,7 +170,10 @@ describe('solana store slice', () => {
 
   it('restores the last wallet silently, and only that one', async () => {
     const store = createStore()
-    window.localStorage.setItem('zerodev:solana:lastWallet', 'Phantom')
+    window.localStorage.setItem(
+      'zerodev:solana:lastWallet',
+      JSON.stringify({ name: 'Phantom', source: 'standard' }),
+    )
     const phantom = fakeWallet('Phantom', [account()])
     const solflare = fakeWallet('Solflare', [account()])
 
@@ -177,6 +182,21 @@ describe('solana store slice', () => {
     expect(phantom.connect).toHaveBeenCalledWith({ silent: true })
     expect(solflare.connect).not.toHaveBeenCalled()
     expect(store.getState().solana.connection?.wallet).toBe(phantom.wallet)
+  })
+
+  it('remembers the source and restores only a wallet of that source', async () => {
+    const store = createStore()
+    const { wallet } = fakeWallet('Phantom', [account()])
+    await store.getState().solana.connect(wallet)
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
+      ),
+    ).toEqual({ name: 'Phantom', source: 'standard' })
+
+    const again = createStore()
+    await again.getState().solana.restore([wallet])
+    expect(again.getState().solana.connection?.source).toBe('standard')
   })
 
   it('restore is a no-op without a stored wallet or when it is absent', async () => {
@@ -193,7 +213,10 @@ describe('solana store slice', () => {
 
   it('swallows a failed silent restore', async () => {
     const store = createStore()
-    window.localStorage.setItem('zerodev:solana:lastWallet', 'Phantom')
+    window.localStorage.setItem(
+      'zerodev:solana:lastWallet',
+      JSON.stringify({ name: 'Phantom', source: 'standard' }),
+    )
     const phantom = fakeWallet('Phantom', [account()])
     phantom.connect.mockRejectedValueOnce(new Error('not authorised'))
 
