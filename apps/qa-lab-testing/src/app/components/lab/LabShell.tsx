@@ -51,7 +51,7 @@ export function LabShell({ children }: { children: React.ReactNode }) {
         balance polls hitting the RPC every 10s.
       */}
       <WalletStrip onLogout={() => setIsLoggingOut(true)} />
-      {/* Solana PoC: the connected Solana wallet beside the EVM strip, to show
+      {/* Solana: the connected Solana wallet beside the EVM strip, to show
           both namespaces connected at once. */}
       <div className="px-4 pt-3 sm:px-6">
         <SolanaAccountStrip showDisconnect={false} />
