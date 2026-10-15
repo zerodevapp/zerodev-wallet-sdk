@@ -18,9 +18,8 @@ export type ZeroDevServerWallet = {
   /** Creates a wallet in the wallet set. Role: `create`. */
   createWallet: () => Promise<CreateServerWalletReturnType>
   /**
-   * A viem `LocalAccount` for one wallet of the set. Pass it to viem or to a
-   * Kernel validator as the signer. Its `signAuthorization` throws: the KMS
-   * has no agent route for EIP-7702.
+   * A viem `LocalAccount` for one wallet of the set. Pass it to viem, or to
+   * Kernel as the signer in 4337 or 7702 mode.
    */
   toAccount: (params: { address: Hex }) => Promise<LocalAccount>
 }
