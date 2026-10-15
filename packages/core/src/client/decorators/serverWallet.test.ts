@@ -9,6 +9,7 @@ vi.mock('../../actions/serverWallet/index.js', () => ({
   signMessage: vi.fn(async () => 'message-signature'),
   signTransaction: vi.fn(async () => 'transaction-signature'),
   signTypedDataV4: vi.fn(async () => 'typed-data-signature'),
+  sign7702Authorization: vi.fn(async () => 'authorization-signature'),
 }))
 
 const client = { uid: 'client' } as unknown as Client<undefined, SigningStamper>
@@ -24,17 +25,16 @@ describe('serverWalletActions', () => {
     ])
   })
 
-  it('sign7702Authorization throws: the KMS has no agent route', async () => {
-    await expect(
-      serverWalletActions(client).sign7702Authorization({} as never),
-    ).rejects.toThrow(/EIP-7702/)
-  })
-
   it.each([
     ['createServerWallet', actions.createServerWallet, 'created'],
     ['signMessage', actions.signMessage, 'message-signature'],
     ['signTransaction', actions.signTransaction, 'transaction-signature'],
     ['signTypedDataV4', actions.signTypedDataV4, 'typed-data-signature'],
+    [
+      'sign7702Authorization',
+      actions.sign7702Authorization,
+      'authorization-signature',
+    ],
   ] as const)(
     '%s forwards the client and params',
     async (name, action, result) => {
