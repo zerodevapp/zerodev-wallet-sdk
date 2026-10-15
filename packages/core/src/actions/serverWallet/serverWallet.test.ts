@@ -1,13 +1,23 @@
 import { createPublicKey, createVerify, ECDH } from 'node:crypto'
 import { canonicalizeEx } from 'json-canonicalize'
-import { type Hex, hashMessage, keccak256, toHex } from 'viem'
+import {
+  concat,
+  type Hex,
+  hashMessage,
+  keccak256,
+  numberToHex,
+  toHex,
+  toRlp,
+} from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
+import { hashAuthorization } from 'viem/utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
 import { createPrivateKeyStamper } from '../../stampers/privateKeyStamper.js'
 import type { SigningStamper, Stamp } from '../../stampers/types.js'
 import type { TurnkeyPayload } from '../wallet/signingUtils.js'
 import { createServerWallet } from './createServerWallet.js'
+import { sign7702Authorization } from './sign7702Authorization.js'
 import { signMessage } from './signMessage.js'
 import { signTransaction } from './signTransaction.js'
 import { signTypedDataV4 } from './signTypedDataV4.js'
@@ -255,6 +265,17 @@ describe('server wallet sign actions', () => {
   const tx = 'f86c808504a817c80082520894'
   const typedData = '{"domain":{"chainId":"1"},"types":{}}'
   const typedDataHash = keccak256(toHex(typedData))
+  const authorization = {
+    address: `0x${'22'.repeat(20)}` as Hex,
+    chainId: 421614,
+    nonce: 0,
+  }
+  // 0x05 || RLP([chainId, address, nonce]), the bytes the KMS decodes.
+  const unsignedAuthorization = concat([
+    '0x05',
+    toRlp([numberToHex(authorization.chainId), authorization.address, '0x']),
+  ]).slice(2)
+  const authorizationHash = hashAuthorization(authorization)
 
   const cases: SignCase[] = [
     {
@@ -295,6 +316,19 @@ describe('server wallet sign actions', () => {
         }),
       hash: typedDataHash,
       bodyFields: { unsignedTypedDataV4: typedData, encoding: 'utf8' },
+    },
+    {
+      name: 'sign7702Authorization',
+      route: '7702-authorization',
+      run: (client, options) =>
+        sign7702Authorization(client, {
+          ...base,
+          ...org(options),
+          unsignedTransaction: unsignedAuthorization,
+          hashedAuthorization: authorizationHash.slice(2),
+        }),
+      hash: authorizationHash,
+      bodyFields: { unsignedTransaction: unsignedAuthorization },
     },
   ]
 

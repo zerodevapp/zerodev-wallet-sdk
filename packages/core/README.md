@@ -358,9 +358,11 @@ const account = await wallet.toAccount({ address: walletAddress })
 const signature = await account.signMessage({ message: 'Hello World!' })
 ```
 
+The account signs messages, transactions, typed data, and EIP-7702
+authorizations, so it works as a Kernel signer in 4337 and 7702 mode.
 `wallet.client` is the underlying `createServerWalletClient` client with the
 raw actions the account is built on: `createServerWallet`, `signMessage`,
-`signTransaction`, `signTypedDataV4`.
+`signTransaction`, `signTypedDataV4`, `sign7702Authorization`.
 
 ## TypeScript Types
 
