@@ -46,6 +46,14 @@ export const AllOperations: Story = {
   },
 }
 
+export const Nfts: Story = {
+  render: () => <ScenarioView pages={[SCENARIOS.nfts]} />,
+}
+
+export const Approvals: Story = {
+  render: () => <ScenarioView pages={[SCENARIOS.approvals]} />,
+}
+
 export const Statuses: Story = {
   render: () => <ScenarioView pages={[SCENARIOS.statuses]} />,
 }
