@@ -94,15 +94,6 @@ describe('TxHistoryItem', () => {
       ).toBeDefined()
     })
 
-    it('tints an incoming amount', () => {
-      render(
-        <TxHistoryItem {...baseProps} value="+5 USDC" unit="USDC" flow="in" />,
-      )
-      expect(screen.getByText('+5').parentElement?.className).toContain(
-        'zd:text-positive',
-      )
-    })
-
     it('renders without a value', () => {
       const { value: _, ...withoutValue } = baseProps
       render(<TxHistoryItem {...withoutValue} />)

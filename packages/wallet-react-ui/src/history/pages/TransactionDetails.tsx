@@ -23,7 +23,6 @@ import {
   assetSides,
   describeSide,
   formatAmount,
-  headlineFlow,
   headlineSide,
   operationIcon,
   type SideText,
@@ -41,10 +40,9 @@ export function TransactionDetails({
   const sides = assetSides(tx)
   const headline = headlineSide(sides)
   const title = transactionTitle(tx)
-  const asset =
-    headline && describeSide(headline, tx.operation, headlineFlow(tx, sides))
-  const from = sides.from && describeSide(sides.from, tx.operation, 'out')
-  const to = sides.to && describeSide(sides.to, tx.operation, 'in')
+  const asset = headline && describeSide(headline, tx.operation)
+  const from = sides.from && describeSide(sides.from, tx.operation)
+  const to = sides.to && describeSide(sides.to, tx.operation)
   const pair = from && to ? { from, to } : undefined
   const unnamedToken =
     headline?.kind === 'token' && !headline.token.symbol
