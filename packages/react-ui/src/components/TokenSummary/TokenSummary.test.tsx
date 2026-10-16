@@ -37,6 +37,13 @@ describe('TokenSummary', () => {
 })
 
 describe('TokenSummary badge and secondary line', () => {
+  it('lets a long headline wrap to two lines before clipping', () => {
+    render(<TokenSummary primaryValue="Robinhood Chain: Jumper Season Pass" />)
+    expect(
+      screen.getByText('Robinhood Chain: Jumper Season Pass').className,
+    ).toContain('zd:line-clamp-2')
+  })
+
   it('omits the secondary line when not provided', () => {
     render(<TokenSummary primaryValue="249.78 USDG" />)
     expect(screen.getByText('249.78 USDG')).toBeDefined()
