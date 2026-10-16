@@ -20,8 +20,6 @@ export interface TxHistoryItemProps {
   value?: string
   /** The unit `value` ends with; it stays visible while the amount truncates. */
   unit?: string
-  /** An incoming amount is tinted; an outgoing one is not. */
-  flow?: 'in' | 'out'
   chain: { name: string; iconUri?: string | undefined }
   status: TxHistoryStatus
   className?: string
@@ -33,7 +31,6 @@ export function TxHistoryItem({
   title,
   value,
   unit,
-  flow,
   chain,
   status,
   className,
@@ -51,12 +48,7 @@ export function TxHistoryItem({
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
           <Text className="zd:min-w-0 zd:truncate zd:text-body1">{title}</Text>
           {value && (
-            <Text
-              className={cn(
-                'zd:flex zd:max-w-[55%] zd:shrink-0 zd:justify-end zd:text-right zd:text-body1',
-                flow === 'in' && 'zd:text-positive',
-              )}
-            >
+            <Text className="zd:flex zd:max-w-[55%] zd:shrink-0 zd:justify-end zd:text-right zd:text-body1">
               <RowValue value={value} unit={unit} />
             </Text>
           )}

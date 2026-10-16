@@ -30,8 +30,7 @@ long amount truncates (`TxHistoryEntry.unit`). USD values under a cent read as
 fixes an expired session.
 
 Rows show the asset's image with the operation as a badge, falling back to the
-operation glyph. A token amount that moved carries its sign and an incoming
-one is tinted (`TxHistoryEntry.flow`, `TxHistoryEntry.imageUri`). A token
+operation glyph (`TxHistoryEntry.imageUri`). A token
 without a symbol reads "Unknown token" and the details page lists its
 contract address. The details hero shows initials when an asset has no image
 and the operation icon when a transaction has no asset. A bid with no asset

@@ -87,33 +87,21 @@ describe('toTxHistoryEntry', () => {
       id: sendTx.id,
       icon: 'circleArrowUp',
       title: 'Sent USDC',
-      value: '-25 USDC',
+      value: '25 USDC',
       unit: 'USDC',
-      flow: 'out',
       imageUri: 'https://cdn.zerion.io/usdc.png',
       status: 'Success',
       timestampMs: sendTx.timestamp * 1000,
       transaction: sendTx,
     })
-    expect(toTxHistoryEntry(receiveTx)).toMatchObject({
-      value: '+0.5 ETH',
-      flow: 'in',
-    })
+    expect(toTxHistoryEntry(receiveTx)?.value).toBe('0.5 ETH')
   })
 
   it('calls a token without a symbol "Unknown token"', () => {
     const { symbol: _symbol, ...token } = USDC
     const entry = toTxHistoryEntry({ ...sendTx, token })
     expect(entry?.title).toBe('Sent')
-    expect(entry?.value).toBe('-25 Unknown token')
-  })
-
-  it('signs only amounts that moved, never allowances or NFTs', () => {
-    expect(toTxHistoryEntry(approveTx)?.value).toBe('25 USDC')
-    expect(
-      toTxHistoryEntry(approveTx) && 'flow' in toTxHistoryEntry(approveTx)!,
-    ).toBe(false)
-    expect(toTxHistoryEntry(nftMintTx)?.value).toBe('ZeroDev Pass')
+    expect(entry?.value).toBe('25 Unknown token')
   })
 
   it('names the bid when there is an asset and stands alone without one', () => {
@@ -132,7 +120,7 @@ describe('toTxHistoryEntry', () => {
   it('titles a swap with both symbols and values it by the destination side', () => {
     const entry = toTxHistoryEntry(swapTx)
     expect(entry?.title).toBe('Swapped ETH → USDC')
-    expect(entry?.value).toBe('+2,498.12 USDC')
+    expect(entry?.value).toBe('2,498.12 USDC')
   })
 
   it('values a swap without a destination by its source side', () => {
@@ -188,7 +176,7 @@ describe('toTxHistoryEntry', () => {
   it('titles a swap out of an NFT with both sides', () => {
     const entry = toTxHistoryEntry(nftSwapTx)
     expect(entry?.title).toBe('Swapped NFT → ETH')
-    expect(entry?.value).toBe('+0.027 ETH')
+    expect(entry?.value).toBe('0.027 ETH')
     expect(entry?.icon).toBe('arrowSwapHorizontalOutline')
   })
 

@@ -15,9 +15,6 @@ export interface TxHistoryEntry {
   /** The token unit `value` ends with. The row keeps it visible when the
    * value truncates. Absent for NFTs and collections. */
   unit?: string
-  /** Set when a token amount moved in or out of the wallet; `value` then
-   * starts with its sign. */
-  flow?: 'in' | 'out'
   /** The asset's image, shown in place of the operation glyph. */
   imageUri?: string
   chain: Pick<TransactionHistoryChain, 'name' | 'iconUri'>
