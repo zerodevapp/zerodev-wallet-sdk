@@ -22,3 +22,9 @@ sides (a swap, or a mint paid in a token), so a paid mint headlines the NFT and
 the details page shows a card for each side. An approval shows its allowance,
 "Unlimited" for the max uint, and a revoke shows the bare unit. A collection
 approval shows the collection name. An NFT held in quantity carries a count.
+
+The details page is headed by the row's title, so a sent and a received
+transaction no longer look alike. A row keeps its token unit visible while a
+long amount truncates (`TxHistoryEntry.unit`). USD values under a cent read as
+"<$0.01". A 401 error no longer offers "Try again", since only a new sign-in
+fixes an expired session.

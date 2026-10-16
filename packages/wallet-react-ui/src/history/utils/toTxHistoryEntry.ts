@@ -162,6 +162,8 @@ export function headlineSide(sides: AssetSides): AssetSide | undefined {
 export interface SideText {
   /** The row value and the hero headline. */
   text: string
+  /** The token unit `text` ends with, kept visible when a row truncates. */
+  unit?: string
   /** The hero's second line: the token id under a named NFT, even when the
    * name already carries it. The name is shown as the API sent it. */
   detail?: string
@@ -200,11 +202,17 @@ export function describeSide(
     case 'token': {
       if (!side.quantity) return undefined
       const image = side.token.imageUri && { imageUri: side.token.imageUri }
+      const unit = tokenUnit(side.token)
       if (ALLOWANCE_OPERATIONS.has(operation)) {
-        return { text: formatAllowance(side.quantity, side.token), ...image }
+        return {
+          text: formatAllowance(side.quantity, side.token),
+          unit,
+          ...image,
+        }
       }
       return {
         text: formatAmount(side.quantity, side.token),
+        unit,
         ...(side.token.priceUsd !== null && {
           usd: side.quantity.float * side.token.priceUsd,
         }),
@@ -223,6 +231,12 @@ function sideLabel(side: AssetSide): string | undefined {
     case 'token':
       return side.token.symbol
   }
+}
+
+/** "Sent USDC", "Swapped NFT → WETH", "Deployed contract": the verb and the
+ * asset the row and the details page headline with. */
+export function transactionTitle(tx: TransactionHistoryTransaction): string {
+  return title(tx, assetSides(tx))
 }
 
 function title(tx: TransactionHistoryTransaction, sides: AssetSides): string {
@@ -250,13 +264,14 @@ export function toTxHistoryEntry(
   }
   const sides = assetSides(item)
   const headline = headlineSide(sides)
-  const value = headline && describeSide(headline, item.operation)?.text
+  const described = headline && describeSide(headline, item.operation)
   return {
     id: item.id,
     icon:
       headline?.kind === 'nft' ? 'imageFill' : OPERATION[item.operation].icon,
     title: title(item, sides),
-    ...(value !== undefined && { value }),
+    ...(described && { value: described.text }),
+    ...(described?.unit && { unit: described.unit }),
     chain: item.chain,
     status: TX_HISTORY_STATUS[item.status],
     timestampMs: item.timestamp * 1000,
