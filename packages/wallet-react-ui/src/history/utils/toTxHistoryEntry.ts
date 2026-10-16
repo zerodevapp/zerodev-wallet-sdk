@@ -106,6 +106,17 @@ export function formatAllowance(
   return `${formatQuantity(quantity)} ${unit}`
 }
 
+const LONG_TOKEN_ID = 16
+
+/**
+ * `#<id>` for display. Ids derived from hashes run to 78 digits, so a long
+ * one keeps its first and last digits and drops the middle, like a hash.
+ */
+export function formatTokenId(tokenId: string): string {
+  if (tokenId.length <= LONG_TOKEN_ID) return `#${tokenId}`
+  return `#${tokenId.slice(0, 8)}…${tokenId.slice(-6)}`
+}
+
 /** One side of a transaction: what left the wallet, or what came in. */
 export type AssetSide =
   | {
@@ -167,7 +178,7 @@ export function describeSide(
 ): SideText | undefined {
   switch (side.kind) {
     case 'nft': {
-      const tokenId = `#${side.nft.tokenId}`
+      const tokenId = formatTokenId(side.nft.tokenId)
       const count =
         side.quantity && side.quantity.float > 1
           ? ` ×${formatQuantity(side.quantity)}`
