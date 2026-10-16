@@ -108,6 +108,7 @@ export const LongSymbol: Story = {
     icon: 'circleArrowDown',
     title: 'Received SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
     value: '1,234.57 SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
+    unit: 'SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
   },
 }
 
