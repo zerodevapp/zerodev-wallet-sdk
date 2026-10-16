@@ -48,6 +48,11 @@ const tabs = [
   { id: "earn" as const, name: "Earn", icon: TrendingUp },
 ];
 
+// Earn sends EIP-5792 batches through the embedded wallet's kernel. External
+// wallets (WalletConnect) may not support that, so the tab is only offered to
+// the ZeroDev connector.
+const ZERODEV_CONNECTOR_ID = "zerodev-wallet";
+
 const USDC_CONTRACTS: Record<number, `0x${string}`> = {
   [11155111]: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
   [421614]: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
@@ -119,7 +124,9 @@ export default function DashboardPage() {
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
   // Wagmi hooks
-  const { address, status, chain, } = useAccount();
+  const { address, status, chain, connector } = useAccount();
+  const earnEnabled = connector?.id === ZERODEV_CONNECTOR_ID;
+  const visibleTabs = earnEnabled ? tabs : tabs.filter((tab) => tab.id !== "earn");
   const publicClient = usePublicClient({ chainId: chain?.id });
   const { disconnectAsync: logout } = useDisconnect();
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
@@ -381,8 +388,8 @@ export default function DashboardPage() {
           {/* Tabs */}
           <div className="overflow-hidden rounded-lg border border-[var(--border-warm)] bg-white">
             <div className="border-b border-[var(--border-warm)] bg-[var(--surface-warm)]">
-              <nav className="grid grid-cols-4">
-                {tabs.map((tab) => {
+              <nav className={cn("grid", earnEnabled ? "grid-cols-4" : "grid-cols-3")}>
+                {visibleTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
@@ -424,7 +431,7 @@ export default function DashboardPage() {
                   onGaslessTransaction={() => setGaslessTxCount((count) => count + 1)}
                 />
               )}
-              {activeTab === "earn" && <EarnTest />}
+              {activeTab === "earn" && earnEnabled && <EarnTest />}
               </div>
             </div>
           </div>
