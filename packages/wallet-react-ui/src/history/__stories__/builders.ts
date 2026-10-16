@@ -2,7 +2,6 @@ import type {
   TransactionHistoryChain,
   TransactionHistoryToken,
   TransactionHistoryTransaction,
-  UnparsedTransactionHistoryItem,
 } from '@zerodev/wallet-data'
 import { ETH, USDC } from '../fixtures'
 
@@ -28,7 +27,7 @@ interface ChainSpec {
   explorerTxBase?: string
 }
 
-const CHAINS = {
+export const CHAINS = {
   ethereum: {
     id: 'ethereum',
     name: 'Ethereum',
@@ -39,18 +38,6 @@ const CHAINS = {
     id: 'arbitrum',
     name: 'Arbitrum',
     iconUri: ARBITRUM_ICON,
-    explorerTxBase: 'https://arbiscan.io/tx/',
-  },
-  'ethereum-sepolia': {
-    id: 'ethereum-sepolia',
-    name: 'Ethereum Sepolia',
-    iconUri: ETHEREUM_ICON,
-    explorerTxBase: 'https://sepolia.etherscan.io/tx/',
-  },
-  noExplorer: { id: 'ethereum', name: 'Ethereum', iconUri: ETHEREUM_ICON },
-  noIcon: {
-    id: 'arbitrum',
-    name: 'Arbitrum',
     explorerTxBase: 'https://arbiscan.io/tx/',
   },
   longName: {
@@ -93,30 +80,19 @@ export const USDC_LOGO = `${TRUSTWALLET}/blockchains/ethereum/assets/0xA0b86991c
 
 export const eth = (key: ChainKey) => token(ETH, key, { imageUri: ETH_LOGO })
 export const usdc = (key: ChainKey) => token(USDC, key, { imageUri: USDC_LOGO })
-export const dai = (key: ChainKey) =>
-  token(USDC, key, {
-    name: 'Dai Stablecoin',
-    symbol: 'DAI',
-    address: '0x6b175474e89094c44da98b954eedeac495271d0f',
-    decimals: 18,
-    imageUri: `${TRUSTWALLET}/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png`,
-  })
 
-export type TxFields = Omit<
+type TxFields = Omit<
   TransactionHistoryTransaction,
   'id' | 'chainId' | 'chain' | 'timestamp' | 'txHash'
 >
 
-/**
- * `n` names the transaction. By default it also sets the timestamp: the last
- * two digits step back five minutes from FIXED_MIDDAY, so each scenario's
- * block of numbers (100s, 200s, ...) clusters on one local day.
- */
+/** A hand-built transaction for the formatting scenario, which is about
+ * amounts and names rather than shapes the API recorded. */
 export function tx(
   n: number,
   fields: TxFields,
-  key: ChainKey = 'ethereum',
-  timestamp: number = FIXED_MIDDAY - (n % 100) * 300,
+  key: ChainKey,
+  timestamp: number,
 ): TransactionHistoryTransaction {
   const txHash = hash(n)
   return {
@@ -126,18 +102,5 @@ export function tx(
     timestamp,
     txHash,
     ...fields,
-  }
-}
-
-export function unparsed(
-  n: number,
-  { key, timestamp }: { key?: ChainKey; timestamp?: number },
-): UnparsedTransactionHistoryItem {
-  const txHash = hash(n)
-  return {
-    kind: 'unparsed',
-    txHash,
-    ...(key && { chainId: CHAINS[key].id, chain: chain(key, txHash) }),
-    ...(timestamp !== undefined && { timestamp }),
   }
 }

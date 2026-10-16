@@ -49,9 +49,10 @@ describe('scenarios', () => {
   })
 
   it('allOperations covers every operation', () => {
-    expect(new Set(allOperations.map((tx) => tx.operation))).toEqual(
-      new Set(OPERATIONS),
+    const operations = allOperations.flatMap((item) =>
+      'kind' in item ? [] : [item.operation],
     )
+    expect(new Set(operations)).toEqual(new Set(OPERATIONS))
   })
 
   it('formatting renders the values in its header', () => {

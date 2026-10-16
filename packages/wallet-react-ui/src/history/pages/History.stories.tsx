@@ -57,6 +57,10 @@ export const AllOperations: Story = {
   args: { feed: ready(SCENARIOS.allOperations) },
 }
 
+export const Nfts: Story = { args: { feed: ready(SCENARIOS.nfts) } }
+
+export const Approvals: Story = { args: { feed: ready(SCENARIOS.approvals) } }
+
 export const Statuses: Story = { args: { feed: ready(SCENARIOS.statuses) } }
 
 export const Unparsed: Story = { args: { feed: ready(SCENARIOS.unparsed) } }
