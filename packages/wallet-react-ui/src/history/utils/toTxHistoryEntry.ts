@@ -40,21 +40,6 @@ export function operationIcon(
   return OPERATION[operation].icon
 }
 
-export type Flow = 'in' | 'out'
-
-/** Which way a token amount moved for the wallet. Allowances, NFTs, and
- * operations that are neither (deploy, execute) have no flow. */
-const FLOW: Partial<Record<TransactionHistoryOperation, Flow>> = {
-  receive: 'in',
-  claim: 'in',
-  withdraw: 'in',
-  send: 'out',
-  burn: 'out',
-  deposit: 'out',
-}
-
-const FLOW_SIGN: Record<Flow, string> = { in: '+', out: '-' }
-
 export const TX_HISTORY_STATUS: Record<
   TransactionHistoryStatus,
   TxHistoryStatus
@@ -199,20 +184,9 @@ export interface SideText {
   detail?: string
   /** Set only for a plain token amount with a known price. */
   usd?: number
-  /** Set for a plain token amount that moved in or out of the wallet. */
-  flow?: Flow
   imageUri?: string
   /** Text standing in for the image when there is none. */
   fallback: string
-}
-
-/** The flow of a transaction's own side: the counter-side of a swap or mint
- * came in, the single side follows the operation. */
-export function headlineFlow(
-  tx: TransactionHistoryTransaction,
-  sides: AssetSides,
-): Flow | undefined {
-  return sides.to ? 'in' : FLOW[tx.operation]
 }
 
 /** Undefined when the side has nothing to show: a token without a quantity
@@ -220,7 +194,6 @@ export function headlineFlow(
 export function describeSide(
   side: AssetSide,
   operation: TransactionHistoryOperation,
-  flow?: Flow,
 ): SideText | undefined {
   switch (side.kind) {
     case 'nft': {
@@ -259,14 +232,12 @@ export function describeSide(
           fallback,
         }
       }
-      const sign = flow ? FLOW_SIGN[flow] : ''
       return {
-        text: `${sign}${formatAmount(side.quantity, side.token)}`,
+        text: formatAmount(side.quantity, side.token),
         unit,
         ...(side.token.priceUsd !== null && {
           usd: side.quantity.float * side.token.priceUsd,
         }),
-        ...(flow && { flow }),
         ...image,
         fallback,
       }
@@ -316,9 +287,7 @@ export function toTxHistoryEntry(
   }
   const sides = assetSides(item)
   const headline = headlineSide(sides)
-  const described =
-    headline &&
-    describeSide(headline, item.operation, headlineFlow(item, sides))
+  const described = headline && describeSide(headline, item.operation)
   return {
     id: item.id,
     icon:
@@ -326,7 +295,6 @@ export function toTxHistoryEntry(
     title: title(item, sides),
     ...(described && { value: described.text }),
     ...(described?.unit && { unit: described.unit }),
-    ...(described?.flow && { flow: described.flow }),
     ...(described?.imageUri && { imageUri: described.imageUri }),
     chain: item.chain,
     status: TX_HISTORY_STATUS[item.status],

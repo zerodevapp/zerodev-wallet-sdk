@@ -49,9 +49,8 @@ export const Swap: Story = {
   args: {
     icon: 'arrowSwapHorizontalOutline',
     title: 'Swapped ETH → USDC',
-    value: '+2,343 USDC',
+    value: '2,343 USDC',
     unit: 'USDC',
-    flow: 'in',
     status: 'Pending',
   },
 }
@@ -60,9 +59,8 @@ export const WithAssetImage: Story = {
   args: {
     icon: 'circleArrowDown',
     title: 'Received USDC',
-    value: '+25 USDC',
+    value: '25 USDC',
     unit: 'USDC',
-    flow: 'in',
     imageUri:
       'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
   },
@@ -72,9 +70,8 @@ export const BrokenAssetImage: Story = {
   args: {
     icon: 'circleArrowDown',
     title: 'Received USDC',
-    value: '+25 USDC',
+    value: '25 USDC',
     unit: 'USDC',
-    flow: 'in',
     imageUri: 'https://example.invalid/missing.png',
   },
 }

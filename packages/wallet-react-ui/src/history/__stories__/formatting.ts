@@ -3,7 +3,7 @@ import { quantity } from '../fixtures'
 import { DAY, eth, middayOf, token, tx, usdc } from './builders'
 
 /*
- * Expected row values (formatQuantity, en-US, incoming amounts signed +):
+ * Expected row values (formatQuantity, en-US):
  *
  * Today, 12:00 UTC
  *   Received SUPERCALIFRAGILISTICEXPIALIDOCIOUS  1,234.57 SUPERCALIFRAGILISTICEXPIALIDOCIOUS
@@ -16,10 +16,10 @@ import { DAY, eth, middayOf, token, tx, usdc } from './builders'
  *   0.000001235, 42, 7.6543 (each followed by " USDC")
  */
 export const FORMATTING_EXPECTED_VALUES = [
-  '+1,234.57 SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
+  '1,234.57 SUPERCALIFRAGILISTICEXPIALIDOCIOUS',
   'The Extraordinarily Long Name Of A Generative Art Collection #4096',
-  '+<0.000001 ETH',
-  '+123.46B USDC',
+  '<0.000001 ETH',
+  '123.46B USDC',
   ...[
     '0.5',
     '1',
@@ -33,7 +33,7 @@ export const FORMATTING_EXPECTED_VALUES = [
     '0.000001235',
     '42',
     '7.6543',
-  ].map((amount) => `+${amount} USDC`),
+  ].map((amount) => `${amount} USDC`),
 ] as const
 
 const TWELVE_AMOUNTS = [
