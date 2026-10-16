@@ -120,7 +120,10 @@ function Tile({
  * width that every ordinary symbol fits in, so a long symbol truncates
  * and leaves the amount legible. (A share of the column would not work:
  * the column shrink-wraps its content, so the share would be circular.)
- * Anything without a unit truncates as a whole.
+ * Anything without a unit truncates as a whole. The unit spells out the
+ * truncate utilities so `whitespace-pre`, which keeps its leading space, is
+ * not undone by a second zd-prefixed stylesheet on the page re-declaring
+ * `truncate` after it.
  */
 function RowValue({
   value,
@@ -138,7 +141,7 @@ function RowValue({
       <span className="zd:min-w-0 zd:shrink-[1000] zd:truncate">
         {value.slice(0, -suffix.length)}
       </span>
-      <span className="zd:min-w-0 zd:max-w-20 zd:truncate zd:whitespace-pre">
+      <span className="zd:min-w-0 zd:max-w-20 zd:overflow-hidden zd:text-ellipsis zd:whitespace-pre">
         {suffix}
       </span>
     </>
