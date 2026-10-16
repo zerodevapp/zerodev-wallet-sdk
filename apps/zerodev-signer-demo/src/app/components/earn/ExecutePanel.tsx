@@ -6,32 +6,21 @@ import { erc20Abi } from "viem";
 import { useReadContract } from "wagmi";
 import { cn } from "../../lib/utils";
 import { ErrorBox, linkChipClass, primaryButtonClass } from "./ui";
-import { useDepositExecution } from "./useDepositExecution";
+import type { DepositExecution } from "./useDepositExecution";
 import type { EarnState } from "./useEarnState";
-import type { SendCalls } from "./useWalletSendCalls";
 import { explorerTx, sraDashboard } from "./utils/chains";
 import { formatTokenAmount } from "./utils/format";
 import type { ExecPhase } from "./utils/historyStore";
 
-/** Step 3: send the quote and track the deposit until the relayer settles it. */
-export function ExecutePanel({ d, sendCalls }: { d: EarnState; sendCalls: SendCalls }) {
+/**
+ * Step 3: send the quote and track the deposit until the relayer settles it.
+ * The run itself (`exec`) lives in the tab root so leaving this step does not
+ * reset it.
+ */
+export function ExecutePanel({ d, exec }: { d: EarnState; exec: DepositExecution }) {
   const vault = d.selected as Vault;
-  // Keyed so a different vault starts a fresh run.
-  return <ExecuteInner key={vault.id} vault={vault} d={d} sendCalls={sendCalls} />;
-}
-
-function ExecuteInner({ vault, d, sendCalls }: { vault: Vault; d: EarnState; sendCalls: SendCalls }) {
-  const exec = useDepositExecution({
-    owner: d.owner,
-    sendCalls,
-    quote: d.quote,
-    vault,
-    meta: { amount: d.amountStr, srcSymbol: d.srcSymbol },
-    ownerMismatch: d.ownerMismatch,
-  });
-
   const srcChainId = d.quote?.transaction.chainId ?? d.srcChainId;
-  const inFlight = exec.status === "signing" || exec.status === "bridging";
+  const inFlight = exec.inFlight;
   const canExecute = d.quoteValid && !!d.owner && !exec.isExecuting && !inFlight;
   const sameChain = d.quote?.route?.sameChain ?? false;
   const deposited = exec.status === "deposited";
@@ -64,7 +53,7 @@ function ExecuteInner({ vault, d, sendCalls }: { vault: Vault; d: EarnState; sen
         ) : (
           <>
             <Send className="h-4 w-4" />
-            {deposited ? "Execute again" : "Execute"}
+            {deposited ? "Executed" : "Execute"}
           </>
         )}
       </button>

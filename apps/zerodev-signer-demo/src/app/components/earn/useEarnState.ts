@@ -46,6 +46,9 @@ export function useEarnState(owner: Address | undefined, walletChainId: number |
   // The signer the quote was built for. Its calls bake in the owner, so a
   // wallet switch after quoting makes the quote target the wrong account.
   const [quoteOwner, setQuoteOwner] = useState<Address | null>(null);
+  // A quote is single-use: once its calls are sent, it must never be sent
+  // again, even if the Execute panel remounts while the deposit settles.
+  const [spentQuoteId, setSpentQuoteId] = useState<string | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   // Ticks once a second while a quote exists so expiry re-renders the panels.
@@ -155,7 +158,8 @@ export function useEarnState(owner: Address | undefined, walletChainId: number |
   const quoteExpired = quote ? new Date(quote.expiresAt).getTime() < now : false;
   const ownerMismatch =
     !!quote && !!owner && !!quoteOwner && owner.toLowerCase() !== quoteOwner.toLowerCase();
-  const quoteValid = !!quote && !quoteExpired && !ownerMismatch;
+  const quoteSpent = !!quote && quote.quoteId === spentQuoteId;
+  const quoteValid = !!quote && !quoteExpired && !ownerMismatch && !quoteSpent;
   const canQuote = !!selected && !!owner && !!effectiveToken && !quoteLoading;
 
   async function getQuote() {
@@ -234,7 +238,9 @@ export function useEarnState(owner: Address | undefined, walletChainId: number |
     quoteLoading,
     quoteExpired,
     ownerMismatch,
+    quoteSpent,
     quoteValid,
+    markQuoteSpent: () => setSpentQuoteId(quote?.quoteId ?? null),
     canQuote,
     getQuote,
     now,

@@ -17,11 +17,13 @@ export function useDepositExecution(opts: {
   owner: Address | undefined;
   sendCalls: SendCalls;
   quote: Quote | null;
-  vault: Vault;
+  vault: Vault | null;
   meta: { amount: string; srcSymbol: string };
   ownerMismatch: boolean;
+  /** Called right before the calls go out, so the quote can never be sent twice. */
+  markQuoteSpent: () => void;
 }) {
-  const { owner, sendCalls, quote, vault, meta, ownerMismatch } = opts;
+  const { owner, sendCalls, quote, vault, meta, ownerMismatch, markQuoteSpent } = opts;
   const srcPublicClient = usePublicClient({ chainId: quote?.transaction.chainId });
 
   const [status, setStatus] = useState<ExecPhase>("idle");
@@ -43,7 +45,7 @@ export function useDepositExecution(opts: {
   // Persist before and after sending so an interrupted deposit keeps its SRA.
   const persist = useCallback(
     (phase: ExecPhase, hashes: Hex[]) => {
-      if (!quote?.sra || !owner) return;
+      if (!quote?.sra || !owner || !vault) return;
       const now = Date.now();
       upsertDeposit({
         quoteId: quote.quoteId,
@@ -119,6 +121,7 @@ export function useDepositExecution(opts: {
       setStatus("signing");
       setEarnStatus(null);
       persist("signing", []);
+      markQuoteSpent();
       const hashes = await sendCalls(quote.transaction.calls, quote.transaction.chainId);
       setTxHashes(hashes);
       persist("signing", hashes);
@@ -131,7 +134,11 @@ export function useDepositExecution(opts: {
     } finally {
       setIsExecuting(false);
     }
-  }, [quote, owner, sendCalls, persist, ownerMismatch]);
+  }, [quote, owner, sendCalls, persist, ownerMismatch, markQuoteSpent]);
 
-  return { status, txHashes, earnStatus, isExecuting, error, execute };
+  const inFlight = status === "signing" || status === "bridging";
+
+  return { status, txHashes, earnStatus, isExecuting, inFlight, error, execute };
 }
+
+export type DepositExecution = ReturnType<typeof useDepositExecution>;

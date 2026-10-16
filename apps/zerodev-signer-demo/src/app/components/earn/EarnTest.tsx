@@ -8,6 +8,7 @@ import { ExecutePanel } from "./ExecutePanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { QuotePanel } from "./QuotePanel";
 import { Segmented } from "./ui";
+import { useDepositExecution } from "./useDepositExecution";
 import { type PanelMode, type Step, useEarnState } from "./useEarnState";
 import { useWalletSendCalls } from "./useWalletSendCalls";
 import { chainName, EARN_CHAIN_IDS } from "./utils/chains";
@@ -42,6 +43,17 @@ export function EarnTest() {
   const { address, chain } = useAccount();
   const d = useEarnState(address, chain?.id);
   const sendCalls = useWalletSendCalls();
+  // Held here, not in the Execute panel, so switching steps mid-deposit
+  // neither resets the run nor re-enables Execute.
+  const exec = useDepositExecution({
+    owner: d.owner,
+    sendCalls,
+    quote: d.quote,
+    vault: d.selected,
+    meta: { amount: d.amountStr, srcSymbol: d.srcSymbol },
+    ownerMismatch: d.ownerMismatch,
+    markQuoteSpent: d.markQuoteSpent,
+  });
   const onMainnet = d.listChainId != null;
 
   return (
@@ -90,8 +102,8 @@ export function EarnTest() {
           onChange={(v) => d.goStep(Number(v) as Step)}
           options={STEPS.map((s) => ({
             value: String(s.n),
-            disabled: s.n > d.maxStep,
-            title: s.n > d.maxStep ? s.lock : undefined,
+            disabled: s.n > d.maxStep || exec.inFlight,
+            title: exec.inFlight ? "Deposit in progress" : s.n > d.maxStep ? s.lock : undefined,
             label: (
               <>
                 {s.n < d.step ? <Check className="h-3.5 w-3.5 text-green-600" /> : <span>{s.n}.</span>}
@@ -119,7 +131,7 @@ export function EarnTest() {
           {d.panelMode === "deposit" ? <QuotePanel d={d} /> : <WithdrawPanel d={d} sendCalls={sendCalls} />}
         </>
       )}
-      {onMainnet && d.step === 3 && <ExecutePanel d={d} sendCalls={sendCalls} />}
+      {onMainnet && d.step === 3 && <ExecutePanel d={d} exec={exec} />}
 
       <HistoryPanel owner={address} sendCalls={sendCalls} />
     </div>
