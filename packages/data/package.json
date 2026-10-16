@@ -33,6 +33,28 @@
         "types": "./dist/_types/index.d.ts",
         "default": "./dist/_esm/index.js"
       }
+    },
+    "./fixtures": {
+      "react-native": {
+        "types": "./dist/_types/fixtures.d.ts",
+        "default": "./dist/_esm/fixtures.js"
+      },
+      "browser": {
+        "types": "./dist/_types/fixtures.d.ts",
+        "default": "./dist/_esm/fixtures.js"
+      },
+      "import": {
+        "types": "./dist/_types/fixtures.d.ts",
+        "default": "./dist/_esm/fixtures.js"
+      },
+      "require": {
+        "types": "./dist/_types/fixtures.d.ts",
+        "default": "./dist/_cjs/fixtures.js"
+      },
+      "default": {
+        "types": "./dist/_types/fixtures.d.ts",
+        "default": "./dist/_esm/fixtures.js"
+      }
     }
   },
   "files": [
@@ -40,8 +62,8 @@
     "README.md",
     "./src/**/*.ts",
     "!dist/**/*.tsbuildinfo",
-    "!./**/*.test.ts",
-    "!./**/*.test.tsx"
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx"
   ],
   "scripts": {
     "build": "pnpm run clean && pnpm run build:cjs && pnpm run build:esm && pnpm run build:types",
@@ -62,8 +84,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@zerodev/data-api-contract": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@c813b3a",
-    "@zerodev/data-api-stamp": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@c813b3a"
+    "@zerodev/data-api-contract": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc",
+    "@zerodev/data-api-stamp": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",
