@@ -42,7 +42,7 @@ export function TokenSummary({
           {primaryValue}
         </Text>
         {secondaryValue && (
-          <Text className="zd:whitespace-nowrap zd:text-center zd:text-h3">
+          <Text className="zd:max-w-full zd:truncate zd:text-center zd:text-h3">
             {secondaryValue}
           </Text>
         )}

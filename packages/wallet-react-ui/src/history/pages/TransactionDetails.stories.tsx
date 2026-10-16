@@ -37,6 +37,10 @@ export const NftMintInQuantity: Story = {
 
 export const NftReceive: Story = { args: { transaction: GOLDEN.nftReceive } }
 
+export const NftLongTokenId: Story = {
+  args: { transaction: GOLDEN.withdrawNftReceipt },
+}
+
 export const ApproveUnlimited: Story = {
   args: { transaction: GOLDEN.approveUnlimited },
 }
