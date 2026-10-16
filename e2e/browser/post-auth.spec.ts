@@ -12,7 +12,10 @@
 import { expect, type Page } from '@playwright/test'
 import { test } from '../fixtures/authed-session.js'
 import { createNewAccount, ping } from '../helpers/temp-email.js'
-import { expectTxRunSucceeded } from '../helpers/tx-runs.js'
+import {
+  expectSignRunSucceeded,
+  expectTxRunSucceeded,
+} from '../helpers/tx-runs.js'
 import { expectLabReady, loginWithMagicLink } from '../helpers/ui-login.js'
 
 /**
@@ -33,16 +36,7 @@ async function signMessage(page: Page) {
     .getByTestId('sign-message-submit')
     .click()
 
-  const run = page.getByTestId('sign-run-1')
-  await expect(run).toHaveAttribute('data-status', 'success', {
-    timeout: 30_000,
-  })
-  // The lab verifies the returned signature against this account for the exact
-  // message it sent, so this asserts the signature is real rather than merely
-  // that the call resolved.
-  await expect(run).toHaveAttribute('data-verify', 'valid', {
-    timeout: 30_000,
-  })
+  await expectSignRunSucceeded(page.getByTestId('sign-run-1'))
 }
 
 test.describe('Post-Auth Operations', () => {
