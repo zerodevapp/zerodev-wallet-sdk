@@ -22,7 +22,11 @@ import {
   unparsedWithTimestamp,
 } from '../fixtures'
 import type { TxHistoryStatus } from '../types'
-import { formatQuantity, toTxHistoryEntry } from './toTxHistoryEntry'
+import {
+  formatQuantity,
+  formatTokenId,
+  toTxHistoryEntry,
+} from './toTxHistoryEntry'
 
 const OPERATIONS: Record<
   TransactionHistoryOperation,
@@ -126,6 +130,14 @@ describe('toTxHistoryEntry', () => {
   it('falls back to the token id for an unnamed NFT', () => {
     const entry = toTxHistoryEntry({ ...nftMintTx, nft: { tokenId: '42' } })
     expect(entry?.value).toBe('#42')
+  })
+
+  it('shortens a hash-length token id in the middle', () => {
+    const tokenId =
+      '7463162001623910943986643725172978304434114419376994332435389642745445351428'
+    const entry = toTxHistoryEntry({ ...nftMintTx, nft: { tokenId } })
+    expect(entry?.value).toBe('#74631620…351428')
+    expect(formatTokenId('1234567890123456')).toBe('#1234567890123456')
   })
 
   it('appends the count to an NFT held in quantity', () => {

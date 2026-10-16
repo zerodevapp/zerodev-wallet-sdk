@@ -35,7 +35,7 @@ export function InfoCard({
         className,
       )}
     >
-      <div className="zd:gap-2 zd:flex zd:flex-row zd:items-center zd:h-[52px]">
+      <div className="zd:gap-2 zd:flex zd:min-w-0 zd:flex-row zd:items-center zd:h-[52px]">
         {imageSource || chainIconUrl ? (
           <IconWithBadge
             imageStyle={imageStyle}
@@ -43,9 +43,11 @@ export function InfoCard({
             {...(chainIconUrl && { chainIconUrl })}
           />
         ) : null}
-        <div className="zd:flex zd:flex-col">
-          <Text className="zd:text-body1">{title}</Text>
-          {subtitle && <Text className="zd:text-greyScale/50">{subtitle}</Text>}
+        <div className="zd:flex zd:min-w-0 zd:flex-col">
+          <Text className="zd:truncate zd:text-body1">{title}</Text>
+          {subtitle && (
+            <Text className="zd:truncate zd:text-greyScale/50">{subtitle}</Text>
+          )}
         </div>
       </div>
       {rightElement}
