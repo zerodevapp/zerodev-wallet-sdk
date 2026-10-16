@@ -26,6 +26,7 @@ import {
   headlineSide,
   type SideText,
   TX_HISTORY_STATUS,
+  transactionTitle,
 } from '../utils/toTxHistoryEntry'
 
 export interface TransactionDetailsProps {
@@ -44,6 +45,9 @@ export function TransactionDetails({
 
   return (
     <div className="zd:flex zd:w-full zd:flex-col zd:gap-3 zd:pt-4 zd:pb-6">
+      <Text className="zd:text-center zd:text-body1">
+        {transactionTitle(tx)}
+      </Text>
       {hero && (
         <TokenSummary
           {...hero}

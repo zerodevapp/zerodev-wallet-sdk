@@ -116,5 +116,6 @@ export const LongValue: Story = {
     icon: 'circleArrowDown',
     title: 'Received ETH',
     value: '0.000000000000000001 ETH',
+    unit: 'ETH',
   },
 }

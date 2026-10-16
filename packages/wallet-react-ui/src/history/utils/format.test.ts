@@ -6,6 +6,12 @@ describe('formatUsd', () => {
     expect(formatUsd(2498.12)).toBe('$2,498.12')
     expect(formatUsd(0.525)).toBe('$0.53')
   })
+
+  it('floors a positive amount under a cent instead of showing $0.00', () => {
+    expect(formatUsd(0.004)).toBe('<$0.01')
+    expect(formatUsd(0.005)).toBe('$0.01')
+    expect(formatUsd(0)).toBe('$0.00')
+  })
 })
 
 describe('formatDateTime', () => {

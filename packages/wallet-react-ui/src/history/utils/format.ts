@@ -11,7 +11,9 @@ const dateTime = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 })
 
+/** A positive amount that would round to $0.00 reads as "<$0.01". */
 export function formatUsd(amount: number): string {
+  if (amount > 0 && amount < 0.005) return '<$0.01'
   return usd.format(amount)
 }
 
