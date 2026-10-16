@@ -4,8 +4,9 @@
 
 `<TxHistory />` now shows the connected ZeroDev wallet's real transaction
 history from the Data API, with a details page for each transaction. The
-`History` list view, the `TransactionDetails` view, `toTxHistoryEntry`, and the
-`HistoryFeed` type are exported for custom layouts. A ready `HistoryFeed` can
+`History` list view, the `TransactionDetails` view, the `TxHistoryView` screen
+that `TxHistory` renders over its fetch, `toTxHistoryEntry`, and the
+`HistoryFeed` type are exported for custom layouts and custom data sources. A ready `HistoryFeed` can
 carry `loadMoreError`, so the list stays rendered when loading the next page
 fails.
 

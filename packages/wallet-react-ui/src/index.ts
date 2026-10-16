@@ -28,6 +28,10 @@ export {
   TransactionDetails,
   type TransactionDetailsProps,
 } from './history/pages/TransactionDetails'
+export {
+  TxHistoryView,
+  type TxHistoryViewProps,
+} from './history/pages/TxHistoryView'
 export type { HistoryFeed, TxHistoryEntry } from './history/types'
 export { toTxHistoryEntry } from './history/utils/toTxHistoryEntry'
 export { zeroDevWalletConnect } from './zeroDevWalletConnect.js'
