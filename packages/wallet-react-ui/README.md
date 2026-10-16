@@ -199,7 +199,7 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 | `<TxHistory />` | Transaction history for the connected ZeroDev wallet, fetched from the Data API, with a details page per transaction. Props: `dataApi` (`{ baseUrl, environment?, chainIds? }`), `onClose`, `size`, `className`. Shows its loading state until the wallet connects. |
 | `<History />` | The list view on its own. Renders a `HistoryFeed` (`loading`, `error`, or `ready` with Load more). Props: `feed`, `onSelectEntry`. |
 | `<TransactionDetails />` | The details view on its own for one Data API transaction. Props: `transaction`. |
-| `toTxHistoryEntry` | Maps a Data API transaction history item to a `TxHistoryEntry` row, or `undefined` for an unparsed item without a timestamp. |
+| `toTxHistoryEntry` | Maps a Data API transaction history item to a `TxHistoryEntry` row, or `undefined` for an unparsed item without a timestamp. The row describes what came in on a two-sided transaction, shows an allowance as "Unlimited" when it is the max uint and as the bare unit when it is zero, and appends a count to an NFT held in quantity. |
 
 ### Types
 

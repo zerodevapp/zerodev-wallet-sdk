@@ -110,6 +110,66 @@ export const approveTx = transaction(5, {
   operation: 'approve',
   status: 'success',
   token: USDC,
+  quantity: quantity(25, 6),
+  fees: { network: networkFee },
+})
+
+export const UNLIMITED_USDC: TransactionHistoryQuantity = {
+  int: '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+  decimals: 6,
+  float: 1.157920892373162e71,
+  numeric:
+    '115792089237316195423570985008687907853269984665640564039457584007913129.639935',
+}
+
+export const approveUnlimitedTx = transaction(12, {
+  operation: 'approve',
+  status: 'success',
+  token: USDC,
+  quantity: UNLIMITED_USDC,
+  fees: { network: networkFee },
+})
+
+export const revokeTx = transaction(13, {
+  operation: 'revoke',
+  status: 'success',
+  token: USDC,
+  quantity: quantity(0, 6),
+  fees: { network: networkFee },
+})
+
+export const approveCollectionTx = transaction(14, {
+  operation: 'approve',
+  status: 'success',
+  collection: {
+    name: 'Heroes of Valdir',
+    imageUri: 'https://cdn.zerion.io/collections/valdir.png',
+  },
+  fees: { network: networkFee },
+})
+
+export const paidMintTx = transaction(15, {
+  operation: 'mint',
+  status: 'success',
+  token: ETH,
+  quantity: quantity(0.5, 18),
+  destNft: {
+    tokenId: '0',
+    name: 'Bonfires NFT',
+    imageUri: 'https://cdn.zerion.io/nft/bonfires.png',
+  },
+  destQuantity: quantity(5, 0),
+  fees: { network: networkFee },
+})
+
+export const nftSwapTx = transaction(16, {
+  operation: 'swap',
+  status: 'success',
+  nft: { tokenId: '17909', name: 'Credit #17909' },
+  quantity: quantity(1, 0),
+  destToken: ETH,
+  destQuantity: quantity(0.027, 18),
+  fees: { network: networkFee },
 })
 
 export const failedTx = transaction(6, {

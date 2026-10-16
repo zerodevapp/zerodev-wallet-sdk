@@ -16,3 +16,9 @@ fetch and the details step. The `TxHistoryStep` type is removed.
 `chain: { name, iconUri? }`, renames `timestamp` to `timestampMs`, drops `destChainName` and `destChainIconUrl`, and
 makes `value` optional. `@zerodev/wallet-data` and `zod` are new peer
 dependencies.
+
+Rows and the details hero describe what came in when a transaction has two
+sides (a swap, or a mint paid in a token), so a paid mint headlines the NFT and
+the details page shows a card for each side. An approval shows its allowance,
+"Unlimited" for the max uint, and a revoke shows the bare unit. A collection
+approval shows the collection name. An NFT held in quantity carries a count.
