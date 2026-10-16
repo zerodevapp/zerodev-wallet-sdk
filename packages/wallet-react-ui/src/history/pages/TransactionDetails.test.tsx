@@ -3,6 +3,7 @@ import type { TransactionHistoryTransaction } from '@zerodev/wallet-data'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   approveUnlimitedTx,
+  deployTx,
   failedTx,
   nftMintTx,
   paidMintTx,
@@ -26,6 +27,7 @@ function withoutExplorer(
 describe('TransactionDetails', () => {
   it('renders a send with its hero, fee, and network', () => {
     render(<TransactionDetails transaction={sendTx} />)
+    expect(screen.getByText('Sent USDC')).toBeDefined()
     expect(screen.getByText('25 USDC')).toBeDefined()
     expect(screen.getByText('$25.00')).toBeDefined()
     expect(screen.getByText('0.00021 ETH ($0.53)')).toBeDefined()
@@ -89,6 +91,11 @@ describe('TransactionDetails', () => {
       />,
     )
     expect(screen.getAllByText('#42')).toHaveLength(1)
+  })
+
+  it('headlines an asset-less transaction with its operation', () => {
+    render(<TransactionDetails transaction={deployTx} />)
+    expect(screen.getByText('Deployed contract')).toBeDefined()
   })
 
   it('renders an allowance without a USD line', () => {

@@ -88,6 +88,7 @@ describe('toTxHistoryEntry', () => {
       icon: 'circleArrowUp',
       title: 'Sent USDC',
       value: '25 USDC',
+      unit: 'USDC',
       status: 'Success',
       timestampMs: sendTx.timestamp * 1000,
       transaction: sendTx,
@@ -120,11 +121,13 @@ describe('toTxHistoryEntry', () => {
   })
 
   it('renders an NFT with the image icon and its name as the value', () => {
-    expect(toTxHistoryEntry(nftMintTx)).toMatchObject({
+    const entry = toTxHistoryEntry(nftMintTx)
+    expect(entry).toMatchObject({
       icon: 'imageFill',
       title: 'Minted NFT',
       value: 'ZeroDev Pass',
     })
+    expect(entry && 'unit' in entry).toBe(false)
   })
 
   it('falls back to the token id for an unnamed NFT', () => {

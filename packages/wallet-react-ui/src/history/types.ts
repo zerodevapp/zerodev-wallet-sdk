@@ -12,6 +12,9 @@ export interface TxHistoryEntry {
   title: string
   /** Absent when the transaction moved no asset (deploy, execute, unparsed). */
   value?: string
+  /** The token unit `value` ends with. The row keeps it visible when the
+   * value truncates. Absent for NFTs and collections. */
+  unit?: string
   chain: Pick<TransactionHistoryChain, 'name' | 'iconUri'>
   status: TxHistoryStatus
   timestampMs: number

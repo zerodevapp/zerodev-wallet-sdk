@@ -66,7 +66,9 @@ describe('every contract fixture', () => {
     '%s renders its details page',
     (id) => {
       const tx = TRANSACTION_HISTORY_TRANSACTION_FIXTURES[id]
+      const entry = toTxHistoryEntry(tx)
       render(<TransactionDetails transaction={tx} />)
+      expect(screen.getAllByText(entry?.title ?? '')).not.toHaveLength(0)
       expect(
         screen.getAllByText(TX_HISTORY_STATUS[tx.status]),
       ).not.toHaveLength(0)

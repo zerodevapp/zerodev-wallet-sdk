@@ -58,6 +58,18 @@ describe('TxHistoryItem', () => {
       expect(container.querySelector('img')).toBeNull()
     })
 
+    it('keeps the unit in its own span so the amount truncates first', () => {
+      render(
+        <TxHistoryItem
+          {...baseProps}
+          value="0.000000000000000001 ETH"
+          unit="ETH"
+        />,
+      )
+      expect(screen.getByText('0.000000000000000001')).toBeDefined()
+      expect(screen.getByText('ETH')).toBeDefined()
+    })
+
     it('renders without a value', () => {
       const { value: _, ...withoutValue } = baseProps
       render(<TxHistoryItem {...withoutValue} />)

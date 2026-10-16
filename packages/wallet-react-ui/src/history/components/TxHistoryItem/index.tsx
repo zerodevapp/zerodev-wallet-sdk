@@ -14,6 +14,8 @@ export interface TxHistoryItemProps {
   title: string
   /** Truncates past roughly half the row. */
   value?: string
+  /** The unit `value` ends with; it stays visible while the amount truncates. */
+  unit?: string
   chain: { name: string; iconUri?: string | undefined }
   status: TxHistoryStatus
   className?: string
@@ -23,6 +25,7 @@ export function TxHistoryItem({
   icon,
   title,
   value,
+  unit,
   chain,
   status,
   className,
@@ -42,8 +45,8 @@ export function TxHistoryItem({
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
           <Text className="zd:min-w-0 zd:truncate zd:text-body1">{title}</Text>
           {value && (
-            <Text className="zd:max-w-[55%] zd:shrink-0 zd:truncate zd:text-right zd:text-body1">
-              {value}
+            <Text className="zd:flex zd:max-w-[55%] zd:shrink-0 zd:justify-end zd:text-right zd:text-body1">
+              <RowValue value={value} unit={unit} />
             </Text>
           )}
         </div>
@@ -73,6 +76,28 @@ export function TxHistoryItem({
         </div>
       </div>
     </div>
+  )
+}
+
+/** An amount gives way before its unit; anything else truncates as a whole. */
+function RowValue({
+  value,
+  unit,
+}: {
+  value: string
+  unit: string | undefined
+}) {
+  const suffix = unit && ` ${unit}`
+  if (!suffix || !value.endsWith(suffix)) {
+    return <span className="zd:min-w-0 zd:truncate">{value}</span>
+  }
+  return (
+    <>
+      <span className="zd:min-w-0 zd:truncate">
+        {value.slice(0, -suffix.length)}
+      </span>
+      <span className="zd:shrink-0 zd:whitespace-pre">{suffix}</span>
+    </>
   )
 }
 

@@ -107,6 +107,11 @@ function errorMessage(error: Error): string {
   )
 }
 
+/** A retry cannot fix an expired session; the host has to sign in again. */
+function canRetry(error: Error): boolean {
+  return !(error instanceof DataApiError && error.status === 401)
+}
+
 function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
     <div
@@ -116,7 +121,9 @@ function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
       <Text className="zd:text-center zd:text-greyScale/50">
         {errorMessage(error)}
       </Text>
-      <Button action="secondary" text="Try again" onClick={onRetry} />
+      {canRetry(error) && (
+        <Button action="secondary" text="Try again" onClick={onRetry} />
+      )}
     </div>
   )
 }

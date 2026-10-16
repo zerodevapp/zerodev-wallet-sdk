@@ -51,6 +51,7 @@ describe('History', () => {
       screen.getByText('Your session expired. Sign in again.'),
     ).toBeDefined()
     expect(screen.queryByText(error.message)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('asks the user to wait on a 429', () => {
