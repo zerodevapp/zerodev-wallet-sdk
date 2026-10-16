@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { DataApiEnvironment } from "@zerodev/wallet-data";
 import { TxHistory, TxHistoryView } from "@zerodev/wallet-react-ui";
 import { useResolvedConfig } from "../../lib/use-wallet-config";
 import { cn } from "../../lib/utils";
-import { buildFixtureFeed } from "./fixtureFeed";
+import { useFixtureFeed } from "./fixtureFeed";
 
 const ENVIRONMENTS: readonly DataApiEnvironment[] = ["mainnet", "testnet"];
 
@@ -13,8 +13,8 @@ const ENVIRONMENTS: readonly DataApiEnvironment[] = ["mainnet", "testnet"];
  * Renders the shipped `TxHistory` component from `@zerodev/wallet-react-ui`
  * against the same Data API the diagnostic panel above it uses, so the
  * presentation layer can be tested on a real wallet. "Show fixtures" swaps it
- * for the same screen over the contract fixtures, one row per operation, so
- * every shape can be checked without a wallet that performed them.
+ * for the same screen over every contract fixture, paged like the real feed,
+ * so every shape can be checked without a wallet that performed them.
  */
 export function TxHistoryWidget() {
   const { dataApiBaseUrl } = useResolvedConfig();
@@ -22,10 +22,8 @@ export function TxHistoryWidget() {
     useState<DataApiEnvironment>("mainnet");
   const [open, setOpen] = useState(false);
   const [fixturesOn, setFixturesOn] = useState(false);
-  const fixtures = useMemo(
-    () => buildFixtureFeed(Math.floor(Date.now() / 1000)),
-    [],
-  );
+  const [failNextPage, setFailNextPage] = useState(false);
+  const fixtures = useFixtureFeed({ failNextPage });
 
   if (!dataApiBaseUrl) return null;
 
@@ -44,8 +42,8 @@ export function TxHistoryWidget() {
             The <code>TxHistory</code> widget from{" "}
             <code>@zerodev/wallet-react-ui</code>, fed by the same Data API.
             Switch on fixtures to render every recorded shape instead of the
-            connected wallet&apos;s history; the panel above keeps showing the
-            real request.
+            connected wallet&apos;s history, paged by Load more; the panel
+            above keeps showing the real request.
           </p>
         </div>
 
@@ -74,6 +72,19 @@ export function TxHistoryWidget() {
               />
             </span>
           </label>
+
+          {fixturesOn && (
+            <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-[var(--ink)]">
+              <input
+                type="checkbox"
+                checked={failNextPage}
+                onChange={(event) => setFailNextPage(event.target.checked)}
+                data-testid="tx-history-widget-fail-next-page"
+                className="h-3.5 w-3.5 accent-[var(--ink)]"
+              />
+              Fail next page
+            </label>
+          )}
 
           <div className="inline-flex rounded-lg border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
             {ENVIRONMENTS.map((value) => (
