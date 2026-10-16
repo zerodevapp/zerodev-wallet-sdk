@@ -2,9 +2,12 @@ import { cleanup, render, screen } from '@testing-library/react'
 import type { TransactionHistoryTransaction } from '@zerodev/wallet-data'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  approveUnlimitedTx,
   failedTx,
   nftMintTx,
+  paidMintTx,
   pendingTx,
+  revokeTx,
   sendTx,
   swapTx,
   unknownStatusTx,
@@ -49,6 +52,43 @@ describe('TransactionDetails', () => {
     expect(screen.queryAllByText(/^[\d.,]+ [A-Z]+$/)).toHaveLength(0)
     expect(screen.getByText('Transaction details')).toBeDefined()
     expect(screen.getByText('Confirmed on Ethereum Sepolia')).toBeDefined()
+  })
+
+  it('renders a paid mint with the NFT hero and a card for each side', () => {
+    const { container } = render(
+      <TransactionDetails transaction={paidMintTx} />,
+    )
+    expect(screen.getAllByText('Bonfires NFT ×5')).toHaveLength(2)
+    expect(screen.getAllByText('#0')).toHaveLength(2)
+    expect(screen.getByText('0.5 ETH')).toBeDefined()
+    expect(screen.getByText('$1,250.00')).toBeDefined()
+    expect(
+      container.querySelectorAll(
+        'img[src="https://cdn.zerion.io/nft/bonfires.png"]',
+      ),
+    ).toHaveLength(2)
+  })
+
+  it('shows the token id once when it is also the NFT name', () => {
+    render(
+      <TransactionDetails
+        transaction={{
+          ...nftMintTx,
+          nft: { tokenId: '30019', name: '#30019' },
+        }}
+      />,
+    )
+    expect(screen.getAllByText('#30019')).toHaveLength(1)
+  })
+
+  it('renders an allowance without a USD line', () => {
+    render(<TransactionDetails transaction={approveUnlimitedTx} />)
+    expect(screen.getByText('Unlimited USDC')).toBeDefined()
+    expect(screen.queryByText(/^\$/)).toBeNull()
+    cleanup()
+    render(<TransactionDetails transaction={revokeTx} />)
+    expect(screen.getByText('USDC')).toBeDefined()
+    expect(screen.queryByText('$0.00')).toBeNull()
   })
 
   it.each([
