@@ -79,7 +79,14 @@ export function TxHistoryItem({
   )
 }
 
-/** An amount gives way before its unit; anything else truncates as a whole. */
+/**
+ * An amount gives way before its unit: the amount shrinks a thousand times
+ * faster, so a long amount truncates first. A unit is capped at a fixed
+ * width that every ordinary symbol fits in, so a long symbol truncates
+ * and leaves the amount legible. (A share of the column would not work:
+ * the column shrink-wraps its content, so the share would be circular.)
+ * Anything without a unit truncates as a whole.
+ */
 function RowValue({
   value,
   unit,
@@ -93,10 +100,12 @@ function RowValue({
   }
   return (
     <>
-      <span className="zd:min-w-0 zd:truncate">
+      <span className="zd:min-w-0 zd:shrink-[1000] zd:truncate">
         {value.slice(0, -suffix.length)}
       </span>
-      <span className="zd:shrink-0 zd:whitespace-pre">{suffix}</span>
+      <span className="zd:min-w-0 zd:max-w-20 zd:truncate zd:whitespace-pre">
+        {suffix}
+      </span>
     </>
   )
 }
