@@ -44,6 +44,20 @@ describe('TokenSummary badge and secondary line', () => {
     ).toContain('zd:line-clamp-2')
   })
 
+  it('renders the fallback in the tile only without a logo', () => {
+    render(<TokenSummary primaryValue="5 USDC" tokenFallback="USD" />)
+    expect(screen.getByText('USD')).toBeDefined()
+    cleanup()
+    render(
+      <TokenSummary
+        primaryValue="5 USDC"
+        tokenLogoUrl="https://x/usdc.png"
+        tokenFallback="USD"
+      />,
+    )
+    expect(screen.queryByText('USD')).toBeNull()
+  })
+
   it('omits the secondary line when not provided', () => {
     render(<TokenSummary primaryValue="249.78 USDG" />)
     expect(screen.getByText('249.78 USDG')).toBeDefined()
