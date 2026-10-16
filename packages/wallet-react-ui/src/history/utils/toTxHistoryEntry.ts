@@ -1,6 +1,8 @@
 import type { IconName } from '@zerodev/react-ui'
 import type {
+  TransactionHistoryCollection,
   TransactionHistoryItem,
+  TransactionHistoryNft,
   TransactionHistoryOperation,
   TransactionHistoryQuantity,
   TransactionHistoryStatus,
@@ -75,26 +77,150 @@ export function tokenUnit(token: TransactionHistoryToken): string {
   )
 }
 
-function title(tx: TransactionHistoryTransaction): string {
-  const { verb } = OPERATION[tx.operation]
-  if (tx.operation === 'swap' && tx.token?.symbol && tx.destToken?.symbol) {
-    return `Swapped ${tx.token.symbol} → ${tx.destToken.symbol}`
-  }
-  if (tx.nft) return `${verb} NFT`
-  if (tx.token?.symbol) return `${verb} ${tx.token.symbol}`
-  return verb
+export function formatAmount(
+  quantity: TransactionHistoryQuantity,
+  token: TransactionHistoryToken,
+): string {
+  return `${formatQuantity(quantity)} ${tokenUnit(token)}`
 }
 
-function value(tx: TransactionHistoryTransaction): string | undefined {
-  if (tx.nft) return tx.nft.name ?? `#${tx.nft.tokenId}`
-  const side =
-    tx.operation === 'swap' && tx.destQuantity && tx.destToken
-      ? { quantity: tx.destQuantity, token: tx.destToken }
-      : tx.quantity && tx.token
-        ? { quantity: tx.quantity, token: tx.token }
+const MAX_UINT256 =
+  '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+
+const ALLOWANCE_OPERATIONS: ReadonlySet<TransactionHistoryOperation> = new Set([
+  'approve',
+  'revoke',
+])
+
+/**
+ * An allowance is a cap, not a transfer: the max uint reads as "Unlimited"
+ * and zero, which is what a revoke carries, as the bare unit.
+ */
+export function formatAllowance(
+  quantity: TransactionHistoryQuantity,
+  token: TransactionHistoryToken,
+): string {
+  const unit = tokenUnit(token)
+  if (quantity.int === MAX_UINT256) return `Unlimited ${unit}`
+  if (quantity.float === 0) return unit
+  return `${formatQuantity(quantity)} ${unit}`
+}
+
+/** One side of a transaction: what left the wallet, or what came in. */
+export type AssetSide =
+  | {
+      kind: 'token'
+      token: TransactionHistoryToken
+      quantity: TransactionHistoryQuantity | undefined
+    }
+  | {
+      kind: 'nft'
+      nft: TransactionHistoryNft
+      quantity: TransactionHistoryQuantity | undefined
+    }
+  | { kind: 'collection'; collection: TransactionHistoryCollection }
+
+export interface AssetSides {
+  from?: AssetSide
+  /** Set on a two-sided swap or a paid mint. */
+  to?: AssetSide
+}
+
+export function assetSides(tx: TransactionHistoryTransaction): AssetSides {
+  const from: AssetSide | undefined = tx.nft
+    ? { kind: 'nft', nft: tx.nft, quantity: tx.quantity }
+    : tx.token
+      ? { kind: 'token', token: tx.token, quantity: tx.quantity }
+      : tx.collection
+        ? { kind: 'collection', collection: tx.collection }
         : undefined
-  if (!side) return undefined
-  return `${formatQuantity(side.quantity)} ${tokenUnit(side.token)}`
+  const to: AssetSide | undefined = tx.destNft
+    ? { kind: 'nft', nft: tx.destNft, quantity: tx.destQuantity }
+    : tx.destToken
+      ? { kind: 'token', token: tx.destToken, quantity: tx.destQuantity }
+      : undefined
+  return { ...(from && { from }), ...(to && { to }) }
+}
+
+/** The side a row and the details hero describe: what came in when there
+ * was a counter-side, else the only side. */
+export function headlineSide(sides: AssetSides): AssetSide | undefined {
+  return sides.to ?? sides.from
+}
+
+export interface SideText {
+  /** The row value and the hero headline. */
+  text: string
+  /** The hero's second line: the token id of an NFT with a real name. */
+  detail?: string
+  /** Set only for a plain token amount with a known price. */
+  usd?: number
+  imageUri?: string
+}
+
+/** Undefined when the side has nothing to show: a token without a quantity
+ * or a collection without a name. */
+export function describeSide(
+  side: AssetSide,
+  operation: TransactionHistoryOperation,
+): SideText | undefined {
+  switch (side.kind) {
+    case 'nft': {
+      const tokenId = `#${side.nft.tokenId}`
+      const count =
+        side.quantity && side.quantity.float > 1
+          ? ` ×${formatQuantity(side.quantity)}`
+          : ''
+      const named = side.nft.name !== undefined && side.nft.name !== tokenId
+      return {
+        text: `${side.nft.name ?? tokenId}${count}`,
+        ...(named && { detail: tokenId }),
+        ...(side.nft.imageUri && { imageUri: side.nft.imageUri }),
+      }
+    }
+    case 'collection':
+      if (!side.collection.name) return undefined
+      return {
+        text: side.collection.name,
+        ...(side.collection.imageUri && {
+          imageUri: side.collection.imageUri,
+        }),
+      }
+    case 'token': {
+      if (!side.quantity) return undefined
+      const image = side.token.imageUri && { imageUri: side.token.imageUri }
+      if (ALLOWANCE_OPERATIONS.has(operation)) {
+        return { text: formatAllowance(side.quantity, side.token), ...image }
+      }
+      return {
+        text: formatAmount(side.quantity, side.token),
+        ...(side.token.priceUsd !== null && {
+          usd: side.quantity.float * side.token.priceUsd,
+        }),
+        ...image,
+      }
+    }
+  }
+}
+
+function sideLabel(side: AssetSide): string | undefined {
+  switch (side.kind) {
+    case 'nft':
+      return 'NFT'
+    case 'collection':
+      return 'collection'
+    case 'token':
+      return side.token.symbol
+  }
+}
+
+function title(tx: TransactionHistoryTransaction, sides: AssetSides): string {
+  const { verb } = OPERATION[tx.operation]
+  const from = sides.from && sideLabel(sides.from)
+  const to = sides.to && sideLabel(sides.to)
+  if (tx.operation === 'swap' && from && to) return `${verb} ${from} → ${to}`
+  const label = to ?? from
+  return label ? `${verb} ${label}` : verb
 }
 
 export function toTxHistoryEntry(
@@ -111,12 +237,15 @@ export function toTxHistoryEntry(
       timestampMs: item.timestamp * 1000,
     }
   }
-  const v = value(item)
+  const sides = assetSides(item)
+  const headline = headlineSide(sides)
+  const value = headline && describeSide(headline, item.operation)?.text
   return {
     id: item.id,
-    icon: item.nft ? 'imageFill' : OPERATION[item.operation].icon,
-    title: title(item),
-    ...(v !== undefined && { value: v }),
+    icon:
+      headline?.kind === 'nft' ? 'imageFill' : OPERATION[item.operation].icon,
+    title: title(item, sides),
+    ...(value !== undefined && { value }),
     chain: item.chain,
     status: TX_HISTORY_STATUS[item.status],
     timestampMs: item.timestamp * 1000,

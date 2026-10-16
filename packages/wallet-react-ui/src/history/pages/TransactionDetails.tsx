@@ -13,18 +13,19 @@ import {
 import type {
   TransactionHistoryChain,
   TransactionHistoryFee,
-  TransactionHistoryQuantity,
   TransactionHistoryStatus,
-  TransactionHistoryToken,
   TransactionHistoryTransaction,
 } from '@zerodev/wallet-data'
 import { shortenHex } from '../../shared/utils/common'
 import { TX_HISTORY_STATUS_COLOR } from '../components/TxHistoryItem'
 import { formatDateTime, formatUsd } from '../utils/format'
 import {
-  formatQuantity,
+  assetSides,
+  describeSide,
+  formatAmount,
+  headlineSide,
+  type SideText,
   TX_HISTORY_STATUS,
-  tokenUnit,
 } from '../utils/toTxHistoryEntry'
 
 export interface TransactionDetailsProps {
@@ -34,18 +35,12 @@ export interface TransactionDetailsProps {
 export function TransactionDetails({
   transaction: tx,
 }: TransactionDetailsProps) {
-  const swap =
-    tx.operation === 'swap' &&
-    tx.quantity &&
-    tx.token &&
-    tx.destQuantity &&
-    tx.destToken
-      ? {
-          from: { quantity: tx.quantity, token: tx.token },
-          to: { quantity: tx.destQuantity, token: tx.destToken },
-        }
-      : undefined
-  const hero = heroProps(tx, swap?.to)
+  const sides = assetSides(tx)
+  const headline = headlineSide(sides)
+  const hero = headline && heroProps(describeSide(headline, tx.operation))
+  const from = sides.from && describeSide(sides.from, tx.operation)
+  const to = sides.to && describeSide(sides.to, tx.operation)
+  const pair = from && to ? { from, to } : undefined
 
   return (
     <div className="zd:flex zd:w-full zd:flex-col zd:gap-3 zd:pt-4 zd:pb-6">
@@ -55,11 +50,13 @@ export function TransactionDetails({
           {...(tx.chain.iconUri && { badgeLogoUrl: tx.chain.iconUri })}
         />
       )}
-      {swap && (
+      {pair && (
         <ArrowCardPair
-          topCard={<TokenCard {...swap.from} chainIconUri={tx.chain.iconUri} />}
+          topCard={
+            <SideCard side={pair.from} chainIconUri={tx.chain.iconUri} />
+          }
           bottomCard={
-            <TokenCard {...swap.to} chainIconUri={tx.chain.iconUri} />
+            <SideCard side={pair.to} chainIconUri={tx.chain.iconUri} />
           }
         />
       )}
@@ -101,43 +98,26 @@ export function TransactionDetails({
   )
 }
 
-interface Side {
-  quantity: TransactionHistoryQuantity
-  token: TransactionHistoryToken
-}
-
 type Hero = Pick<
   TokenSummaryProps,
   'primaryValue' | 'secondaryValue' | 'tokenLogoUrl'
 >
 
-/** The headline card: the NFT when there is one, else the received side of
- * a swap, else the transaction's own amount. */
-function heroProps(
-  tx: TransactionHistoryTransaction,
-  swapTo: Side | undefined,
-): Hero | undefined {
-  if (tx.nft) {
-    const tokenId = `#${tx.nft.tokenId}`
-    return {
-      primaryValue: tx.nft.name ?? tokenId,
-      ...(tx.nft.name && { secondaryValue: tokenId }),
-      ...(tx.nft.imageUri && { tokenLogoUrl: tx.nft.imageUri }),
-    }
-  }
-  const side =
-    swapTo ??
-    (tx.quantity && tx.token
-      ? { quantity: tx.quantity, token: tx.token }
-      : undefined)
+/** The headline card: the token id under an NFT's name, the USD value under
+ * a token amount. */
+function heroProps(side: SideText | undefined): Hero | undefined {
   if (!side) return undefined
+  const secondary = secondaryLine(side)
   return {
-    primaryValue: amount(side.quantity, side.token),
-    ...(side.token.priceUsd !== null && {
-      secondaryValue: formatUsd(side.quantity.float * side.token.priceUsd),
-    }),
-    ...(side.token.imageUri && { tokenLogoUrl: side.token.imageUri }),
+    primaryValue: side.text,
+    ...(secondary && { secondaryValue: secondary }),
+    ...(side.imageUri && { tokenLogoUrl: side.imageUri }),
   }
+}
+
+function secondaryLine(side: SideText): string | undefined {
+  if (side.detail) return side.detail
+  return side.usd === undefined ? undefined : formatUsd(side.usd)
 }
 
 const PROGRESS_LABEL: Record<
@@ -160,37 +140,27 @@ const PROGRESS_STATUS: Record<
   unknown: 'pending',
 }
 
-function amount(
-  quantity: TransactionHistoryQuantity,
-  token: TransactionHistoryToken,
-): string {
-  return `${formatQuantity(quantity)} ${tokenUnit(token)}`
-}
-
 function formatFee(fee: TransactionHistoryFee): string {
-  const value = amount(fee.quantity, fee.token)
+  const value = formatAmount(fee.quantity, fee.token)
   return fee.token.priceUsd === null
     ? value
     : `${value} (${formatUsd(fee.quantity.float * fee.token.priceUsd)})`
 }
 
-function TokenCard({
-  quantity,
-  token,
+function SideCard({
+  side,
   chainIconUri,
 }: {
-  quantity: TransactionHistoryQuantity
-  token: TransactionHistoryToken
+  side: SideText
   chainIconUri: string | undefined
 }) {
+  const subtitle = secondaryLine(side)
   return (
     <InfoCard
-      title={amount(quantity, token)}
-      {...(token.priceUsd !== null && {
-        subtitle: formatUsd(quantity.float * token.priceUsd),
-      })}
-      {...(token.imageUri && {
-        imageSource: token.imageUri,
+      title={side.text}
+      {...(subtitle && { subtitle })}
+      {...(side.imageUri && {
+        imageSource: side.imageUri,
         imageStyle: 'filled' as const,
       })}
       {...(chainIconUri && { chainIconUrl: chainIconUri })}

@@ -4,11 +4,16 @@ import type {
 } from '@zerodev/wallet-data'
 import { describe, expect, it } from 'vitest'
 import {
+  approveCollectionTx,
   approveTx,
+  approveUnlimitedTx,
   deployTx,
   nftMintTx,
+  nftSwapTx,
+  paidMintTx,
   quantity,
   receiveTx,
+  revokeTx,
   sendTx,
   swapTx,
   USDC,
@@ -123,8 +128,59 @@ describe('toTxHistoryEntry', () => {
     expect(entry?.value).toBe('#42')
   })
 
-  it('leaves value out when a token has no quantity', () => {
+  it('appends the count to an NFT held in quantity', () => {
+    const entry = toTxHistoryEntry({
+      ...nftMintTx,
+      nft: { tokenId: '0', name: 'Bonfires NFT' },
+      quantity: quantity(5, 0),
+    })
+    expect(entry?.value).toBe('Bonfires NFT ×5')
+    expect(
+      toTxHistoryEntry({ ...nftMintTx, quantity: quantity(1, 0) })?.value,
+    ).toBe('ZeroDev Pass')
+  })
+
+  it('headlines a paid mint with the NFT that came in', () => {
+    expect(toTxHistoryEntry(paidMintTx)).toMatchObject({
+      icon: 'imageFill',
+      title: 'Minted NFT',
+      value: 'Bonfires NFT ×5',
+    })
+  })
+
+  it('titles a swap out of an NFT with both sides', () => {
+    const entry = toTxHistoryEntry(nftSwapTx)
+    expect(entry?.title).toBe('Swapped NFT → ETH')
+    expect(entry?.value).toBe('0.027 ETH')
+    expect(entry?.icon).toBe('arrowSwapHorizontalOutline')
+  })
+
+  it('values an approval by its allowance', () => {
     const entry = toTxHistoryEntry(approveTx)
+    expect(entry?.title).toBe('Approved USDC')
+    expect(entry?.value).toBe('25 USDC')
+  })
+
+  it('shows Unlimited for a max-uint approval', () => {
+    expect(toTxHistoryEntry(approveUnlimitedTx)?.value).toBe('Unlimited USDC')
+  })
+
+  it('shows the bare unit for a revoke', () => {
+    const entry = toTxHistoryEntry(revokeTx)
+    expect(entry?.title).toBe('Revoked USDC')
+    expect(entry?.value).toBe('USDC')
+  })
+
+  it('values a collection approval by the collection name', () => {
+    const entry = toTxHistoryEntry(approveCollectionTx)
+    expect(entry?.title).toBe('Approved collection')
+    expect(entry?.value).toBe('Heroes of Valdir')
+    expect(entry?.icon).toBe('patchCheck')
+  })
+
+  it('leaves value out when a token has no quantity', () => {
+    const { quantity: _q, ...noQuantity } = approveTx
+    const entry = toTxHistoryEntry(noQuantity)
     expect(entry?.title).toBe('Approved USDC')
     expect(entry && 'value' in entry).toBe(false)
   })
