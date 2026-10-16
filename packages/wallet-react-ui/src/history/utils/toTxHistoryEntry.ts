@@ -151,7 +151,8 @@ export function headlineSide(sides: AssetSides): AssetSide | undefined {
 export interface SideText {
   /** The row value and the hero headline. */
   text: string
-  /** The hero's second line: the token id of an NFT with a real name. */
+  /** The hero's second line: the token id under a named NFT, even when the
+   * name already carries it. The name is shown as the API sent it. */
   detail?: string
   /** Set only for a plain token amount with a known price. */
   usd?: number
@@ -171,10 +172,9 @@ export function describeSide(
         side.quantity && side.quantity.float > 1
           ? ` ×${formatQuantity(side.quantity)}`
           : ''
-      const named = side.nft.name !== undefined && side.nft.name !== tokenId
       return {
         text: `${side.nft.name ?? tokenId}${count}`,
-        ...(named && { detail: tokenId }),
+        ...(side.nft.name && { detail: tokenId }),
         ...(side.nft.imageUri && { imageUri: side.nft.imageUri }),
       }
     }
