@@ -3,6 +3,7 @@ export type {
   DataApiErrorResponse,
   GetTransactionHistoryQuery,
   TransactionHistoryChain,
+  TransactionHistoryCollection,
   TransactionHistoryFee,
   TransactionHistoryFees,
   TransactionHistoryItem,
