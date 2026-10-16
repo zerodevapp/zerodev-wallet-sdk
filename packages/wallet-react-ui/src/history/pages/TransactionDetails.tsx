@@ -23,7 +23,9 @@ import {
   assetSides,
   describeSide,
   formatAmount,
+  headlineFlow,
   headlineSide,
+  operationIcon,
   type SideText,
   TX_HISTORY_STATUS,
   transactionTitle,
@@ -38,22 +40,34 @@ export function TransactionDetails({
 }: TransactionDetailsProps) {
   const sides = assetSides(tx)
   const headline = headlineSide(sides)
-  const hero = headline && heroProps(describeSide(headline, tx.operation))
-  const from = sides.from && describeSide(sides.from, tx.operation)
-  const to = sides.to && describeSide(sides.to, tx.operation)
+  const title = transactionTitle(tx)
+  const asset =
+    headline && describeSide(headline, tx.operation, headlineFlow(tx, sides))
+  const from = sides.from && describeSide(sides.from, tx.operation, 'out')
+  const to = sides.to && describeSide(sides.to, tx.operation, 'in')
   const pair = from && to ? { from, to } : undefined
+  const unnamedToken =
+    headline?.kind === 'token' && !headline.token.symbol
+      ? headline.token
+      : undefined
 
   return (
     <div className="zd:flex zd:w-full zd:flex-col zd:gap-3 zd:pt-4 zd:pb-6">
-      <Text className="zd:text-center zd:text-body1">
-        {transactionTitle(tx)}
-      </Text>
-      {hero && (
-        <TokenSummary
-          {...hero}
-          {...(tx.chain.iconUri && { badgeLogoUrl: tx.chain.iconUri })}
-        />
-      )}
+      {asset && <Text className="zd:text-center zd:text-body1">{title}</Text>}
+      <TokenSummary
+        {...(asset
+          ? heroProps(asset)
+          : {
+              primaryValue: title,
+              tokenFallback: (
+                <Icon
+                  name={operationIcon(tx.operation)}
+                  className="zd:size-6"
+                />
+              ),
+            })}
+        {...(tx.chain.iconUri && { badgeLogoUrl: tx.chain.iconUri })}
+      />
       {pair && (
         <ArrowCardPair
           topCard={
@@ -69,6 +83,16 @@ export function TransactionDetails({
         <DataRow label="Network" value={<ChainValue chain={tx.chain} />} />
         <DataRow label="Date" value={formatDateTime(tx.timestamp * 1000)} />
         <DataRow label="Status" value={<StatusText status={tx.status} />} />
+        {unnamedToken?.address && (
+          <DataRow
+            label="Token"
+            value={
+              <span className="zd:text-body3 zd:text-greyScale">
+                {shortenHex(unnamedToken.address)}
+              </span>
+            }
+          />
+        )}
         {tx.fees?.network && (
           <DataRow label="Network fee" value={formatFee(tx.fees.network)} />
         )}
@@ -104,18 +128,25 @@ export function TransactionDetails({
 
 type Hero = Pick<
   TokenSummaryProps,
-  'primaryValue' | 'secondaryValue' | 'tokenLogoUrl'
+  'primaryValue' | 'secondaryValue' | 'tokenLogoUrl' | 'tokenFallback'
 >
 
 /** The headline card: the token id under an NFT's name, the USD value under
- * a token amount. */
-function heroProps(side: SideText | undefined): Hero | undefined {
-  if (!side) return undefined
+ * a token amount, initials in the tile when the asset has no image. */
+function heroProps(side: SideText): Hero {
   const secondary = secondaryLine(side)
   return {
     primaryValue: side.text,
     ...(secondary && { secondaryValue: secondary }),
-    ...(side.imageUri && { tokenLogoUrl: side.imageUri }),
+    ...(side.imageUri
+      ? { tokenLogoUrl: side.imageUri }
+      : {
+          tokenFallback: (
+            <Text className="zd:text-body1 zd:text-greyScale">
+              {side.fallback}
+            </Text>
+          ),
+        }),
   }
 }
 

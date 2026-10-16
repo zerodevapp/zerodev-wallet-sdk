@@ -28,3 +28,11 @@ transaction no longer look alike. A row keeps its token unit visible while a
 long amount truncates (`TxHistoryEntry.unit`). USD values under a cent read as
 "<$0.01". A 401 error no longer offers "Try again", since only a new sign-in
 fixes an expired session.
+
+Rows show the asset's image with the operation as a badge, falling back to the
+operation glyph. A token amount that moved carries its sign and an incoming
+one is tinted (`TxHistoryEntry.flow`, `TxHistoryEntry.imageUri`). A token
+without a symbol reads "Unknown token" and the details page lists its
+contract address. The details hero shows initials when an asset has no image
+and the operation icon when a transaction has no asset. A bid with no asset
+reads "Placed bid".

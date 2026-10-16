@@ -11,6 +11,7 @@ import {
   revokeTx,
   sendTx,
   swapTx,
+  USDC,
   unknownStatusTx,
 } from '../fixtures'
 import { TransactionDetails } from './TransactionDetails'
@@ -28,7 +29,7 @@ describe('TransactionDetails', () => {
   it('renders a send with its hero, fee, and network', () => {
     render(<TransactionDetails transaction={sendTx} />)
     expect(screen.getByText('Sent USDC')).toBeDefined()
-    expect(screen.getByText('25 USDC')).toBeDefined()
+    expect(screen.getByText('-25 USDC')).toBeDefined()
     expect(screen.getByText('$25.00')).toBeDefined()
     expect(screen.getByText('0.00021 ETH ($0.53)')).toBeDefined()
     expect(screen.getAllByText('Ethereum Sepolia').length).toBeGreaterThan(0)
@@ -38,8 +39,8 @@ describe('TransactionDetails', () => {
 
   it('renders a swap hero on the destination side and both cards', () => {
     render(<TransactionDetails transaction={swapTx} />)
-    expect(screen.getAllByText('2,498.12 USDC')).toHaveLength(2)
-    expect(screen.getByText('1 ETH')).toBeDefined()
+    expect(screen.getAllByText('+2,498.12 USDC')).toHaveLength(2)
+    expect(screen.getByText('-1 ETH')).toBeDefined()
     expect(screen.getByText('$2,500.00')).toBeDefined()
     expect(screen.getByText('2.5 USDC ($2.50)')).toBeDefined()
   })
@@ -62,7 +63,7 @@ describe('TransactionDetails', () => {
     )
     expect(screen.getAllByText('Bonfires NFT ×5')).toHaveLength(2)
     expect(screen.getAllByText('#0')).toHaveLength(2)
-    expect(screen.getByText('0.5 ETH')).toBeDefined()
+    expect(screen.getByText('-0.5 ETH')).toBeDefined()
     expect(screen.getByText('$1,250.00')).toBeDefined()
     expect(
       container.querySelectorAll(
@@ -93,9 +94,18 @@ describe('TransactionDetails', () => {
     expect(screen.getAllByText('#42')).toHaveLength(1)
   })
 
-  it('headlines an asset-less transaction with its operation', () => {
-    render(<TransactionDetails transaction={deployTx} />)
-    expect(screen.getByText('Deployed contract')).toBeDefined()
+  it('headlines an asset-less transaction with its operation in the hero', () => {
+    const { container } = render(<TransactionDetails transaction={deployTx} />)
+    expect(screen.getAllByText('Deployed contract')).toHaveLength(1)
+    expect(container.querySelector('.zd\\:pt-7 svg')).not.toBeNull()
+  })
+
+  it('shows initials in the tile and the address in the table for a bare token', () => {
+    const { symbol: _s, imageUri: _i, ...token } = USDC
+    render(<TransactionDetails transaction={{ ...sendTx, token }} />)
+    expect(screen.getByText('?')).toBeDefined()
+    expect(screen.getByText('0x1c7d...7238')).toBeDefined()
+    expect(screen.getByText('-25 Unknown token')).toBeDefined()
   })
 
   it('renders an allowance without a USD line', () => {
