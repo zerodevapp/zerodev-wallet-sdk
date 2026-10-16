@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { version } from '../../version.js'
 import { rest } from './rest.js'
 
 function makeStamper(headerName: string) {
@@ -111,6 +112,41 @@ describe('rest transport — timestamp stamp position (GET behind StampCheckUser
     expect(JSON.parse(init.body)).toEqual(body)
     expect((init.headers as Record<string, string>)['X-Stamp']).toBe(
       `signed:${signedPayload}`,
+    )
+  })
+})
+
+describe('rest transport — X-SDK-Version', () => {
+  const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ ok: true }),
+    text: async () => '{"ok":true}',
+  }))
+  const sentHeader = async (sdkVersion?: string) => {
+    fetchMock.mockClear()
+    vi.stubGlobal('fetch', fetchMock)
+    await rest('https://kms.test/api/v1', {
+      apiKeyStamper: makeStamper('X-Stamp'),
+      passkeyStamper: makeStamper('X-Stamp-Webauthn'),
+      ...(sdkVersion && { sdkVersion }),
+    }).request({ path: 'server-info/parent-org-id', method: 'GET' })
+    const [, init] = fetchMock.mock.calls[0]!
+    return (init.headers as Record<string, string>)['X-SDK-Version']
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('reports this package by default', async () => {
+    expect(await sentHeader()).toBe(`@zerodev/wallet-core@${version}`)
+  })
+
+  it('reports the wrapper package that created the wallet', async () => {
+    expect(await sentHeader('@zerodev/wallet-react@1.2.3')).toBe(
+      '@zerodev/wallet-react@1.2.3',
     )
   })
 })

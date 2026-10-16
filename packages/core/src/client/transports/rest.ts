@@ -2,6 +2,7 @@ import { canonicalizeEx } from 'json-canonicalize'
 import { RestRequestError, RestTimeoutError } from '../../errors/request.js'
 import type { Stamper } from '../../stampers/types.js'
 import type { StamperType } from '../../types/session.js'
+import { version } from '../../version.js'
 
 export type RestRequestArgs = {
   path: string
@@ -42,6 +43,8 @@ export type RestTransportConfig = {
   name?: string
   apiKeyStamper: Stamper
   passkeyStamper: Stamper
+  /** `X-SDK-Version` value; defaults to this package. */
+  sdkVersion?: string
 }
 
 export function rest(url: string, cfg: RestTransportConfig): RestTransport {
@@ -60,6 +63,8 @@ export function rest(url: string, cfg: RestTransportConfig): RestTransport {
         ...((cfg.fetchOptions?.headers as Record<string, string>) ?? {}),
         ...(args.headers ?? {}),
         'content-type': 'application/json',
+        // Lets KMS report which SDK package and version each project runs.
+        'X-SDK-Version': cfg.sdkVersion ?? `@zerodev/wallet-core@${version}`,
       }
 
       // Handle stamping if requested

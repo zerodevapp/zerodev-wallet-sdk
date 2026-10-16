@@ -1,5 +1,21 @@
 # @zerodev/wallet-react
 
+## 0.0.10
+
+### Patch Changes
+
+- 60666a9: Send an `X-SDK-Version` header on every KMS request so ZeroDev can see which SDK package and version each project runs. Apps using the UI kit report `@zerodev/wallet-react-ui@<version>`, React apps `@zerodev/wallet-react@<version>`, and core-only apps `@zerodev/wallet-core@<version>`. Requests sent directly to Turnkey don't carry it.
+- Updated dependencies [60666a9]
+  - @zerodev/wallet-core@0.0.7
+
+## 0.0.9
+
+### Patch Changes
+
+- 15716b2: Fix concurrent session refreshes across browser tabs. Every open tab refreshed at the same instant and sent its own stamp login, which Turnkey fails for one sub-org. Refresh now takes a cross-tab Web Lock and adopts a session another tab already refreshed. Writes of the shared key vault and session are serialized across tabs, while passkey prompts and OAuth popups stay outside the lock. The React provider clears local state if another tab signed in to a different account.
+- Updated dependencies [15716b2]
+  - @zerodev/wallet-core@0.0.6
+
 ## 0.0.8
 
 ### Patch Changes

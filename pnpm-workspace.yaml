@@ -20,28 +20,36 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@zerodev/*'
 
-# Acknowledged audit findings we cannot fix by bumping (verified 2026-07-08).
+# Acknowledged audit findings we cannot fix by bumping (verified 2026-10-12).
 # All are pinned by upstream packages or have no patched release. Re-check when
 # the named upstream moves; remove the entry once the finding no longer applies.
 auditConfig:
   ignoreGhsas:
-    # ws 8.18.0 memory-exhaustion DoS (high). Reached only via wagmi 2.x ->
-    # @wagmi/connectors@6.2.0 -> @walletconnect/ethereum-provider@2.21.1 (exact pin)
-    # -> @walletconnect/utils@2.21.1, which hard-pins viem@2.23.2 -> isows -> ws.
-    # wagmi 2.x is EOL; @walletconnect/utils >=2.23 drops viem entirely.
-    # Real fix: migrate apps to wagmi 3 — remove this entry then.
-    - GHSA-96hv-2xvq-fx4p
-    # ws 8.18.0 uninitialized-memory disclosure (moderate). Same pinned chain as above.
-    - GHSA-58qx-3vcg-4xpx
     # uuid v3/v5/v6 buffer bounds check (moderate), patched only in >=11.1.1.
-    # Old majors pinned by xcode@3 (uuid ^7, via expo config tooling) and
-    # @metamask/utils (uuid ^9) — even their latest releases still pin them.
-    # Not exploitable here: requires the caller to pass `buf`, these parents don't.
+    # Old major pinned by xcode@3 (uuid ^7, via expo config tooling); xcode's
+    # latest release still pins it.
+    # Not exploitable here: requires the caller to pass `buf`, xcode doesn't.
     - GHSA-w5hq-g745-h8pq
-    # postcss <8.5.10 XSS via unescaped </style> (moderate). next hard-pins
-    # postcss@8.4.31 in every 15.5.x release; build-time only, processes our own CSS.
-    - GHSA-qx2v-qp2m-jg93
-    # elliptic risky crypto primitive (low). No patched release exists (advisory has
-    # no fix version). Dev-only path: wallet-react-ui docs/build via
-    # vite-plugin-node-polyfills -> crypto-browserify.
-    - GHSA-848j-6mx2-7j84
+    # decode-uri-component <0.5.0 DoS via malformed percent-encoded input (moderate).
+    # Every expo-router release through 58.0.8 depends on query-string ^7.1.3, and
+    # query-string 7.1.3 is the last 7.x and pins decode-uri-component ^0.2.2.
+    # Only the expo-example app pulls it in. Remove this entry once expo-router
+    # depends on query-string >=9.5.
+    - GHSA-vcc3-ghjq-m6fr
+    # node-forge RSA PKCS#1 v1.5 signature check accepts extra nested
+    # DigestAlgorithm elements (high). No patched release: every version up to
+    # 1.4.0, the latest, is affected. Pulled in by @expo/cli and
+    # @expo/code-signing-certificates, development tooling only, through
+    # expo-example and the expo peer chain behind wagmi's porto connector.
+    # Remove this entry once node-forge ships a fix.
+    - GHSA-86w9-cpqp-85rv
+    # braces stack-exhaustion DoS through deeply nested patterns (high). No
+    # patched release: 3.0.3, the latest, is affected, and micromatch 4.0.8,
+    # also the latest, requires it. Reached through Metro, Changesets and the
+    # Tailwind CLI, which only expand the repo's own glob patterns.
+    - GHSA-vfj7-8cjw-p6xm
+    # sprintf-js DoS through unbounded precision specifiers (moderate). No
+    # patched release: every version up to 1.1.3, the latest, is affected.
+    # Pulled in by argparse 1 through js-yaml 3, from Changesets 2, Istanbul's
+    # nyc config loader and nativewind. They only format their own strings.
+    - GHSA-hp3w-g68c-fv3c
