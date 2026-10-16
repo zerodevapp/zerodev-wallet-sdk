@@ -1,0 +1,22 @@
+import { describe, expect, it } from 'vitest'
+import { formatDateTime, formatUsd } from './format'
+
+describe('formatUsd', () => {
+  it('formats dollars with cents and grouping', () => {
+    expect(formatUsd(2498.12)).toBe('$2,498.12')
+    expect(formatUsd(0.525)).toBe('$0.53')
+  })
+
+  it('floors a positive amount under a cent instead of showing $0.00', () => {
+    expect(formatUsd(0.004)).toBe('<$0.01')
+    expect(formatUsd(0.005)).toBe('$0.01')
+    expect(formatUsd(0)).toBe('$0.00')
+  })
+})
+
+describe('formatDateTime', () => {
+  it('formats a local date and time', () => {
+    const timestamp = new Date(2026, 8, 21, 15, 4).getTime()
+    expect(formatDateTime(timestamp)).toBe('Sep 21, 2026, 3:04 PM')
+  })
+})

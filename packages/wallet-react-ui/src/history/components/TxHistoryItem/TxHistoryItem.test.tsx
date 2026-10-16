@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // The real Icon resolves svgs through a vite `?react` glob that the root
@@ -15,7 +15,7 @@ vi.mock('@zerodev/react-ui', async (importOriginal) => {
   }
 })
 
-import { TxHistoryItem } from './index'
+import { TxHistoryItem, TxHistoryItemSkeleton } from './index'
 
 afterEach(() => {
   cleanup()
@@ -23,9 +23,9 @@ afterEach(() => {
 
 const baseProps = {
   icon: 'arrowSwapHorizontalOutline',
-  title: 'Swapped ETH → USD₮0',
-  value: '2,343 ETH',
-  chainName: 'Arbitrum One',
+  title: 'Swapped ETH → USDC',
+  value: '2,343 USDC',
+  chain: { name: 'Arbitrum' },
   status: 'Pending',
 } as const
 
@@ -33,43 +33,72 @@ describe('TxHistoryItem', () => {
   describe('rendering', () => {
     it('renders title, value, chain and status', () => {
       render(<TxHistoryItem {...baseProps} />)
-      expect(screen.getByText('Swapped ETH → USD₮0')).toBeDefined()
-      expect(screen.getByText('2,343 ETH')).toBeDefined()
-      expect(screen.getByText('Arbitrum One')).toBeDefined()
+      expect(screen.getByText('Swapped ETH → USDC')).toBeDefined()
+      expect(screen.getByText('2,343 USDC')).toBeDefined()
+      expect(screen.getByText('Arbitrum')).toBeDefined()
       expect(screen.getByText('Pending')).toBeDefined()
       expect(
         screen.getByTestId('icon-arrowSwapHorizontalOutline'),
       ).toBeDefined()
     })
 
-    it('renders the chain icon when a URL is supplied', () => {
+    it('renders the chain icon when the chain has one', () => {
       const { container } = render(
-        <TxHistoryItem {...baseProps} chainIconUrl="https://x/arb.png" />,
+        <TxHistoryItem
+          {...baseProps}
+          chain={{ name: 'Arbitrum', iconUri: 'https://x/arb.png' }}
+        />,
       )
       const img = container.querySelector('img[src="https://x/arb.png"]')
       expect(img).not.toBeNull()
     })
 
-    it('renders no img element without icon URLs', () => {
+    it('renders no img element without a chain icon', () => {
       const { container } = render(<TxHistoryItem {...baseProps} />)
       expect(container.querySelector('img')).toBeNull()
     })
-  })
 
-  describe('destination chain', () => {
-    it('renders the destination chain when provided', () => {
-      render(<TxHistoryItem {...baseProps} destChainName="Base" />)
-      expect(screen.getByText('Base')).toBeDefined()
+    it('keeps the unit in its own span so the amount truncates first', () => {
+      render(
+        <TxHistoryItem
+          {...baseProps}
+          value="0.000000000000000001 ETH"
+          unit="ETH"
+        />,
+      )
+      expect(screen.getByText('0.000000000000000001')).toBeDefined()
+      expect(screen.getByText('ETH')).toBeDefined()
     })
 
-    it('omits the arrow separator for single-chain rows', () => {
-      render(<TxHistoryItem {...baseProps} />)
-      expect(screen.queryByTestId('icon-arrowRightFill')).toBeNull()
+    it('shows the asset image with the operation as a badge', () => {
+      const { container } = render(
+        <TxHistoryItem {...baseProps} imageUri="https://x/usdc.png" />,
+      )
+      expect(
+        container.querySelector('img[src="https://x/usdc.png"]'),
+      ).not.toBeNull()
+      expect(
+        screen.getByTestId('icon-arrowSwapHorizontalOutline'),
+      ).toBeDefined()
     })
 
-    it('renders the arrow separator between the two chains', () => {
-      render(<TxHistoryItem {...baseProps} destChainName="Base" />)
-      expect(screen.getByTestId('icon-arrowRightFill')).toBeDefined()
+    it('falls back to the operation glyph when the image fails to load', () => {
+      const { container } = render(
+        <TxHistoryItem {...baseProps} imageUri="https://x/broken.png" />,
+      )
+      const img = container.querySelector('img[src="https://x/broken.png"]')
+      fireEvent.error(img as Element)
+      expect(container.querySelector('img')).toBeNull()
+      expect(
+        screen.getByTestId('icon-arrowSwapHorizontalOutline'),
+      ).toBeDefined()
+    })
+
+    it('renders without a value', () => {
+      const { value: _, ...withoutValue } = baseProps
+      render(<TxHistoryItem {...withoutValue} />)
+      expect(screen.getByText('Swapped ETH → USDC')).toBeDefined()
+      expect(screen.queryByText('2,343 USDC')).toBeNull()
     })
   })
 
@@ -78,10 +107,19 @@ describe('TxHistoryItem', () => {
       ['Pending', 'zd:text-solarOrange'],
       ['Success', 'zd:text-positive'],
       ['Failed', 'zd:text-negative'],
+      ['Unknown', 'zd:text-greyScale/50'],
     ] as const)('%s uses %s', (status, className) => {
       render(<TxHistoryItem {...baseProps} status={status} />)
       const el = screen.getByText(status)
       expect(el.className).toContain(className)
     })
+  })
+})
+
+describe('TxHistoryItemSkeleton', () => {
+  it('renders placeholder blocks and no text', () => {
+    render(<TxHistoryItemSkeleton />)
+    const skeleton = screen.getByTestId('tx-history-item-skeleton')
+    expect(skeleton.textContent).toBe('')
   })
 })

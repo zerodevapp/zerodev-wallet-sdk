@@ -62,3 +62,22 @@ the server ignores it whenever `next` is present and follows the cursor instead.
 The Data API origin is required while this feature is in private preview. A URL
 embedded in a browser or React Native application is observable and should be
 treated as feature configuration, not as a secret.
+
+## Test fixtures
+
+`@zerodev/wallet-data/fixtures` re-exports the Data API contract's fixtures: one
+transaction history item per shape the API produces, keyed by a stable id, for
+tests and stories.
+
+```ts
+import {
+  TRANSACTION_HISTORY_FIXTURES,
+  TRANSACTION_HISTORY_FIXTURE_IDS,
+} from '@zerodev/wallet-data/fixtures'
+
+const approval = TRANSACTION_HISTORY_FIXTURES.approveUnlimited
+```
+
+Ids are never removed. The values behind them are test data and may change in
+any release to track the API. The subpath is its own module graph, so importing
+the root entry never loads the fixtures.

@@ -141,6 +141,7 @@
       "includes": [
         "**/src/index.ts",
         "**/src/index.native.ts",
+        "**/src/fixtures.ts",
         "**/actions/index.ts",
         "**/auth/index.ts",
         "**/wallet/index.ts",

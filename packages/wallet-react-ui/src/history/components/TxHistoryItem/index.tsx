@@ -1,39 +1,37 @@
 import { cn, Icon, type IconName, Text } from '@zerodev/react-ui'
+import { useState } from 'react'
+import type { TxHistoryStatus } from '../../types'
 
-export type TxHistoryStatus = 'Pending' | 'Success' | 'Failed'
-
-const STATUS_COLOR: Record<TxHistoryStatus, string> = {
+export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
   Pending: 'zd:text-solarOrange',
   Success: 'zd:text-positive',
   Failed: 'zd:text-negative',
+  Unknown: 'zd:text-greyScale/50',
 }
 
 export interface TxHistoryItemProps {
-  /** Leading glyph for the activity kind, e.g. `'arrowSwapHorizontalOutline'`
-   * for swaps, `'lighting'` for staking/yield, `'imageFill'` for NFTs. */
+  /** The operation glyph: the tile when there is no image, a badge on it otherwise. */
   icon: IconName
-  /** Activity label, e.g. `"Swapped ETH → USD₮0"`. Never truncated. */
+  /** The asset image for the tile. Falls back to the glyph if it fails to load. */
+  imageUri?: string
+  /** Truncates when long; the value keeps its space. */
   title: string
-  /** Pre-formatted outcome, e.g. `"2,343 ETH"`. Truncates when long. */
-  value: string
-  /** Chain the transaction ran on (source chain for cross-chain rows). */
-  chainName: string
-  chainIconUrl?: string
-  /** Destination chain. When present the row renders `chain → destChain`. */
-  destChainName?: string
-  destChainIconUrl?: string
+  /** Truncates past roughly half the row. */
+  value?: string
+  /** The unit `value` ends with; it stays visible while the amount truncates. */
+  unit?: string
+  chain: { name: string; iconUri?: string | undefined }
   status: TxHistoryStatus
   className?: string
 }
 
 export function TxHistoryItem({
   icon,
+  imageUri,
   title,
   value,
-  chainName,
-  chainIconUrl,
-  destChainName,
-  destChainIconUrl,
+  unit,
+  chain,
   status,
   className,
 }: TxHistoryItemProps) {
@@ -44,42 +42,37 @@ export function TxHistoryItem({
         className,
       )}
     >
-      <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-white">
-        <Icon name={icon} className="zd:size-5" />
-      </div>
+      <Tile icon={icon} imageUri={imageUri} />
 
       <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
-          <Text className="zd:shrink-0 zd:whitespace-nowrap zd:text-body1">
-            {title}
-          </Text>
-          <Text className="zd:min-w-0 zd:truncate zd:text-right zd:text-body1">
-            {value}
-          </Text>
+          <Text className="zd:min-w-0 zd:truncate zd:text-body1">{title}</Text>
+          {value && (
+            <Text className="zd:flex zd:max-w-[55%] zd:shrink-0 zd:justify-end zd:text-right zd:text-body1">
+              <RowValue value={value} unit={unit} />
+            </Text>
+          )}
         </div>
 
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
-          <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-2">
-            <ChainTag
-              name={chainName}
-              {...(chainIconUrl && { iconUrl: chainIconUrl })}
-            />
-            {destChainName && (
-              <>
-                <Icon
-                  name="arrowRightFill"
+          <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-[5px]">
+            {chain.iconUri && (
+              <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-white">
+                <img
+                  src={chain.iconUri}
+                  alt=""
                   aria-hidden
-                  className="zd:size-3 zd:shrink-0 zd:opacity-30"
+                  className="zd:size-full zd:object-cover"
                 />
-                <ChainTag
-                  name={destChainName}
-                  {...(destChainIconUrl && { iconUrl: destChainIconUrl })}
-                />
-              </>
+              </span>
             )}
+            <Text className="zd:truncate zd:text-body3">{chain.name}</Text>
           </div>
           <Text
-            className={cn('zd:shrink-0 zd:text-body3', STATUS_COLOR[status])}
+            className={cn(
+              'zd:shrink-0 zd:text-body3',
+              TX_HISTORY_STATUS_COLOR[status],
+            )}
           >
             {status}
           </Text>
@@ -89,20 +82,92 @@ export function TxHistoryItem({
   )
 }
 
-function ChainTag({ name, iconUrl }: { name: string; iconUrl?: string }) {
+/** The asset image with the operation as a badge, or the operation alone. */
+function Tile({
+  icon,
+  imageUri,
+}: {
+  icon: IconName
+  imageUri: string | undefined
+}) {
+  const [failed, setFailed] = useState(false)
+  const image = imageUri && !failed ? imageUri : undefined
   return (
-    <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-[5px]">
-      {iconUrl && (
-        <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-white">
+    <div className="zd:relative zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-white">
+      {image ? (
+        <>
           <img
-            src={iconUrl}
+            src={image}
             alt=""
             aria-hidden
-            className="zd:size-full zd:object-cover"
+            onError={() => setFailed(true)}
+            className="zd:size-8 zd:rounded-full zd:object-cover"
           />
-        </span>
+          <span className="zd:absolute zd:-right-1 zd:-bottom-1 zd:flex zd:size-5 zd:items-center zd:justify-center zd:rounded-full zd:bg-white zd:shadow-sm">
+            <Icon name={icon} className="zd:size-3" />
+          </span>
+        </>
+      ) : (
+        <Icon name={icon} className="zd:size-5" />
       )}
-      <Text className="zd:truncate zd:text-body3">{name}</Text>
+    </div>
+  )
+}
+
+/**
+ * An amount gives way before its unit: the amount shrinks a thousand times
+ * faster, so a long amount truncates first. A unit is capped at a fixed
+ * width that every ordinary symbol fits in, so a long symbol truncates
+ * and leaves the amount legible. (A share of the column would not work:
+ * the column shrink-wraps its content, so the share would be circular.)
+ * Anything without a unit truncates as a whole. The unit spells out the
+ * truncate utilities so `whitespace-pre`, which keeps its leading space, is
+ * not undone by a second zd-prefixed stylesheet on the page re-declaring
+ * `truncate` after it.
+ */
+function RowValue({
+  value,
+  unit,
+}: {
+  value: string
+  unit: string | undefined
+}) {
+  const suffix = unit && ` ${unit}`
+  if (!suffix || !value.endsWith(suffix)) {
+    return <span className="zd:min-w-0 zd:truncate">{value}</span>
+  }
+  return (
+    <>
+      <span className="zd:min-w-0 zd:shrink-[1000] zd:truncate">
+        {value.slice(0, -suffix.length)}
+      </span>
+      <span className="zd:min-w-0 zd:max-w-20 zd:overflow-hidden zd:text-ellipsis zd:whitespace-pre">
+        {suffix}
+      </span>
+    </>
+  )
+}
+
+export function TxHistoryItemSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      data-testid="tx-history-item-skeleton"
+      className={cn(
+        'zd:flex zd:w-full zd:items-center zd:gap-2 zd:p-2',
+        className,
+      )}
+    >
+      <div className="zd:size-11 zd:shrink-0 zd:rounded-xl zd:bg-greyScale/15 zd:animate-skel-pulse" />
+      <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
+        <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
+          <div className="zd:h-3 zd:w-28 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-16 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        </div>
+        <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
+          <div className="zd:h-3 zd:w-20 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-12 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        </div>
+      </div>
     </div>
   )
 }

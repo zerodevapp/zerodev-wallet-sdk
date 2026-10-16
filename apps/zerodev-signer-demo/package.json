@@ -17,6 +17,7 @@
     "@zerodev/react-ui": "workspace:*",
     "@zerodev/sdk": "^5.0.0",
     "@zerodev/wallet-core": "workspace:*",
+    "@zerodev/wallet-data": "workspace:*",
     "@zerodev/wallet-react": "workspace:*",
     "@zerodev/wallet-react-ui": "workspace:*",
     "class-variance-authority": "^0.7.1",
@@ -29,6 +30,7 @@
     "tailwind-merge": "^3.3.1",
     "viem": "2.55.5",
     "wagmi": "^3.0.0",
+    "zod": "^4.1.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
