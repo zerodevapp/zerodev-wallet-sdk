@@ -69,16 +69,26 @@ describe('TransactionDetails', () => {
     ).toHaveLength(2)
   })
 
-  it('shows the token id once when it is also the NFT name', () => {
+  it('shows the token id under the hero whatever the NFT name contains', () => {
     render(
       <TransactionDetails
         transaction={{
           ...nftMintTx,
-          nft: { tokenId: '30019', name: '#30019' },
+          nft: { tokenId: '1974', name: 'Rexy #1974' },
         }}
       />,
     )
-    expect(screen.getAllByText('#30019')).toHaveLength(1)
+    expect(screen.getByText('Rexy #1974')).toBeDefined()
+    expect(screen.getByText('#1974')).toBeDefined()
+  })
+
+  it('shows only the token id when the NFT has no name', () => {
+    render(
+      <TransactionDetails
+        transaction={{ ...nftMintTx, nft: { tokenId: '42' } }}
+      />,
+    )
+    expect(screen.getAllByText('#42')).toHaveLength(1)
   })
 
   it('renders an allowance without a USD line', () => {
