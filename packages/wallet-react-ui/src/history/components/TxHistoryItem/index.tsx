@@ -1,4 +1,5 @@
 import { cn, Icon, type IconName, Text } from '@zerodev/react-ui'
+import { useState } from 'react'
 import type { TxHistoryStatus } from '../../types'
 
 export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
@@ -9,13 +10,18 @@ export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
 }
 
 export interface TxHistoryItemProps {
+  /** The operation glyph: the tile when there is no image, a badge on it otherwise. */
   icon: IconName
+  /** The asset image for the tile. Falls back to the glyph if it fails to load. */
+  imageUri?: string
   /** Truncates when long; the value keeps its space. */
   title: string
   /** Truncates past roughly half the row. */
   value?: string
   /** The unit `value` ends with; it stays visible while the amount truncates. */
   unit?: string
+  /** An incoming amount is tinted; an outgoing one is not. */
+  flow?: 'in' | 'out'
   chain: { name: string; iconUri?: string | undefined }
   status: TxHistoryStatus
   className?: string
@@ -23,9 +29,11 @@ export interface TxHistoryItemProps {
 
 export function TxHistoryItem({
   icon,
+  imageUri,
   title,
   value,
   unit,
+  flow,
   chain,
   status,
   className,
@@ -37,15 +45,18 @@ export function TxHistoryItem({
         className,
       )}
     >
-      <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-white">
-        <Icon name={icon} className="zd:size-5" />
-      </div>
+      <Tile icon={icon} imageUri={imageUri} />
 
       <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
           <Text className="zd:min-w-0 zd:truncate zd:text-body1">{title}</Text>
           {value && (
-            <Text className="zd:flex zd:max-w-[55%] zd:shrink-0 zd:justify-end zd:text-right zd:text-body1">
+            <Text
+              className={cn(
+                'zd:flex zd:max-w-[55%] zd:shrink-0 zd:justify-end zd:text-right zd:text-body1',
+                flow === 'in' && 'zd:text-positive',
+              )}
+            >
               <RowValue value={value} unit={unit} />
             </Text>
           )}
@@ -75,6 +86,38 @@ export function TxHistoryItem({
           </Text>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** The asset image with the operation as a badge, or the operation alone. */
+function Tile({
+  icon,
+  imageUri,
+}: {
+  icon: IconName
+  imageUri: string | undefined
+}) {
+  const [failed, setFailed] = useState(false)
+  const image = imageUri && !failed ? imageUri : undefined
+  return (
+    <div className="zd:relative zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-white">
+      {image ? (
+        <>
+          <img
+            src={image}
+            alt=""
+            aria-hidden
+            onError={() => setFailed(true)}
+            className="zd:size-8 zd:rounded-full zd:object-cover"
+          />
+          <span className="zd:absolute zd:-right-1 zd:-bottom-1 zd:flex zd:size-5 zd:items-center zd:justify-center zd:rounded-full zd:bg-white zd:shadow-sm">
+            <Icon name={icon} className="zd:size-3" />
+          </span>
+        </>
+      ) : (
+        <Icon name={icon} className="zd:size-5" />
+      )}
     </div>
   )
 }

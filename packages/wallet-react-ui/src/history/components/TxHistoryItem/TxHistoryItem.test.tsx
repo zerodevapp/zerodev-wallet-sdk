@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // The real Icon resolves svgs through a vite `?react` glob that the root
@@ -68,6 +68,39 @@ describe('TxHistoryItem', () => {
       )
       expect(screen.getByText('0.000000000000000001')).toBeDefined()
       expect(screen.getByText('ETH')).toBeDefined()
+    })
+
+    it('shows the asset image with the operation as a badge', () => {
+      const { container } = render(
+        <TxHistoryItem {...baseProps} imageUri="https://x/usdc.png" />,
+      )
+      expect(
+        container.querySelector('img[src="https://x/usdc.png"]'),
+      ).not.toBeNull()
+      expect(
+        screen.getByTestId('icon-arrowSwapHorizontalOutline'),
+      ).toBeDefined()
+    })
+
+    it('falls back to the operation glyph when the image fails to load', () => {
+      const { container } = render(
+        <TxHistoryItem {...baseProps} imageUri="https://x/broken.png" />,
+      )
+      const img = container.querySelector('img[src="https://x/broken.png"]')
+      fireEvent.error(img as Element)
+      expect(container.querySelector('img')).toBeNull()
+      expect(
+        screen.getByTestId('icon-arrowSwapHorizontalOutline'),
+      ).toBeDefined()
+    })
+
+    it('tints an incoming amount', () => {
+      render(
+        <TxHistoryItem {...baseProps} value="+5 USDC" unit="USDC" flow="in" />,
+      )
+      expect(screen.getByText('+5').parentElement?.className).toContain(
+        'zd:text-positive',
+      )
     })
 
     it('renders without a value', () => {

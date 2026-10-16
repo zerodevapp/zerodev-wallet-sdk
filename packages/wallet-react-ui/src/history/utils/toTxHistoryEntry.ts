@@ -9,21 +9,21 @@ import type {
   TransactionHistoryToken,
   TransactionHistoryTransaction,
 } from '@zerodev/wallet-data'
-import { shortenHex } from '../../shared/utils/common'
 import type { TxHistoryEntry, TxHistoryStatus } from '../types'
 
+/** `bare` is the title when there is no asset to name; it defaults to `verb`. */
 const OPERATION: Record<
   TransactionHistoryOperation,
-  { verb: string; icon: IconName }
+  { verb: string; bare?: string; icon: IconName }
 > = {
   approve: { verb: 'Approved', icon: 'patchCheck' },
-  bid: { verb: 'Bid on', icon: 'tags' },
+  bid: { verb: 'Bid on', bare: 'Placed bid', icon: 'tags' },
   burn: { verb: 'Burned', icon: 'flame' },
   claim: { verb: 'Claimed', icon: 'lighting' },
   delegate: { verb: 'Delegated', icon: 'user' },
   deploy: { verb: 'Deployed contract', icon: 'bezierCurve' },
   deposit: { verb: 'Deposited', icon: 'circleArrowDown' },
-  execute: { verb: 'Executed', icon: 'transaction' },
+  execute: { verb: 'Executed', icon: 'transactionOutline' },
   mint: { verb: 'Minted', icon: 'stars' },
   receive: { verb: 'Received', icon: 'circleArrowDown' },
   revoke: { verb: 'Revoked', icon: 'x' },
@@ -31,8 +31,29 @@ const OPERATION: Record<
   send: { verb: 'Sent', icon: 'circleArrowUp' },
   swap: { verb: 'Swapped', icon: 'arrowSwapHorizontalOutline' },
   withdraw: { verb: 'Withdrew', icon: 'circleArrowUp' },
-  other: { verb: 'Transaction', icon: 'transaction' },
+  other: { verb: 'Transaction', icon: 'transactionOutline' },
 }
+
+export function operationIcon(
+  operation: TransactionHistoryOperation,
+): IconName {
+  return OPERATION[operation].icon
+}
+
+export type Flow = 'in' | 'out'
+
+/** Which way a token amount moved for the wallet. Allowances, NFTs, and
+ * operations that are neither (deploy, execute) have no flow. */
+const FLOW: Partial<Record<TransactionHistoryOperation, Flow>> = {
+  receive: 'in',
+  claim: 'in',
+  withdraw: 'in',
+  send: 'out',
+  burn: 'out',
+  deposit: 'out',
+}
+
+const FLOW_SIGN: Record<Flow, string> = { in: '+', out: '-' }
 
 export const TX_HISTORY_STATUS: Record<
   TransactionHistoryStatus,
@@ -69,12 +90,21 @@ export function formatQuantity(q: TransactionHistoryQuantity): string {
   return fraction.format(q.float)
 }
 
-/** Symbol, else the shortened contract address, else a placeholder. */
+/** The symbol, else a placeholder. The contract address is shown on the
+ * details page instead of standing in for a symbol. */
 export function tokenUnit(token: TransactionHistoryToken): string {
-  return (
-    token.symbol ??
-    (token.address ? shortenHex(token.address) : 'Unknown token')
-  )
+  return token.symbol ?? 'Unknown token'
+}
+
+/** Up to three characters standing in for a missing image: the start of a
+ * one-word label, the initials of a longer one. */
+export function initials(label: string): string {
+  const words = label.split(/\s+/).filter(Boolean)
+  if (words.length <= 1) return label.slice(0, 3).toUpperCase()
+  return words
+    .slice(0, 3)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('')
 }
 
 export function formatAmount(
@@ -169,7 +199,20 @@ export interface SideText {
   detail?: string
   /** Set only for a plain token amount with a known price. */
   usd?: number
+  /** Set for a plain token amount that moved in or out of the wallet. */
+  flow?: Flow
   imageUri?: string
+  /** Text standing in for the image when there is none. */
+  fallback: string
+}
+
+/** The flow of a transaction's own side: the counter-side of a swap or mint
+ * came in, the single side follows the operation. */
+export function headlineFlow(
+  tx: TransactionHistoryTransaction,
+  sides: AssetSides,
+): Flow | undefined {
+  return sides.to ? 'in' : FLOW[tx.operation]
 }
 
 /** Undefined when the side has nothing to show: a token without a quantity
@@ -177,6 +220,7 @@ export interface SideText {
 export function describeSide(
   side: AssetSide,
   operation: TransactionHistoryOperation,
+  flow?: Flow,
 ): SideText | undefined {
   switch (side.kind) {
     case 'nft': {
@@ -185,10 +229,12 @@ export function describeSide(
         side.quantity && side.quantity.float > 1
           ? ` ×${formatQuantity(side.quantity)}`
           : ''
+      const name = side.nft.name ?? tokenId
       return {
-        text: `${side.nft.name ?? tokenId}${count}`,
+        text: `${name}${count}`,
         ...(side.nft.name && { detail: tokenId }),
         ...(side.nft.imageUri && { imageUri: side.nft.imageUri }),
+        fallback: initials(side.nft.name ?? 'NFT'),
       }
     }
     case 'collection':
@@ -198,25 +244,31 @@ export function describeSide(
         ...(side.collection.imageUri && {
           imageUri: side.collection.imageUri,
         }),
+        fallback: initials(side.collection.name),
       }
     case 'token': {
       if (!side.quantity) return undefined
       const image = side.token.imageUri && { imageUri: side.token.imageUri }
       const unit = tokenUnit(side.token)
+      const fallback = initials(side.token.symbol ?? '?')
       if (ALLOWANCE_OPERATIONS.has(operation)) {
         return {
           text: formatAllowance(side.quantity, side.token),
           unit,
           ...image,
+          fallback,
         }
       }
+      const sign = flow ? FLOW_SIGN[flow] : ''
       return {
-        text: formatAmount(side.quantity, side.token),
+        text: `${sign}${formatAmount(side.quantity, side.token)}`,
         unit,
         ...(side.token.priceUsd !== null && {
           usd: side.quantity.float * side.token.priceUsd,
         }),
+        ...(flow && { flow }),
         ...image,
+        fallback,
       }
     }
   }
@@ -245,7 +297,7 @@ function title(tx: TransactionHistoryTransaction, sides: AssetSides): string {
   const to = sides.to && sideLabel(sides.to)
   if (tx.operation === 'swap' && from && to) return `${verb} ${from} → ${to}`
   const label = to ?? from
-  return label ? `${verb} ${label}` : verb
+  return label ? `${verb} ${label}` : (OPERATION[tx.operation].bare ?? verb)
 }
 
 export function toTxHistoryEntry(
@@ -264,7 +316,9 @@ export function toTxHistoryEntry(
   }
   const sides = assetSides(item)
   const headline = headlineSide(sides)
-  const described = headline && describeSide(headline, item.operation)
+  const described =
+    headline &&
+    describeSide(headline, item.operation, headlineFlow(item, sides))
   return {
     id: item.id,
     icon:
@@ -272,6 +326,8 @@ export function toTxHistoryEntry(
     title: title(item, sides),
     ...(described && { value: described.text }),
     ...(described?.unit && { unit: described.unit }),
+    ...(described?.flow && { flow: described.flow }),
+    ...(described?.imageUri && { imageUri: described.imageUri }),
     chain: item.chain,
     status: TX_HISTORY_STATUS[item.status],
     timestampMs: item.timestamp * 1000,

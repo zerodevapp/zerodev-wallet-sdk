@@ -33,13 +33,13 @@ const OPERATIONS: Record<
   { title: string; icon: string }
 > = {
   approve: { title: 'Approved', icon: 'patchCheck' },
-  bid: { title: 'Bid on', icon: 'tags' },
+  bid: { title: 'Placed bid', icon: 'tags' },
   burn: { title: 'Burned', icon: 'flame' },
   claim: { title: 'Claimed', icon: 'lighting' },
   delegate: { title: 'Delegated', icon: 'user' },
   deploy: { title: 'Deployed contract', icon: 'bezierCurve' },
   deposit: { title: 'Deposited', icon: 'circleArrowDown' },
-  execute: { title: 'Executed', icon: 'transaction' },
+  execute: { title: 'Executed', icon: 'transactionOutline' },
   mint: { title: 'Minted', icon: 'stars' },
   receive: { title: 'Received', icon: 'circleArrowDown' },
   revoke: { title: 'Revoked', icon: 'x' },
@@ -47,7 +47,7 @@ const OPERATIONS: Record<
   send: { title: 'Sent', icon: 'circleArrowUp' },
   swap: { title: 'Swapped', icon: 'arrowSwapHorizontalOutline' },
   withdraw: { title: 'Withdrew', icon: 'circleArrowUp' },
-  other: { title: 'Transaction', icon: 'transaction' },
+  other: { title: 'Transaction', icon: 'transactionOutline' },
 }
 
 const STATUSES: Record<TransactionHistoryStatus, TxHistoryStatus> = {
@@ -87,20 +87,42 @@ describe('toTxHistoryEntry', () => {
       id: sendTx.id,
       icon: 'circleArrowUp',
       title: 'Sent USDC',
-      value: '25 USDC',
+      value: '-25 USDC',
       unit: 'USDC',
+      flow: 'out',
+      imageUri: 'https://cdn.zerion.io/usdc.png',
       status: 'Success',
       timestampMs: sendTx.timestamp * 1000,
       transaction: sendTx,
     })
-    expect(toTxHistoryEntry(receiveTx)?.value).toBe('0.5 ETH')
+    expect(toTxHistoryEntry(receiveTx)).toMatchObject({
+      value: '+0.5 ETH',
+      flow: 'in',
+    })
   })
 
-  it('uses the shortened address as the unit when a token has no symbol', () => {
+  it('calls a token without a symbol "Unknown token"', () => {
     const { symbol: _symbol, ...token } = USDC
     const entry = toTxHistoryEntry({ ...sendTx, token })
     expect(entry?.title).toBe('Sent')
-    expect(entry?.value).toBe('25 0x1c7d...7238')
+    expect(entry?.value).toBe('-25 Unknown token')
+  })
+
+  it('signs only amounts that moved, never allowances or NFTs', () => {
+    expect(toTxHistoryEntry(approveTx)?.value).toBe('25 USDC')
+    expect(
+      toTxHistoryEntry(approveTx) && 'flow' in toTxHistoryEntry(approveTx)!,
+    ).toBe(false)
+    expect(toTxHistoryEntry(nftMintTx)?.value).toBe('ZeroDev Pass')
+  })
+
+  it('names the bid when there is an asset and stands alone without one', () => {
+    expect(toTxHistoryEntry({ ...sendTx, operation: 'bid' })?.title).toBe(
+      'Bid on USDC',
+    )
+    expect(toTxHistoryEntry({ ...deployTx, operation: 'bid' })?.title).toBe(
+      'Placed bid',
+    )
   })
 
   it('passes the item chain through', () => {
@@ -110,7 +132,7 @@ describe('toTxHistoryEntry', () => {
   it('titles a swap with both symbols and values it by the destination side', () => {
     const entry = toTxHistoryEntry(swapTx)
     expect(entry?.title).toBe('Swapped ETH → USDC')
-    expect(entry?.value).toBe('2,498.12 USDC')
+    expect(entry?.value).toBe('+2,498.12 USDC')
   })
 
   it('values a swap without a destination by its source side', () => {
@@ -166,7 +188,7 @@ describe('toTxHistoryEntry', () => {
   it('titles a swap out of an NFT with both sides', () => {
     const entry = toTxHistoryEntry(nftSwapTx)
     expect(entry?.title).toBe('Swapped NFT → ETH')
-    expect(entry?.value).toBe('0.027 ETH')
+    expect(entry?.value).toBe('+0.027 ETH')
     expect(entry?.icon).toBe('arrowSwapHorizontalOutline')
   })
 
