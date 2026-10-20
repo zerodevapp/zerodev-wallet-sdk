@@ -49,8 +49,11 @@ export function useSolanaWalletConnectPairing(): WalletConnectPairing {
       })
       .catch((err) => {
         settled = true
-        if (isCancellationError(err)) return
-        setError(errorMessage(err))
+        // A decline on the phone kills the proposal, so the QR is dead: say
+        // so and offer Try again, as the EVM sheet does for a rejection.
+        setError(
+          isCancellationError(err) ? 'Connection declined' : errorMessage(err),
+        )
       })
     return () => {
       provider.off('display_uri', onUri)

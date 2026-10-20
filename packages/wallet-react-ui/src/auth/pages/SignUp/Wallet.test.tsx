@@ -20,6 +20,9 @@ vi.mock('../../hooks/useWalletConnectPairing', () => ({
     deepLinkFor: () => deepLink.value,
   }),
 }))
+vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
+  useSolanaAutoReconnect: () => {},
+}))
 
 // Sibling units pull in wagmi/wallet-react hooks — replace them with stubs so
 // the tests exercise the Wallet unit against the real root (context, gate).
