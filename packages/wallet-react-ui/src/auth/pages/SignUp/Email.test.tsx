@@ -16,6 +16,9 @@ vi.mock('../../hooks/useWalletConnectPairing', () => ({
     deepLinkFor: () => null,
   }),
 }))
+vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
+  useSolanaAutoReconnect: () => {},
+}))
 
 const { sendMagicLink, sendOtp } = vi.hoisted(() => ({
   sendMagicLink: vi.fn().mockResolvedValue({

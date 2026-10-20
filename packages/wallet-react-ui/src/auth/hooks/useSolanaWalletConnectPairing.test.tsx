@@ -102,7 +102,7 @@ describe('useSolanaWalletConnectPairing', () => {
     expect(result.current.uri).toBe('wc:abc@2?relay')
   })
 
-  it('shows a raw WalletConnect rejection message, and hides a user rejection', async () => {
+  it('shows a raw WalletConnect rejection message, and a decline as "Connection declined"', async () => {
     const first = pairing()
     const { result, unmount } = renderHook(() =>
       useSolanaWalletConnectPairing(),
@@ -122,8 +122,9 @@ describe('useSolanaWalletConnectPairing', () => {
     await act(async () =>
       second.fail({ code: 5000, message: 'User rejected.' }),
     )
-    await act(async () => {})
-    expect(rendered.result.current.error).toBeNull()
+    await waitFor(() =>
+      expect(rendered.result.current.error).toBe('Connection declined'),
+    )
   })
 
   it('retries the SDK load, not the pairing, after a failed load', () => {
