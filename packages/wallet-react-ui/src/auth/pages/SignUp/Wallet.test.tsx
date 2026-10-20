@@ -23,6 +23,14 @@ vi.mock('../../hooks/useWalletConnectPairing', () => ({
 vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
   useSolanaAutoReconnect: () => {},
 }))
+vi.mock('../../hooks/useSolanaWalletConnectPairing', () => ({
+  useSolanaWalletConnectPairing: () => ({
+    uri: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => null,
+  }),
+}))
 
 // Sibling units pull in wagmi/wallet-react hooks — replace them with stubs so
 // the tests exercise the Wallet unit against the real root (context, gate).
@@ -61,7 +69,7 @@ type FakeConnector = {
   type?: string
   zdWalletConnect?: boolean
 }
-// The root renders the single WalletSheet; probe its props instead of
+// The root renders the WalletSheets; probe their props instead of
 // pulling radix + the pairing hook into these tests.
 const sheetProps = vi.fn()
 vi.mock('../../components/WalletSheet', () => ({
@@ -70,6 +78,13 @@ vi.mock('../../components/WalletSheet', () => ({
     return null
   },
 }))
+// The root also renders the Solana sheet (the one with a hint) after the
+// EVM one; probe the last EVM render.
+const evmSheet = () =>
+  sheetProps.mock.calls
+    .map((c) => c[0])
+    .filter((p) => !p.hint)
+    .at(-1)
 
 let connectors: FakeConnector[] = []
 vi.mock('wagmi', () => ({
@@ -102,7 +117,7 @@ describe('SignUp.Wallet', () => {
     expect(startWalletConnection.mock.calls[0][0]).toMatchObject({
       connectorUid: announced.uid,
     })
-    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    const lastSheet = evmSheet()
     expect(lastSheet.open).toBe(false)
   })
 
@@ -119,7 +134,7 @@ describe('SignUp.Wallet', () => {
 
     fireEvent.click(screen.getByText('MetaMask'))
     expect(startWalletConnection).not.toHaveBeenCalled()
-    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    const lastSheet = evmSheet()
     expect(lastSheet.open).toBe(true)
     expect(lastSheet.wallet?.id).toBe('metamask')
   })
@@ -281,7 +296,7 @@ describe('SignUp.Wallet', () => {
       'https://metamask.app.link/wc?uri=wc%3Aabc%402',
     )
     // The sheet still opens behind the redirect as the fallback surface.
-    const lastSheet = sheetProps.mock.calls.at(-1)?.[0]
+    const lastSheet = evmSheet()
     expect(lastSheet.open).toBe(true)
   })
 })
