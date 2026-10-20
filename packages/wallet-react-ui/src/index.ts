@@ -41,10 +41,6 @@ export {
   useSolanaWallet,
 } from './solana/hooks/useSolanaWallet.js'
 export {
-  type SolanaWalletAdapter,
-  useSolanaWalletAdapterSync,
-} from './solana/hooks/useSolanaWalletAdapterSync.js'
-export {
   type SolanaWalletConnect,
   useSolanaWalletConnect,
 } from './solana/hooks/useSolanaWalletConnect.js'
@@ -55,10 +51,6 @@ export type {
   SolanaConnectionStatus,
   SolanaStandardWallet,
 } from './solana/types.js'
-export {
-  findSolanaUiAccount,
-  type SolanaUiWalletLike,
-} from './solana/uiAccount.js'
 export {
   type ZeroDevWalletConnectParams,
   zeroDevWalletConnect,
