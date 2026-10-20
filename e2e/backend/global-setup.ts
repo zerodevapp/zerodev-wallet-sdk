@@ -9,6 +9,15 @@ export async function setup() {
     )
   }
 
+  // Mailosaur needs credentials where Guerrilla needed none, so say which one
+  // is missing here rather than letting every email test time out waiting for
+  // mail that was never going to arrive.
+  if (!process.env.MAILOSAUR_API_KEY || !process.env.MAILOSAUR_SERVER_ID) {
+    throw new Error(
+      'MAILOSAUR_API_KEY and MAILOSAUR_SERVER_ID are required for the staging backend e2e tests',
+    )
+  }
+
   await waitForBackend(BACKEND_URL)
   await ping()
 }
