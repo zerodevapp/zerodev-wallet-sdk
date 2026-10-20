@@ -4,7 +4,7 @@
  * Needs `MAILOSAUR_API_KEY` and `MAILOSAUR_SERVER_ID`. Any address at
  * `<SERVER_ID>.mailosaur.net` reaches the inbox with nothing created up front.
  *
- * Two traps. One server serves every test in a run, so a read must filter on
+ * Important note: One server serves every test in a run, so a read must filter on
  * the recipient or tests see each other's mail. And `authToken` carries the
  * address rather than a credential, because that is what identifies an inbox.
  */
