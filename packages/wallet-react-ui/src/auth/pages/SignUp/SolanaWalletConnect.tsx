@@ -28,18 +28,23 @@ export function SignUpSolanaWalletConnect() {
 }
 
 /**
- * The root's Solana pairing sheet. Mounted only while open, so a session is
+ * The root's Solana pairing sheet. Always mounted, like the EVM one, so it
+ * animates closed; the pairing runs only while open, so a session is
  * proposed when the user asks for one and abandoned when they close it.
  */
-export function SolanaWalletConnectSheet({ onClose }: { onClose: () => void }) {
-  const pairing = useSolanaWalletConnectPairing()
+export function SolanaWalletConnectSheet({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const pairing = useSolanaWalletConnectPairing(open)
   return (
     <WalletSheet
-      open
+      open={open}
       pairing={pairing}
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
+      onOpenChange={onOpenChange}
       // A phone camera hands a wc: link to whichever app owns the scheme, so
       // the scan has to start inside a Solana wallet. A wallet that approves
       // without a Solana account is reported by the connect error itself.

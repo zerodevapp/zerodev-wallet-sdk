@@ -141,6 +141,20 @@ describe('useSolanaWalletConnectPairing', () => {
     expect(retryLoad).toHaveBeenCalledTimes(1)
   })
 
+  it('abandons the proposal when deactivated, and proposes again when reactivated', async () => {
+    const { provider } = pairing()
+    const { result, rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useSolanaWalletConnectPairing(active),
+      { initialProps: { active: true } },
+    )
+    await waitFor(() => expect(result.current.uri).toBeTruthy())
+    rerender({ active: false })
+    expect(provider.abortPairingAttempt).toHaveBeenCalledTimes(1)
+    rerender({ active: true })
+    expect(provider.connect).toHaveBeenCalledTimes(2)
+  })
+
   it('abandons the proposal when unmounted mid-pairing', async () => {
     const { provider } = pairing()
     const { result, unmount } = renderHook(() =>

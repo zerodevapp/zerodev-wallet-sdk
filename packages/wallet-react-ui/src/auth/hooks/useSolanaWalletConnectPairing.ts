@@ -8,20 +8,23 @@ import { useAuth } from './useAuth'
 import type { WalletConnectPairing } from './useWalletConnectPairing'
 
 /**
- * One Solana-over-WalletConnect pairing for the lifetime of the mounting
- * component: mount proposes the session (the provider's `display_uri` feeds
- * the QR), unmount abandons it. On approval the session is in the kit's
- * Solana slot and the sign-up flow closes, as after an installed wallet
- * connects. Same shape as the EVM pairing so `WalletSheet` renders either;
- * there are no wallet-specific deep links yet, so `deepLinkFor` always
- * opens the sheet.
+ * One Solana-over-WalletConnect pairing while `active`: turning active
+ * loads the provider and proposes the session (its `display_uri` feeds the
+ * QR), turning inactive abandons the proposal. Keyed on a flag rather than
+ * on mount so the sheet can stay mounted through its close animation. On
+ * approval the session is in the kit's Solana slot and the sign-up flow
+ * closes, as after an installed wallet connects. Same shape as the EVM
+ * pairing so `WalletSheet` renders either; there are no wallet-specific
+ * deep links yet, so `deepLinkFor` always opens the sheet.
  */
-export function useSolanaWalletConnectPairing(): WalletConnectPairing {
+export function useSolanaWalletConnectPairing(
+  active = true,
+): WalletConnectPairing {
   const {
     wallet,
     error: loadError,
     retry: retryLoad,
-  } = useSolanaWalletConnect()
+  } = useSolanaWalletConnect(active)
   const store = useKitStore()
   const { goToStep } = useAuth()
   const [uri, setUri] = useState<string | null>(null)
@@ -30,7 +33,7 @@ export function useSolanaWalletConnectPairing(): WalletConnectPairing {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the retry trigger; store and goToStep are stable
   useEffect(() => {
-    if (!wallet) return
+    if (!active || !wallet) return
     const provider = providerOfSolanaWalletConnectWallet(wallet)
     if (!provider) return
     let settled = false
@@ -62,7 +65,7 @@ export function useSolanaWalletConnectPairing(): WalletConnectPairing {
       // user's back. The store's connect rejects and settles its status.
       if (!settled) provider.abortPairingAttempt?.()
     }
-  }, [wallet, attempt])
+  }, [active, wallet, attempt])
 
   return {
     uri,
