@@ -26,8 +26,15 @@ export function readLastSolanaWallet(): LastSolanaWallet | null {
   try {
     const raw = window.localStorage.getItem(LAST_WALLET_STORAGE_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<LastSolanaWallet>
-    return parsed.name
+    let parsed: Partial<LastSolanaWallet> | null
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      // The earlier format stored the bare name of an installed wallet; the
+      // next successful connect rewrites it as a record.
+      return { name: raw, source: 'standard' }
+    }
+    return parsed?.name
       ? { name: parsed.name, source: parsed.source ?? 'standard' }
       : null
   } catch {
