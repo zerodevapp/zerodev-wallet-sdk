@@ -74,7 +74,8 @@ function SignUpRoot({
   // the host composes; after login the host mounts the hook itself.
   useSolanaAutoReconnect()
   // The Solana pairing is proposed only while its sheet is open (no deep
-  // links to arm synchronously), so it is not preloaded like the EVM one.
+  // links to arm synchronously), so it is not preloaded like the EVM one;
+  // the sheet itself stays mounted so it animates closed.
   const [solanaSheetOpen, setSolanaSheetOpen] = useState(false)
 
   const requiresAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
@@ -166,9 +167,10 @@ function SignUpRoot({
         }}
         wallet={walletSheet?.wallet}
       />
-      {solanaSheetOpen && (
-        <SolanaWalletConnectSheet onClose={() => setSolanaSheetOpen(false)} />
-      )}
+      <SolanaWalletConnectSheet
+        open={solanaSheetOpen}
+        onOpenChange={setSolanaSheetOpen}
+      />
     </SignUpContext.Provider>
   )
 }
