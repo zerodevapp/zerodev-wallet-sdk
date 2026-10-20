@@ -35,6 +35,9 @@ vi.mock('../../hooks/useWalletConnectPairing', () => ({
     deepLinkFor: () => null,
   }),
 }))
+vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
+  useSolanaAutoReconnect: () => {},
+}))
 vi.mock('./Passkey', () => ({ SignUpPasskey: () => null }))
 vi.mock('./Google', () => ({ SignUpGoogle: () => null }))
 vi.mock('./Email', () => ({ SignUpEmail: () => null }))

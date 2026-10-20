@@ -18,6 +18,9 @@ vi.mock('../../hooks/useWalletConnectPairing', () => ({
     deepLinkFor: () => null,
   }),
 }))
+vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
+  useSolanaAutoReconnect: () => {},
+}))
 
 // Sibling units pull in wallet-react hooks — replace them with stubs so the
 // tests exercise the MoreWallets unit against the real root (context, gate).
