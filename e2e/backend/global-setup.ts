@@ -1,6 +1,5 @@
 import { waitForBackend } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
-import { ping } from '../helpers/temp-email.js'
 
 export async function setup() {
   if (!process.env.ZD_PROJECT_ID || !process.env.ZD_OTP_PROJECT_ID) {
@@ -19,5 +18,4 @@ export async function setup() {
   }
 
   await waitForBackend(BACKEND_URL)
-  await ping()
 }

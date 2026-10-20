@@ -9,7 +9,6 @@
 
 import { expect, type Locator, type Page } from '@playwright/test'
 import { test } from '../fixtures/authed-session.js'
-import { ping } from '../helpers/temp-email.js'
 import {
   providerFees,
   RELAY_FEES_USD,
@@ -80,14 +79,6 @@ async function switchToken({
 }
 
 test.describe('SRA deposits', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
   test('drives one deposit from detected through routing to received', async ({
     authedPage: page,
   }) => {

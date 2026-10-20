@@ -11,7 +11,7 @@
 
 import { expect, type Page } from '@playwright/test'
 import { test } from '../fixtures/authed-session.js'
-import { createNewAccount, ping } from '../helpers/temp-email.js'
+import { createNewAccount } from '../helpers/temp-email.js'
 import { expectTxRunSucceeded } from '../helpers/tx-runs.js'
 import { expectLabReady, loginWithMagicLink } from '../helpers/ui-login.js'
 
@@ -46,14 +46,6 @@ async function signMessage(page: Page) {
 }
 
 test.describe('Post-Auth Operations', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
   test('should sign a message after login', async ({ authedPage: page }) => {
     await signMessage(page)
   })

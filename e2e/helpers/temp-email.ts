@@ -39,32 +39,14 @@ const jsonHeaders = {
   'Content-Type': 'application/json',
 }
 
+/** A refusal no amount of polling fixes: bad key, bad server id, outage. */
+class FatalEmailError extends Error {}
+
 /** Collections have shipped both bare and `items`-wrapped; accept either. */
 function itemsOf(data: unknown): { id: string }[] {
   if (Array.isArray(data)) return data as { id: string }[]
   const items = (data as { items?: unknown })?.items
   return Array.isArray(items) ? (items as { id: string }[]) : []
-}
-
-/**
- * Checks the service is reachable AND that the configured server exists, so a
- * wrong `MAILOSAUR_SERVER_ID` fails here with a clear message rather than as a
- * silent "no email arrived" timeout 60s into a test.
- */
-export async function ping(): Promise<void> {
-  const { serverId, headers } = config()
-  const res = await fetch(
-    `${API_BASE}/servers/${encodeURIComponent(serverId)}`,
-    {
-      headers: { ...headers, ...jsonHeaders },
-      signal: AbortSignal.timeout(10_000),
-    },
-  )
-  if (!res.ok) {
-    throw new Error(
-      `Email service unavailable: ${res.status} ${res.statusText} for server ${serverId}`,
-    )
-  }
 }
 
 /**
@@ -99,6 +81,7 @@ export async function searchForNewEmail(
   const receivedAfter =
     inboxOpenedAt.get(address) ?? new Date(Date.now() - 60_000).toISOString()
   const deadline = Date.now() + timeoutMs
+  let lastTransportError: unknown
 
   while (Date.now() < deadline) {
     await sleep(intervalMs)
@@ -115,10 +98,14 @@ export async function searchForNewEmail(
           signal: AbortSignal.timeout(10_000),
         },
       )
+      // Throttling is the one refusal worth waiting out. Everything else, a
+      // bad key, a bad server id, an outage, is a real fault and goes red now
+      // rather than as a timeout a minute later.
+      if (searchRes.status === 429) continue
       if (!searchRes.ok) {
-        // Transient server error — keep polling rather than failing the test.
-        if (searchRes.status >= 500) continue
-        throw new Error(`Failed to search messages: ${searchRes.status}`)
+        throw new FatalEmailError(
+          `Mailosaur search failed: ${searchRes.status} ${searchRes.statusText}`,
+        )
       }
 
       const consumed = consumedMessageIds.get(address) ?? new Set<string>()
@@ -137,7 +124,9 @@ export async function searchForNewEmail(
         },
       )
       if (!messageRes.ok) {
-        throw new Error(`Failed to get message: ${messageRes.status}`)
+        throw new FatalEmailError(
+          `Mailosaur fetch failed: ${messageRes.status} ${messageRes.statusText}`,
+        )
       }
 
       const message = (await messageRes.json()) as {
@@ -153,12 +142,18 @@ export async function searchForNewEmail(
         return `${subject}\n\n${body}`
       }
     } catch (err) {
-      // Network errors during polling — keep trying
-      if (Date.now() >= deadline) throw err
+      if (err instanceof FatalEmailError) throw err
+      // A transport blip mid-poll is survivable, but keep the cause so an
+      // unreachable API does not masquerade as an email that never arrived.
+      lastTransportError = err
     }
   }
 
-  throw new Error(`No email received within ${timeoutMs}ms timeout`)
+  throw new Error(
+    lastTransportError
+      ? `No email received within ${timeoutMs}ms; last transport error: ${lastTransportError}`
+      : `No email received within ${timeoutMs}ms`,
+  )
 }
 
 function sleep(ms: number): Promise<void> {
