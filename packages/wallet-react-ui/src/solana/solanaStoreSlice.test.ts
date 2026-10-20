@@ -211,6 +211,21 @@ describe('solana store slice', () => {
     expect(store.getState().solana.status).toBe('disconnected')
   })
 
+  it('restores from the earlier bare-name format and rewrites it as a record', async () => {
+    const store = createStore()
+    window.localStorage.setItem('zerodev:solana:lastWallet', 'Phantom')
+    const phantom = fakeWallet('Phantom', [account()])
+
+    await store.getState().solana.restore([phantom.wallet])
+    expect(phantom.connect).toHaveBeenCalledWith({ silent: true })
+    expect(store.getState().solana.status).toBe('connected')
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
+      ),
+    ).toEqual({ name: 'Phantom', source: 'standard' })
+  })
+
   it('swallows a failed silent restore', async () => {
     const store = createStore()
     window.localStorage.setItem(
