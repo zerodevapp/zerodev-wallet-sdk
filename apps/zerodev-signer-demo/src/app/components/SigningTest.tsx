@@ -4,6 +4,7 @@ import { useSolanaAccount, useSolanaWallet } from "@zerodev/wallet-react-ui";
 import { AlertCircle, Check, Copy, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useAccount, useSignMessage, useSignTypedData } from "wagmi";
+import { SOLANA_ENABLED } from "../lib/flags";
 import { cn } from "../lib/utils";
 import { arbitrumSepolia } from "viem/chains";
 
@@ -269,20 +270,22 @@ export function SigningTest() {
             {evmDisabledReason ?? evmWalletName}
           </span>
         </button>
-        <button
-          onClick={handleSignSolana}
-          disabled={isSigningSolana || !hasPayload || solanaDisabledReason !== null}
-          data-testid="sign-solana-button"
-          className={chainButtonClass}
-        >
-          <span className="flex items-center gap-2">
-            {isSigningSolana && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isSigningSolana ? "Waiting for wallet..." : "Sign with Solana"}
-          </span>
-          <span className="text-xs font-normal opacity-70">
-            {solanaDisabledReason ?? solanaWalletName}
-          </span>
-        </button>
+        {SOLANA_ENABLED && (
+          <button
+            onClick={handleSignSolana}
+            disabled={isSigningSolana || !hasPayload || solanaDisabledReason !== null}
+            data-testid="sign-solana-button"
+            className={chainButtonClass}
+          >
+            <span className="flex items-center gap-2">
+              {isSigningSolana && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isSigningSolana ? "Waiting for wallet..." : "Sign with Solana"}
+            </span>
+            <span className="text-xs font-normal opacity-70">
+              {solanaDisabledReason ?? solanaWalletName}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Error */}

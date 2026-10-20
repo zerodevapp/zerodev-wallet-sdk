@@ -8,6 +8,7 @@ import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
 import { Playground } from './components/playground/Playground'
+import { SOLANA_ENABLED } from './lib/flags'
 import {
   DEFAULT_ITEMS,
   DEFAULT_SETTINGS,
@@ -49,7 +50,7 @@ function LandingPageInner() {
   // Solana: a connected Solana wallet is a login too — the dashboard
   // renders a Solana-only state when the EVM side is signed out.
   const solana = useSolanaAccount()
-  const solanaConnected = solana.isConnected
+  const solanaConnected = SOLANA_ENABLED && solana.isConnected
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
@@ -232,7 +233,8 @@ function renderSignUpItem(item: PlaygroundItem) {
           key={item.key}
           excludeWalletIds={parseExcludeIds(item.exclude)}
           {...(item.maxWallets !== null && { maxWallets: item.maxWallets })}
-          {...(item.solana && { namespaces: ['eip155', 'solana'] as const })}
+          {...(SOLANA_ENABLED &&
+            item.solana && { namespaces: ['eip155', 'solana'] as const })}
         />
       )
     case 'moreWallets':
