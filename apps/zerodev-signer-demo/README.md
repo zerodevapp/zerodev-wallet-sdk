@@ -52,6 +52,13 @@ The Earn tab deposits into mainnet yield vaults through the hosted
 Deposits are real mainnet transactions. Every deposit funds a Smart Routing Address; the tab keeps a
 local deposit history so the SRA stays recoverable if a deposit is interrupted.
 
+### Solana (pre-release)
+
+Solana wallets (Phantom, Solflare, Backpack via the Wallet Standard) are behind a flag. Set
+`NEXT_PUBLIC_SOLANA_ENABLED=true` to show the Solana option in the playground's Installed Wallets
+unit, the Solana address row on the dashboard and the "Sign with Solana" button. Unset, the demo
+is EVM-only.
+
 ## Running the Application
 
 1. Start the development server:
