@@ -10,7 +10,6 @@ import {
   detachEvmConnection,
   isCancellationError,
   useSolanaAccount,
-  useSolanaAutoReconnect,
   useSolanaWallets,
 } from "@zerodev/wallet-react-ui";
 import {
@@ -39,7 +38,9 @@ import { EarnTest } from "../components/earn/EarnTest";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
+import { SolanaAutoReconnect } from "../components/SolanaAutoReconnect";
 import { WalletPill } from "../components/WalletPill";
+import { SOLANA_ENABLED } from "../lib/flags";
 import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
@@ -123,6 +124,17 @@ function UsdcIcon() {
 }
 
 export default function DashboardPage() {
+  return (
+    <>
+      {/* Restores a Solana session on reload. Mounted here rather than as a
+          hook inside Dashboard so the pre-release flag can leave it out. */}
+      {SOLANA_ENABLED && <SolanaAutoReconnect />}
+      <Dashboard />
+    </>
+  );
+}
+
+function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>("mint");
   const [selectedAsset, setSelectedAsset] = useState<BatchAsset>("ETH");
@@ -147,8 +159,7 @@ export default function DashboardPage() {
   // is signed out.
   const solana = useSolanaAccount();
   const { disconnect: disconnectSolana } = solana;
-  const solanaConnected = solana.isConnected;
-  useSolanaAutoReconnect();
+  const solanaConnected = SOLANA_ENABLED && solana.isConnected;
   // EVM-first session: let the user add a Solana wallet from the wallet card.
   // Connecting Solana first already offers the reverse ("Connect an EVM
   // wallet" below), so both orders end with both namespaces connected.
@@ -355,7 +366,7 @@ export default function DashboardPage() {
   // had a chance to restore silently (the wallet registers, then answers a
   // silent connect), so hold the redirect while that restore is in flight
   // and give it a wider window than wagmi's own reconnect needs.
-  const solanaRestoring = solana.status === "connecting";
+  const solanaRestoring = SOLANA_ENABLED && solana.status === "connecting";
   useEffect(() => {
     if (status !== 'disconnected' || isLoggingOut || solanaConnected || solanaRestoring) return;
 
@@ -454,7 +465,7 @@ export default function DashboardPage() {
             </button>
           </div>
         ))}
-      {!solanaConnected && solanaWallets.length > 0 && (
+      {SOLANA_ENABLED && !solanaConnected && solanaWallets.length > 0 && (
         <div
           data-testid="connect-solana"
           className="mt-1 flex flex-wrap items-center justify-center gap-2"
