@@ -24,6 +24,8 @@ export type PlaygroundItem =
       exclude: string
       /** null = untouched → the component's own default (4). */
       maxWallets: number | null
+      /** Also list Solana (Wallet Standard) wallets, merged by name. */
+      solana: boolean
     }
 
 /** SignUp page-level knobs, separate from the unit list. */
@@ -121,6 +123,9 @@ function unitLine(item: PlaygroundItem): string {
     }
     if (item.maxWallets !== null) {
       props.push(`maxWallets={${item.maxWallets}}`)
+    }
+    if (item.solana) {
+      props.push(`namespaces={['eip155', 'solana']}`)
     }
     return `<SignUp.InstalledWallets${props.length > 0 ? ` ${props.join(' ')}` : ''} />`
   }

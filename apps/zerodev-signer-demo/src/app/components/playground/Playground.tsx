@@ -30,6 +30,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { SOLANA_ENABLED } from '../../lib/flags'
 import {
   buildSnippet,
   PINNED_WALLETS,
@@ -123,7 +124,13 @@ export function Playground({
       if (type === 'installedWallets') {
         return [
           ...prev,
-          { key, type: 'installedWallets', exclude: '', maxWallets: null },
+          {
+            key,
+            type: 'installedWallets',
+            exclude: '',
+            maxWallets: null,
+            solana: false,
+          },
         ]
       }
       return [...prev, { key, type }]
@@ -138,7 +145,7 @@ export function Playground({
 
   const patchInstalled = (
     key: string,
-    patch: Partial<{ exclude: string; maxWallets: number | null }>,
+    patch: Partial<{ exclude: string; maxWallets: number | null; solana: boolean }>,
   ) => {
     onChange((prev) =>
       prev.map((i) =>
@@ -510,6 +517,22 @@ export function Playground({
                                   className="w-14 rounded-md border border-[var(--border-warm)] bg-white px-2 py-1 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent-warm)] focus:ring-2 focus:ring-[var(--accent-warm)]/20"
                                 />
                               </label>
+                              {SOLANA_ENABLED && (
+                                <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.solana}
+                                    onChange={(e) =>
+                                      patchInstalled(item.key, {
+                                        solana: e.target.checked,
+                                      })
+                                    }
+                                    aria-label="Include Solana wallets"
+                                    className="h-3.5 w-3.5 accent-[var(--accent-warm)]"
+                                  />
+                                  Solana
+                                </label>
+                              )}
                             </div>
                           )}
                         </li>
