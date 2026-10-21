@@ -120,9 +120,12 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
+  # Both live suites run from their own reusable workflow, which any repo in
+  # the org can call. `ci-gate` keys off the two job ids below, and each
+  # called workflow holds exactly one job, so a `skipped` here can only have
+  # come from the guard below it.
   backend-e2e-test:
     name: Backend E2E Tests
-    runs-on: ubuntu-latest
     # Needs the staging secrets, so skip wherever they are unavailable:
     #   - PRs from forks — fork `pull_request` runs get no repository secrets.
     #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
@@ -131,113 +134,31 @@ jobs:
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]')
     needs: [build]
-    concurrency:
-      group: integration-tests-staging
-      queue: max
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run backend e2e tests
-        run: pnpm test:e2e:backend
-        env:
-          ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
-          ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
-          MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
-          MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+    uses: ./.github/workflows/e2e-backend.yml
+    with:
+      job_name: vitest, live KMS
+    secrets:
+      ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+      ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
 
   e2e-test:
     name: Browser E2E Tests
-    runs-on: ubuntu-latest
-    # Needs the staging secrets, so skip wherever they are unavailable:
-    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
-    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
+    # Same guard as above.
     if: >-
       github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]')
     needs: [build]
-    concurrency:
-      group: e2e-tests-staging
-      queue: max
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build demo SDK dependencies
-        run: pnpm build:e2e
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Build and start QA lab
-        working-directory: apps/qa-lab-testing
-        run: |
-          pnpm build
-          pnpm start &
-        env:
-          # Both ids are inlined so a URL param can select the flavor per test,
-          # instead of building the app twice as the signer demo does.
-          NEXT_PUBLIC_ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
-          NEXT_PUBLIC_ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
-          NEXT_PUBLIC_KMS_PROXY_BASE_URL: https://kms.staging.zerodev.app/api/v1
-          # Pin the bundler/paymaster to staging so the AA stack matches the
-          # staging KMS above (the SDK default host is prod).
-          NEXT_PUBLIC_ZERODEV_AA_HOST: https://staging-meta-aa-provider.onrender.com
-
-      - name: Wait for QA lab
-        run: |
-          for i in $(seq 1 15); do
-            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
-              echo "QA lab is ready"
-              exit 0
-            fi
-            echo "Waiting for QA lab... ($i/15)"
-            sleep 2
-          done
-          echo "QA lab failed to start"
-          exit 1
-
-      - name: Run E2E tests
-        run: pnpm exec playwright test --config e2e/playwright.config.ts
-        env:
-          LAB_APP_URL: http://localhost:3000
-          # Read by the specs themselves, not the lab: the browser drives the
-          # UI while the test process reads the inbox over the Mailosaur API.
-          MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
-          MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 14
+    uses: ./.github/workflows/e2e-browser.yml
+    with:
+      job_name: Playwright, chromium
+    secrets:
+      ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+      ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
 
   integration-test:
     name: Integration Tests
