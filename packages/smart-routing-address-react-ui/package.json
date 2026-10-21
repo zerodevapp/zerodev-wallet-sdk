@@ -81,7 +81,7 @@
     "postcss": "^8.5.28",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "storybook": "^10.3.3",
+    "storybook": "^10.6.2",
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3",
     "viem": "2.55.5",
