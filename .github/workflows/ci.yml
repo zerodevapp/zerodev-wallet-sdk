@@ -140,6 +140,8 @@ jobs:
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
 
   e2e-test:
     name: Browser E2E Tests
@@ -155,6 +157,8 @@ jobs:
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
 
   integration-test:
     name: Integration Tests
