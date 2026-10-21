@@ -155,7 +155,12 @@ export const createSolanaStoreSlice: StateCreator<
       connection: null,
 
       connect: async (wallet, options) => {
-        set((state) => ({ solana: { ...state.solana, status: 'connecting' } }))
+        set((state) => ({
+          solana: {
+            ...state.solana,
+            status: options?.silent ? 'reconnecting' : 'connecting',
+          },
+        }))
         try {
           const { accounts } = await wallet.features[
             'standard:connect'
