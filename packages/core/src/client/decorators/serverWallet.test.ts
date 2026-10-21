@@ -6,6 +6,7 @@ import { serverWalletActions } from './serverWallet.js'
 
 vi.mock('../../actions/serverWallet/index.js', () => ({
   createServerWallet: vi.fn(async () => 'created'),
+  createServerWalletAddress: vi.fn(async () => 'address-created'),
   signMessage: vi.fn(async () => 'message-signature'),
   signTransaction: vi.fn(async () => 'transaction-signature'),
   signTypedDataV4: vi.fn(async () => 'typed-data-signature'),
@@ -15,9 +16,10 @@ vi.mock('../../actions/serverWallet/index.js', () => ({
 const client = { uid: 'client' } as unknown as Client<undefined, SigningStamper>
 
 describe('serverWalletActions', () => {
-  it('binds exactly the five agent actions', () => {
+  it('binds exactly the six agent actions', () => {
     expect(Object.keys(serverWalletActions(client)).sort()).toEqual([
       'createServerWallet',
+      'createServerWalletAddress',
       'sign7702Authorization',
       'signMessage',
       'signTransaction',
@@ -27,6 +29,11 @@ describe('serverWalletActions', () => {
 
   it.each([
     ['createServerWallet', actions.createServerWallet, 'created'],
+    [
+      'createServerWalletAddress',
+      actions.createServerWalletAddress,
+      'address-created',
+    ],
     ['signMessage', actions.signMessage, 'message-signature'],
     ['signTransaction', actions.signTransaction, 'transaction-signature'],
     ['signTypedDataV4', actions.signTypedDataV4, 'typed-data-signature'],
