@@ -3,6 +3,20 @@
  * rejects with the raw sign-client object, not an Error). */
 const CANCELLATION_CODES = new Set([4001, 5000, 5001, 5002, 5003])
 
+const AUTH_FLOW_DISMISSED = 'AuthFlowDismissedError'
+
+/**
+ * The user closed the kit's sign-up flow (the TopNav close button, or the
+ * host's `onClose`) before it connected anything. `isCancellationError`
+ * treats it as a cancellation, like a dismissed wallet prompt.
+ */
+export class AuthFlowDismissedError extends Error {
+  override readonly name = AUTH_FLOW_DISMISSED
+  constructor() {
+    super('Auth flow dismissed')
+  }
+}
+
 /**
  * The user cancelled, rather than something failed: passkey prompt dismissed,
  * OAuth popup closed, or a wallet connection request rejected.
@@ -22,6 +36,8 @@ export function isCancellationError(err: unknown): boolean {
   }
 
   if (!(err instanceof Error)) return false
+  // The kit's own sign-up flow, closed before it finished
+  if (err.name === AUTH_FLOW_DISMISSED) return true
   // WebAuthn / passkey
   if (err.name === 'AbortError' || err.name === 'NotAllowedError') return true
   // viem's rejection error when `code` was dropped
