@@ -28,7 +28,8 @@ export function useSolanaConnect() {
   useReportPending(pendingName !== null)
 
   const connectSolana = async (wallet: SolanaStandardWallet) => {
-    if (authPending || status === 'connecting') return
+    if (authPending || status === 'connecting' || status === 'reconnecting')
+      return
     if (!guardAgreement()) return
     setPendingName(wallet.name)
     try {

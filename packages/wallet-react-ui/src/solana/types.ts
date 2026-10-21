@@ -23,7 +23,13 @@ export type SolanaStandardWallet = Omit<Wallet, 'features'> & {
  * Standard wallet, or a WalletConnect session wrapped to look like one. */
 export type SolanaConnectionSource = 'standard' | 'walletconnect'
 
-export type SolanaConnectionStatus = 'disconnected' | 'connecting' | 'connected'
+/** `reconnecting` is a silent restore after a reload (no wallet prompt);
+ * `connecting` is a connect the user asked for. Same split as wagmi's. */
+export type SolanaConnectionStatus =
+  | 'disconnected'
+  | 'connecting'
+  | 'reconnecting'
+  | 'connected'
 
 /**
  * The connected Solana wallet, as the host app consumes it. The kit signs
