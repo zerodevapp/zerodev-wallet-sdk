@@ -38,6 +38,8 @@ on:
       MAILOSAUR_SERVER_ID:
         required: true
 
+permissions:
+  contents: read
 
 jobs:
   backend-e2e:

@@ -42,6 +42,9 @@ on:
       MAILOSAUR_SERVER_ID:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   browser-e2e:
     name: ${{ inputs.job_name || 'Browser E2E Tests' }}
