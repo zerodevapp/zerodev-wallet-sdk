@@ -8,18 +8,10 @@
  */
 
 import { test } from '@playwright/test'
-import { createNewAccount, ping } from '../helpers/temp-email.js'
+import { createNewAccount } from '../helpers/temp-email.js'
 import { loginWithMagicLink } from '../helpers/ui-login.js'
 
 test.describe('Magic Link Flow', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
   test('should complete magic link login through the UI', async ({ page }) => {
     const emailAccount = await createNewAccount()
     await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)

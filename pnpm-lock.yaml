@@ -296,6 +296,9 @@ importers:
       '@wagmi/core':
         specifier: ^3.0.0
         version: 3.6.0(@tanstack/query-core@5.101.2)(@types/react@19.2.17)(react@19.2.3)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.3))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))
+      '@zerodev/earn':
+        specifier: 1.0.0-beta.2
+        version: 1.0.0-beta.2(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))
       '@zerodev/ecdsa-validator':
         specifier: ^5.4.9
         version: 5.4.9(@zerodev/sdk@5.5.10(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))
@@ -5138,6 +5141,12 @@ packages:
   '@xmldom/xmldom@0.9.12':
     resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
     engines: {node: '>=14.6'}
+
+  '@zerodev/earn@1.0.0-beta.2':
+    resolution: {integrity: sha512-eSFDrkelFB/xA28d3RsQOBhnD8MVxX/UJSAjQK9gM8jOTo878g00OY5m8biM/h3JvLL4TtdSrAwBFeVR9O6bZg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      viem: 2.55.5
 
   '@zerodev/ecdsa-validator@5.4.9':
     resolution: {integrity: sha512-9NVE8/sQIKRo42UOoYKkNdmmHJY8VlT4t+2MHD2ipLg21cpbY9fS17TGZh61+Bl3qlqc8pP23I6f89z9im7kuA==}
@@ -15250,6 +15259,10 @@ snapshots:
   '@xmldom/xmldom@0.8.15': {}
 
   '@xmldom/xmldom@0.9.12': {}
+
+  '@zerodev/earn@1.0.0-beta.2(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))':
+    dependencies:
+      viem: 2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)
 
   '@zerodev/ecdsa-validator@5.4.9(@zerodev/sdk@5.5.10(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))':
     dependencies:

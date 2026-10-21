@@ -59,7 +59,9 @@ vi.mock('@zerodev/wallet-core', () => ({
   }),
 }))
 
+import { createZeroDevWallet } from '@zerodev/wallet-core'
 import { zeroDevWalletCore } from './core/connector.js'
+import { version } from './version.js'
 
 type ConnectorInstance = ReturnType<ReturnType<typeof zeroDevWalletCore>>
 
@@ -324,5 +326,35 @@ describe('zeroDevWallet connector — mode branching', () => {
 
     expect(destroy).toHaveBeenCalledOnce()
     expect(store.getState().eoaAccount).toBe(mockEoaAccount)
+  })
+})
+
+describe('zeroDevWallet connector — X-SDK-Version', () => {
+  const sdkVersionPassed = async (
+    params: Partial<Parameters<typeof zeroDevWalletCore>[0]> = {},
+  ) => {
+    vi.mocked(createZeroDevWallet).mockClear()
+    const connector = zeroDevWalletCore({
+      projectId: 'proj-test',
+      chains: [sepolia],
+      ...params,
+    })({
+      transports: {},
+      emitter: { emit: vi.fn() },
+      storage: null,
+    } as never) as ConnectorInstance
+    // @ts-expect-error - getStore is added in the connector's Properties.
+    await connector.getStore()
+    return vi.mocked(createZeroDevWallet).mock.calls[0]?.[0].sdkVersion
+  }
+
+  it('reports wallet-react when the app uses it directly', async () => {
+    expect(await sdkVersionPassed()).toBe(`@zerodev/wallet-react@${version}`)
+  })
+
+  it('reports the wrapper package that created the connector', async () => {
+    expect(
+      await sdkVersionPassed({ sdkVersion: '@zerodev/wallet-react-ui@1.2.3' }),
+    ).toBe('@zerodev/wallet-react-ui@1.2.3')
   })
 })

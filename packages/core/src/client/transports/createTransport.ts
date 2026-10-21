@@ -12,6 +12,11 @@ export type CreateTransportOptions = {
   name?: string
   /** Extra options merged into every fetch() call */
   fetchOptions?: Omit<RequestInit, 'body' | 'method' | 'signal'>
+  /**
+   * @internal The package reported in the `X-SDK-Version` header. Wrapper
+   * packages set their own name and version; apps should not set it.
+   */
+  sdkVersion?: string
 }
 
 /**
@@ -37,6 +42,7 @@ export function zeroDevWalletTransport(
       apiKeyStamper,
       passkeyStamper,
       ...(options.fetchOptions && { fetchOptions: options.fetchOptions }),
+      ...(options.sdkVersion && { sdkVersion: options.sdkVersion }),
     })
 
     return {
