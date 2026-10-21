@@ -46,10 +46,12 @@ jobs:
   browser-e2e:
     name: ${{ inputs.job_name || 'Browser E2E Tests' }}
     runs-on: ubuntu-latest
-    # Serializes runs against one staging. Groups are scoped to the caller's
-    # repo, so two different repos calling this can still collide.
+    # Serializes runs against the same KMS environment. The key is the raw input, so a
+    # blank and an explicit staging URL land in different groups and run
+    # concurrently. Groups are also scoped per calling repo, so two repos
+    # calling this collide the same way.
     concurrency:
-      group: e2e-tests-staging
+      group: e2e-tests-${{ inputs.kms_url || 'staging' }}
       queue: max
     # Resolve KMS and AA_HOST url
     env:
