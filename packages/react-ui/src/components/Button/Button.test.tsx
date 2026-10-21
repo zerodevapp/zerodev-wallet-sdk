@@ -198,4 +198,27 @@ describe('Button', () => {
       expect(icon.getAttribute('class')).toContain('text-greyScale')
     })
   })
+
+  // The icon repeats what the label already says, so announcing it is noise.
+  // Matches DataRow / ProgressStep / Pill, which hide their icons too.
+  describe('icon accessibility', () => {
+    it('hides a leading icon from assistive tech', () => {
+      render(<Button text="Copy Address" iconName="copy" />)
+      expect(screen.getByTestId('icon-copy').getAttribute('aria-hidden')).toBe(
+        'true',
+      )
+    })
+
+    it('hides a trailing icon from assistive tech', () => {
+      render(<Button text="Continue" iconName="arrowRightFill" trailIcon />)
+      expect(
+        screen.getByTestId('icon-arrowRightFill').getAttribute('aria-hidden'),
+      ).toBe('true')
+    })
+
+    it('leaves the button named by its text', () => {
+      render(<Button text="Copy Address" iconName="copy" />)
+      expect(screen.getByRole('button', { name: 'Copy Address' })).toBeDefined()
+    })
+  })
 })
