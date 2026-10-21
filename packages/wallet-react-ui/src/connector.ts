@@ -7,6 +7,7 @@ import {
   zeroDevWallet as baseZeroDevWallet,
   NotAuthenticatedError,
 } from '@zerodev/wallet-react'
+import { AuthFlowDismissedError } from './auth/utils/isCancellationError.js'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
 import { version } from './version.js'
@@ -53,7 +54,7 @@ function waitForAuthFlow(store: ReturnType<typeof createStore>): Promise<void> {
           // User dismissed the auth flow (e.g. clicked the TopNav close
           // button) — abort the pending wagmi connect.
           unsub()
-          reject(new Error('Auth flow dismissed'))
+          reject(new AuthFlowDismissedError())
         }
       },
     )

@@ -7,11 +7,9 @@ import {
   SignUp,
   TxHistory,
   useAuth,
-  detachEvmConnection,
   isCancellationError,
-  useSolanaAccount,
-  useSolanaWalletConnect,
-  useSolanaWallets,
+  type KitConnectParams,
+  useZeroDevWalletKit,
 } from "@zerodev/wallet-react-ui";
 import {
   Check,
@@ -32,14 +30,13 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useConfig, useConnect, useDisconnect, usePublicClient, useReconnect } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
 import { EarnTest } from "../components/earn/EarnTest";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
-import { SolanaAutoReconnect } from "../components/SolanaAutoReconnect";
 import { WalletPill } from "../components/WalletPill";
 import { SOLANA_ENABLED } from "../lib/flags";
 import { submitToHubSpot } from "../lib/hubspot";
@@ -125,17 +122,6 @@ function UsdcIcon() {
 }
 
 export default function DashboardPage() {
-  return (
-    <>
-      {/* Restores a Solana session on reload. Mounted here rather than as a
-          hook inside Dashboard so the pre-release flag can leave it out. */}
-      {SOLANA_ENABLED && <SolanaAutoReconnect />}
-      <Dashboard />
-    </>
-  );
-}
-
-function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>("mint");
   const [selectedAsset, setSelectedAsset] = useState<BatchAsset>("ETH");
@@ -148,94 +134,57 @@ function Dashboard() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
-  // Wagmi hooks
+  // Wagmi hooks: the EVM specifics the dashboard still reads directly
+  // (chain, balances, the connector behind the Earn tab).
   const { address, status, chain, connector } = useAccount();
   const earnEnabled = connector?.id === ZERODEV_CONNECTOR_ID;
   const visibleTabs = earnEnabled ? tabs : tabs.filter((tab) => tab.id !== "earn");
-  const wagmiConfig = useConfig();
   const publicClient = usePublicClient({ chainId: chain?.id });
-  const { disconnectAsync: logout } = useDisconnect();
-  // Solana: one Logout clears both namespaces, and a connected Solana
-  // wallet keeps the dashboard open with a Solana-only view when the EVM side
-  // is signed out.
-  const solana = useSolanaAccount();
-  const { disconnect: disconnectSolana } = solana;
-  const solanaConnected = SOLANA_ENABLED && solana.isConnected;
-  // EVM-first session: let the user add a Solana wallet from the wallet card.
-  // Connecting Solana first already offers the reverse ("Connect an EVM
-  // wallet" below), so both orders end with both namespaces connected.
-  const solanaWallets = useSolanaWallets();
-  // Solana over WalletConnect (a phone wallet): the pairing lives in the
-  // sign-up flow, so the pill opens that flow with only the Solana row.
-  const solanaWalletConnect = useSolanaWalletConnect(false);
-  const openSolanaWalletConnect = () => {
-    setConnectRequested("solana");
-    goToStep("sign-up");
-  };
-  useEffect(() => {
-    if (solanaConnected) setConnectRequested(null);
-  }, [solanaConnected]);
-  const [solanaConnecting, setSolanaConnecting] = useState<string | null>(null);
-  const [solanaConnectError, setSolanaConnectError] = useState<string | null>(null);
-  const connectSolanaWallet = async (wallet: (typeof solanaWallets)[number]) => {
-    setSolanaConnecting(wallet.name);
-    setSolanaConnectError(null);
-    try {
-      await solana.connect(wallet);
-    } catch (err) {
-      // A declined prompt is the user's choice, not an error to show.
-      if (!isCancellationError(err)) {
-        setSolanaConnectError(
-          (err instanceof Error && err.message) || `Couldn't connect to ${wallet.name}.`,
-        );
-      }
-    } finally {
-      setSolanaConnecting(null);
-    }
-  };
-  // Solana-only state: let the user add an EVM wallet from the dashboard. The
-  // kit connector's connect() opens the sign-up flow (passkey, Google, email,
-  // installed EVM wallets); an external wallet picked there connects through
-  // wagmi and the full dashboard takes over.
-  const { connect: connectEvm, connectAsync: connectEvmAsync, connectors } = useConnect();
-  const { reconnectAsync } = useReconnect();
-  const { step: authStep, goToStep } = useAuth();
-  // Which side the sign-up overlay below is adding, if any.
+  // Both namespaces behind one hook: account state per side, the installed
+  // wallets to offer, and a connect/disconnect that know the cross-namespace
+  // rules (a multichain wallet serving both sides, Solana-only connects).
+  // Solana is pre-release, so the flag keeps that side out entirely: no
+  // restore on reload, no wallets offered, and its connection ignored.
+  const kit = useZeroDevWalletKit({ reconnectOnMount: SOLANA_ENABLED });
+  const solanaConnected = SOLANA_ENABLED && kit.solana.isConnected;
+  const solanaWallets = SOLANA_ENABLED ? kit.wallets.solana : [];
+  const solanaWalletConnect = SOLANA_ENABLED && kit.walletConnect.solana;
+  const evmWallets = kit.wallets.eip155;
+  const { step: authStep } = useAuth();
+  // The "add the other side" rows: one wallet prompt at a time, and an
+  // error per side. A declined prompt or a closed sign-up is the user's
+  // choice, not an error to show.
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<{
+    network: "evm" | "solana";
+    message: string;
+  } | null>(null);
+  // Which side the sign-up overlay below is adding, if any. Opening the flow
+  // without a wallet (passkey, Google, email, or Solana over WalletConnect)
+  // renders `ConnectWallet` with that side's units; the connect promise
+  // follows the flow, so the overlay closes with it either way.
   const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | null>(null);
-  const openEvmConnect = () => {
-    const kitConnector = connectors.find((c) => c.id === "zerodev-wallet");
-    if (!kitConnector) return;
-    setConnectRequested("evm");
-    connectEvm({ connector: kitConnector });
-  };
-  // Installed EVM wallets, as wagmi discovered them through EIP-6963. Same
-  // rule as the kit's sign-up list: only a 6963 announcement proves a live
-  // extension, so the generic `injected` connector is left out.
-  const evmWallets = connectors.filter(
-    (c) => c.type === "injected" && c.id !== "injected" && c.id !== "zerodev-wallet",
-  );
-  const [evmConnecting, setEvmConnecting] = useState<string | null>(null);
-  const [evmConnectError, setEvmConnectError] = useState<string | null>(null);
-  const connectEvmWallet = async (connector: (typeof evmWallets)[number]) => {
-    setEvmConnecting(connector.uid);
-    setEvmConnectError(null);
+  const connectWallet = async (
+    params: KitConnectParams,
+    key: string,
+    label: string,
+  ) => {
+    const network = params.namespace === "solana" ? "solana" : "evm";
+    setConnecting(key);
+    setConnectError(null);
+    if (!params.wallet) setConnectRequested(network);
     try {
-      // A multichain wallet (MetaMask) that already authorised this site on
-      // the Solana side also holds EVM accounts for it. wagmi's explicit
-      // connect always asks the wallet for permissions again, which MetaMask
-      // shows as a prompt; its reconnect path reads the authorised accounts
-      // silently, like the Solana side does. Prompt only when that is empty.
-      await wagmiConfig.storage?.removeItem(`${connector.id}.disconnected`);
-      const silent = await reconnectAsync({ connectors: [connector] });
-      if (silent.length === 0) await connectEvmAsync({ connector });
+      await kit.connect(params);
     } catch (err) {
       if (!isCancellationError(err)) {
-        setEvmConnectError(
-          (err instanceof Error && err.message) || `Couldn't connect to ${connector.name}.`,
-        );
+        setConnectError({
+          network,
+          message: (err instanceof Error && err.message) || `Couldn't connect to ${label}.`,
+        });
       }
     } finally {
-      setEvmConnecting(null);
+      setConnecting(null);
+      setConnectRequested(null);
     }
   };
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
@@ -315,42 +264,30 @@ function Dashboard() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  // One Logout clears both namespaces.
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await Promise.allSettled([logout(), disconnectSolana()]);
+      await kit.disconnect();
+    } catch {
+      // A wallet that refuses to disconnect is still signed out locally.
     } finally {
       localStorage.setItem("zd:loggedOut", "true");
       window.location.assign("/");
     }
   };
 
-  // Disconnect one namespace, keeping the other. Dropping the last connected
-  // wallet is a deliberate logout, so flag it before the redirect effects
-  // below run: they would otherwise show the "session expired" notice.
+  // Disconnect one namespace, keeping the other (the kit handles a wallet
+  // that serves both sides). Dropping the last connected wallet is a
+  // deliberate logout, so flag it before the redirect effects below run:
+  // they would otherwise show the "session expired" notice.
   const [disconnecting, setDisconnecting] = useState<"evm" | "solana" | null>(null);
-  // The same multichain wallet (MetaMask) can serve both sides. wagmi's
-  // disconnect asks the wallet to revoke the site permission, and MetaMask
-  // revokes the whole site, Solana included; so in that case the EVM side is
-  // detached at wagmi's level only, leaving the wallet's permission alone.
-  const sharesSolanaWallet =
-    !!connector &&
-    !!solana.walletName &&
-    connector.name.trim().toLowerCase() === solana.walletName.trim().toLowerCase();
   const handleDisconnect = async (network: "evm" | "solana") => {
     const isLast = network === "evm" ? !solanaConnected : !address;
     if (isLast) localStorage.setItem("zd:loggedOut", "true");
     setDisconnecting(network);
     try {
-      if (network === "evm") {
-        if (sharesSolanaWallet && solanaConnected && connector) {
-          await detachEvmConnection(wagmiConfig, connector.uid);
-        } else {
-          await logout();
-        }
-      } else {
-        await disconnectSolana();
-      }
+      await kit.disconnect({ namespace: network === "evm" ? "eip155" : "solana" });
     } finally {
       setDisconnecting(null);
     }
@@ -378,7 +315,7 @@ function Dashboard() {
   // had a chance to restore silently (the wallet registers, then answers a
   // silent connect), so hold the redirect while that restore is in flight
   // and give it a wider window than wagmi's own reconnect needs.
-  const solanaRestoring = SOLANA_ENABLED && solana.status === "connecting";
+  const solanaRestoring = SOLANA_ENABLED && kit.solana.isReconnecting;
   useEffect(() => {
     if (status !== 'disconnected' || isLoggingOut || solanaConnected || solanaRestoring) return;
 
@@ -410,9 +347,9 @@ function Dashboard() {
         {
           network: "solana" as const,
           label: "Solana",
-          value: solanaConnected ? solana.address : undefined,
-          explorerUrl: solana.address
-            ? `https://explorer.solana.com/address/${solana.address}`
+          value: solanaConnected ? kit.solana.address : undefined,
+          explorerUrl: solanaConnected && kit.solana.address
+            ? `https://explorer.solana.com/address/${kit.solana.address}`
             : undefined,
           badgeClass: "border-[#cdeedb] bg-[#e9f7ef] text-[#1f7a4d]",
           disconnectTitle: "Disconnect Solana wallet",
@@ -477,9 +414,7 @@ function Dashboard() {
             </button>
           </div>
         ))}
-      {SOLANA_ENABLED &&
-        !solanaConnected &&
-        (solanaWallets.length > 0 || solanaWalletConnect.enabled) && (
+      {!solanaConnected && (solanaWallets.length > 0 || solanaWalletConnect) && (
         <div
           data-testid="connect-solana"
           className="mt-1 flex flex-wrap items-center justify-center gap-2"
@@ -490,25 +425,27 @@ function Dashboard() {
               key={wallet.name}
               label={wallet.name}
               icon={wallet.icon}
-              pending={solanaConnecting === wallet.name}
-              disabled={solanaConnecting !== null}
+              pending={connecting === `solana:${wallet.name}`}
+              disabled={connecting !== null}
               title={`Connect ${wallet.name} on Solana`}
               testId={`connect-solana-${wallet.name}`}
-              onClick={() => connectSolanaWallet(wallet)}
+              onClick={() =>
+                connectWallet({ namespace: "solana", wallet }, `solana:${wallet.name}`, wallet.name)
+              }
             />
           ))}
-          {solanaWalletConnect.enabled && (
+          {solanaWalletConnect && (
             <WalletPill
               dashed
               label="WalletConnect"
-              disabled={solanaConnecting !== null}
+              disabled={connecting !== null}
               title="A Solana wallet on your phone, by QR code"
               testId="connect-solana-walletconnect"
-              onClick={openSolanaWalletConnect}
+              onClick={() => connectWallet({ namespace: "solana" }, "solana:sign-up", "WalletConnect")}
             />
           )}
-          {solanaConnectError && (
-            <span className="basis-full text-center text-xs text-red-600">{solanaConnectError}</span>
+          {connectError?.network === "solana" && (
+            <span className="basis-full text-center text-xs text-red-600">{connectError.message}</span>
           )}
         </div>
       )}
@@ -518,28 +455,30 @@ function Dashboard() {
           className="mt-1 flex flex-wrap items-center justify-center gap-2"
         >
           <span className="text-xs text-[var(--muted)]">Add an EVM wallet:</span>
-          {evmWallets.map((connector) => (
+          {evmWallets.map((wallet) => (
             <WalletPill
-              key={connector.uid}
-              label={connector.name}
-              icon={connector.icon}
-              pending={evmConnecting === connector.uid}
-              disabled={evmConnecting !== null}
-              title={`Connect ${connector.name} on EVM`}
-              testId={`connect-evm-${connector.name}`}
-              onClick={() => connectEvmWallet(connector)}
+              key={wallet.uid}
+              label={wallet.name}
+              icon={wallet.icon}
+              pending={connecting === `evm:${wallet.uid}`}
+              disabled={connecting !== null}
+              title={`Connect ${wallet.name} on EVM`}
+              testId={`connect-evm-${wallet.name}`}
+              onClick={() =>
+                connectWallet({ namespace: "eip155", wallet }, `evm:${wallet.uid}`, wallet.name)
+              }
             />
           ))}
           <WalletPill
             dashed
             label={evmWallets.length > 0 ? "More options" : "Connect"}
-            disabled={evmConnecting !== null}
+            disabled={connecting !== null}
             title="Passkey, Google, email or another EVM wallet"
             testId="connect-evm-button"
-            onClick={openEvmConnect}
+            onClick={() => connectWallet({ namespace: "eip155" }, "evm:sign-up", "the sign-up flow")}
           />
-          {evmConnectError && (
-            <span className="basis-full text-center text-xs text-red-600">{evmConnectError}</span>
+          {connectError?.network === "evm" && (
+            <span className="basis-full text-center text-xs text-red-600">{connectError.message}</span>
           )}
         </div>
       )}
@@ -625,7 +564,7 @@ function Dashboard() {
                   </span>
                 ) : (
                   <span className="rounded-full border border-[#cdeedb] bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#1f7a4d]">
-                    Signed in with {solana.walletName ?? "a Solana wallet"}
+                    Signed in with {kit.solana.walletInfo?.name ?? "a Solana wallet"}
                   </span>
                 )}
               </div>
