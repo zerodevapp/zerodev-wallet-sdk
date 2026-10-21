@@ -1,0 +1,53 @@
+name: Nightly E2E
+
+# Runs the live suites overnight, so an overnight KMS or staging regression
+# shows in the Actions tab before the first PR of the day.
+#
+# Separate from `ci.yml`: a scheduled run has no PR and no `build` job to wait
+# on. The two suite workflows it calls stay `workflow_call` only.
+on:
+  schedule:
+    - cron: '10 1 * * *'
+      timezone: Europe/Berlin
+  # Manual runs take the same overrides a calling repo passes.
+  workflow_dispatch:
+    inputs:
+      kms_url:
+        description: KMS to run against (blank = staging)
+        type: string
+        required: false
+      aa_host:
+        description: AA host to run against (blank = staging)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Scheduled runs use the default branch; the local paths resolve to the same
+  # commit. Both suites run, independently — one failing does not stop the other.
+  backend:
+    name: Backend
+    uses: ./.github/workflows/e2e-backend.yml
+    with:
+      # If empty the workflow will default to staging
+      kms_url: ${{ inputs.kms_url }}
+    secrets:
+      ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+      ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+
+  browser:
+    name: Browser
+    uses: ./.github/workflows/e2e-browser.yml
+    with:
+      # If empty the workflow will default to staging
+      kms_url: ${{ inputs.kms_url }}
+      aa_host: ${{ inputs.aa_host }}
+    secrets:
+      ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+      ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}

@@ -1,0 +1,139 @@
+name: Browser E2E
+
+# The browser e2e suite, callable from any repo in the org.
+#
+# One job, no internal `if:`. A caller job that reports `skipped` was skipped by
+# its own guard, never by something in here — which is what lets `ci-gate`
+# treat a skip as meaningful.
+#
+# `workflow_call` only: a workflow that is both called and self-triggered
+# resolves `secrets.*` differently depending on how it started.
+on:
+  workflow_call:
+    inputs:
+      kms_url:
+        description: The KMS the suite runs against. Blank means staging.
+        type: string
+        required: false
+      aa_host:
+        description: >-
+          Bundler and paymaster host. Blank means staging. Must match kms_url —
+          moving one and not the other fails in ways that look like SDK bugs.
+        type: string
+        required: false
+      job_name:
+        description: >-
+          Display name for the job. A calling repo sees it as
+          "<its own job name> / <this>", so it can set wording that reads in
+          its own Actions tab.
+        type: string
+        required: false
+    secrets:
+      ZD_PROJECT_ID:
+        required: true
+      ZD_OTP_PROJECT_ID:
+        required: true
+      MAILOSAUR_API_KEY:
+        required: true
+      MAILOSAUR_SERVER_ID:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  browser-e2e:
+    name: ${{ inputs.job_name || 'Browser E2E Tests' }}
+    runs-on: ubuntu-latest
+    # Serializes runs against the same KMS. The fallback repeats the staging URL
+    # instead of a short label, so a blank input and an explicit staging URL land
+    # in one group. `env` is not available in `concurrency`, hence the repeat.
+    # Groups are per calling repo, so two repos calling this still collide.
+    concurrency:
+      group: e2e-tests-${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
+      queue: max
+    # Resolve KMS and AA_HOST url
+    env:
+      KMS_URL: ${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
+      AA_HOST: ${{ inputs.aa_host || 'https://staging-meta-aa-provider.onrender.com' }}
+    steps:
+      # Debugging print to help further diagnosis
+      - name: Show target
+        run: |
+          echo "- KMS: $KMS_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- AA host: $AA_HOST" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check out the tests
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # A called workflow checks out the CALLER's repo by default. These
+          # two pin the tests to this workflow file's own commit, so a caller
+          # on `@v1.2.0` gets that tag's tests.
+          #
+          # `job` context, not `github`: `github.job_workflow_sha` is an OIDC
+          # claim that evaluates to empty here and silently checks out the
+          # default branch. Public repo, so GITHUB_TOKEN is enough.
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build demo SDK dependencies
+        run: pnpm build:e2e
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build and start QA lab
+        working-directory: apps/qa-lab-testing
+        run: |
+          pnpm build
+          pnpm start &
+        env:
+          # Both ids are inlined so a URL param can select the flavor per test,
+          # instead of building the app twice as the signer demo does.
+          NEXT_PUBLIC_ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
+          NEXT_PUBLIC_ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+          # Next inlines these at BUILD time, so an override has to be set here
+          # rather than on the test step.
+          NEXT_PUBLIC_KMS_PROXY_BASE_URL: ${{ env.KMS_URL }}
+          NEXT_PUBLIC_ZERODEV_AA_HOST: ${{ env.AA_HOST }}
+
+      - name: Wait for QA lab
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "QA lab is ready"
+              exit 0
+            fi
+            echo "Waiting for QA lab... ($i/15)"
+            sleep 2
+          done
+          echo "QA lab failed to start"
+          exit 1
+
+      - name: Run E2E tests
+        run: pnpm exec playwright test --config e2e/playwright.config.ts
+        env:
+          LAB_APP_URL: http://localhost:3000
+          MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+          MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: playwright-report-${{ github.job }}
+          path: playwright-report/
+          retention-days: 14
