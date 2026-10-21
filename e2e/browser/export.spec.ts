@@ -15,7 +15,6 @@
 
 import { expect, type FrameLocator, type Page } from '@playwright/test'
 import { test } from '../fixtures/authed-session.js'
-import { ping } from '../helpers/temp-email.js'
 
 /**
  * Reads rendered text out of a Turnkey export iframe. Waits until the iframe
@@ -38,14 +37,6 @@ async function openExportModal(page: Page): Promise<void> {
 }
 
 test.describe('Wallet Export', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
   test('should export the seed phrase', async ({ authedPage: page }) => {
     await openExportModal(page)
     await page.getByRole('button', { name: /Seed Phrase/i }).click()
