@@ -1,6 +1,6 @@
 import { IndexedDbStamper as TurnkeyIndexedDbStamper } from '@turnkey/indexed-db-stamper'
-import { withCrossTabLock } from '../utils/crossTabLock.js'
 import { TURNKEY_STAMP_HEADER } from '../constants.js'
+import { withCrossTabLock } from '../utils/crossTabLock.js'
 import {
   compactSignatureToDerHex,
   encodeStamp,
