@@ -12,17 +12,15 @@ on:
   workflow_call:
     inputs:
       kms_url:
-        description: The KMS the suite runs against.
+        description: The KMS the suite runs against. Blank means staging.
         type: string
         required: false
-        default: https://kms.staging.zerodev.app/api/v1
       aa_host:
         description: >-
-          Bundler and paymaster host. Must match kms_url — moving one and not
-          the other fails in ways that look like SDK bugs.
+          Bundler and paymaster host. Blank means staging. Must match kms_url —
+          moving one and not the other fails in ways that look like SDK bugs.
         type: string
         required: false
-        default: https://staging-meta-aa-provider.onrender.com
       job_name:
         description: >-
           Display name for the job. A calling repo sees it as
@@ -30,12 +28,10 @@ on:
           its own Actions tab.
         type: string
         required: false
-        default: Browser E2E Tests
       ref:
-        description: Debug escape hatch. Unset pins the tests to this workflow's commit.
+        description: Debug escape hatch. Blank pins the tests to this workflow's commit.
         type: string
         required: false
-        default: ''
     secrets:
       ZD_PROJECT_ID:
         required: true
@@ -48,14 +44,24 @@ on:
 
 jobs:
   browser-e2e:
-    name: ${{ inputs.job_name }}
+    name: ${{ inputs.job_name || 'Browser E2E Tests' }}
     runs-on: ubuntu-latest
     # Serializes runs against one staging. Groups are scoped to the caller's
     # repo, so two different repos calling this can still collide.
     concurrency:
       group: e2e-tests-staging
       queue: max
+    # Resolve KMS and AA_HOST url
+    env:
+      KMS_URL: ${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
+      AA_HOST: ${{ inputs.aa_host || 'https://staging-meta-aa-provider.onrender.com' }}
     steps:
+      # Debugging print to help further diagnosis
+      - name: Show target
+        run: |
+          echo "- KMS: $KMS_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "- AA host: $AA_HOST" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check out the tests
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -99,8 +105,8 @@ jobs:
           NEXT_PUBLIC_ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
           # Next inlines these at BUILD time, so an override has to be set here
           # rather than on the test step.
-          NEXT_PUBLIC_KMS_PROXY_BASE_URL: ${{ inputs.kms_url }}
-          NEXT_PUBLIC_ZERODEV_AA_HOST: ${{ inputs.aa_host }}
+          NEXT_PUBLIC_KMS_PROXY_BASE_URL: ${{ env.KMS_URL }}
+          NEXT_PUBLIC_ZERODEV_AA_HOST: ${{ env.AA_HOST }}
 
       - name: Wait for QA lab
         run: |

@@ -7,7 +7,7 @@ name: Nightly E2E
 # on. The two suite workflows it calls stay `workflow_call` only.
 on:
   schedule:
-    - cron: '7 1 * * *'
+    - cron: '10 1 * * *'
       timezone: Europe/Berlin
   # Manual runs take the same overrides a calling repo passes.
   workflow_dispatch:
@@ -31,7 +31,8 @@ jobs:
     name: Backend
     uses: ./.github/workflows/e2e-backend.yml
     with:
-      kms_url: ${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
+      # If empty the workflow will default to staging
+      kms_url: ${{ inputs.kms_url }}
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
@@ -42,8 +43,9 @@ jobs:
     name: Browser
     uses: ./.github/workflows/e2e-browser.yml
     with:
-      kms_url: ${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
-      aa_host: ${{ inputs.aa_host || 'https://staging-meta-aa-provider.onrender.com' }}
+      # If empty the workflow will default to staging
+      kms_url: ${{ inputs.kms_url }}
+      aa_host: ${{ inputs.aa_host }}
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}

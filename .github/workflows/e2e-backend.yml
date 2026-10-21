@@ -12,10 +12,11 @@ on:
   workflow_call:
     inputs:
       kms_url:
-        description: The KMS the suite runs against.
+        description: The KMS the suite runs against. Blank means staging.
         type: string
         required: false
-        default: https://kms.staging.zerodev.app/api/v1
+      # No aa_host: this suite signs userOps at the KMS and never submits one,
+      # so no bundler or paymaster is used
       job_name:
         description: >-
           Display name for the job. A calling repo sees it as
@@ -23,12 +24,10 @@ on:
           its own Actions tab.
         type: string
         required: false
-        default: Backend E2E Tests
       ref:
-        description: Debug escape hatch. Unset pins the tests to this workflow's commit.
+        description: Debug escape hatch. Blank pins the tests to this workflow's commit.
         type: string
         required: false
-        default: ''
     secrets:
       ZD_PROJECT_ID:
         required: true
@@ -42,14 +41,22 @@ on:
 
 jobs:
   backend-e2e:
-    name: ${{ inputs.job_name }}
+    name: ${{ inputs.job_name || 'Backend E2E Tests' }}
     runs-on: ubuntu-latest
     # Serializes runs against one staging. Groups are scoped to the caller's
     # repo, so two different repos calling this can still collide.
     concurrency:
       group: integration-tests-staging
       queue: max
+    # Resolve KMS url
+    env:
+      KMS_URL: ${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
     steps:
+      # Debugging print to help further diagnosis
+      - name: Show target
+        run: |
+          echo "- KMS: $KMS_URL" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check out the tests
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -80,7 +87,7 @@ jobs:
         env:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
-          KMS_BACKEND_URL: ${{ inputs.kms_url }}
+          KMS_BACKEND_URL: ${{ env.KMS_URL }}
           MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
           MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
 
