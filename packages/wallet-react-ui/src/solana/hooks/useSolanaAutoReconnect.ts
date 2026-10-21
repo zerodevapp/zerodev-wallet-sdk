@@ -6,11 +6,11 @@ import { useSolanaWallets } from './useSolanaWallets'
 
 /**
  * Silently reconnect the Solana wallet used last time, once it is available.
- * `useZeroDevWalletKit` mounts it (its `reconnectOnMount`), and so do the
- * Solana sign-up units (`SignUp.InstalledWallets` with a `solana`
+ * Internal: `useZeroDevWalletKit` mounts it (its `reconnectOnMount`), and so
+ * do the Solana sign-up units (`SignUp.InstalledWallets` with a `solana`
  * namespace, `SignUp.SolanaWalletConnect`), so a reload that lands on a
- * sheet offering Solana restores without host code, and a sheet without
- * one restores nothing; mount it directly only in a host that uses neither.
+ * sheet offering Solana restores too, and a sheet without one restores
+ * nothing.
  * Wallet Standard wallets keep
  * no session of their own, so this is how a Solana connection survives a
  * reload: `standard:connect({ silent: true })` returns the accounts the
