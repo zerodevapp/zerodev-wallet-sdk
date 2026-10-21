@@ -28,10 +28,6 @@ on:
           its own Actions tab.
         type: string
         required: false
-      ref:
-        description: Debug escape hatch. Blank pins the tests to this workflow's commit.
-        type: string
-        required: false
     secrets:
       ZD_PROJECT_ID:
         required: true
@@ -49,12 +45,12 @@ jobs:
   browser-e2e:
     name: ${{ inputs.job_name || 'Browser E2E Tests' }}
     runs-on: ubuntu-latest
-    # Serializes runs against the same KMS environment. The key is the raw input, so a
-    # blank and an explicit staging URL land in different groups and run
-    # concurrently. Groups are also scoped per calling repo, so two repos
-    # calling this collide the same way.
+    # Serializes runs against the same KMS. The fallback repeats the staging URL
+    # instead of a short label, so a blank input and an explicit staging URL land
+    # in one group. `env` is not available in `concurrency`, hence the repeat.
+    # Groups are per calling repo, so two repos calling this still collide.
     concurrency:
-      group: e2e-tests-${{ inputs.kms_url || 'staging' }}
+      group: e2e-tests-${{ inputs.kms_url || 'https://kms.staging.zerodev.app/api/v1' }}
       queue: max
     # Resolve KMS and AA_HOST url
     env:
@@ -78,7 +74,7 @@ jobs:
           # claim that evaluates to empty here and silently checks out the
           # default branch. Public repo, so GITHUB_TOKEN is enough.
           repository: ${{ job.workflow_repository }}
-          ref: ${{ inputs.ref || job.workflow_sha }}
+          ref: ${{ job.workflow_sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
