@@ -43,22 +43,13 @@ export {
   type ZeroDevWalletKit,
   type ZeroDevWalletKitOptions,
 } from './kit/useZeroDevWalletKit.js'
-export { detachEvmConnection } from './solana/evmAdoptionGuard.js'
-// Solana (external wallets via the Wallet Standard; the kit signs nothing)
-export {
-  type SolanaAccount,
-  useSolanaAccount,
-} from './solana/hooks/useSolanaAccount.js'
-export { useSolanaAutoReconnect } from './solana/hooks/useSolanaAutoReconnect.js'
+// Solana signing (the kit signs nothing: the handle relays to the wallet's
+// own features). Connection state, wallets and connect/disconnect are on
+// `useZeroDevWalletKit`.
 export {
   type SolanaWalletHandle,
   useSolanaWallet,
 } from './solana/hooks/useSolanaWallet.js'
-export {
-  type SolanaWalletConnect,
-  useSolanaWalletConnect,
-} from './solana/hooks/useSolanaWalletConnect.js'
-export { useSolanaWallets } from './solana/hooks/useSolanaWallets.js'
 export type {
   SolanaConnection,
   SolanaConnectionSource,
