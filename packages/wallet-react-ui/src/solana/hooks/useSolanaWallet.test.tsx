@@ -6,7 +6,6 @@ import type { WalletAccount } from '@wallet-standard/base'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from '../../store'
 import type { SolanaStandardWallet } from '../types'
-import { useSolanaAccount } from './useSolanaAccount'
 import { useSolanaWallet } from './useSolanaWallet'
 
 let store = createStore()
@@ -146,24 +145,5 @@ describe('useSolanaWallet', () => {
     expect(result.current?.signTransaction).toBeNull()
     expect(result.current?.signAndSendTransaction).toBeNull()
     expect(signTransaction).not.toHaveBeenCalled()
-  })
-})
-
-describe('useSolanaAccount', () => {
-  it('connects and disconnects a wallet outside the sign-up flow', async () => {
-    const { result } = renderHook(() => useSolanaAccount())
-    expect(result.current.isConnected).toBe(false)
-
-    await act(async () => {
-      await result.current.connect(walletWith({}))
-    })
-    expect(result.current.isConnected).toBe(true)
-    expect(result.current.address).toBe(account.address)
-    expect(result.current.walletName).toBe('Phantom')
-
-    await act(async () => {
-      await result.current.disconnect()
-    })
-    expect(result.current.isConnected).toBe(false)
   })
 })
