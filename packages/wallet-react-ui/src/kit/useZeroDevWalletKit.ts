@@ -13,6 +13,7 @@ import { useKitStore } from '../shared/hooks/useKitStore.js'
 import { equalsIgnoreCase } from '../shared/utils/common.js'
 import {
   detachEvmConnection,
+  revokeDormantEvmSide,
   withoutEvmAdoption,
 } from '../solana/evmAdoptionGuard.js'
 import { useSolanaAutoReconnect } from '../solana/hooks/useSolanaAutoReconnect.js'
@@ -281,7 +282,16 @@ export function useZeroDevWalletKit(
   const disconnect = useCallback(
     async (params: KitDisconnectParams = {}) => {
       const { namespace } = params
-      const disconnectSolana = () => store.getState().solana.disconnect()
+      // The wallet behind the Solana slot, read before it is cleared: a
+      // multichain wallet also granted its EVM side in the Solana prompt,
+      // and if nothing connected through that side it must go with Solana,
+      // or wagmi's reload reconnect would bring the user back as EVM.
+      const solanaWalletName = store.getState().solana.connection?.wallet.name
+      const disconnectSolana = async () => {
+        await store.getState().solana.disconnect()
+        if (solanaWalletName)
+          await revokeDormantEvmSide(config, solanaWalletName)
+      }
       const disconnectEvm = async (keepSolana: boolean) => {
         const solanaWalletName = keepSolana
           ? store.getState().solana.connection?.wallet.name

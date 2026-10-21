@@ -6,9 +6,8 @@ import { useSolanaWallets } from './useSolanaWallets'
 
 /**
  * Silently reconnect the Solana wallet used last time, once it is available.
- * `useZeroDevWalletKit` mounts it (its `reconnectOnMount`), and so does the
- * `SignUp` root, so a reload that lands on sign-up restores without host
- * code; mount it directly only in a host that uses neither.
+ * Internal: `useZeroDevWalletKit` mounts it (its `reconnectOnMount`), and so
+ * does the `SignUp` root, so a reload that lands on sign-up restores too.
  * Wallet Standard wallets keep
  * no session of their own, so this is how a Solana connection survives a
  * reload: `standard:connect({ silent: true })` returns the accounts the
