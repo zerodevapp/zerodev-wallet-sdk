@@ -34,6 +34,11 @@ on:
         required: true
       ZD_OTP_PROJECT_ID:
         required: true
+      MAILOSAUR_API_KEY
+        required: true
+      MAILOSAUR_SERVER_ID
+        required: true
+
 
 jobs:
   backend-e2e:
@@ -76,3 +81,6 @@ jobs:
           ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
           ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
           KMS_BACKEND_URL: ${{ inputs.kms_url }}
+          MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+          MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+

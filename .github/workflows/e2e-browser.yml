@@ -41,6 +41,10 @@ on:
         required: true
       ZD_OTP_PROJECT_ID:
         required: true
+      MAILOSAUR_API_KEY
+        required: true
+      MAILOSAUR_SERVER_ID
+        required: true
 
 jobs:
   browser-e2e:
@@ -115,6 +119,9 @@ jobs:
         run: pnpm exec playwright test --config e2e/playwright.config.ts
         env:
           LAB_APP_URL: http://localhost:3000
+          MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+          MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
