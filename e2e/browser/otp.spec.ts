@@ -7,21 +7,13 @@
  */
 
 import { test } from '@playwright/test'
-import { createNewAccount, ping } from '../helpers/temp-email.js'
+import { createNewAccount } from '../helpers/temp-email.js'
 import {
   loginWithOtp,
   logoutAndExpectLoginSurface,
 } from '../helpers/ui-login.js'
 
 test.describe('OTP Flow', () => {
-  test.beforeEach(async () => {
-    try {
-      await ping()
-    } catch {
-      test.skip(true, 'Email service unavailable')
-    }
-  })
-
   test('should verify OTP for an existing wallet after logout', async ({
     page,
   }) => {
