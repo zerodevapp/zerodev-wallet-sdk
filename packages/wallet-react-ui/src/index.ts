@@ -14,7 +14,10 @@ export type {
 export { useWalletInfo } from './auth/hooks/useWalletInfo.js'
 export { SignUp } from './auth/pages/SignUp'
 export type { AuthMethod, AuthStep, EmailAuthMethod } from './auth/types'
-export { isCancellationError } from './auth/utils/isCancellationError.js'
+export {
+  AuthFlowDismissedError,
+  isCancellationError,
+} from './auth/utils/isCancellationError.js'
 export type { WalletId } from './auth/walletGuide'
 // Connector
 export type {
@@ -29,6 +32,17 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
+// Kit: both namespaces behind one hook
+export {
+  type KitAccount,
+  type KitAccountStatus,
+  type KitConnectParams,
+  type KitDisconnectParams,
+  type KitNamespace,
+  useZeroDevWalletKit,
+  type ZeroDevWalletKit,
+  type ZeroDevWalletKitOptions,
+} from './kit/useZeroDevWalletKit.js'
 export { detachEvmConnection } from './solana/evmAdoptionGuard.js'
 // Solana (external wallets via the Wallet Standard; the kit signs nothing)
 export {
