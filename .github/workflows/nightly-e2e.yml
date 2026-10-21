@@ -7,11 +7,6 @@ name: Nightly E2E
 # on. The two suite workflows it calls stay `workflow_call` only.
 on:
   schedule:
-    # 01:07 local year round; `timezone` holds 1AM across the DST change.
-    # Swap for Europe/Lisbon if WET is meant.
-    #
-    # GitHub delays or drops scheduled runs under load, worst at the top of
-    # the hour, hence the offset minute.
     - cron: '7 1 * * *'
       timezone: Europe/Berlin
   # Manual runs take the same overrides a calling repo passes.
@@ -40,6 +35,8 @@ jobs:
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
 
   browser:
     name: Browser
@@ -50,3 +47,5 @@ jobs:
     secrets:
       ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
+      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
+      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
