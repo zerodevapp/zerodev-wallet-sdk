@@ -34,9 +34,9 @@ on:
         required: true
       ZD_OTP_PROJECT_ID:
         required: true
-      MAILOSAUR_API_KEY
+      MAILOSAUR_API_KEY:
         required: true
-      MAILOSAUR_SERVER_ID
+      MAILOSAUR_SERVER_ID:
         required: true
 
 
