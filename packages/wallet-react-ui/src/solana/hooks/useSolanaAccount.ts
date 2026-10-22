@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useConfig } from 'wagmi'
 import { useStore } from 'zustand'
 import { useKitStore } from '../../shared/hooks/useKitStore'
-import { withoutEvmAdoption } from '../evmAdoptionGuard'
+import { revokeDormantEvmSide, withoutEvmAdoption } from '../evmAdoptionGuard'
 import type {
   SolanaConnection,
   SolanaConnectionStatus,
@@ -28,6 +28,10 @@ export type SolanaAccount = {
    * only, even for a multichain wallet; replaces any existing Solana
    * connection; rejects when the user declines. */
   connect: (wallet: SolanaStandardWallet) => Promise<void>
+  /** Disconnect the Solana wallet. A multichain wallet also granted its EVM
+   * side in the Solana prompt; if nothing is connected through that side it
+   * goes too, or wagmi's reload reconnect would bring it back as an EVM
+   * login. An EVM connection through the same wallet is kept. */
   disconnect: () => Promise<void>
 }
 
@@ -45,7 +49,11 @@ export function useSolanaAccount(): SolanaAccount {
   const wagmiConfig = useConfig()
   const status = useStore(store, (s) => s.solana.status)
   const connection = useStore(store, (s) => s.solana.connection)
-  const disconnect = store.getState().solana.disconnect
+  const disconnect = useCallback(async () => {
+    const walletName = store.getState().solana.connection?.wallet.name
+    await store.getState().solana.disconnect()
+    if (walletName) await revokeDormantEvmSide(wagmiConfig, walletName)
+  }, [store, wagmiConfig])
   const connect = useCallback(
     async (wallet: SolanaStandardWallet) => {
       // Solana only: keep wagmi from adopting a multichain wallet's EVM side.

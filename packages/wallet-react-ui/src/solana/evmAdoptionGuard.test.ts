@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Config } from 'wagmi'
-import { detachEvmConnection, withoutEvmAdoption } from './evmAdoptionGuard'
+import {
+  detachEvmConnection,
+  revokeDormantEvmSide,
+  withoutEvmAdoption,
+} from './evmAdoptionGuard'
 
 type Listener = (...args: unknown[]) => void
 
@@ -12,6 +16,7 @@ function fakeConnector(name: string) {
     id: name.toLowerCase(),
     name,
     type: 'injected',
+    disconnect: vi.fn(async () => {}),
     emitter: {
       on: (event: string, fn: Listener) => {
         listeners.set(event, (listeners.get(event) ?? new Set()).add(fn))
@@ -46,7 +51,9 @@ function fakeConfig() {
     connect: vi.fn(),
   }
   const storage = new Map<string, unknown>()
+  const connectors: FakeConnector[] = []
   const config = {
+    connectors,
     storage: {
       getItem: async (key: string) => storage.get(key) ?? null,
       setItem: async (key: string, value: unknown) => {
@@ -88,7 +95,13 @@ function fakeConfig() {
       status: 'connected',
     }))
   }
-  return { config: config as unknown as Config, adopt, events, storage }
+  return {
+    config: config as unknown as Config,
+    adopt,
+    events,
+    storage,
+    connectors,
+  }
 }
 
 beforeEach(() => {
@@ -151,6 +164,45 @@ describe('withoutEvmAdoption', () => {
     expect(config.state.status).toBe('connected')
   })
 
+  it("shims the same wallet's dormant EVM connector after a Solana connect", async () => {
+    const { config, storage, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask')
+    const rabby = fakeConnector('Rabby')
+    connectors.push(metamask, rabby)
+
+    await withoutEvmAdoption(config, 'metamask', async () => undefined)
+
+    // wagmi's reload reconnect adopts any authorised injected connector;
+    // the shim is what keeps MetaMask's EVM side out after a Solana login.
+    expect(storage.get(`${metamask.id}.disconnected`)).toBe(true)
+    expect(storage.has(`${rabby.id}.disconnected`)).toBe(false)
+  })
+
+  it('leaves the shim alone for a wallet connected on the EVM side', async () => {
+    const { config, adopt, storage, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask')
+    connectors.push(metamask)
+    adopt(metamask)
+
+    await withoutEvmAdoption(config, 'MetaMask', async () => undefined)
+
+    expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
+    expect(config.state.connections.size).toBe(1)
+  })
+
+  it('sets no shim when the Solana connect rejects', async () => {
+    const { config, storage, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask')
+    connectors.push(metamask)
+
+    await expect(
+      withoutEvmAdoption(config, 'MetaMask', async () => {
+        throw new Error('User rejected the request')
+      }),
+    ).rejects.toThrow('User rejected')
+    expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
+  })
+
   it('still sweeps when the Solana connect rejects', async () => {
     const { config, adopt } = fakeConfig()
     const metamask = fakeConnector('MetaMask')
@@ -162,6 +214,43 @@ describe('withoutEvmAdoption', () => {
       }),
     ).rejects.toThrow('User rejected')
     expect(config.state.connections.size).toBe(0)
+  })
+})
+
+describe('revokeDormantEvmSide', () => {
+  it("disconnects the same wallet's injected connector when nothing is connected through it", async () => {
+    const { config, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask')
+    const rabby = fakeConnector('Rabby')
+    connectors.push(metamask, rabby)
+
+    await revokeDormantEvmSide(config, 'MetaMask')
+
+    expect(metamask.disconnect).toHaveBeenCalled()
+    expect(rabby.disconnect).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the shim when the connector cannot disconnect', async () => {
+    const { config, storage, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask')
+    metamask.disconnect.mockRejectedValueOnce(new Error('Provider not found'))
+    connectors.push(metamask)
+
+    await revokeDormantEvmSide(config, 'MetaMask')
+
+    expect(storage.get(`${metamask.id}.disconnected`)).toBe(true)
+  })
+
+  it('keeps a wallet that is connected on the EVM side', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask')
+    connectors.push(metamask)
+    adopt(metamask)
+
+    await revokeDormantEvmSide(config, 'MetaMask')
+
+    expect(metamask.disconnect).not.toHaveBeenCalled()
+    expect(config.state.connections.size).toBe(1)
   })
 })
 
