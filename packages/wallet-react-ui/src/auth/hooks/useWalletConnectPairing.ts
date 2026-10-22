@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   type Connector,
   useAccount,
+  useConfig,
   useConnect,
   useConnections,
   useConnectors,
@@ -46,6 +47,7 @@ export type WalletConnectPairing = {
  */
 export function useWalletConnectPairing(): WalletConnectPairing {
   const { goToStep } = useAuth()
+  const config = useConfig()
   const connectors = useConnectors()
   const wcConnector = connectors.find(isZeroDevWalletConnect)
   const { connect } = useConnect()
@@ -86,7 +88,33 @@ export function useWalletConnectPairing(): WalletConnectPairing {
     // a persisted session, so rehydration can't close a flow the user is
     // looking at. Whether an already-connected user should see sign-up at
     // all stays the host's `isConnected` decision.
-    const onConnect = () => goToStep(null)
+    //
+    // The event fires before the connector's connect() resolves, so wagmi
+    // has not written the connection yet. Closing the flow then would reject
+    // the kit connector's pending connect (`waitForAuthFlow`) with wagmi
+    // still disconnected, and a host awaiting it (`useZeroDevWalletKit`'s
+    // connect) would read a successful pairing as a dismissal. So close only
+    // once wagmi holds the connection; the event is still what says the
+    // connection is ours and not a restore.
+    const uid = wcConnector.uid
+    let unsubscribeCommit: (() => void) | undefined
+    const onConnect = () => {
+      if (disposed) return
+      if (config.state.connections.has(uid)) {
+        goToStep(null)
+        return
+      }
+      unsubscribeCommit?.()
+      unsubscribeCommit = config.subscribe(
+        (state) => state.connections.has(uid),
+        (committed) => {
+          if (!committed) return
+          unsubscribeCommit?.()
+          unsubscribeCommit = undefined
+          goToStep(null)
+        },
+      )
+    }
 
     let wcProvider: WcPairingProvider | undefined
     let disposed = false
@@ -111,11 +139,12 @@ export function useWalletConnectPairing(): WalletConnectPairing {
     }
     return () => {
       disposed = true
+      unsubscribeCommit?.()
       wcProvider?.signer?.client?.events?.off('proposal_expire', onExpire)
       wcProvider?.off('connect', onConnect)
       wcConnector.emitter.off('message', onMessage)
     }
-  }, [wcConnector, wcConnected, isReconnecting])
+  }, [wcConnector, wcConnected, isReconnecting, config])
 
   return {
     uri,

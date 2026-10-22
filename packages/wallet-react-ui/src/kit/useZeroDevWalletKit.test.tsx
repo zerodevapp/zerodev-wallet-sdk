@@ -116,6 +116,17 @@ vi.mock('wagmi', () => ({
 vi.mock('../shared/hooks/useKitStore', () => ({
   useKitStore: () => store,
 }))
+// The WalletConnect door, as the auto-reconnect and the hook read it.
+const walletConnectDoor = {
+  enabled: false,
+  wallet: null as SolanaStandardWallet | null,
+  error: null as string | null,
+  retry: () => {},
+}
+vi.mock('../solana/hooks/useSolanaWalletConnect', () => ({
+  useSolanaWalletConnect: () => walletConnectDoor,
+}))
+const LAST_WALLET_KEY = 'zerodev:solana:lastWallet'
 
 // --- Solana stand-ins ------------------------------------------------------
 
@@ -126,12 +137,13 @@ const solanaAccount: WalletAccount = {
   features: ['solana:signMessage'],
 }
 
-function solanaWallet(name: string) {
+function solanaWallet(name: string, source?: 'walletconnect') {
   const disconnect = vi.fn(async () => {})
   const connect = vi.fn(async () => ({ accounts: [solanaAccount] }))
   const wallet = {
     version: '1.0.0',
     name,
+    ...(source && { source }),
     icon: 'data:image/svg+xml;base64,',
     chains: ['solana:mainnet'],
     accounts: [solanaAccount],
@@ -147,6 +159,10 @@ beforeEach(() => {
   store = createStore()
   config = makeConfig()
   storage.clear()
+  window.localStorage.clear()
+  walletConnectDoor.enabled = false
+  walletConnectDoor.wallet = null
+  walletConnectDoor.error = null
   account.status = 'disconnected'
   account.address = undefined
   account.connector = undefined
@@ -227,6 +243,88 @@ describe('useZeroDevWalletKit', () => {
     expect(result.current.eip155.walletInfo?.name).toBe('MetaMask')
   })
 
+  describe('restore after a reload', () => {
+    const saveLast = (name: string, source: 'standard' | 'walletconnect') =>
+      window.localStorage.setItem(
+        LAST_WALLET_KEY,
+        JSON.stringify({ name, source }),
+      )
+    const renderLive = () => {
+      const seen: boolean[] = []
+      const rendered = renderHook(() => {
+        const kit = useZeroDevWalletKit()
+        seen.push(kit.solana.isReconnecting)
+        return kit
+      })
+      return { ...rendered, seen }
+    }
+
+    it('reports a saved installed wallet as reconnecting on the first render, and settles when it is absent', async () => {
+      saveLast('Phantom', 'standard')
+      const { result, seen } = renderLive()
+      // First render: the restore has not run yet, so the host must wait.
+      expect(seen[0]).toBe(true)
+      await act(async () => {})
+      // The registry has no Phantom (uninstalled): the restore settled empty.
+      expect(result.current.solana.isReconnecting).toBe(false)
+      expect(result.current.solana.status).toBe('disconnected')
+      expect(result.current.solana.isConnected).toBe(false)
+    })
+
+    it('stays reconnecting while the WalletConnect provider loads, then restores through it', async () => {
+      saveLast('Phantom', 'walletconnect')
+      walletConnectDoor.enabled = true
+      const { result, rerender } = renderLive()
+      await act(async () => {})
+      expect(result.current.solana.isReconnecting).toBe(true)
+      expect(result.current.solana.status).toBe('reconnecting')
+      expect(result.current.isReconnecting).toBe(true)
+
+      const { wallet, connect } = solanaWallet('Phantom', 'walletconnect')
+      walletConnectDoor.wallet = wallet
+      await act(async () => {
+        rerender()
+      })
+      expect(connect).toHaveBeenCalledWith({ silent: true })
+      expect(result.current.solana.isConnected).toBe(true)
+      expect(result.current.solana.isReconnecting).toBe(false)
+    })
+
+    it('settles when the WalletConnect provider fails to load', async () => {
+      saveLast('Phantom', 'walletconnect')
+      walletConnectDoor.enabled = true
+      walletConnectDoor.error = 'import failed'
+      const { result } = renderLive()
+      await act(async () => {})
+      expect(result.current.solana.isReconnecting).toBe(false)
+    })
+
+    it('settles when the saved WalletConnect door is no longer configured', async () => {
+      saveLast('Phantom', 'walletconnect')
+      const { result } = renderLive()
+      await act(async () => {})
+      expect(result.current.solana.isReconnecting).toBe(false)
+    })
+
+    it('settles when the silent connect is refused', async () => {
+      saveLast('Phantom', 'walletconnect')
+      walletConnectDoor.enabled = true
+      const { wallet, connect } = solanaWallet('Phantom', 'walletconnect')
+      connect.mockRejectedValueOnce(new Error('not authorised'))
+      walletConnectDoor.wallet = wallet
+      const { result } = renderLive()
+      await act(async () => {})
+      expect(result.current.solana.isReconnecting).toBe(false)
+      expect(result.current.solana.isConnected).toBe(false)
+    })
+
+    it('never reports a pending restore with reconnectOnMount off', () => {
+      saveLast('Phantom', 'standard')
+      const { result } = render()
+      expect(result.current.solana.isReconnecting).toBe(false)
+    })
+  })
+
   describe('connect', () => {
     it('tries a silent EVM reconnect before prompting an installed wallet', async () => {
       storage.set('io.metamask.disconnected', true)
@@ -303,6 +401,78 @@ describe('useZeroDevWalletKit', () => {
         await pending
       })
       expect(result.current.solana.isConnected).toBe(true)
+    })
+
+    it('reopens the Solana sign-up after an embedded login, with a clean history', async () => {
+      // A passkey, Google or email login ends at the terminal `authenticated`
+      // step and stays there; the Solana sign-up must open from it, and
+      // must not leave `authenticated` behind as a back-arrow target.
+      store.getState().auth.goToStep('sign-up')
+      store.getState().auth.goToStep('authenticated')
+      const { result } = render()
+      let pending!: Promise<void>
+      act(() => {
+        pending = result.current.connect({ namespace: 'solana' })
+      })
+      expect(store.getState().auth.step).toBe('sign-up')
+      expect(store.getState().auth.stepHistory).toEqual([])
+      await act(async () => {
+        store.getState().auth.goToStep(null)
+        await expect(pending).rejects.toBeInstanceOf(AuthFlowDismissedError)
+      })
+    })
+
+    it('ends a lingering authenticated step before the EVM sign-up too', async () => {
+      store.getState().auth.goToStep('sign-up')
+      store.getState().auth.goToStep('authenticated')
+      const { result } = render()
+      await act(async () => {
+        await result.current.connect({ namespace: 'eip155' })
+      })
+      expect(store.getState().auth.step).toBeNull()
+      expect(core.connect).toHaveBeenCalledWith(config, {
+        connector: kitConnector,
+      })
+    })
+
+    it('refuses to open the Solana sign-up over a flow that is still running', async () => {
+      store.getState().auth.goToStep('sign-up')
+      const { result } = render()
+      await act(async () => {
+        await expect(
+          result.current.connect({ namespace: 'solana' }),
+        ).rejects.toThrow('Auth flow already in progress')
+      })
+    })
+
+    it('completes an embedded login picked during the Solana sign-up, then rejects as dismissed', async () => {
+      const { result } = render()
+      let pending!: Promise<void>
+      act(() => {
+        pending = result.current.connect({ namespace: 'solana' })
+      })
+      await act(async () => {
+        // The passkey, Google and email units end the flow here, with the
+        // session created but no wagmi connection yet.
+        store.getState().auth.goToStep('authenticated')
+        await expect(pending).rejects.toBeInstanceOf(AuthFlowDismissedError)
+      })
+      expect(core.connect).toHaveBeenCalledWith(config, {
+        connector: kitConnector,
+      })
+    })
+
+    it('still settles the Solana sign-up when completing the embedded login fails', async () => {
+      core.connect.mockRejectedValueOnce(new Error('session gone'))
+      const { result } = render()
+      let pending!: Promise<void>
+      act(() => {
+        pending = result.current.connect({ namespace: 'solana' })
+      })
+      await act(async () => {
+        store.getState().auth.goToStep('authenticated')
+        await expect(pending).rejects.toBeInstanceOf(AuthFlowDismissedError)
+      })
     })
 
     it('rejects the Solana sign-up when the flow closes without a connection', async () => {

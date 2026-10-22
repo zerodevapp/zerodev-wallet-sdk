@@ -4,7 +4,13 @@ import {
   reconnect as wagmiReconnect,
 } from '@wagmi/core'
 import { useCallback, useMemo } from 'react'
-import { type Connector, useAccount, useConfig, useConnectors } from 'wagmi'
+import {
+  type Config,
+  type Connector,
+  useAccount,
+  useConfig,
+  useConnectors,
+} from 'wagmi'
 import { useStore } from 'zustand'
 import { useWalletInfo, type WalletInfo } from '../auth/hooks/useWalletInfo.js'
 import { AuthFlowDismissedError } from '../auth/utils/isCancellationError.js'
@@ -19,6 +25,7 @@ import {
 import { useSolanaAutoReconnect } from '../solana/hooks/useSolanaAutoReconnect.js'
 import { useSolanaWalletConnect } from '../solana/hooks/useSolanaWalletConnect.js'
 import { useSolanaWallets } from '../solana/hooks/useSolanaWallets.js'
+import { readLastSolanaWallet } from '../solana/solanaStoreSlice.js'
 import type { SolanaStandardWallet } from '../solana/types.js'
 import type { createStore } from '../store.js'
 
@@ -39,7 +46,11 @@ export type KitAccount = {
   isConnected: boolean
   /** A silent restore after a reload is in flight: nothing is connected
    * yet, but nothing has been decided either. Hold any "signed out"
-   * redirect while this is true. */
+   * redirect while this is true. For Solana it covers the whole restore,
+   * from the saved-session check through loading the WalletConnect
+   * provider to the silent connect, and clears on any outcome. Read from
+   * the saved session, so it is false on the server and may be true on the
+   * client's first render, like wagmi's `reconnecting`. */
   isReconnecting: boolean
   /** Checksummed hex (EVM) or base58 (Solana); undefined while disconnected. */
   address: string | undefined
@@ -103,32 +114,73 @@ export type ZeroDevWalletKitOptions = {
 
 type KitStore = ReturnType<typeof createStore>
 
+function kitConnectorOf(config: Config): Connector {
+  const connector = config.connectors.find((c) => c.id === 'zerodev-wallet')
+  if (!connector) {
+    throw new Error('useZeroDevWalletKit needs the zeroDevWallet connector')
+  }
+  return connector
+}
+
 /**
- * Open the kit's sign-up flow and wait for it to connect `namespace`.
- * Resolves on the first connection in that namespace, rejects with
- * `AuthFlowDismissedError` when the flow closes without one.
+ * A passkey, Google or email login leaves the flow at its terminal
+ * `authenticated` step for good. Before opening a new flow, end that one,
+ * so the sheet does not carry a back arrow to a step that renders nothing.
  */
-function openSignUpFor(
-  store: KitStore,
-  isConnected: () => boolean,
-  subscribeConnected: (onConnected: () => void) => () => void,
-): Promise<void> {
-  if (store.getState().auth.step !== null) {
+function endCompletedAuthFlow(store: KitStore): void {
+  const auth = store.getState().auth
+  if (auth.step === 'authenticated') auth.reset()
+}
+
+/**
+ * Open the kit's sign-up flow and wait for it to connect a Solana wallet.
+ * Resolves on the connection, rejects with `AuthFlowDismissedError` when the
+ * flow closes without one.
+ *
+ * The flow can also end at `authenticated`: the host's sheet may carry
+ * passkey, Google or email units beside the Solana ones, and the user may
+ * pick one of those instead. That login is the user's choice, so it is
+ * completed here (the kit connector's connect, which the sheet would
+ * normally have been opened under), best effort; the Solana request then
+ * settles as dismissed, like an EVM request that ended in a Solana
+ * connection.
+ */
+function openSolanaSignUp(store: KitStore, config: Config): Promise<void> {
+  endCompletedAuthFlow(store)
+  const auth = store.getState().auth
+  if (auth.step !== null) {
     return Promise.reject(new Error('Auth flow already in progress'))
   }
-  store.getState().auth.goToStep('sign-up')
+  auth.goToStep('sign-up')
+  const isConnected = () => store.getState().solana.connection !== null
+  const completeLogin = async () => {
+    try {
+      await wagmiConnect(config, { connector: kitConnectorOf(config) })
+    } catch {
+      // The session exists, so a failure here is rare; a reload's reconnect
+      // picks it up. The Solana request still settles below.
+    }
+  }
   return new Promise<void>((resolve, reject) => {
     const settle = (ok: boolean) => {
-      unsubConnected()
+      unsubConnection()
       unsubStep()
       if (ok) resolve()
       else reject(new AuthFlowDismissedError())
     }
-    const unsubConnected = subscribeConnected(() => settle(true))
+    const unsubConnection = store.subscribe(
+      (s) => s.solana.connection,
+      (connection) => {
+        if (connection) settle(true)
+      },
+    )
     const unsubStep = store.subscribe(
       (s) => s.auth.step,
       (step) => {
         if (step === null) settle(isConnected())
+        else if (step === 'authenticated') {
+          completeLogin().finally(() => settle(isConnected()))
+        }
       },
     )
   })
@@ -157,8 +209,20 @@ export function useZeroDevWalletKit(
   const config = useConfig()
   const connectors = useConnectors()
   const evm = useAccount()
-  const solanaStatus = useStore(store, (s) => s.solana.status)
+  const solanaSliceStatus = useStore(store, (s) => s.solana.status)
   const solanaConnection = useStore(store, (s) => s.solana.connection)
+  const restoreSettled = useStore(store, (s) => s.solana.restoreSettled)
+  // A saved session that the auto-reconnect below has not yet tried: the
+  // slot still reads `disconnected` while the wallet registers or the
+  // WalletConnect provider loads, so report that window as reconnecting.
+  const restorePending =
+    reconnectOnMount &&
+    !restoreSettled &&
+    solanaSliceStatus === 'disconnected' &&
+    readLastSolanaWallet() !== null
+  const solanaStatus: KitAccountStatus = restorePending
+    ? 'reconnecting'
+    : solanaSliceStatus
   const solanaWallets = useSolanaWallets()
   const { walletInfo: evmWalletInfo } = useWalletInfo('eip155')
   const { walletInfo: solanaWalletInfo } = useWalletInfo('solana')
@@ -225,17 +289,7 @@ export function useZeroDevWalletKit(
           )
           return
         }
-        await openSignUpFor(
-          store,
-          () => store.getState().solana.connection !== null,
-          (onConnected) =>
-            store.subscribe(
-              (s) => s.solana.connection,
-              (connection) => {
-                if (connection) onConnected()
-              },
-            ),
-        )
+        await openSolanaSignUp(store, config)
         return
       }
 
@@ -258,14 +312,9 @@ export function useZeroDevWalletKit(
       // picked inside that flow connects through its own connector and
       // closes the flow, which the kit connector reports as a dismissal; an
       // EVM connection is there all the same, so that is a success.
-      const kitConnector = config.connectors.find(
-        (c) => c.id === 'zerodev-wallet',
-      )
-      if (!kitConnector) {
-        throw new Error('useZeroDevWalletKit needs the zeroDevWallet connector')
-      }
+      endCompletedAuthFlow(store)
       try {
-        await wagmiConnect(config, { connector: kitConnector })
+        await wagmiConnect(config, { connector: kitConnectorOf(config) })
       } catch (err) {
         if (
           err instanceof AuthFlowDismissedError &&
