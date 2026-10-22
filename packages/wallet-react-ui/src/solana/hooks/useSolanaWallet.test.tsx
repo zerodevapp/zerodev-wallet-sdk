@@ -15,6 +15,7 @@ vi.mock('../../shared/hooks/useKitStore', () => ({
 }))
 vi.mock('wagmi', () => ({
   useConfig: () => ({
+    connectors: [],
     state: { connections: new Map(), current: null, status: 'disconnected' },
     setState: () => {},
     subscribe: () => () => {},
