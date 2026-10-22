@@ -67,6 +67,14 @@ type FakeConnector = {
 }
 let connectors: FakeConnector[] = []
 const fakeWagmiConfig = {
+  get connectors() {
+    return connectors
+  },
+  storage: {
+    getItem: async () => null,
+    setItem: async () => {},
+    removeItem: async () => {},
+  },
   state: { connections: new Map(), current: null, status: 'disconnected' },
   setState: () => {},
   subscribe: () => () => {},

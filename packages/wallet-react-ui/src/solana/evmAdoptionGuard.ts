@@ -66,6 +66,60 @@ export async function detachEvmConnection(
 }
 
 /**
+ * The injected (EIP-6963) connectors wagmi has for `walletName` that hold no
+ * connection: the EVM side a multichain wallet authorised alongside Solana,
+ * which nothing asked wagmi to use.
+ */
+function dormantEvmConnectors(config: Config, walletName: string) {
+  return config.connectors.filter(
+    (c) =>
+      c.type === 'injected' &&
+      c.id !== 'injected' &&
+      c.id !== 'zerodev-wallet' &&
+      equalsIgnoreCase(c.name, walletName) &&
+      !config.state.connections.has(c.uid),
+  )
+}
+
+/**
+ * Keep wagmi's reload reconnect from adopting the EVM side of `walletName`
+ * while nothing is connected through it. wagmi reconnects every connector
+ * whose `isAuthorized()` passes, and an injected connector passes as soon as
+ * the wallet grants accounts, which a multichain wallet does for EVM in the
+ * same prompt as Solana. Its `disconnected` shim is what wagmi checks first.
+ */
+async function shimDormantEvmSide(
+  config: Config,
+  walletName: string,
+): Promise<void> {
+  for (const connector of dormantEvmConnectors(config, walletName)) {
+    await config.storage?.setItem(`${connector.id}.disconnected`, true)
+  }
+}
+
+/**
+ * End the EVM side a multichain wallet granted alongside a Solana connection
+ * that is now going away, when nothing is connected through it: the wallet's
+ * own disconnect (a permission revoke where the wallet supports one, and the
+ * `disconnected` shim). A wallet that is connected on the EVM side is left
+ * alone; that is an explicit connection with its own disconnect.
+ */
+export async function revokeDormantEvmSide(
+  config: Config,
+  walletName: string,
+): Promise<void> {
+  for (const connector of dormantEvmConnectors(config, walletName)) {
+    try {
+      await connector.disconnect()
+    } catch {
+      // No provider to revoke through; the shim alone keeps a reload from
+      // adopting the side.
+      await config.storage?.setItem(`${connector.id}.disconnected`, true)
+    }
+  }
+}
+
+/**
  * Run a Solana `connect` without wagmi adopting the EVM side of the same
  * wallet.
  *
@@ -77,8 +131,10 @@ export async function detachEvmConnection(
  * flight, and for a short grace period after, at wagmi's state level only:
  * the wallet's own permission is left alone, because MetaMask revokes the
  * whole site connection (Solana included) on `wallet_revokePermissions`.
- * Afterwards that connector no longer listens for self-connects; an explicit
- * EVM connect through it still works and needs no new prompt.
+ * Afterwards that connector no longer listens for self-connects, and carries
+ * wagmi's `disconnected` shim so a reload does not adopt the side either; an
+ * explicit EVM connect through it still works and needs no new prompt (the
+ * kit hook clears the shim first).
  */
 export async function withoutEvmAdoption<T>(
   config: Config,
@@ -108,10 +164,15 @@ export async function withoutEvmAdoption<T>(
   }
 
   const unsubscribe = config.subscribe((s) => s.connections, sweep)
+  let connected = false
   try {
-    return await run()
+    const result = await run()
+    connected = true
+    return result
   } finally {
     sweep()
+    // Only after a connect: a declined prompt grants nothing to hold back.
+    if (connected) await shimDormantEvmSide(config, walletName)
     setTimeout(() => {
       sweep()
       unsubscribe()
