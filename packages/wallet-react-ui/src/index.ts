@@ -33,16 +33,16 @@ export {
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
 // Kit: both namespaces behind one hook
-export {
-  type KitAccount,
-  type KitAccountStatus,
-  type KitConnectParams,
-  type KitDisconnectParams,
-  type KitNamespace,
-  useZeroDevWalletKit,
-  type ZeroDevWalletKit,
-  type ZeroDevWalletKitOptions,
-} from './kit/useZeroDevWalletKit.js'
+export type {
+  KitAccount,
+  KitAccountStatus,
+  KitConnectParams,
+  KitDisconnectParams,
+  KitNamespace,
+  ZeroDevWalletKit,
+  ZeroDevWalletKitOptions,
+} from './kit/types.js'
+export { useZeroDevWalletKit } from './kit/useZeroDevWalletKit.js'
 // Solana signing (the kit signs nothing: the handle relays to the wallet's
 // own features). Connection state, wallets and connect/disconnect are on
 // `useZeroDevWalletKit`.
