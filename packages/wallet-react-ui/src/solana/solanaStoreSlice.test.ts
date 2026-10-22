@@ -226,6 +226,35 @@ describe('solana store slice', () => {
     ).toEqual({ name: 'Phantom', source: 'standard' })
   })
 
+  it('marks the restore settled on every exit', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()])
+    expect(store.getState().solana.restoreSettled).toBe(false)
+    // Nothing stored.
+    await store.getState().solana.restore([phantom.wallet])
+    expect(store.getState().solana.restoreSettled).toBe(true)
+
+    const absent = createStore()
+    window.localStorage.setItem(
+      'zerodev:solana:lastWallet',
+      JSON.stringify({ name: 'Phantom', source: 'standard' }),
+    )
+    await absent.getState().solana.restore([])
+    expect(absent.getState().solana.restoreSettled).toBe(true)
+    expect(absent.getState().solana.status).toBe('disconnected')
+
+    const found = createStore()
+    await found.getState().solana.restore([phantom.wallet])
+    expect(found.getState().solana.restoreSettled).toBe(true)
+    expect(found.getState().solana.status).toBe('connected')
+  })
+
+  it('settleRestore ends a restore that cannot be attempted', () => {
+    const store = createStore()
+    store.getState().solana.settleRestore()
+    expect(store.getState().solana.restoreSettled).toBe(true)
+  })
+
   it('swallows a failed silent restore', async () => {
     const store = createStore()
     window.localStorage.setItem(

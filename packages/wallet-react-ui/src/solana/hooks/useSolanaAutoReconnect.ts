@@ -25,14 +25,39 @@ import { useSolanaWallets } from './useSolanaWallets'
 export function useSolanaAutoReconnect(enabled = true): void {
   const store = useKitStore()
   const wallets = useSolanaWallets()
-  const { wallet: walletConnect } = useSolanaWalletConnect(
-    enabled && readLastSolanaWallet()?.source === 'walletconnect',
-  )
+  const wantsWalletConnect =
+    enabled && readLastSolanaWallet()?.source === 'walletconnect'
+  const {
+    enabled: walletConnectEnabled,
+    wallet: walletConnect,
+    error: walletConnectError,
+  } = useSolanaWalletConnect(wantsWalletConnect)
   useEffect(() => {
     if (!enabled) return
-    const candidates = walletConnect ? [...wallets, walletConnect] : wallets
-    if (candidates.length === 0) return
+    const { solana } = store.getState()
+    // Every path below ends the restore (`restoreSettled`), so a host holding
+    // a "signed out" redirect on `isReconnecting` is released: the saved
+    // wallet is gone, its door is not configured, or the attempt has run.
+    if (wantsWalletConnect) {
+      if (!walletConnectEnabled || walletConnectError) {
+        solana.settleRestore()
+        return
+      }
+      // The provider is still loading; the restore stays pending until it
+      // has a wallet to try (a restore without it would settle too early).
+      if (!walletConnect) return
+      solana.restore([walletConnect])
+      return
+    }
     // restore() never rejects: a failed silent reconnect is just "not connected".
-    store.getState().solana.restore(candidates)
-  }, [enabled, store, wallets, walletConnect])
+    solana.restore(wallets)
+  }, [
+    enabled,
+    store,
+    wallets,
+    wantsWalletConnect,
+    walletConnectEnabled,
+    walletConnect,
+    walletConnectError,
+  ])
 }
