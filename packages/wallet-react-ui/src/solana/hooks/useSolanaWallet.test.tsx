@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { act, renderHook } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 import type { WalletAccount } from '@wallet-standard/base'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from '../../store'
