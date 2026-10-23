@@ -1,12 +1,7 @@
 'use client'
 
 import { ZeroDevLogo } from '@zerodev/react-ui'
-import {
-  ConnectWallet,
-  SignUp,
-  useAuth,
-  useSolanaAccount,
-} from '@zerodev/wallet-react-ui'
+import { ConnectWallet, SignUp, useAuth } from '@zerodev/wallet-react-ui'
 import { Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { Fragment, useEffect, useMemo } from 'react'
@@ -17,7 +12,6 @@ import {
   resolveWalletConfig,
 } from '../lib/config-params'
 import { AppHeader } from './AppHeader'
-import { SolanaAccountStrip } from './SolanaAccountStrip'
 
 // The auth methods the URL selected, rendered as SignUp units in a fixed
 // order. Mirrors the resolved config the connector was built from.
@@ -37,7 +31,6 @@ export function LoginScreen() {
   const { connect, connectors, status: connectStatus } = useConnect()
   const { isConnected, status: accountStatus } = useAccount()
   const { step: authStep } = useAuth()
-  const solanaConnected = useSolanaAccount().isConnected
 
   // Resolve the same URL params the connector was built from, so the rendered
   // methods and email flow match the config under test (see Providers).
@@ -87,22 +80,13 @@ export function LoginScreen() {
         {showLoading ? (
           <Loader2 className="h-10 w-10 animate-spin text-[var(--muted)]" />
         ) : showReconnect ? (
-          <>
-            {/* Solana: a Solana-only sign-in lands here, because closing
-                the sign-up flow rejects the kit connector's pending EVM
-                connect. The lab itself needs an EVM account, so keep the
-                Solana connection visible and offer the EVM sign-in. */}
-            <div className="mb-4 w-full max-w-md">
-              <SolanaAccountStrip />
-            </div>
-            <button
-              type="button"
-              onClick={handleReconnect}
-              className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
-            >
-              {solanaConnected ? 'Sign in with an EVM wallet' : 'Reconnect'}
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={handleReconnect}
+            className="cursor-pointer rounded-3xl bg-[var(--ink)] px-8 py-4 text-body1 font-semibold text-white hover:bg-[#2a1c13]"
+          >
+            Reconnect
+          </button>
         ) : (
           <>
             <p className="mb-6 text-center text-sm font-semibold uppercase tracking-[0.22em] text-[#9c958c]">
@@ -122,11 +106,6 @@ export function LoginScreen() {
                   {pickedMethods.map((method) => (
                     <Fragment key={method}>{UNIT_BY_METHOD[method]()}</Fragment>
                   ))}
-                  {/* Solana: installed Solana wallets (Phantom, Solflare,
-                      Backpack) via the Wallet Standard. Renders nothing when
-                      none is installed. */}
-                  <SignUp.Divider label="or a Solana wallet" />
-                  <SignUp.InstalledWallets namespaces={['solana']} />
                 </SignUp>
               )}
             />
