@@ -101,7 +101,7 @@ export function SigningTest() {
   const evmWalletName = connector?.name ?? "EVM wallet";
 
   // Solana side (kit)
-  const { solana } = useZeroDevWalletKit({ reconnectOnMount: SOLANA_ENABLED });
+  const solana = useZeroDevWalletKit({ namespace: "solana", reconnectOnMount: SOLANA_ENABLED });
   const solanaHandle = useSolanaWallet();
   const solanaWalletName = solana.walletInfo?.name ?? "Solana wallet";
   const solanaCanSign = solana.isConnected && solanaHandle?.signMessage != null;

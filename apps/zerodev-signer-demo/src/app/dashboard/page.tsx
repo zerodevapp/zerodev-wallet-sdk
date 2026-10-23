@@ -8,7 +8,7 @@ import {
   TxHistory,
   useAuth,
   isCancellationError,
-  type KitConnectParams,
+  type KitConnectRequest,
   useZeroDevWalletKit,
 } from "@zerodev/wallet-react-ui";
 import {
@@ -147,9 +147,9 @@ export default function DashboardPage() {
   // restore on reload, no wallets offered, and its connection ignored.
   const kit = useZeroDevWalletKit({ reconnectOnMount: SOLANA_ENABLED });
   const solanaConnected = SOLANA_ENABLED && kit.solana.isConnected;
-  const solanaWallets = SOLANA_ENABLED ? kit.wallets.solana : [];
-  const solanaWalletConnect = SOLANA_ENABLED && kit.walletConnect.solana;
-  const evmWallets = kit.wallets.eip155;
+  const solanaWallets = SOLANA_ENABLED ? kit.solana.wallets : [];
+  const solanaWalletConnect = SOLANA_ENABLED && kit.solana.walletConnect;
+  const evmWallets = kit.eip155.wallets;
   const { step: authStep } = useAuth();
   // The "add the other side" rows: one wallet prompt at a time, and an
   // error per side. A declined prompt or a closed sign-up is the user's
@@ -165,7 +165,7 @@ export default function DashboardPage() {
   // follows the flow, so the overlay closes with it either way.
   const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | null>(null);
   const connectWallet = async (
-    params: KitConnectParams,
+    params: KitConnectRequest,
     key: string,
     label: string,
   ) => {
