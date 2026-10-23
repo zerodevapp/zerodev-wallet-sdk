@@ -12,7 +12,7 @@ import {
   withoutEvmAdoption,
 } from '../solana/evmAdoptionGuard.js'
 import type { createStore } from '../store.js'
-import type { KitConnectParams, KitDisconnectParams } from './types.js'
+import type { KitConnectRequest, KitDisconnectParams } from './types.js'
 
 type KitStore = ReturnType<typeof createStore>
 
@@ -129,7 +129,7 @@ async function connectEvmWallet(
 export async function connect(
   store: KitStore,
   config: Config,
-  params: KitConnectParams = {},
+  params: KitConnectRequest,
 ): Promise<void> {
   if (params.namespace === 'solana') {
     const { wallet } = params

@@ -187,13 +187,52 @@ describe('useZeroDevWalletKit', () => {
 
   it('lists installed EVM wallets without the generic injected and kit connectors', () => {
     const { result } = render()
-    expect(result.current.wallets.eip155.map((c) => c.id)).toEqual([
+    expect(result.current.eip155.wallets.map((c) => c.id)).toEqual([
       'io.metamask',
       'io.rabby',
     ])
-    expect(result.current.walletConnect).toEqual({
-      eip155: false,
-      solana: false,
+    expect(result.current.eip155.walletConnect).toBe(false)
+    expect(result.current.solana.walletConnect).toBe(false)
+  })
+
+  describe('one namespace', () => {
+    it('returns the Solana adapter alone, with its own connect and disconnect', async () => {
+      const { wallet, disconnect } = solanaWallet('Phantom')
+      connectEvm(rabby)
+      const { result } = renderHook(() =>
+        useZeroDevWalletKit({ namespace: 'solana', reconnectOnMount: false }),
+      )
+      expect(result.current.namespace).toBe('solana')
+      expect(result.current.isConnected).toBe(false)
+      await act(async () => {
+        await result.current.connect({ wallet })
+      })
+      expect(result.current.isConnected).toBe(true)
+      expect(result.current.address).toBe(solanaAccount.address)
+      await act(async () => {
+        await result.current.disconnect()
+      })
+      expect(disconnect).toHaveBeenCalled()
+      expect(result.current.isConnected).toBe(false)
+      // Solana alone: the EVM connection stays.
+      expect(core.disconnect).not.toHaveBeenCalled()
+    })
+
+    it('returns the EVM adapter alone, reading wagmi', async () => {
+      connectEvm(metamask)
+      const { result } = renderHook(() =>
+        useZeroDevWalletKit({ namespace: 'eip155', reconnectOnMount: false }),
+      )
+      expect(result.current.namespace).toBe('eip155')
+      expect(result.current.isConnected).toBe(true)
+      expect(result.current.wallets.map((c) => c.id)).toEqual([
+        'io.metamask',
+        'io.rabby',
+      ])
+      await act(async () => {
+        await result.current.connect({ wallet: rabby as never })
+      })
+      expect(core.connect).toHaveBeenCalledWith(config, { connector: rabby })
     })
   })
 
@@ -354,10 +393,10 @@ describe('useZeroDevWalletKit', () => {
       expect(core.connect).toHaveBeenCalledWith(config, { connector: rabby })
     })
 
-    it('opens the sign-up flow through the kit connector by default', async () => {
+    it('opens the sign-up flow through the kit connector without a wallet', async () => {
       const { result } = render()
       await act(async () => {
-        await result.current.connect()
+        await result.current.connect({ namespace: 'eip155' })
       })
       expect(core.connect).toHaveBeenCalledWith(config, {
         connector: kitConnector,
@@ -381,9 +420,9 @@ describe('useZeroDevWalletKit', () => {
       core.connect.mockRejectedValueOnce(new AuthFlowDismissedError())
       const { result } = render()
       await act(async () => {
-        await expect(result.current.connect()).rejects.toBeInstanceOf(
-          AuthFlowDismissedError,
-        )
+        await expect(
+          result.current.connect({ namespace: 'eip155' }),
+        ).rejects.toBeInstanceOf(AuthFlowDismissedError)
       })
     })
 
