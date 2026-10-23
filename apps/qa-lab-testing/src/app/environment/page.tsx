@@ -7,6 +7,7 @@ import {
   toURLSearchParams,
   type TransportSource,
 } from "../lib/config-params";
+import { AuthPresetRow } from "./AuthPresetRow";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,10 @@ export default async function EnvironmentPage({
     {
       variable: "NEXT_PUBLIC_ZERODEV_AA_HOST",
       result: containsStaging(process.env.NEXT_PUBLIC_ZERODEV_AA_HOST),
+    },
+    {
+      variable: "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
+      result: isSet(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID),
     },
   ];
 
@@ -194,15 +199,20 @@ export default async function EnvironmentPage({
           </div>
 
           <dl className="divide-y divide-[var(--border-warm)]">
-            <ConfigRow
-              id="chains"
-              label="chains"
-              overridden={isOverridden(PARAM.chains)}
-            >
-              {resolved.chains.map((chain) => (
-                <Chip key={chain.id} testId={`env-chain-${chain.id}`}>
+            <ConfigRow id="chains" label="chains">
+              {resolved.chains.map((chain, index) => (
+                <Chip
+                  key={chain.id}
+                  testId={`env-chain-${chain.id}`}
+                  data-connects-to={String(index === 0)}
+                >
                   {chain.name}
                   <span className="text-[var(--muted)]">{chain.id}</span>
+                  {index === 0 && (
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      connects here
+                    </span>
+                  )}
                 </Chip>
               ))}
             </ConfigRow>
@@ -229,15 +239,11 @@ export default async function EnvironmentPage({
             </ConfigRow>
 
             <ConfigRow
-              id="auth-methods"
-              label="auth methods"
-              overridden={isOverridden(PARAM.authMethods)}
+              id="auth-preset"
+              label="sign-in preset"
+              overridden={isOverridden(PARAM.preset)}
             >
-              {resolved.authMethods.map((method) => (
-                <Chip key={method} testId={`env-auth-method-${method}`}>
-                  {method}
-                </Chip>
-              ))}
+              <AuthPresetRow urlPreset={resolved.authPreset} />
             </ConfigRow>
 
             <ConfigRow
@@ -252,36 +258,27 @@ export default async function EnvironmentPage({
                 testId="env-auth-flavor-project"
                 tone={resolved.projectId ? "pass" : "neutral"}
               >
-                {resolved.projectId ? "project id set" : "project id MISSING"}
-              </Chip>
-              <Chip testId={`env-email-auth-${resolved.emailAuthMethod}`}>
-                {resolved.emailAuthMethod}
+                {resolved.projectId
+                  ? "project id set"
+                  : "project id MISSING"}
               </Chip>
             </ConfigRow>
 
-            <ConfigRow
-              id="kms"
-              label="kms proxy base url"
-              overridden={isOverridden(PARAM.kms)}
-            >
+            <ConfigRow id="kms" label="kms proxy base url">
               <Chip
                 testId="env-kms"
-                tone={isOverridden(PARAM.kms) ? "pass" : "neutral"}
+                tone={resolved.kmsProxyBaseUrl ? "pass" : "neutral"}
               >
-                {isOverridden(PARAM.kms) ? "from URL" : "from env"}
+                {resolved.kmsProxyBaseUrl ? "from env" : "MISSING"}
               </Chip>
             </ConfigRow>
 
-            <ConfigRow
-              id="aa-host"
-              label="aa host"
-              overridden={isOverridden(PARAM.aaHost)}
-            >
+            <ConfigRow id="aa-host" label="aa host">
               <Chip
                 testId="env-aa-host"
-                tone={isOverridden(PARAM.aaHost) ? "pass" : "neutral"}
+                tone={resolved.aaHost ? "pass" : "neutral"}
               >
-                {isOverridden(PARAM.aaHost) ? "from URL" : "from env"}
+                {resolved.aaHost ? "from env" : "SDK default"}
               </Chip>
             </ConfigRow>
           </dl>

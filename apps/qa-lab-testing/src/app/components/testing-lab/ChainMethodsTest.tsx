@@ -4,6 +4,7 @@ import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { cn } from "../../lib/utils";
+import { CHAINS } from "../../lib/wallet-config";
 
 type Eip1193 = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -36,8 +37,10 @@ const CELO = {
   blockExplorerUrls: ["https://celoscan.io"],
 };
 
-// Arbitrum Sepolia (421614 = 0x66eee) — to switch back after testing.
-const ARBITRUM_SEPOLIA_HEX = "0x66eee";
+// Where "switch back" goes: the chain the lab connects to, derived rather than
+// hardcoded. It used to be a literal `0x66eee`.
+const HOME_CHAIN = CHAINS[0];
+const HOME_CHAIN_HEX = `0x${HOME_CHAIN.id.toString(16)}`;
 
 interface ChainAction {
   key: string;
@@ -64,9 +67,9 @@ const ACTIONS: ChainAction[] = [
   },
   {
     key: "switch-back",
-    label: "Switch to Arbitrum Sepolia",
+    label: `Switch back to ${HOME_CHAIN.name}`,
     method: "wallet_switchEthereumChain",
-    params: [{ chainId: ARBITRUM_SEPOLIA_HEX }],
+    params: [{ chainId: HOME_CHAIN_HEX }],
     description: "wallet_switchEthereumChain",
   },
 ];
