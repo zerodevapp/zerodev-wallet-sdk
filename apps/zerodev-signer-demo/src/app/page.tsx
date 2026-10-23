@@ -49,9 +49,12 @@ function LandingPageInner() {
   // Solana: a connected Solana wallet is a login too — the dashboard
   // renders a Solana-only state when the EVM side is signed out. The restore
   // after a reload belongs to the Solana sign-up units the playground
-  // composes, not to this page, so the hook only reads here.
-  const kit = useZeroDevWalletKit({ reconnectOnMount: false })
-  const solanaConnected = kit.solana.isConnected
+  // composes, not to this page, so the adapter only reads here.
+  const solana = useZeroDevWalletKit({
+    namespace: 'solana',
+    reconnectOnMount: false,
+  })
+  const solanaConnected = solana.isConnected
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
