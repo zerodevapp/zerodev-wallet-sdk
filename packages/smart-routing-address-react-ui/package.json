@@ -76,7 +76,7 @@
     "@types/react": "~19.2.14",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.12",
     "happy-dom": "^20.10.6",
     "postcss": "^8.5.28",
     "react": "19.2.0",
@@ -86,7 +86,7 @@
     "typescript": "5.9.3",
     "viem": "2.55.5",
     "vite": "^6.4.4",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "type": "module"
 }
