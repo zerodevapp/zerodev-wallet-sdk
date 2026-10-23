@@ -51,8 +51,8 @@ function LandingPageInner() {
   // renders a Solana-only state when the EVM side is signed out. With the
   // flag on, a Solana session restores here like wagmi's does, so a reload
   // lands on the dashboard either way.
-  const kit = useZeroDevWalletKit({ reconnectOnMount: SOLANA_ENABLED })
-  const solanaConnected = SOLANA_ENABLED && kit.solana.isConnected
+  const solana = useZeroDevWalletKit({ namespace: 'solana', reconnectOnMount: SOLANA_ENABLED })
+  const solanaConnected = SOLANA_ENABLED && solana.isConnected
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is
   // still pending. Cover this window (and the eventual redirect) with a
