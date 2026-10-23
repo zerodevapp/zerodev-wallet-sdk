@@ -12,7 +12,7 @@ testing on iOS requires an Apple Developer Account.
 
 ## Prerequisites
 
-- Node (recent LTS)
+- Node 24.22.1 (see the repo root `.nvmrc`; `eas build --local` uses your shell's Node, and `engine-strict` refuses anything outside `engines.node`)
 - pnpm 10.17.1+ (matches the repo's `packageManager` pin)
 - Android Studio + JDK 17 + Android SDK (API 35 recommended) — follow
   Expo's [local Android Emulator setup guide][expo-env-setup] for the

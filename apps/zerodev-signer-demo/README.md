@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) v18+
+- [Node.js](https://nodejs.org) 24.22.1 (repo root `.nvmrc`; `pnpm install` refuses anything outside `engines.node`)
 - [pnpm](https://pnpm.io/)
 
 For gasless transactions (EIP-7702), you'll also need a [ZeroDev](https://dashboard.zerodev.app) account to get a bundler RPC URL.
