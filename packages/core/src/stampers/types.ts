@@ -30,9 +30,26 @@ export type IframeStamper = Stamper & {
   applySettings(settings: { styles?: Record<string, string> }): Promise<boolean>
 }
 
-export type ApiKeyStamper = Stamper & {
+/**
+ * Anything that can sign a payload and identify its key: the session key in the
+ * browser, an agent key on a server, or a hardware-backed signer.
+ * `Client`, `ClientConfig`, and `Transport` require only this.
+ */
+export type SigningStamper = Stamper & {
   /** retrieve public key compressed or otherwise as per the stamper */
   getPublicKey: () => Promise<string | null>
+  /**
+   * Sign `payload` with the currently active key. Returns a hex-encoded
+   * ECDSA-P256 / SHA-256 signature in ASN.1 DER form.
+   */
+  sign: (payload: string) => Promise<string>
+}
+
+/**
+ * A signing stamper that owns its key material and can replace it. The login
+ * flows in `createZeroDevWalletCore` need the rotation methods; nothing else does.
+ */
+export type ApiKeyStamper = SigningStamper & {
   /** Generate + activate a new key pair immediately (simple cases: login init, logout). */
   resetKeyPair: () => Promise<void>
   /** Generate a new key pair internally, return its compressed public key, but keep the OLD key active for stamp(). */
@@ -50,12 +67,8 @@ export type ApiKeyStamper = Stamper & {
    * rotated. Omit when each app has its own vault (React Native).
    */
   reload?: () => Promise<void>
-  /**
-   * Sign `payload` with the currently active key. Returns a hex-encoded
-   * ECDSA-P256 / SHA-256 signature in ASN.1 DER form.
-   */
-  sign: (payload: string) => Promise<string>
 }
+
 export type Attestation = {
   attestationObject: string
   clientDataJson: string
