@@ -36,9 +36,12 @@ export type { TxHistoryEntry } from './history/types'
 export type {
   KitAccount,
   KitAccountStatus,
+  KitAdapter,
   KitConnectParams,
+  KitConnectRequest,
   KitDisconnectParams,
   KitNamespace,
+  KitWallet,
   ZeroDevWalletKit,
   ZeroDevWalletKitOptions,
 } from './kit/types.js'
