@@ -14,7 +14,10 @@ export type {
 export { useWalletInfo } from './auth/hooks/useWalletInfo.js'
 export { SignUp } from './auth/pages/SignUp'
 export type { AuthMethod, AuthStep, EmailAuthMethod } from './auth/types'
-export { isCancellationError } from './auth/utils/isCancellationError.js'
+export {
+  AuthFlowDismissedError,
+  isCancellationError,
+} from './auth/utils/isCancellationError.js'
 export type { WalletId } from './auth/walletGuide'
 // Connector
 export type {
@@ -29,22 +32,27 @@ export {
   type TxHistoryStep,
 } from './history/pages'
 export type { TxHistoryEntry } from './history/types'
-export { detachEvmConnection } from './solana/evmAdoptionGuard.js'
-// Solana (external wallets via the Wallet Standard; the kit signs nothing)
-export {
-  type SolanaAccount,
-  useSolanaAccount,
-} from './solana/hooks/useSolanaAccount.js'
-export { useSolanaAutoReconnect } from './solana/hooks/useSolanaAutoReconnect.js'
+// Kit: both namespaces behind one hook
+export type {
+  KitAccount,
+  KitAccountStatus,
+  KitAdapter,
+  KitConnectParams,
+  KitConnectRequest,
+  KitDisconnectParams,
+  KitNamespace,
+  KitWallet,
+  ZeroDevWalletKit,
+  ZeroDevWalletKitOptions,
+} from './kit/types.js'
+export { useZeroDevWalletKit } from './kit/useZeroDevWalletKit.js'
+// Solana signing (the kit signs nothing: the handle relays to the wallet's
+// own features). Connection state, wallets and connect/disconnect are on
+// `useZeroDevWalletKit`.
 export {
   type SolanaWalletHandle,
   useSolanaWallet,
 } from './solana/hooks/useSolanaWallet.js'
-export {
-  type SolanaWalletConnect,
-  useSolanaWalletConnect,
-} from './solana/hooks/useSolanaWalletConnect.js'
-export { useSolanaWallets } from './solana/hooks/useSolanaWallets.js'
 export type {
   SolanaConnection,
   SolanaConnectionSource,

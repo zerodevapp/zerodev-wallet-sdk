@@ -1,7 +1,7 @@
 'use client'
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
-import {ConnectWallet, SignUp, useAuth, useSolanaAccount} from '@zerodev/wallet-react-ui'
+import {ConnectWallet, SignUp, useAuth, useZeroDevWalletKit} from '@zerodev/wallet-react-ui'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
 import {useRouter} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
@@ -48,8 +48,10 @@ function LandingPageInner() {
   const {isConnected, status: accountStatus} = useAccount()
   const {step: authStep} = useAuth()
   // Solana: a connected Solana wallet is a login too — the dashboard
-  // renders a Solana-only state when the EVM side is signed out.
-  const solana = useSolanaAccount()
+  // renders a Solana-only state when the EVM side is signed out. With the
+  // flag on, a Solana session restores here like wagmi's does, so a reload
+  // lands on the dashboard either way.
+  const solana = useZeroDevWalletKit({ namespace: 'solana', reconnectOnMount: SOLANA_ENABLED })
   const solanaConnected = SOLANA_ENABLED && solana.isConnected
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet, so the redirect to /dashboard is

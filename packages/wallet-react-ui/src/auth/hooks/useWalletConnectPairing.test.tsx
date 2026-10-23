@@ -23,11 +23,48 @@ const connect = vi.fn()
 let connectors: unknown[] = []
 let connections: unknown[] = []
 let reconnecting = false
+
+/** The slice of wagmi's config the hook reads: the committed connections
+ * and a selector subscription, as zustand's `subscribeWithSelector` gives. */
+type FakeState = { connections: Map<string, unknown> }
+type Watcher = {
+  selector: (s: FakeState) => unknown
+  listener: (value: unknown) => void
+  last: unknown
+}
+function fakeConfig() {
+  const state: FakeState = { connections: new Map() }
+  const watchers = new Set<Watcher>()
+  return {
+    state,
+    subscribe: (
+      selector: (s: FakeState) => unknown,
+      listener: (value: unknown) => void,
+    ) => {
+      const watcher: Watcher = { selector, listener, last: selector(state) }
+      watchers.add(watcher)
+      return () => watchers.delete(watcher)
+    },
+    /** What wagmi's connect action does once the connector resolves. */
+    commit: (connector: { uid: string }) => {
+      state.connections.set(connector.uid, { connector })
+      for (const w of watchers) {
+        const next = w.selector(state)
+        if (Object.is(next, w.last)) continue
+        w.last = next
+        w.listener(next)
+      }
+    },
+    watcherCount: () => watchers.size,
+  }
+}
+let config = fakeConfig()
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
   useConnect: () => ({ connect }),
   useConnections: () => connections,
   useAccount: () => ({ isReconnecting: reconnecting }),
+  useConfig: () => config,
 }))
 
 type MessageHandler = (event: { type: string; data?: unknown }) => void
@@ -89,6 +126,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
   connections = []
+  config = fakeConfig()
   reconnecting = false
   mobile.value = false
 })
@@ -136,7 +174,7 @@ describe('useWalletConnectPairing', () => {
     expect(connect).toHaveBeenCalledTimes(1)
   })
 
-  it('closes the auth flow when a fresh session settles, surviving Strict Mode', async () => {
+  it('closes the auth flow once a fresh session settles and wagmi commits it, surviving Strict Mode', async () => {
     const wc = fakeWcConnector()
     connectors = [wc]
     renderHook(() => useWalletConnectPairing(), { wrapper: StrictMode })
@@ -144,9 +182,36 @@ describe('useWalletConnectPairing', () => {
     await act(async () => {})
     expect(goToStep).not.toHaveBeenCalled()
 
-    // The provider's `connect` event = the user approved OUR pairing.
+    // The provider's `connect` event = the user approved OUR pairing. It
+    // fires before the connector's connect() resolves, so wagmi has not
+    // written the connection yet: the flow stays open until it does, or a
+    // host awaiting the kit connector would read the close as a dismissal.
+    act(() => wc.settleSession())
+    expect(goToStep).not.toHaveBeenCalled()
+    act(() => config.commit(wc))
+    expect(goToStep).toHaveBeenCalledTimes(1)
+    expect(goToStep).toHaveBeenCalledWith(null)
+    expect(config.watcherCount()).toBe(0)
+  })
+
+  it('closes at once when wagmi already holds the connection as the session settles', async () => {
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    renderHook(() => useWalletConnectPairing())
+    await act(async () => {})
+    act(() => config.commit(wc))
+    expect(goToStep).not.toHaveBeenCalled()
     act(() => wc.settleSession())
     expect(goToStep).toHaveBeenCalledWith(null)
+  })
+
+  it('does not close on a wagmi commit without the provider event (a restore)', async () => {
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    renderHook(() => useWalletConnectPairing())
+    await act(async () => {})
+    act(() => config.commit(wc))
+    expect(goToStep).not.toHaveBeenCalled()
   })
 
   it('does not close the flow for a session restored before mount', () => {

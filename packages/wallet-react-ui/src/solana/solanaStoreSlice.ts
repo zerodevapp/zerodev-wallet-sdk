@@ -83,6 +83,16 @@ export interface SolanaStoreSlice {
      * independent of the EVM (wagmi) connection. */
     connection: SolanaConnection | null
     /**
+     * True once a restore attempt has run to an end this page load, in any
+     * outcome: connected, refused, nothing stored, wallet absent, or the
+     * WalletConnect provider failed to load. Until then a saved session may
+     * still come back, and `useZeroDevWalletKit` reports it as reconnecting.
+     */
+    restoreSettled: boolean
+    /** Mark the restore as over without an attempt (the saved wallet cannot
+     * be reached, for example its WalletConnect door is not configured). */
+    settleRestore: () => void
+    /**
      * Connect a Wallet Standard wallet. Prompts the wallet unless `silent`
      * is set, in which case the wallet returns only already-authorised
      * accounts (used to restore after a reload). Replaces any existing
@@ -153,9 +163,20 @@ export const createSolanaStoreSlice: StateCreator<
     solana: {
       status: 'disconnected',
       connection: null,
+      restoreSettled: false,
+
+      settleRestore: () => {
+        if (get().solana.restoreSettled) return
+        set((state) => ({ solana: { ...state.solana, restoreSettled: true } }))
+      },
 
       connect: async (wallet, options) => {
-        set((state) => ({ solana: { ...state.solana, status: 'connecting' } }))
+        set((state) => ({
+          solana: {
+            ...state.solana,
+            status: options?.silent ? 'reconnecting' : 'connecting',
+          },
+        }))
         try {
           const { accounts } = await wallet.features[
             'standard:connect'
@@ -199,19 +220,23 @@ export const createSolanaStoreSlice: StateCreator<
       },
 
       restore: async (wallets) => {
-        const { status } = get().solana
-        if (status !== 'disconnected') return
-        const last = readLastSolanaWallet()
-        if (!last) return
-        const wallet = wallets.find(
-          (w) => w.name === last.name && sourceOf(w) === last.source,
-        )
-        if (!wallet) return
+        const { status, settleRestore } = get().solana
         try {
-          await get().solana.connect(wallet, { silent: true })
-        } catch {
-          // Not authorised any more (or the wallet ignores `silent`): the
-          // user connects again by hand.
+          if (status !== 'disconnected') return
+          const last = readLastSolanaWallet()
+          if (!last) return
+          const wallet = wallets.find(
+            (w) => w.name === last.name && sourceOf(w) === last.source,
+          )
+          if (!wallet) return
+          try {
+            await get().solana.connect(wallet, { silent: true })
+          } catch {
+            // Not authorised any more (or the wallet ignores `silent`): the
+            // user connects again by hand.
+          }
+        } finally {
+          settleRestore()
         }
       },
     },
