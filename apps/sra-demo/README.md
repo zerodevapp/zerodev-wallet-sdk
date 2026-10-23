@@ -14,7 +14,7 @@ in two modes:
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) v18+
+- [Node.js](https://nodejs.org) 24.22.1 (repo root `.nvmrc`; `pnpm install` refuses anything outside `engines.node`)
 - [pnpm](https://pnpm.io/)
 
 You'll need a [ZeroDev](https://dashboard.zerodev.app) account for a project
