@@ -1,8 +1,16 @@
 import type { Client } from '../../client/types.js'
 
+export const OAUTH_PROVIDERS = ['google', 'x'] as const
+
+export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number]
+
+function isOAuthProvider(value: string): value is OAuthProvider {
+  return (OAUTH_PROVIDERS as readonly string[]).includes(value)
+}
+
 export type GetOAuthLoginUrlParameters = {
-  /** OAuth provider — currently only `'google'` is supported. */
-  provider: 'google'
+  /** OAuth provider. */
+  provider: OAuthProvider
   /** The project ID for the request. */
   projectId: string
   /**
@@ -22,18 +30,20 @@ export type GetOAuthLoginUrlParameters = {
 export type GetOAuthLoginUrlReturnType = string
 
 /**
- * Fetches the Google OAuth authorization URL from the backend.
+ * Fetches the provider's OAuth authorization URL from the backend.
  *
  * The SDK must verify the returned URL's `nonce` against
- * `sha256(utf8(publicKey))` (and the host is `accounts.google.com`)
- * before opening it in a popup — the backend is not a trusted party.
+ * `sha256(utf8(publicKey))` (and the host against the provider's expected
+ * host) before opening it in a popup — the backend is not a trusted party.
  * See audit finding TOB-KMS-1.
  */
 export async function getOAuthLoginUrl(
   client: Client,
   params: GetOAuthLoginUrlParameters,
 ): Promise<GetOAuthLoginUrlReturnType> {
-  if (params.provider !== 'google') {
+  // The provider is interpolated into the request path, so reject anything
+  // outside the known list before it reaches the network.
+  if (!isOAuthProvider(params.provider)) {
     throw new Error(`Unsupported OAuth provider: ${params.provider}`)
   }
   const query = new URLSearchParams({
@@ -42,7 +52,7 @@ export async function getOAuthLoginUrl(
     return_to: params.returnTo,
   })
   return await client.request<string>({
-    path: `oauth/google/login-url?${query.toString()}`,
+    path: `oauth/${params.provider}/login-url?${query.toString()}`,
     method: 'GET',
   })
 }

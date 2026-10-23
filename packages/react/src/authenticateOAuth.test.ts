@@ -10,10 +10,10 @@ vi.mock('@wagmi/core/actions', () => ({
 // Mocked so tests don't run real URL verification — they only need to assert
 // that the URL returned by `wallet.client.getOAuthLoginUrl` is verified before
 // it reaches the adapter. The verification itself is covered in
-// `utils/verifyGoogleLoginUrl.test.ts`.
-vi.mock('./utils/verifyGoogleLoginUrl.js', () => ({
-  verifyGoogleLoginUrl: vi.fn(),
-  OAUTH_PROVIDERS: { GOOGLE: 'google' },
+// `utils/verifyOAuthLoginUrl.test.ts`.
+vi.mock('./utils/verifyOAuthLoginUrl.js', () => ({
+  verifyOAuthLoginUrl: vi.fn(),
+  OAUTH_PROVIDERS: { GOOGLE: 'google', X: 'x' },
 }))
 
 const MOCK_OAUTH_URL =
@@ -180,6 +180,32 @@ describe('authenticateOAuth', () => {
     )
   })
 
+  it('passes the x provider through to verification and returnTo', async () => {
+    const { verifyOAuthLoginUrl } = await import(
+      './utils/verifyOAuthLoginUrl.js'
+    )
+    const wallet = createMockWallet()
+    const store = createMockStore(wallet)
+    const connector = createMockConnector(store)
+    const config = createMockConfig(connector)
+
+    const getSessionId = vi.fn().mockResolvedValue('sid')
+    await authenticateOAuth(config, {
+      provider: 'x',
+      redirectUri: 'zerodev://oauth',
+      getSessionId,
+    })
+
+    expect(verifyOAuthLoginUrl).toHaveBeenCalledWith(
+      'x',
+      MOCK_OAUTH_URL,
+      '03abcdef123',
+    )
+    const returnTo: string =
+      wallet.client.getOAuthLoginUrl.mock.calls[0][0].returnTo
+    expect(new URL(returnTo).searchParams.get('oauth_provider')).toBe('x')
+  })
+
   it('preserves caller pathname/query and drops hash from returnTo', async () => {
     const wallet = createMockWallet()
     const store = createMockStore(wallet)
@@ -208,10 +234,10 @@ describe('authenticateOAuth', () => {
   // verification failure: the web hook's `getSessionId` IS `getSessionIdWeb`,
   // and this test asserts the adapter is never invoked when verification throws.
   it('verifies the URL before invoking the adapter', async () => {
-    const { verifyGoogleLoginUrl } = await import(
-      './utils/verifyGoogleLoginUrl.js'
+    const { verifyOAuthLoginUrl } = await import(
+      './utils/verifyOAuthLoginUrl.js'
     )
-    vi.mocked(verifyGoogleLoginUrl).mockImplementationOnce(() => {
+    vi.mocked(verifyOAuthLoginUrl).mockImplementationOnce(() => {
       throw new Error('login URL nonce does not match public key hash')
     })
 
@@ -230,7 +256,8 @@ describe('authenticateOAuth', () => {
       }),
     ).rejects.toThrow(/nonce does not match public key hash/)
 
-    expect(verifyGoogleLoginUrl).toHaveBeenCalledWith(
+    expect(verifyOAuthLoginUrl).toHaveBeenCalledWith(
+      'google',
       MOCK_OAUTH_URL,
       '03abcdef123',
     )
