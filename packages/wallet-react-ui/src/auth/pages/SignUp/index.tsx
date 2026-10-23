@@ -1,6 +1,7 @@
 import { Button, Text } from '@zerodev/react-ui'
 import { type ReactNode, useCallback, useState } from 'react'
 import { SignUpFooter } from '../../../shared/components/SignUpFooter'
+import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { BlobAnimation } from '../../components/BlobAnimation'
 import { WalletSheet } from '../../components/WalletSheet'
 import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
@@ -12,6 +13,10 @@ import { SignUpGoogle } from './Google'
 import { SignUpInstalledWallets } from './InstalledWallets'
 import { SignUpMoreWallets } from './MoreWallets'
 import { SignUpPasskey } from './Passkey'
+import {
+  SignUpSolanaWalletConnect,
+  SolanaWalletConnectSheet,
+} from './SolanaWalletConnect'
 import { SignUpWallet } from './Wallet'
 import { SignUpWalletConnect } from './WalletConnect'
 
@@ -65,6 +70,13 @@ function SignUpRoot({
   // mobile deep link below fires synchronously inside the tap — iOS only
   // hands a universal link to the app for gesture-qualified navigations.
   const pairing = useWalletConnectPairing()
+  // Reloads that land here restore the last Solana wallet, whichever units
+  // the host composes; after login the host mounts the hook itself.
+  useSolanaAutoReconnect()
+  // The Solana pairing is proposed only while its sheet is open (no deep
+  // links to arm synchronously), so it is not preloaded like the EVM one;
+  // the sheet itself stays mounted so it animates closed.
+  const [solanaSheetOpen, setSolanaSheetOpen] = useState(false)
 
   const requiresAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
   const needsAgreement = requiresAgreement && !agreedToTerms
@@ -93,6 +105,7 @@ function SignUpRoot({
           // redirect doesn't take (and the only surface on desktop).
           setWalletSheet({ wallet })
         },
+        openSolanaWalletSheet: () => setSolanaSheetOpen(true),
       }}
     >
       {error !== null && (
@@ -154,6 +167,10 @@ function SignUpRoot({
         }}
         wallet={walletSheet?.wallet}
       />
+      <SolanaWalletConnectSheet
+        open={solanaSheetOpen}
+        onOpenChange={setSolanaSheetOpen}
+      />
     </SignUpContext.Provider>
   )
 }
@@ -190,6 +207,7 @@ export const SignUp = Object.assign(SignUpRoot, {
   Wallet: SignUpWallet,
   WalletConnect: SignUpWalletConnect,
   InstalledWallets: SignUpInstalledWallets,
+  SolanaWalletConnect: SignUpSolanaWalletConnect,
   MoreWallets: SignUpMoreWallets,
   Divider: SignUpDivider,
 })
