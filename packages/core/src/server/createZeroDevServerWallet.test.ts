@@ -38,6 +38,28 @@ describe('createZeroDevServerWallet', () => {
     expect(createServerWallet).toHaveBeenCalledWith({ projectId: 'project' })
   })
 
+  it('createAddress targets the configured project with the wallet and path', async () => {
+    const wallet = createZeroDevServerWallet(config)
+    const created = {
+      walletId: 'wallet',
+      turnkeyId: 'account',
+      path: "m/44'/60'/0'/0/1",
+      walletAddress: `0x${'22'.repeat(20)}`,
+    } as const
+    const createServerWalletAddress = vi
+      .spyOn(wallet.client, 'createServerWalletAddress')
+      .mockResolvedValue(created)
+
+    await expect(
+      wallet.createAddress({ walletId: 'wallet', path: "m/44'/60'/0'/0/1" }),
+    ).resolves.toEqual(created)
+    expect(createServerWalletAddress).toHaveBeenCalledWith({
+      projectId: 'project',
+      walletId: 'wallet',
+      path: "m/44'/60'/0'/0/1",
+    })
+  })
+
   it('toAccount delegates to toViemAccount with the client, project, and address, and no session', async () => {
     const wallet = createZeroDevServerWallet(config)
     const address = `0x${'11'.repeat(20)}` as const

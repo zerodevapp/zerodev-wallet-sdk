@@ -1,6 +1,8 @@
 // Server entry: for a Node process holding an agent key. The root entry is
 // the browser surface and deliberately exports none of this.
 export type {
+  CreateServerWalletAddressParameters,
+  CreateServerWalletAddressReturnType,
   CreateServerWalletParameters,
   CreateServerWalletReturnType,
   Sign7702AuthorizationParameters,
