@@ -449,11 +449,11 @@ importers:
   packages/data:
     dependencies:
       '@zerodev/data-api-contract':
-        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc
-        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc(zod@4.4.3)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958(zod@4.4.3)
       '@zerodev/data-api-stamp':
-        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc
-        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc(zod@4.4.3)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958(zod@4.4.3)
       '@zerodev/wallet-core':
         specifier: workspace:*
         version: link:../core
@@ -470,6 +470,12 @@ importers:
       '@wagmi/core':
         specifier: 3.6.0
         version: 3.6.0(@tanstack/query-core@5.101.2)(@types/react@19.2.17)(react@19.2.3)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.3))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))
+      '@zerodev/ecdsa-validator':
+        specifier: ^5.4.9
+        version: 5.4.9(@zerodev/sdk@5.5.4(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3)))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))
+      '@zerodev/sdk':
+        specifier: 5.5.4
+        version: 5.5.4(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -5796,15 +5802,15 @@ packages:
     engines: {node: '>=14.6'}
     deprecated: this version has critical issues, please update to the latest version
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc':
-    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc}
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
       zod: ^4.1.0
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc':
-    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc}
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
@@ -18212,11 +18218,11 @@ snapshots:
 
   '@xmldom/xmldom@0.9.10': {}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc(zod@4.4.3)':
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958(zod@4.4.3)':
     dependencies:
       zod: 4.4.3
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc(zod@4.4.3)':
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958(zod@4.4.3)':
     dependencies:
       '@noble/curves': 2.2.0
       json-canonicalize: 2.0.0

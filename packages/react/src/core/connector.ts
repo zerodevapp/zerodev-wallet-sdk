@@ -29,6 +29,18 @@ import { getAAUrl } from '../utils/aaUtils.js'
 import { isReactNative } from '../utils/platform.js'
 
 /**
+ * Kernel config behind every 4337 account this connector creates. The Data
+ * API derives the same address from the KMS EOA with this config, so a change
+ * here moves every 4337 user's address and must ship together with the Data
+ * API. Guarded by packages/data/src/kernelAccount.test.ts.
+ */
+export const KERNEL_ACCOUNT_CONFIG = {
+  kernelVersion: KERNEL_V3_3,
+  entryPointVersion: '0.7',
+  index: 0n,
+} as const
+
+/**
  * Account mode the connector exposes to wagmi.
  *
  * - `'7702'` (default): EOA delegated to a Kernel smart account via EIP-7702.
@@ -163,17 +175,19 @@ export function zeroDevWalletCore(
       // For 4337, the kernel needs an ECDSA validator plugin keyed off the
       // EOA so it can authorize userOps. 7702 uses `eip7702Account` instead
       // (the EOA itself is the validator via its delegation).
+      const entryPoint = getEntryPoint(KERNEL_ACCOUNT_CONFIG.entryPointVersion)
       const kernelAccount = await createKernelAccount(publicClient, {
-        entryPoint: getEntryPoint('0.7'),
-        kernelVersion: KERNEL_V3_3,
+        entryPoint,
+        kernelVersion: KERNEL_ACCOUNT_CONFIG.kernelVersion,
+        index: KERNEL_ACCOUNT_CONFIG.index,
         ...(mode === '7702'
           ? { eip7702Account: eoaAccount }
           : {
               plugins: {
                 sudo: await signerToEcdsaValidator(publicClient, {
                   signer: eoaAccount,
-                  entryPoint: getEntryPoint('0.7'),
-                  kernelVersion: KERNEL_V3_3,
+                  entryPoint,
+                  kernelVersion: KERNEL_ACCOUNT_CONFIG.kernelVersion,
                 }),
               },
             }),
