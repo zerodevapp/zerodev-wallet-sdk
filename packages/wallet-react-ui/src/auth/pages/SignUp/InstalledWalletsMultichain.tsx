@@ -6,6 +6,7 @@ import {
 } from '@zerodev/react-ui'
 import { useState } from 'react'
 import { equalsIgnoreCase } from '../../../shared/utils/common'
+import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import type { SolanaStandardWallet } from '../../../solana/types'
 import { useAuth } from '../../hooks/useAuth'
@@ -50,6 +51,9 @@ export function InstalledWalletsMultichain({
   const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement, registeredWallets } = useSignUpContext()
   const solanaWallets = useSolanaWallets()
+  // A reload that lands on a sheet offering Solana restores the last Solana
+  // wallet; a sheet without a Solana unit restores nothing.
+  useSolanaAutoReconnect()
   const { connectSolana, pendingSolanaName, connectedSolanaName } =
     useSolanaConnect()
   // Name of the multichain wallet whose chain choice is expanded.
