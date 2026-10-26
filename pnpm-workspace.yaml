@@ -11,6 +11,9 @@ packages:
 # is left alone. Raise when wagmi supports viem >=2.56.
 overrides:
   'viem@^2.47.18': 2.55.5
+  # Keep every zod 4.x resolution at or above the GHSA-mrhx-c7xc-m3w5 fix, so
+  # the audit ignore below only ever covers the 3.x copies we cannot bump.
+  'zod@>=4 <4.6.6': '^4.6.6'
 
 # Security: Only install packages that are at least 24 hours old (1440 minutes)
 # This helps protect against typosquatting and malicious packages
@@ -20,7 +23,7 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@zerodev/*'
 
-# Acknowledged audit findings we cannot fix by bumping (verified 2026-10-12).
+# Acknowledged audit findings we cannot fix by bumping (verified 2026-10-26).
 # All are pinned by upstream packages or have no patched release. Re-check when
 # the named upstream moves; remove the entry once the finding no longer applies.
 auditConfig:
@@ -43,21 +46,14 @@ auditConfig:
     # expo-example and the expo peer chain behind wagmi's porto connector.
     # Remove this entry once node-forge ships a fix.
     - GHSA-86w9-cpqp-85rv
-    # braces stack-exhaustion DoS through deeply nested patterns (high). No
-    # patched release: 3.0.3, the latest, is affected, and micromatch 4.0.8,
-    # also the latest, requires it. Reached through Metro, Changesets and the
-    # Tailwind CLI, which only expand the repo's own glob patterns.
-    - GHSA-vfj7-8cjw-p6xm
-    # sprintf-js DoS through unbounded precision specifiers (moderate). No
-    # patched release: every version up to 1.1.3, the latest, is affected.
-    # Pulled in by argparse 1 through js-yaml 3, from Changesets 2, Istanbul's
-    # nyc config loader and nativewind. They only format their own strings.
-    - GHSA-hp3w-g68c-fv3c
     # zod array validation can exhaust memory on oversized inputs (high).
-    # Patched only in 4.6.6; no 3.x release has the fix. Two 3.x copies remain
-    # that we do not control: @reown/appkit-wallet pins zod 3.22.4 exactly
-    # (latest 1.8.24 still does), reached at runtime through wallet-react-ui's
-    # WalletConnect provider, and @expo/cli wants ^3.25.76 (latest 58.x still
-    # does), development tooling behind the expo-example app. Our own direct
-    # zod is 4.6.6. Remove this entry once both upstreams move to zod 4.
+    # Patched only in 4.6.6; no 3.x release has the fix, and the override above
+    # keeps every 4.x copy patched. Two 3.x copies remain that we do not
+    # control: @reown/appkit-wallet pins zod 3.22.4 exactly (latest 1.8.24
+    # still does) and @expo/cli wants ^3.25.76 (latest 58.x still does).
+    # Not reachable here: appkit-wallet's only zod use is parsing postMessage
+    # data in its email/social frame, and WalletConnect's ethereum-provider
+    # only loads @reown/appkit when showQrModal is set, which wallet-react-ui
+    # hard-codes to false. @expo/cli is development tooling behind the
+    # expo-example app. Remove this entry once both upstreams move to zod 4.
     - GHSA-mrhx-c7xc-m3w5
