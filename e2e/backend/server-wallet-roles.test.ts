@@ -37,7 +37,7 @@ const CHAIN_ID = 421614
 const WRONG_ROLE = { status: 403, code: 'forbidden' } as const
 
 describe('Server Wallets · agent key roles', () => {
-  const { organizationId, projectId, address, origin, proxyBaseUrl } =
+  const { organizationId, projectId, address, walletId, origin, proxyBaseUrl } =
     serverWalletEnv()
   const keys = roleKeys()
 
@@ -206,6 +206,51 @@ describe('Server Wallets · agent key roles', () => {
       await expectRecoversTo(hash, signature, address)
     },
   )
+
+  /**
+   * The create-role control using a derived ADDRESS rather than creating a wallet.
+   */
+  it('lets a create-role key reach the create route', async () => {
+    const index = Math.floor(Math.random() * 2 ** 31)
+    const path = `m/44'/60'/0'/0/${index}`
+
+    let derived: Awaited<
+      ReturnType<ReturnType<typeof clientFor>['createServerWalletAddress']>
+    >
+    try {
+      derived = await clientFor('create').createServerWalletAddress({
+        projectId,
+        walletId,
+        path,
+      })
+    } catch (error) {
+      const refused = refusal(error)
+      if (refused.status === 409) {
+        throw new Error(
+          `index ${index} was already on wallet ${walletId}, which is this control ` +
+            `picking a taken index rather than the create role failing. Re-run. ${refused.summary}`,
+        )
+      }
+      throw error
+    }
+
+    expect(derived.walletAddress).toMatch(/^0x[0-9a-fA-F]{40}$/)
+    expect(derived.turnkeyId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    )
+    expect(derived.path).toBe(path)
+  })
+
+  /**
+   * SKIPPED because we're limited to creating 100 wallets per wallet set and there is no
+   * proper cleanup mechanism as of now.
+   */
+  it.skip('creates a wallet with a create-role key — SKIPPED: spends 1 of the sub-org’s 100 wallets and there is no teardown', async () => {
+    const created = await clientFor('create').createServerWallet({ projectId })
+
+    expect(created.walletId).toBeTruthy()
+    expect(created.walletAddress).toMatch(/^0x[0-9a-fA-F]{40}$/)
+  })
 
   it('refuses a create attempt from a sign-only key', async () => {
     await mustRefuse('create with a sign-only key', WRONG_ROLE, () =>
