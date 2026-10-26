@@ -53,3 +53,11 @@ auditConfig:
     # Pulled in by argparse 1 through js-yaml 3, from Changesets 2, Istanbul's
     # nyc config loader and nativewind. They only format their own strings.
     - GHSA-hp3w-g68c-fv3c
+    # zod array validation can exhaust memory on oversized inputs (high).
+    # Patched only in 4.6.6; no 3.x release has the fix. Two 3.x copies remain
+    # that we do not control: @reown/appkit-wallet pins zod 3.22.4 exactly
+    # (latest 1.8.24 still does), reached at runtime through wallet-react-ui's
+    # WalletConnect provider, and @expo/cli wants ^3.25.76 (latest 58.x still
+    # does), development tooling behind the expo-example app. Our own direct
+    # zod is 4.6.6. Remove this entry once both upstreams move to zod 4.
+    - GHSA-mrhx-c7xc-m3w5
