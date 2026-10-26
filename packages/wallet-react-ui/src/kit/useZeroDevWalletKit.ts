@@ -1,17 +1,13 @@
 import { useMemo } from 'react'
-import { useAccount, useConfig, useConnectors } from 'wagmi'
-import { useStore } from 'zustand'
-import { useWalletInfo } from '../auth/hooks/useWalletInfo.js'
-import { isZeroDevWalletConnect } from '../auth/utils/isZeroDevWalletConnect.js'
+import { useConfig } from 'wagmi'
 import { useKitStore } from '../shared/hooks/useKitStore.js'
-import { useSolanaAutoReconnect } from '../solana/hooks/useSolanaAutoReconnect.js'
-import { useSolanaWalletConnect } from '../solana/hooks/useSolanaWalletConnect.js'
-import { useSolanaWallets } from '../solana/hooks/useSolanaWallets.js'
-import { readLastSolanaWallet } from '../solana/solanaStoreSlice.js'
-import { connect, disconnect } from './actions.js'
+import { connectEvm, disconnectEvm, useEip155Adapter } from './eip155.js'
+import type { AdapterContext } from './shared.js'
+import { connectSolana, disconnectSolana, useSolanaAdapter } from './solana.js'
 import type {
-  KitAccountStatus,
   KitAdapter,
+  KitConnectRequest,
+  KitDisconnectParams,
   KitNamespace,
   ZeroDevWalletKit,
   ZeroDevWalletKitOptions,
@@ -20,9 +16,12 @@ import type {
 /**
  * The host-facing view of the kit. Every namespace is an adapter with the
  * same members (`status`, `address`, `wallets`, `connect`, `disconnect`, …)
- * and its own implementation behind them. Pick one with `namespace`, or
- * omit it for all of them side by side plus the cross-namespace
- * `connect({ namespace, … })` and `disconnect({ namespace? })`.
+ * and its own implementation behind them (`eip155.ts`, `solana.ts`). Pick
+ * one with `namespace`, or omit it for all of them side by side plus the
+ * cross-namespace `connect({ namespace, … })` and `disconnect({ namespace? })`.
+ *
+ * Every adapter's hooks run on every render whichever namespace is picked:
+ * the selection is on their results, never on the hook calls.
  *
  * EVM stays wagmi underneath (chains, balances, signing go through wagmi as
  * before); Solana signing goes through `useSolanaWallet()`. Requires the
@@ -40,81 +39,16 @@ export function useZeroDevWalletKit(
   const { namespace, reconnectOnMount = true } = options
   const store = useKitStore()
   const config = useConfig()
-  const connectors = useConnectors()
-  const evm = useAccount()
-  const solanaSliceStatus = useStore(store, (s) => s.solana.status)
-  const solanaConnection = useStore(store, (s) => s.solana.connection)
-  const restoreSettled = useStore(store, (s) => s.solana.restoreSettled)
-  const solanaWallets = useSolanaWallets()
-  const { walletInfo: evmWalletInfo } = useWalletInfo('eip155')
-  const { walletInfo: solanaWalletInfo } = useWalletInfo('solana')
-  const { enabled: solanaWalletConnect } = useSolanaWalletConnect(false)
+  const ctx = useMemo(
+    (): AdapterContext => ({ store, config }),
+    [store, config],
+  )
+
+  const eip155 = useEip155Adapter(ctx)
   // An EVM-only view has no Solana session to restore.
-  const restoreSolana = reconnectOnMount && namespace !== 'eip155'
-  useSolanaAutoReconnect(restoreSolana)
-
-  // A saved session that the auto-reconnect has not yet tried: the slot
-  // still reads `disconnected` while the wallet registers or the
-  // WalletConnect provider loads, so report that window as reconnecting.
-  const restorePending =
-    restoreSolana &&
-    !restoreSettled &&
-    solanaSliceStatus === 'disconnected' &&
-    readLastSolanaWallet() !== null
-  const solanaStatus: KitAccountStatus = restorePending
-    ? 'reconnecting'
-    : solanaSliceStatus
-
-  // Each adapter keeps its identity across the other's changes, so a host
-  // can put `kit.solana` in effect deps.
-  const eip155 = useMemo(
-    (): KitAdapter<'eip155'> => ({
-      namespace: 'eip155',
-      status: evm.status,
-      isConnected: evm.status === 'connected',
-      isReconnecting: evm.status === 'reconnecting',
-      address: evm.address,
-      walletInfo: evmWalletInfo,
-      // Only an EIP-6963 announcement proves a live extension: the generic
-      // `injected()` connector and the kit's own embedded wallet (also type
-      // "injected") exist regardless of installation.
-      wallets: connectors.filter(
-        (c) =>
-          c.type === 'injected' &&
-          c.id !== 'injected' &&
-          c.id !== 'zerodev-wallet',
-      ),
-      walletConnect: connectors.some(isZeroDevWalletConnect),
-      connect: (params = {}) =>
-        connect(store, config, { namespace: 'eip155', ...params }),
-      disconnect: () => disconnect(store, config, { namespace: 'eip155' }),
-    }),
-    [evm.status, evm.address, evmWalletInfo, connectors, store, config],
-  )
-  const solana = useMemo(
-    (): KitAdapter<'solana'> => ({
-      namespace: 'solana',
-      status: solanaStatus,
-      isConnected: solanaStatus === 'connected' && solanaConnection !== null,
-      isReconnecting: solanaStatus === 'reconnecting',
-      address: solanaConnection?.address,
-      walletInfo: solanaWalletInfo,
-      wallets: solanaWallets,
-      walletConnect: solanaWalletConnect,
-      connect: (params = {}) =>
-        connect(store, config, { namespace: 'solana', ...params }),
-      disconnect: () => disconnect(store, config, { namespace: 'solana' }),
-    }),
-    [
-      solanaStatus,
-      solanaConnection,
-      solanaWalletInfo,
-      solanaWallets,
-      solanaWalletConnect,
-      store,
-      config,
-    ],
-  )
+  const solana = useSolanaAdapter(ctx, {
+    restore: reconnectOnMount && namespace !== 'eip155',
+  })
 
   const kit = useMemo(
     (): ZeroDevWalletKit => ({
@@ -122,11 +56,36 @@ export function useZeroDevWalletKit(
       solana,
       isConnected: eip155.isConnected || solana.isConnected,
       isReconnecting: eip155.isReconnecting || solana.isReconnecting,
-      connect: (params) => connect(store, config, params),
-      disconnect: (params) => disconnect(store, config, params),
+      connect: (request: KitConnectRequest) =>
+        request.namespace === 'solana'
+          ? connectSolana(ctx, request)
+          : connectEvm(ctx, request),
+      disconnect: (params: KitDisconnectParams = {}) =>
+        disconnectAll(ctx, params),
     }),
-    [eip155, solana, store, config],
+    [eip155, solana, ctx],
   )
 
   return namespace ? kit[namespace] : kit
+}
+
+async function disconnectAll(
+  ctx: AdapterContext,
+  { namespace }: KitDisconnectParams,
+): Promise<void> {
+  if (namespace === 'eip155') {
+    return disconnectEvm(ctx, ctx.store.getState().solana.connection !== null)
+  }
+  if (namespace === 'solana') return disconnectSolana(ctx)
+  // Both go, so neither needs protecting from the other: a wallet-level
+  // revoke that takes Solana down with it is the intended outcome. Each side
+  // runs to the end even when the other fails.
+  const results = await Promise.allSettled([
+    disconnectEvm(ctx, false),
+    disconnectSolana(ctx),
+  ])
+  const failed = results.find(
+    (r): r is PromiseRejectedResult => r.status === 'rejected',
+  )
+  if (failed) throw failed.reason
 }
