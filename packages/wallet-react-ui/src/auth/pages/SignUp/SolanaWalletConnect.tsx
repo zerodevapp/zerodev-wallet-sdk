@@ -1,4 +1,5 @@
 import { Badge } from '@zerodev/react-ui'
+import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWalletConnect } from '../../../solana/hooks/useSolanaWalletConnect'
 import { WalletSheet } from '../../components/WalletSheet'
 import { useSolanaWalletConnectPairing } from '../../hooks/useSolanaWalletConnectPairing'
@@ -14,6 +15,9 @@ import { WalletConnectRow } from './WalletConnect'
  */
 export function SignUpSolanaWalletConnect() {
   const { openSolanaWalletSheet } = useSignUpContext()
+  // A reload that lands on a sheet offering this door restores a surviving
+  // WalletConnect session; a sheet without a Solana unit restores nothing.
+  useSolanaAutoReconnect()
   // `enabled` alone: the provider loads when the sheet opens, not before.
   const { enabled } = useSolanaWalletConnect(false)
 
