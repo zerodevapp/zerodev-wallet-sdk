@@ -310,7 +310,11 @@ export function Playground({
                 Add units
               </p>
               <div className="mt-2.5 flex flex-wrap gap-2">
-                {UNIT_DEFS.map((def) => {
+                {UNIT_DEFS.filter(
+                  // Solana is pre-release: its WalletConnect door stays out
+                  // of the picker, like the Installed Wallets checkbox.
+                  (def) => SOLANA_ENABLED || def.type !== 'solanaWalletConnect',
+                ).map((def) => {
                   const used = items.some((i) => i.type === def.type)
                   const active = !def.multi && used
                   const disabled =
