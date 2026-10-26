@@ -11,8 +11,11 @@ packages:
 # is left alone. Raise when wagmi supports viem >=2.56.
 overrides:
   'viem@^2.47.18': 2.55.5
-  # Keep every zod 4.x resolution at or above the GHSA-mrhx-c7xc-m3w5 fix, so
-  # the audit ignore below only ever covers the 3.x copies we cannot bump.
+  # Rewrites any declared zod range that could resolve below the GHSA-mrhx-c7xc-m3w5
+  # fix (including abitype's optional `^3 || ^4` peer and loose ranges like `*`) to
+  # ^4.6.6, so the audit ignore below only ever covers the exact 3.x pins we cannot
+  # move. Expect two "unmet peer zod" warnings under @reown/appkit-wallet on a full
+  # re-resolution; they refer to that same ignored 3.22.4 copy.
   'zod@>=4 <4.6.6': '^4.6.6'
 
 # Security: Only install packages that are at least 24 hours old (1440 minutes)
@@ -47,7 +50,7 @@ auditConfig:
     # Remove this entry once node-forge ships a fix.
     - GHSA-86w9-cpqp-85rv
     # zod array validation can exhaust memory on oversized inputs (high).
-    # Patched only in 4.6.6; no 3.x release has the fix, and the override above
+    # Patched from 4.6.6; no 3.x release has the fix, and the override above
     # keeps every 4.x copy patched. Two 3.x copies remain that we do not
     # control: @reown/appkit-wallet pins zod 3.22.4 exactly (latest 1.8.24
     # still does) and @expo/cli wants ^3.25.76 (latest 58.x still does).
