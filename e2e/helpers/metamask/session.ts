@@ -144,6 +144,8 @@ export async function ensureOnboardedProfile(
   // TEST_WALLET re-onboards instead of silently reusing the previous wallet.
   const account = mnemonicToAccount(credentials.secretRecoveryPhrase).address
 
+  await ensureMetaMaskExtension()
+
   if (existsSync(PROFILE_SNAPSHOT_DIR)) {
     if (readProfileStamp()?.account === account) return PROFILE_SNAPSHOT_DIR
     rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
