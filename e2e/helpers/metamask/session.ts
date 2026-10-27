@@ -3,6 +3,7 @@
  * onboarding to once per pinned version.
  */
 
+import { createHash } from 'node:crypto'
 import {
   cpSync,
   existsSync,
@@ -87,10 +88,18 @@ export function extensionUrl(extensionId: string, hash = '#/'): string {
 /** How long MetaMask gets to write the finished onboarding out to disk. */
 const PERSIST_TIMEOUT_MS = 60_000
 
-/** Records which account the cached snapshot was onboarded with. */
+/** Records which credentials the cached snapshot was onboarded with. */
 const PROFILE_STAMP_FILE = `${PROFILE_SNAPSHOT_DIR}.json`
 
-const readProfileStamp = (): { account: string } | null => {
+const credentialsFingerprint = (): string =>
+  createHash('sha256')
+    .update(`${TEST_WALLET.secretRecoveryPhrase}\n${TEST_WALLET.password}`)
+    .digest('hex')
+
+const readProfileStamp = (): {
+  account: string
+  credentials?: string
+} | null => {
   if (!existsSync(PROFILE_STAMP_FILE)) return null
   try {
     return JSON.parse(readFileSync(PROFILE_STAMP_FILE, 'utf8'))
@@ -146,8 +155,12 @@ export async function ensureOnboardedProfile(
 
   await ensureMetaMaskExtension()
 
+  const fingerprint = credentialsFingerprint()
+
   if (existsSync(PROFILE_SNAPSHOT_DIR)) {
-    if (readProfileStamp()?.account === account) return PROFILE_SNAPSHOT_DIR
+    if (readProfileStamp()?.credentials === fingerprint) {
+      return PROFILE_SNAPSHOT_DIR
+    }
     rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
   }
   const scratch = mkdtempSync(path.join(tmpdir(), 'mm-onboarding-'))
@@ -186,7 +199,10 @@ export async function ensureOnboardedProfile(
 
     rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
     cpSync(staging, PROFILE_SNAPSHOT_DIR, { recursive: true })
-    writeFileSync(PROFILE_STAMP_FILE, JSON.stringify({ account }))
+    writeFileSync(
+      PROFILE_STAMP_FILE,
+      JSON.stringify({ account, credentials: fingerprint }),
+    )
 
     return PROFILE_SNAPSHOT_DIR
   } finally {
