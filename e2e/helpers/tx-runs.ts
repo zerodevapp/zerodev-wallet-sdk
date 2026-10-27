@@ -71,3 +71,31 @@ export async function expectSignRunSucceeded(run: Locator): Promise<void> {
     timeout: SIGN_SETTLE_TIMEOUT_MS,
   })
 }
+
+/** MetaMask reports a user rejection as EIP-1193 code 4001. */
+const USER_REJECTED = /reject|denied|declined|4001/i
+
+/**
+ * Waits for a sign run to settle and asserts it failed **because the user
+ * rejected**, rather than simply failing.
+ */
+export async function expectSignRunRejected(run: Locator): Promise<void> {
+  await expect(run).toHaveAttribute('data-status', /^(success|error)$/, {
+    timeout: SIGN_SETTLE_TIMEOUT_MS,
+  })
+
+  if ((await run.getAttribute('data-status')) === 'success') {
+    throw new Error(
+      'the sign run succeeded, so the rejection never reached the SDK',
+    )
+  }
+
+  const detail =
+    (await run.getAttribute('data-error')) ?? 'no error text rendered'
+  test.info().annotations.push({ type: 'sign-rejected', description: detail })
+
+  expect(
+    detail,
+    'a rejected signature must be reported as a rejection, not as a generic failure',
+  ).toMatch(USER_REJECTED)
+}

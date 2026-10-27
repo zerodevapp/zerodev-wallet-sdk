@@ -43,6 +43,18 @@ export class MetaMask {
   }
 
   /**
+   * Rejects a pending signature request.
+   */
+  async rejectSignature(): Promise<void> {
+    const page = await this.openPendingRequest()
+    await expect(page).toHaveURL(/signature-request/, {
+      timeout: APPROVAL_TIMEOUT_MS,
+    })
+    await this.rejectButton(page).click({ timeout: APPROVAL_TIMEOUT_MS })
+    if (!page.isClosed()) await page.close()
+  }
+
+  /**
    * Rejects a pending connection request.
    */
   async rejectPendingRequest(): Promise<void> {
