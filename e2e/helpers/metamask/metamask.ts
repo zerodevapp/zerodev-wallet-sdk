@@ -97,15 +97,16 @@ export class MetaMask {
    * Clicks the approve button and waits for the window to be done with it.
    */
   private async confirm(page: Page): Promise<void> {
-    await this.approveButton(page).click({ timeout: APPROVAL_TIMEOUT_MS })
-
-    await page
+    const closed = page
       .waitForEvent('close', { timeout: APPROVAL_TIMEOUT_MS })
-      .catch(async () => {
-        // Some flows leave the window open on a follow-up step instead of
-        // closing it. Close it so the next request opens a clean one.
-        if (!page.isClosed()) await page.close()
-      })
+      .catch(() => undefined)
+
+    await this.approveButton(page).click({ timeout: APPROVAL_TIMEOUT_MS })
+    await closed
+
+    // Some flows leave the window open on a follow-up step instead of closing
+    // it. Close it so the next request opens a clean one.
+    if (!page.isClosed()) await page.close()
   }
 
   /** The wallet's own UI, unlocked. */

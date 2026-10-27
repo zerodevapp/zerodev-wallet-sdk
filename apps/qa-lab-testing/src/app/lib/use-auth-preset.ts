@@ -39,7 +39,7 @@ export function useAuthPreset(): {
   ready: boolean;
 } {
   const searchParams = useSearchParams();
-  const fromUrl = searchParams.get(PARAM.preset);
+  const fromUrl = searchParams.get(PARAM.preset)?.trim();
   const urlPreset = fromUrl && isAuthPresetId(fromUrl) ? fromUrl : undefined;
 
   const [stored, setStored] = useState<AuthPresetId | null>(null);
