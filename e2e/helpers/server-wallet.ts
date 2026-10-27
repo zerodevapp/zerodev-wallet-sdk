@@ -8,6 +8,7 @@ import {
   createServerWalletClient,
   createZeroDevServerWallet,
 } from '../../packages/core/src/server/index.js'
+import { BACKEND_URL } from './constants.js'
 
 /**
  * The wallet set, wallet and signing address must exist before the suite runs.
@@ -34,7 +35,7 @@ export const serverWalletEnv = () => {
     // Previously created wallet in an existing organizationId.
     walletId: process.env.ZD_SW_WALLET_ID,
     origin: process.env.ZD_SW_ORIGIN,
-    proxyBaseUrl: process.env.ZD_SW_PROXY_BASE_URL,
+    proxyBaseUrl: process.env.ZD_SW_PROXY_BASE_URL || BACKEND_URL,
   }
   const missing = (
     [
@@ -67,7 +68,9 @@ export function createServerWalletClients() {
   const shared = {
     organizationId,
     privateKey: agentPrivateKey,
-    ...(proxyBaseUrl && { proxyBaseUrl }),
+    // Passed unconditionally: `serverWalletEnv` always resolves one, and omitting it
+    // would hand the SDK its production default.
+    proxyBaseUrl,
     fetchOptions: { headers: { Origin: origin } },
   }
   return {

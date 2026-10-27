@@ -28,7 +28,7 @@ describe('Server Wallets · failure paths', () => {
 
   const shared = {
     organizationId,
-    ...(proxyBaseUrl && { proxyBaseUrl }),
+    proxyBaseUrl,
     fetchOptions: { headers: { Origin: origin } },
   }
 

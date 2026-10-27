@@ -142,6 +142,15 @@ jobs:
       ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
       MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
       MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
+      ZD_SW_ORGANIZATION_ID: ${{ secrets.ZD_SW_ORGANIZATION_ID }}
+      ZD_SW_PROJECT_ID: ${{ secrets.ZD_SW_PROJECT_ID }}
+      ZD_SW_AGENT_PRIVATE_KEY: ${{ secrets.ZD_SW_AGENT_PRIVATE_KEY }}
+      ZD_SW_ADDRESS: ${{ secrets.ZD_SW_ADDRESS }}
+      ZD_SW_WALLET_ID: ${{ secrets.ZD_SW_WALLET_ID }}
+      ZD_SW_ORIGIN: ${{ secrets.ZD_SW_ORIGIN }}
+      ZD_SW_KEY_CREATE: ${{ secrets.ZD_SW_KEY_CREATE }}
+      ZD_SW_KEY_SIGN: ${{ secrets.ZD_SW_KEY_SIGN }}
+      ZD_SW_KEY_READ: ${{ secrets.ZD_SW_KEY_READ }}
 
   e2e-test:
     name: Browser E2E Tests

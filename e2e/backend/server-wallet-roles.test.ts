@@ -45,7 +45,7 @@ describe('Server Wallets · agent key roles', () => {
     createServerWalletClient({
       organizationId,
       privateKey: keys[role],
-      ...(proxyBaseUrl && { proxyBaseUrl }),
+      proxyBaseUrl,
       fetchOptions: { headers: { Origin: origin } },
     })
 
@@ -322,7 +322,7 @@ describe('Server Wallets · agent key roles', () => {
     const stranger = createServerWalletClient({
       organizationId,
       privateKey: generateP256KeyPair().privateKey,
-      ...(proxyBaseUrl && { proxyBaseUrl }),
+      proxyBaseUrl,
       fetchOptions: { headers: { Origin: origin } },
     })
 
