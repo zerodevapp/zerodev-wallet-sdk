@@ -22,6 +22,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
+    // Node 25+ ships Web Storage on by default: `localStorage` becomes a
+    // global getter that yields undefined without --localstorage-file, and
+    // `sessionStorage` becomes Node's own in-memory store. Vitest only copies
+    // happy-dom window keys that are not already on the global, so without
+    // this flag the tests get Node's storage instead of happy-dom's and the
+    // zustand persist stores throw on setItem. No-op on Node 24.
+    execArgv: ['--no-experimental-webstorage'],
     coverage: {
       provider: 'v8',
       // `lcov` (coverage/lcov.info) is what Codecov ingests in CI.

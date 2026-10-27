@@ -53,6 +53,10 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org/
 
+      # npm Trusted Publishing (OIDC) needs npm >= 11.5.1. `changeset publish`
+      # runs `pnpm publish`, which uses the npm bundled with the .nvmrc Node
+      # (24.22.1 ships 11.19.1), so no separate npm upgrade step is needed.
+      # If .nvmrc ever moves to a Node with an older npm, publishing breaks.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
