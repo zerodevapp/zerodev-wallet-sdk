@@ -32,6 +32,43 @@ const PAIRING_TIMEOUT_MS = 60_000
 const PAIRING_URI = /^wc:[0-9a-f]+@\d+\?.*symKey=[0-9a-f]+/
 
 /**
+ * Whether the running lab build has a WalletConnect project id, resolved once
+ * per worker.
+ */
+let walletConnectConfigured: Promise<boolean> | undefined
+
+async function isWalletConnectConfigured(page: Page): Promise<boolean> {
+  await page.goto('/environment')
+  const pill = page.getByTestId('env-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID')
+  await expect(pill).toBeVisible({ timeout: PAIRING_TIMEOUT_MS })
+  return (await pill.getAttribute('data-pass')) === 'true'
+}
+
+/**
+ * Fails every case in this spec whenever the WalletConnect ProjectId hasn't
+ * been set on the build step. This also gets annotated so that it is easier to
+ * triage.
+ */
+test.beforeEach(async ({ page }) => {
+  // Cleared on rejection so a transient failure reaching `/environment` is
+  // retried by the next case rather than remembered for the whole worker.
+  walletConnectConfigured ??= isWalletConnectConfigured(page).catch(
+    (error: unknown) => {
+      walletConnectConfigured = undefined
+      throw error
+    },
+  )
+  if (await walletConnectConfigured) return
+
+  const detail =
+    'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set in the lab build, so no ' +
+    'WalletConnect connector is registered and these rows do not render. Set it ' +
+    'on the QA lab build step.'
+  test.info().annotations.push({ type: 'config-missing', description: detail })
+  throw new Error(detail)
+})
+
+/**
  * Opens the lab on preset 2 and waits for the sign-up screen.
  *
  * The URL is what a spec can set, and it writes through to storage, so this

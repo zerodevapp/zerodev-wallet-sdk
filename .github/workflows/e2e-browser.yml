@@ -37,6 +37,8 @@ on:
         required: true
       MAILOSAUR_SERVER_ID:
         required: true
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
+        required: true
 
 permissions:
   contents: read
@@ -94,6 +96,12 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Cache browser e2e fixtures
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: e2e/.cache
+          key: e2e-fixtures-${{ runner.os }}-${{ hashFiles('e2e/helpers/wallet-versions.ts') }}
+
       - name: Build and start QA lab
         working-directory: apps/qa-lab-testing
         run: |
@@ -108,6 +116,7 @@ jobs:
           # rather than on the test step.
           NEXT_PUBLIC_KMS_PROXY_BASE_URL: ${{ env.KMS_URL }}
           NEXT_PUBLIC_ZERODEV_AA_HOST: ${{ env.AA_HOST }}
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
 
       - name: Wait for QA lab
         run: |
