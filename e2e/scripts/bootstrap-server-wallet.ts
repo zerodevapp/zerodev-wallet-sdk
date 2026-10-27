@@ -3,7 +3,7 @@
  * Produces the two server wallet fixtures the backend suite cannot derive for itself:
  * `ZD_SW_WALLET_ID` and `ZD_SW_ADDRESS`.
  *
- * Run: pnpm dlx tsx e2e/scripts/bootstrap-server-wallet.ts
+ * Run: pnpm dlx tsx --env-file=.env e2e/scripts/bootstrap-server-wallet.ts
  */
 
 // biome-ignore-all lint/suspicious/noConsole: the console is this script's report.
