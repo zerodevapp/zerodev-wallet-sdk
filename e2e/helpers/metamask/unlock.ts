@@ -15,11 +15,19 @@ export async function unlockIfLocked(
   password: string,
 ): Promise<void> {
   const passwordField = page.getByTestId('unlock-password')
-  const locked = await passwordField
+
+  const unlocked = page
+    .getByTestId('confirm-footer-button')
+    .or(page.getByTestId('confirm-btn'))
+    .or(page.getByTestId('account-menu-icon'))
+
+  await passwordField
+    .or(unlocked)
+    .first()
     .waitFor({ state: 'visible', timeout: LOCK_SCREEN_TIMEOUT_MS })
-    .then(() => true)
-    .catch(() => false)
-  if (!locked) return
+    .catch(() => undefined)
+
+  if (!(await passwordField.isVisible())) return
 
   await passwordField.fill(password)
   await page.getByTestId('unlock-submit').click()

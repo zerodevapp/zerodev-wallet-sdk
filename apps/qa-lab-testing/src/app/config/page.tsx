@@ -133,22 +133,26 @@ export default function ConfigBuilderPage() {
                 {AUTH_PRESET_IDS.map((id) => {
                   const selected = preset === id;
                   return (
-                    <button
+                    <label
                       key={id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setPresetOverride(id)}
                       data-testid={`config-preset-${id}`}
                       data-selected={String(selected)}
                       className={cn(
-                        "cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                        "block cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors",
+                        "focus-within:ring-2 focus-within:ring-blue-500",
                         selected
                           ? "border-[var(--ink)] bg-[var(--surface-warm)]"
                           : "border-[var(--border-warm)] bg-white opacity-60 hover:border-[var(--ink)] hover:opacity-100",
                       )}
                     >
+                      <input
+                        type="radio"
+                        name="auth-preset"
+                        value={id}
+                        checked={selected}
+                        onChange={() => setPresetOverride(id)}
+                        className="sr-only"
+                      />
                       <p className="text-[11px] font-semibold text-[var(--ink)]">
                         <code className="font-mono">{id}</code> ·{" "}
                         {AUTH_PRESETS[id].label}
@@ -170,7 +174,7 @@ export default function ConfigBuilderPage() {
                           </li>
                         ))}
                       </ol>
-                    </button>
+                    </label>
                   );
                 })}
               </div>

@@ -15,6 +15,8 @@ import { unlockIfLocked } from './unlock.js'
 /** Approvals wait on the service worker waking up, which is not quick. */
 const APPROVAL_TIMEOUT_MS = 45_000
 
+const REQUEST_SETTLE_TIMEOUT_MS = 10_000
+
 export class MetaMask {
   constructor(
     private readonly context: BrowserContext,
@@ -97,15 +99,13 @@ export class MetaMask {
    * Clicks the approve button and waits for the window to be done with it.
    */
   private async confirm(page: Page): Promise<void> {
-    const closed = page
-      .waitForEvent('close', { timeout: APPROVAL_TIMEOUT_MS })
+    const approve = this.approveButton(page)
+    await approve.click({ timeout: APPROVAL_TIMEOUT_MS })
+
+    await approve
+      .waitFor({ state: 'hidden', timeout: REQUEST_SETTLE_TIMEOUT_MS })
       .catch(() => undefined)
 
-    await this.approveButton(page).click({ timeout: APPROVAL_TIMEOUT_MS })
-    await closed
-
-    // Some flows leave the window open on a follow-up step instead of closing
-    // it. Close it so the next request opens a clean one.
     if (!page.isClosed()) await page.close()
   }
 
