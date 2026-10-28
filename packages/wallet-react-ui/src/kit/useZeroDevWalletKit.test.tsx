@@ -298,6 +298,16 @@ describe('useZeroDevWalletKit', () => {
       return { ...rendered, seen }
     }
 
+    it('reports reconnecting on the first render with nothing saved, then settles at once', async () => {
+      // No storage read during render: the server and the first client
+      // render agree, and the effect's first run settles the window.
+      const { result, seen } = renderLive()
+      expect(seen[0]).toBe(true)
+      await act(async () => {})
+      expect(result.current.solana.isReconnecting).toBe(false)
+      expect(result.current.solana.status).toBe('disconnected')
+    })
+
     it('reports a saved installed wallet as reconnecting on the first render, and settles when it is absent', async () => {
       saveLast('Phantom', 'standard')
       const { result, seen } = renderLive()
