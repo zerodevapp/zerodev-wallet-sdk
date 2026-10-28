@@ -3,6 +3,9 @@ import { expect, type Locator, test } from '@playwright/test'
 /** A sponsored userOp on staging can take a while; the run itself settles fast. */
 const TX_SETTLE_TIMEOUT_MS = 60_000
 
+/** Signing is a KMS round trip, with no chain to wait for. */
+const SIGN_SETTLE_TIMEOUT_MS = 30_000
+
 /**
  * Staging's RPC and paymaster sit behind a shared per-project rate limit, and
  * `pm_getPaymasterData` is not retried (`@zerodev/sdk` forces `retryCount: 0` on
@@ -13,32 +16,86 @@ const TX_SETTLE_TIMEOUT_MS = 60_000
 const RATE_LIMITED = /rate limit|HTTP 429/i
 
 /**
- * Waits for a tx run to reach a terminal state and asserts it succeeded.
+ * Waits for a run to reach a terminal state and fails with its reason.
  *
  * Waits for `success` *or* `error` rather than `success` alone: a failed run is
  * already final within seconds, so waiting only for success spends the whole
  * timeout and then reports a timeout instead of the reason. On error the run's
  * `data-error` is read back and attached as an annotation before failing, so the
  * report says whether staging throttled us or the SDK actually broke — the two
- * belong to different owners, and the bare status assertion said neither.
+ * belong to different owners, and a bare status assertion said neither.
  */
-export async function expectTxRunSucceeded(run: Locator): Promise<void> {
+async function settle(
+  run: Locator,
+  { noun, kind }: { noun: string; kind: string },
+  timeout: number,
+): Promise<void> {
   await expect(run).toHaveAttribute('data-status', /^(success|error)$/, {
-    timeout: TX_SETTLE_TIMEOUT_MS,
+    timeout,
   })
 
   if ((await run.getAttribute('data-status')) === 'error') {
     const detail =
       (await run.getAttribute('data-error')) ?? 'no error text rendered'
     test.info().annotations.push({
-      type: RATE_LIMITED.test(detail) ? 'staging-rate-limit' : 'tx-failure',
+      type: RATE_LIMITED.test(detail)
+        ? 'staging-rate-limit'
+        : `${kind}-failure`,
       description: detail,
     })
-    throw new Error(`Transaction run failed: ${detail}`)
+    throw new Error(`${noun} run failed: ${detail}`)
   }
+}
+
+/** Waits for a tx run to settle and asserts it succeeded with a real hash. */
+export async function expectTxRunSucceeded(run: Locator): Promise<void> {
+  await settle(run, { noun: 'Transaction', kind: 'tx' }, TX_SETTLE_TIMEOUT_MS)
 
   await expect(run.getByTestId('tx-run-hash')).toHaveAttribute(
     'data-hash',
     /^0x[0-9a-fA-F]{64}$/,
   )
+}
+
+/**
+ * Waits for a sign run to settle and asserts the signature verified.
+ *
+ * `data-verify` is the assertion that matters: the lab checks the returned
+ * signature against the connected account for the exact message it sent, so a
+ * run that resolved with anything at all does not pass.
+ */
+export async function expectSignRunSucceeded(run: Locator): Promise<void> {
+  await settle(run, { noun: 'Signing', kind: 'sign' }, SIGN_SETTLE_TIMEOUT_MS)
+
+  await expect(run).toHaveAttribute('data-verify', 'valid', {
+    timeout: SIGN_SETTLE_TIMEOUT_MS,
+  })
+}
+
+/** MetaMask reports a user rejection as EIP-1193 code 4001. */
+const USER_REJECTED = /reject|denied|declined|4001/i
+
+/**
+ * Waits for a sign run to settle and asserts it failed **because the user
+ * rejected**, rather than simply failing.
+ */
+export async function expectSignRunRejected(run: Locator): Promise<void> {
+  await expect(run).toHaveAttribute('data-status', /^(success|error)$/, {
+    timeout: SIGN_SETTLE_TIMEOUT_MS,
+  })
+
+  if ((await run.getAttribute('data-status')) === 'success') {
+    throw new Error(
+      'the sign run succeeded, so the rejection never reached the SDK',
+    )
+  }
+
+  const detail =
+    (await run.getAttribute('data-error')) ?? 'no error text rendered'
+  test.info().annotations.push({ type: 'sign-rejected', description: detail })
+
+  expect(
+    detail,
+    'a rejected signature must be reported as a rejection, not as a generic failure',
+  ).toMatch(USER_REJECTED)
 }
