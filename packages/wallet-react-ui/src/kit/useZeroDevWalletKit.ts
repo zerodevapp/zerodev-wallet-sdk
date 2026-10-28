@@ -61,7 +61,7 @@ export function useZeroDevWalletKit(
           ? connectSolana(ctx, request)
           : connectEvm(ctx, request),
       disconnect: (params: KitDisconnectParams = {}) =>
-        disconnectAll(ctx, params),
+        disconnectNamespaces(ctx, params),
     }),
     [eip155, solana, ctx],
   )
@@ -69,7 +69,7 @@ export function useZeroDevWalletKit(
   return namespace ? kit[namespace] : kit
 }
 
-async function disconnectAll(
+async function disconnectNamespaces(
   ctx: AdapterContext,
   { namespace }: KitDisconnectParams,
 ): Promise<void> {
