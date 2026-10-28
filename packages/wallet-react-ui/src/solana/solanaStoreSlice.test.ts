@@ -279,6 +279,52 @@ describe('solana store slice', () => {
     expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
   })
 
+  it('a newer connect for the same wallet keeps its session when the older answer lands last', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answerFirst!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answerFirst = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const first = store.getState().solana.connect(phantom.wallet)
+    // A second click lands while the first prompt is open; the wallet
+    // answers it first.
+    await store.getState().solana.connect(phantom.wallet)
+    expect(store.getState().solana.status).toBe('connected')
+    answerFirst()
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' })
+    // The stale answer is dropped without a wallet-wide disconnect, which
+    // would have ended the newer session too.
+    expect(phantom.disconnect).not.toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('connected')
+    expect(store.getState().solana.connection?.wallet.name).toBe('Phantom')
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toContain(
+      'Phantom',
+    )
+  })
+
+  it('a newer connect for another wallet still ends the stale session', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    const solflare = fakeWallet('Solflare', [account()])
+    let answerFirst!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answerFirst = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const first = store.getState().solana.connect(phantom.wallet)
+    await store.getState().solana.connect(solflare.wallet)
+    answerFirst()
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' })
+    expect(phantom.disconnect).toHaveBeenCalled()
+    expect(store.getState().solana.connection?.wallet.name).toBe('Solflare')
+  })
+
   it('settleRestore ends a restore that cannot be attempted', () => {
     const store = createStore()
     store.getState().solana.settleRestore()

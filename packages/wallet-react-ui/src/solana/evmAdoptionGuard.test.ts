@@ -219,6 +219,30 @@ describe('withoutEvmAdoption', () => {
     expect(config.state.status).toBe('connected')
   })
 
+  it('keeps an explicit EVM connection that settled while the Solana prompt stayed open', async () => {
+    const { config, adopt } = fakeConfig()
+    const phantom = fakeConnector('Phantom')
+    let approve!: () => void
+    const prompt = new Promise<void>((resolve) => {
+      approve = resolve
+    })
+    const guarded = withoutEvmAdoption(config, 'Phantom', () => prompt)
+
+    // The host's EVM connect lands and settles (its exemption ends) long
+    // before the user answers the Solana prompt.
+    const release = allowEvmConnection(phantom)
+    adopt(phantom)
+    release()
+    vi.advanceTimersByTime(60_000)
+    expect(config.state.connections.size).toBe(1)
+
+    approve()
+    await guarded
+    vi.advanceTimersByTime(2000)
+    expect(config.state.connections.size).toBe(1)
+    expect(config.state.status).toBe('connected')
+  })
+
   it('still sweeps when the Solana connect rejects', async () => {
     const { config, adopt } = fakeConfig()
     const metamask = fakeConnector('MetaMask')
