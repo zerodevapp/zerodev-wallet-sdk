@@ -1,6 +1,6 @@
 "use client";
 
-import { useSolanaAccount, useSolanaWallet } from "@zerodev/wallet-react-ui";
+import { useSolanaWallet, useZeroDevWalletKit } from "@zerodev/wallet-react-ui";
 import { AlertCircle, Check, Copy, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useAccount, useSignMessage, useSignTypedData } from "wagmi";
@@ -101,9 +101,10 @@ export function SigningTest() {
   const evmWalletName = connector?.name ?? "EVM wallet";
 
   // Solana side (kit)
-  const solana = useSolanaAccount();
+  // The dashboard owns the Solana restore; this only reads the slot.
+  const solana = useZeroDevWalletKit({ namespace: "solana", reconnectOnMount: false });
   const solanaHandle = useSolanaWallet();
-  const solanaWalletName = solana.walletName ?? "Solana wallet";
+  const solanaWalletName = solana.walletInfo?.name ?? "Solana wallet";
   const solanaCanSign = solana.isConnected && solanaHandle?.signMessage != null;
 
   const samplePayload = mode === "message" ? message : JSON.stringify(typedData, null, 2);

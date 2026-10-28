@@ -36,6 +36,11 @@ export function useSolanaWalletConnectPairing(
     if (!active || !wallet) return
     const provider = providerOfSolanaWalletConnectWallet(wallet)
     if (!provider) return
+    // This attempt's lifetime. Once it ends, nothing the wallet answers
+    // later may touch the flow: not the store (the signal), not the auth
+    // step, not this sheet's error (the `attemptActive` checks).
+    const attemptController = new AbortController()
+    let attemptActive = true
     let settled = false
     setUri(null)
     setError(null)
@@ -45,13 +50,14 @@ export function useSolanaWalletConnectPairing(
     provider.on('display_uri', onUri)
     store
       .getState()
-      .solana.connect(wallet)
+      .solana.connect(wallet, { signal: attemptController.signal })
       .then(() => {
         settled = true
-        goToStep(null)
+        if (attemptActive) goToStep(null)
       })
       .catch((err) => {
         settled = true
+        if (!attemptActive) return
         // A decline on the phone kills the proposal, so the QR is dead: say
         // so and offer Try again, as the EVM sheet does for a rejection.
         setError(
@@ -59,11 +65,17 @@ export function useSolanaWalletConnectPairing(
         )
       })
     return () => {
+      attemptActive = false
       provider.off('display_uri', onUri)
-      // Leaving the sheet mid-pairing: drop the proposal so the relay is
-      // not left waiting and a late approval cannot connect behind the
-      // user's back. The store's connect rejects and settles its status.
-      if (!settled) provider.abortPairingAttempt?.()
+      if (settled) return
+      // Leaving the sheet mid-pairing. The signal makes the store refuse a
+      // late approval and end the session it made; expiring the pending
+      // pairings kills the QR on the relay, so the phone's approval fails
+      // instead of hanging. (`abortPairingAttempt` is a no-op in the SDK.)
+      attemptController.abort()
+      provider
+        .cleanupPendingPairings?.({ deletePairings: true })
+        .catch(() => {})
     }
   }, [active, wallet, attempt])
 

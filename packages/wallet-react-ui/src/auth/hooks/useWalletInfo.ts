@@ -10,7 +10,8 @@ import {
 } from '../walletGuide'
 
 /** How the active connection reaches the wallet. `wallet-standard` is a
- * Solana browser wallet reached through the Wallet Standard registry. */
+ * Solana browser wallet reached through the Wallet Standard registry;
+ * `walletconnect` covers both an EVM and a Solana WalletConnect session. */
 export type WalletSource =
   | 'injected'
   | 'walletconnect'
@@ -172,7 +173,10 @@ function useSolanaWalletInfo(): WalletInfo | undefined {
     return {
       name: connection.wallet.name,
       icon: connection.wallet.icon,
-      source: 'wallet-standard',
+      source:
+        connection.source === 'walletconnect'
+          ? 'walletconnect'
+          : 'wallet-standard',
     }
   }, [connection])
 }

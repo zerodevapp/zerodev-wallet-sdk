@@ -5,6 +5,25 @@ import { equalsIgnoreCase } from '../shared/utils/common'
  * adoption (the wallet's EVM provider emits its accounts asynchronously). */
 const GRACE_MS = 1500
 
+/** Connector uids the host is connecting on purpose right now. */
+const explicitEvmConnections = new Set<string>()
+
+/**
+ * Declare an explicit EVM connect through `connector`, so an adoption guard
+ * running for the same wallet (a Solana connect in flight, or settled within
+ * its grace period) does not mistake the connection for a self-connect and
+ * detach it. Call `release()` once the connect has settled. A guard that is
+ * watching when the connection lands records it as the host's for the rest
+ * of its lifetime, and a guard that starts later sees it as pre-existing,
+ * so the exemption need not outlive the connect.
+ */
+export function allowEvmConnection(connector: { uid: string }): () => void {
+  explicitEvmConnections.add(connector.uid)
+  return () => {
+    explicitEvmConnections.delete(connector.uid)
+  }
+}
+
 /**
  * Drop a connection from wagmi's state without calling the connector's
  * `disconnect()`: wagmi's own disconnect sends the wallet a permission revoke
@@ -144,6 +163,14 @@ export async function withoutEvmAdoption<T>(
   const before = new Set(config.state.connections.keys())
 
   const detach = (uid: string) => {
+    // Asked for by the host: not an adoption. Remember it as pre-existing for
+    // this guard: the host's connect may settle (and its exemption end) while
+    // the Solana prompt is still open, and the sweep after `run` must not
+    // read the connection as an adoption then.
+    if (explicitEvmConnections.has(uid)) {
+      before.add(uid)
+      return
+    }
     const connection = config.state.connections.get(uid)
     if (!connection) return
     if (!equalsIgnoreCase(connection.connector.name, walletName)) return

@@ -226,6 +226,137 @@ describe('solana store slice', () => {
     ).toEqual({ name: 'Phantom', source: 'standard' })
   })
 
+  it('settles the restore on every exit except a saved wallet that has not announced', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()])
+    expect(store.getState().solana.restoreSettled).toBe(false)
+    // Nothing stored.
+    await expect(
+      store.getState().solana.restore([phantom.wallet]),
+    ).resolves.toBe('nothing-saved')
+    expect(store.getState().solana.restoreSettled).toBe(true)
+
+    const absent = createStore()
+    window.localStorage.setItem(
+      'zerodev:solana:lastWallet',
+      JSON.stringify({ name: 'Phantom', source: 'standard' }),
+    )
+    // The wallet may still register (late announce, SSR hydration): the
+    // caller decides when to give up, so this does not settle.
+    await expect(absent.getState().solana.restore([])).resolves.toBe(
+      'wallet-absent',
+    )
+    expect(absent.getState().solana.restoreSettled).toBe(false)
+    expect(absent.getState().solana.status).toBe('disconnected')
+
+    const found = createStore()
+    await expect(
+      found.getState().solana.restore([phantom.wallet]),
+    ).resolves.toBe('attempted')
+    expect(found.getState().solana.restoreSettled).toBe(true)
+    expect(found.getState().solana.status).toBe('connected')
+  })
+
+  it('a disconnect while a connect is pending makes the late answer stale', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answer!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const pending = store.getState().solana.connect(phantom.wallet)
+    // Logout while the wallet is still answering (a silent restore, say).
+    await store.getState().solana.disconnect()
+    answer()
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    // The session the late answer made is ended; nothing lands or persists.
+    expect(phantom.disconnect).toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.connection).toBeNull()
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
+  })
+
+  it('a newer connect for the same wallet keeps its session when the older answer lands last', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answerFirst!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answerFirst = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const first = store.getState().solana.connect(phantom.wallet)
+    // A second click lands while the first prompt is open; the wallet
+    // answers it first.
+    await store.getState().solana.connect(phantom.wallet)
+    expect(store.getState().solana.status).toBe('connected')
+    answerFirst()
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' })
+    // The stale answer is dropped without a wallet-wide disconnect, which
+    // would have ended the newer session too.
+    expect(phantom.disconnect).not.toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('connected')
+    expect(store.getState().solana.connection?.wallet.name).toBe('Phantom')
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toContain(
+      'Phantom',
+    )
+  })
+
+  it('a newer connect for another wallet still ends the stale session', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    const solflare = fakeWallet('Solflare', [account()])
+    let answerFirst!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answerFirst = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const first = store.getState().solana.connect(phantom.wallet)
+    await store.getState().solana.connect(solflare.wallet)
+    answerFirst()
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' })
+    expect(phantom.disconnect).toHaveBeenCalled()
+    expect(store.getState().solana.connection?.wallet.name).toBe('Solflare')
+  })
+
+  it('settleRestore ends a restore that cannot be attempted', () => {
+    const store = createStore()
+    store.getState().solana.settleRestore()
+    expect(store.getState().solana.restoreSettled).toBe(true)
+  })
+
+  it('refuses a connect whose signal was aborted before the wallet answered', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answer!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const controller = new AbortController()
+    const pending = store
+      .getState()
+      .solana.connect(phantom.wallet, { signal: controller.signal })
+    expect(store.getState().solana.status).toBe('connecting')
+
+    controller.abort()
+    answer()
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    // The session the wallet made is ended; nothing is committed or stored.
+    expect(phantom.disconnect).toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.connection).toBeNull()
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
+  })
+
   it('swallows a failed silent restore', async () => {
     const store = createStore()
     window.localStorage.setItem(
@@ -237,7 +368,7 @@ describe('solana store slice', () => {
 
     await expect(
       store.getState().solana.restore([phantom.wallet]),
-    ).resolves.toBeUndefined()
+    ).resolves.toBe('attempted')
     expect(store.getState().solana.status).toBe('disconnected')
   })
 })
