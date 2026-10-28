@@ -49,10 +49,9 @@ function respond(answer: Answer): Response {
 }
 
 /**
- * Builds a real server wallet over a stubbed KMS. The double dispatches on
- * route and decides nothing, so a degenerate case differs from the control only
- * in `answer`. Returns the fetch spy so a test can read the request that was
- * sent, or assert none was.
+ * Builds a server wallet instance that responds according to the provided routes.
+ * @param routes The routes object defining how the server wallet should respond to sign requests.
+ * @returns An object containing the server wallet instance and the fetch spy for inspecting requests.
  */
 function serverWalletAgainst(routes: Routes) {
   const fetchSpy = vi.fn(
@@ -93,9 +92,9 @@ const caught = (p: Promise<unknown>): Promise<Outcome> =>
   )
 
 /**
- * Attributable = the caller can tell the KMS response was at fault. Rejects a
- * `TypeError` and a message naming nothing, so neither a raw dereference nor a
- * bare `Error('failed')` passes for a guard.
+ * Determines if the error in the outcome blames the KMS response.
+ * @param outcome The outcome of a promise, either returned or threw.
+ * @returns True if the error blames the KMS response, false otherwise.
  */
 function blamesTheResponse(outcome: Outcome): boolean {
   if (!('threw' in outcome)) return false
@@ -108,9 +107,10 @@ function blamesTheResponse(outcome: Outcome): boolean {
 }
 
 /**
- * The caller-input counterpart: no response exists, so the error must name what
- * the caller passed. Kept separate from `blamesTheResponse` because conflating
- * the two hides which side was at fault.
+ * Determines if the error in the outcome blames the input as specified by the naming regex.
+ * @param outcome The outcome of a promise, either returned or threw.
+ * @param naming A regular expression to match against the error message.
+ * @returns True if the error blames the input as specified by the naming regex, false otherwise.
  */
 function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
   if (!('threw' in outcome)) return false
@@ -123,8 +123,9 @@ function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
 }
 
 /**
- * The asserted wiring the docblocks claim: the exact route, the agent stamp header
- * the KMS reads, and no session token.
+ * Asserts that the server wallet is wired correctly for the specified signing route.
+ * @param fetchSpy The fetch spy used to intercept and inspect network requests.
+ * @param route The specific signing route to assert against.
  */
 function assertServerWiring(
   fetchSpy: ReturnType<typeof serverWalletAgainst>['fetchSpy'],
@@ -141,6 +142,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+/**
+ * Tests the behavior of the SDK when signing a message.
+ * Ensures that the server client reaches the shared signing guards and correctly handles signatures.
+ */
 describe('signMessage: the server client reaches the shared signing guards', () => {
   it('asks the KMS to sign the message it was given, and returns a signature that recovers to the owner', async () => {
     const expectedHash = hashMessage('hello')
@@ -188,6 +193,10 @@ describe('signMessage: the server client reaches the shared signing guards', () 
   })
 })
 
+/**
+ * Tests the behavior of the SDK when signing a message with addresses that should be refused before reaching the KMS.
+ * Ensures that invalid or zero addresses are rejected immediately, without invoking the KMS.
+ */
 describe('signMessage: addresses refused before the KMS is asked', () => {
   const refused: [string, Hex][] = [
     ['the zero address', zeroAddress],
@@ -218,6 +227,10 @@ describe('signMessage: addresses refused before the KMS is asked', () => {
   }
 })
 
+/**
+ * Tests the behavior of the SDK when a caller supplies a hash that is not 32 bytes.
+ * Ensures that such hashes are rejected immediately, without invoking the KMS.
+ */
 describe('a caller-supplied hash that is not 32 bytes', () => {
   const routes: [string, (w: Wallet) => Promise<Hex>][] = [
     [
@@ -259,6 +272,10 @@ describe('a caller-supplied hash that is not 32 bytes', () => {
   }
 })
 
+/**
+ * Tests the behavior of the SDK when signing transactions and 7702 authorizations.
+ * Ensures that the server client reaches the shared signing guards and correctly handles signatures.
+ */
 describe('signTransaction and sign7702Authorization: the server client reaches the shared guards', () => {
   const TX = serializeTransaction({
     chainId: 1,
@@ -342,6 +359,10 @@ describe('signTransaction and sign7702Authorization: the server client reaches t
   }
 })
 
+/**
+ * Tests the behavior of the SDK when signing transactions with bytes that are not valid transactions.
+ * Ensures that such inputs are rejected immediately, without invoking the KMS.
+ */
 describe('signTransaction: transaction bytes that are not a transaction', () => {
   const unusable: [string, string][] = [
     ['the bytes are not hex', 'zzzz'],
