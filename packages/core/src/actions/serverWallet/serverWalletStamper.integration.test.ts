@@ -112,7 +112,7 @@ const caught = (p: Promise<unknown>): Promise<Outcome> =>
   )
 
 /**
- *
+ * Identifies the error from the outcome of a promise.
  * @param outcome The outcome of a promise, either returned or threw.
  * @returns A string identifying the error, or 'NO ERROR' if none occurred.
  */
@@ -129,7 +129,8 @@ afterEach(() => {
 })
 
 /**
- * Tests the behavior of the SDK when the stamper is healthy but refuses to provide a valid stamp.
+ * Tests the behavior of the SDK when the stamper refuses to provide a valid stamp.
+ * Ensures that such refusals are surfaced correctly and that no network request is made.
  */
 describe('a stamper that refuses: the healthy reaction, kept healthy', () => {
   for (const [name, run] of actions) {
@@ -173,9 +174,8 @@ describe('a stamper that refuses: the healthy reaction, kept healthy', () => {
 })
 
 /**
- * A stamper that returns an unusable value should not allow the request to be sent.
- * The SDK must detect empty or missing stamps and refuse to proceed, ensuring that
- * no request with an invalid stamp reaches the network.
+ * Tests the behavior of the SDK when the stamper returns an unusable value.
+ * Ensures that such cases are detected and rejected immediately, without sending a network request.
  */
 describe('a stamper that answers with nothing usable', () => {
   const unusable: [string, Stamp][] = [
@@ -205,10 +205,8 @@ describe('a stamper that answers with nothing usable', () => {
 })
 
 /**
- * A stamper that resolves to nothing at all is a programming error in the
- * caller's own code, and the SDK reports it by dereferencing the result:
- * `TypeError: Cannot read properties of undefined (reading
- * 'stampHeaderValue')`, which names an internal field and not the stamper.
+ * Tests the behavior of the SDK when a stamper resolves to nothing.
+ * Ensures that such cases are treated as programming errors and reported correctly, without invoking the network.
  */
 describe('a stamper that resolves to nothing', () => {
   for (const [name, run] of actions) {
