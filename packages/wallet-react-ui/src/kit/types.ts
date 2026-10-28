@@ -50,10 +50,11 @@ export type KitAccount = {
   /** A silent restore after a reload is in flight: nothing is connected
    * yet, but nothing has been decided either. Hold any "signed out"
    * redirect while this is true. For Solana it covers the whole restore,
-   * from the saved-session check through loading the WalletConnect
-   * provider to the silent connect, and clears on any outcome. Read from
-   * the saved session, so it is false on the server and may be true on the
-   * client's first render, like wagmi's `reconnecting`. */
+   * from the first render through loading the WalletConnect provider to
+   * the silent connect, and clears on any outcome; with nothing saved it
+   * clears after the first render. True on the server and the first client
+   * render alike, like wagmi's `reconnecting` under `ssr: true`, so markup
+   * driven by it hydrates cleanly. */
   isReconnecting: boolean
   /** Checksummed hex (EVM) or base58 (Solana); undefined while disconnected. */
   address: string | undefined
