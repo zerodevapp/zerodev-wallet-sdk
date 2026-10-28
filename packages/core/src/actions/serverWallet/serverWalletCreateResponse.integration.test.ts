@@ -87,9 +87,9 @@ const caught = (p: Promise<unknown>): Promise<Outcome> =>
   )
 
 /**
- * Attributable = the caller can tell the KMS response was at fault. Rejects a
- * `TypeError` and a message naming nothing, so neither a raw dereference nor a
- * bare `Error('failed')` passes for a guard.
+ * Determines if the error in the outcome blames the KMS response.
+ * @param outcome The outcome of a promise, either returned or threw.
+ * @returns True if the error blames the KMS response, false otherwise.
  */
 function blamesTheResponse(outcome: Outcome): boolean {
   if (!('threw' in outcome)) return false
@@ -102,9 +102,10 @@ function blamesTheResponse(outcome: Outcome): boolean {
 }
 
 /**
- * The caller-input counterpart: no response exists, so the error must name what
- * the caller passed. Kept separate from `blamesTheResponse` because conflating
- * the two hides which side was at fault.
+ * Determines if the error in the outcome blames the input as specified by the naming regex.
+ * @param outcome The outcome of a promise, either returned or threw.
+ * @param naming A regular expression to match against the error message.
+ * @returns True if the error blames the input as specified by the naming regex, false otherwise.
  */
 function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
   if (!('threw' in outcome)) return false
@@ -117,8 +118,10 @@ function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
 }
 
 /**
- * The degenerate body must actually have been delivered and consumed. Without
- * this, a marker clears on a request that never reached the route.
+ * Checks if the fetch spy recorded a call to a specific route.
+ * @param fetchSpy The fetch spy used to track network requests.
+ * @param route The route to check if it was reached.
+ * @returns True if the fetch spy recorded a call to the specified route, false otherwise.
  */
 function reached(
   fetchSpy: ReturnType<typeof serverWalletAgainst>['fetchSpy'],
@@ -150,6 +153,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+/**
+ * Tests the behavior of the SDK when creating a wallet and the response is as expected.
+ * Ensures that the wallet returned matches the one specified by the KMS.
+ */
 describe('createWallet: the control', () => {
   it('hands back exactly the wallet the KMS named', async () => {
     const { wallet } = serverWalletAgainst({
@@ -163,6 +170,10 @@ describe('createWallet: the control', () => {
   })
 })
 
+/**
+ * Tests the behavior of the SDK when the response body cannot produce a usable wallet.
+ * Ensures that the SDK refuses to return a wallet when the response is empty, malformed, or contains invalid fields.
+ */
 describe('createWallet: a body that cannot produce a usable wallet', () => {
   const unusable: [string, unknown][] = [
     ['the body is empty', {}],
@@ -203,6 +214,10 @@ describe('createWallet: a body that cannot produce a usable wallet', () => {
   })
 })
 
+/**
+ * Tests the behavior of the SDK when creating an address and the response is as expected.
+ * Ensures that the address returned matches the one derived by the KMS for the specified path.
+ */
 describe('createAddress: the control', () => {
   it('hands back exactly the address the KMS derived, for the path asked for', async () => {
     const { wallet } = serverWalletAgainst({
@@ -221,9 +236,8 @@ describe('createAddress: the control', () => {
 })
 
 /**
- * The same degenerate set as `createWallet`, because the guard is missing in
- * the same way and a fix that covers only the absent case would leave `null`,
- * a malformed string and the zero address still flowing to the caller.
+ * Tests the behavior of the SDK when the response body cannot produce a usable address.
+ * Ensures that the SDK refuses to return an address when the response is empty, malformed, or contains invalid fields.
  */
 describe('createAddress: a body that cannot produce a usable address', () => {
   const unusable: [string, unknown][] = [
@@ -262,6 +276,10 @@ describe('createAddress: a body that cannot produce a usable address', () => {
   }
 })
 
+/**
+ * Tests the behavior of the SDK when attempting to build an account on the zero address.
+ * Ensures that the SDK initially accepts the zero address from createWallet, but later refuses to build an account on it.
+ */
 describe('toAccount: how late the zero address is caught', () => {
   it('accepts the zero address from createWallet, then refuses to build an account on it', async () => {
     const { wallet, fetchSpy } = serverWalletAgainst({
