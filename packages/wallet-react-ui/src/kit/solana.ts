@@ -16,7 +16,6 @@ import {
 import { useSolanaAutoReconnect } from '../solana/hooks/useSolanaAutoReconnect.js'
 import { useSolanaWalletConnect } from '../solana/hooks/useSolanaWalletConnect.js'
 import { useSolanaWallets } from '../solana/hooks/useSolanaWallets.js'
-import { readLastSolanaWallet } from '../solana/solanaStoreSlice.js'
 import type { SolanaStandardWallet } from '../solana/types.js'
 import {
   type AdapterContext,
@@ -128,14 +127,15 @@ export function useSolanaAdapter(
   const { enabled: walletConnect } = useSolanaWalletConnect(false)
   useSolanaAutoReconnect(restore)
 
-  // A saved session that the auto-reconnect has not yet tried: the slot
-  // still reads `disconnected` while the wallet registers or the
-  // WalletConnect provider loads, so report that window as reconnecting.
+  // Until the auto-reconnect has run once, the slot reads `disconnected`
+  // whether or not a session is saved (the wallet may still be registering,
+  // the WalletConnect provider loading). Report that window as reconnecting
+  // without looking at storage: the server cannot read it, and a check here
+  // would make the first client render disagree with the server's. The
+  // effect settles it on its first run, so with nothing saved the window is
+  // one render, the same as wagmi's `reconnecting` under `ssr: true`.
   const restorePending =
-    restore &&
-    !restoreSettled &&
-    sliceStatus === 'disconnected' &&
-    readLastSolanaWallet() !== null
+    restore && !restoreSettled && sliceStatus === 'disconnected'
   const status: KitAccountStatus = restorePending ? 'reconnecting' : sliceStatus
 
   return useMemo(
