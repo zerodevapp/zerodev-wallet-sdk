@@ -20,6 +20,7 @@ type FakeConnector = {
   type: string
   icon?: string
   getKitStore?: () => unknown
+  disconnect?: ReturnType<typeof vi.fn>
 }
 
 let store = createStore()
@@ -42,6 +43,14 @@ const rabby: FakeConnector = {
   name: 'Rabby',
   type: 'injected',
 }
+/** An installed Phantom extension: shares its name with Phantom on a phone. */
+const phantomExtension: FakeConnector = {
+  uid: 'ph',
+  id: 'app.phantom',
+  name: 'Phantom',
+  type: 'injected',
+  disconnect: vi.fn(async () => {}),
+}
 
 const storage = new Map<string, unknown>()
 const events = { change() {}, disconnect() {}, connect() {} }
@@ -59,6 +68,7 @@ function makeConfig() {
       kitConnector,
       metamask,
       rabby,
+      phantomExtension,
       { uid: 'inj', id: 'injected', name: 'Injected', type: 'injected' },
     ],
     state,
@@ -167,10 +177,12 @@ beforeEach(() => {
   account.address = undefined
   account.connector = undefined
   account.isConnected = false
-  core.connect.mockClear()
-  core.disconnect.mockClear()
-  core.reconnect.mockClear()
-  core.reconnect.mockResolvedValue([])
+  // Reset, not clear: a test may queue a one-off implementation that its
+  // code path never consumes, and clear would leak it into the next test.
+  core.connect.mockReset().mockResolvedValue({})
+  core.disconnect.mockReset().mockResolvedValue(undefined)
+  core.reconnect.mockReset().mockResolvedValue([])
+  phantomExtension.disconnect?.mockClear()
 })
 
 const render = () =>
@@ -190,6 +202,7 @@ describe('useZeroDevWalletKit', () => {
     expect(result.current.eip155.wallets.map((c) => c.id)).toEqual([
       'io.metamask',
       'io.rabby',
+      'app.phantom',
     ])
     expect(result.current.eip155.walletConnect).toBe(false)
     expect(result.current.solana.walletConnect).toBe(false)
@@ -228,6 +241,7 @@ describe('useZeroDevWalletKit', () => {
       expect(result.current.wallets.map((c) => c.id)).toEqual([
         'io.metamask',
         'io.rabby',
+        'app.phantom',
       ])
       await act(async () => {
         await result.current.connect({ wallet: rabby as never })
@@ -308,16 +322,27 @@ describe('useZeroDevWalletKit', () => {
       expect(result.current.solana.status).toBe('disconnected')
     })
 
-    it('reports a saved installed wallet as reconnecting on the first render, and settles when it is absent', async () => {
-      saveLast('Phantom', 'standard')
-      const { result, seen } = renderLive()
-      // First render: the restore has not run yet, so the host must wait.
-      expect(seen[0]).toBe(true)
-      await act(async () => {})
-      // The registry has no Phantom (uninstalled): the restore settled empty.
-      expect(result.current.solana.isReconnecting).toBe(false)
-      expect(result.current.solana.status).toBe('disconnected')
-      expect(result.current.solana.isConnected).toBe(false)
+    it('keeps a saved installed wallet reconnecting while it may still announce, then settles', async () => {
+      vi.useFakeTimers()
+      try {
+        saveLast('Phantom', 'standard')
+        const { result, seen } = renderLive()
+        expect(seen[0]).toBe(true)
+        await act(async () => {})
+        // The registry has no Phantom yet. Late registration and SSR
+        // hydration both look like this for a moment, so the restore
+        // stays pending for a grace period instead of settling empty.
+        expect(result.current.solana.isReconnecting).toBe(true)
+        await act(async () => {
+          vi.advanceTimersByTime(1500)
+        })
+        // Still absent after the grace: uninstalled. Now it settles.
+        expect(result.current.solana.isReconnecting).toBe(false)
+        expect(result.current.solana.status).toBe('disconnected')
+        expect(result.current.solana.isConnected).toBe(false)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('stays reconnecting while the WalletConnect provider loads, then restores through it', async () => {
@@ -375,6 +400,44 @@ describe('useZeroDevWalletKit', () => {
   })
 
   describe('connect', () => {
+    it('never uses the reconnect path while another EVM wallet is connected', async () => {
+      // wagmi's reconnect is startup code: on success it replaces the whole
+      // connection map with the one wallet, and when the wallet declines it
+      // wipes the map. Reproduce that so a regression shows.
+      connectEvm(metamask)
+      core.reconnect.mockImplementationOnce(async () => {
+        config.state.connections.clear()
+        config.state.current = null
+        config.state.status = 'disconnected'
+        return []
+      })
+      const { result } = render()
+      await act(async () => {
+        await result.current.connect({
+          namespace: 'eip155',
+          wallet: rabby as never,
+        })
+      })
+      expect(core.reconnect).not.toHaveBeenCalled()
+      expect(core.connect).toHaveBeenCalledWith(config, { connector: rabby })
+      // The embedded/MetaMask connection survived the add.
+      expect(config.state.connections.has('mm')).toBe(true)
+      expect(config.state.current).toBe('mm')
+    })
+
+    it('does nothing for the wallet that is already current', async () => {
+      connectEvm(metamask)
+      const { result } = render()
+      await act(async () => {
+        await result.current.connect({
+          namespace: 'eip155',
+          wallet: metamask as never,
+        })
+      })
+      expect(core.reconnect).not.toHaveBeenCalled()
+      expect(core.connect).not.toHaveBeenCalled()
+    })
+
     it('tries a silent EVM reconnect before prompting an installed wallet', async () => {
       storage.set('io.metamask.disconnected', true)
       core.reconnect.mockResolvedValueOnce([{ accounts: ['0xabc'] }])
@@ -565,6 +628,48 @@ describe('useZeroDevWalletKit', () => {
         connector: { uid: 'rb' },
       })
       expect(result.current.solana.isConnected).toBe(true)
+    })
+
+    it('does not touch a same-named extension when a Solana WalletConnect session disconnects', async () => {
+      // Phantom on a phone, over WalletConnect; the Phantom extension is
+      // installed too but never granted anything.
+      const { wallet } = solanaWallet('Phantom', 'walletconnect')
+      const { result } = render()
+      await act(async () => {
+        await result.current.connect({ namespace: 'solana', wallet })
+      })
+      expect(result.current.solana.walletInfo?.source).toBe('walletconnect')
+      await act(async () => {
+        await result.current.disconnect({ namespace: 'solana' })
+      })
+      expect(phantomExtension.disconnect).not.toHaveBeenCalled()
+      expect(storage.has('app.phantom.disconnected')).toBe(false)
+    })
+
+    it('disconnecting both runs Solana first, so the shared connector is revoked once', async () => {
+      const { wallet } = solanaWallet('MetaMask')
+      connectEvm(metamask)
+      const order: string[] = []
+      core.disconnect.mockImplementation(async (_config, { connector }) => {
+        order.push(`evm:${connector.uid}`)
+        config.state.connections.delete(connector.uid)
+      })
+      const { result } = render()
+      await act(async () => {
+        await result.current.connect({ namespace: 'solana', wallet })
+      })
+      const solanaDisconnect = store.getState().solana.disconnect
+      store.getState().solana.disconnect = async () => {
+        order.push('solana')
+        await solanaDisconnect()
+      }
+      await act(async () => {
+        await result.current.disconnect()
+      })
+      expect(order).toEqual(['solana', 'evm:mm'])
+      // MetaMask was still connected during the Solana step, so the dormant
+      // scan skipped it; wagmi's disconnect revoked it exactly once.
+      expect(core.disconnect).toHaveBeenCalledTimes(1)
     })
 
     it('detaches the EVM side at wagmi level when the wallet also serves Solana', async () => {

@@ -150,9 +150,34 @@ describe('useSolanaWalletConnectPairing', () => {
     )
     await waitFor(() => expect(result.current.uri).toBeTruthy())
     rerender({ active: false })
-    expect(provider.abortPairingAttempt).toHaveBeenCalledTimes(1)
+    expect(provider.cleanupPendingPairings).toHaveBeenCalledWith({
+      deletePairings: true,
+    })
     rerender({ active: true })
     expect(provider.connect).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores an approval that lands after the sheet closed: no connection, no flow change', async () => {
+    const { provider, approve } = pairing()
+    const { result, rerender } = renderHook(
+      ({ active }: { active: boolean }) =>
+        useSolanaWalletConnectPairing(active),
+      { initialProps: { active: true } },
+    )
+    await waitFor(() => expect(result.current.uri).toBeTruthy())
+    rerender({ active: false })
+
+    // The phone approves the old QR within the proposal's lifetime.
+    await act(async () => {
+      approve()
+      await Promise.resolve()
+    })
+    await waitFor(() => expect(provider.disconnect).toHaveBeenCalled())
+    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.connection).toBeNull()
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
+    expect(goToStep).not.toHaveBeenCalled()
+    expect(result.current.error).toBeNull()
   })
 
   it('abandons the proposal when unmounted mid-pairing', async () => {
@@ -162,6 +187,8 @@ describe('useSolanaWalletConnectPairing', () => {
     )
     await waitFor(() => expect(result.current.uri).toBeTruthy())
     unmount()
-    expect(provider.abortPairingAttempt).toHaveBeenCalledTimes(1)
+    expect(provider.cleanupPendingPairings).toHaveBeenCalledWith({
+      deletePairings: true,
+    })
   })
 })

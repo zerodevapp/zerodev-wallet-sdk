@@ -76,6 +76,16 @@ function toConnection(
   }
 }
 
+/** What `restore` did. Only `nothing-saved` and `attempted` end the restore;
+ * `wallet-absent` leaves it open for the caller, because a Wallet Standard
+ * wallet may still announce itself (late registration, SSR hydration from
+ * the registry's empty server snapshot). */
+export type SolanaRestoreOutcome =
+  | 'nothing-saved'
+  | 'wallet-absent'
+  | 'attempted'
+  | 'already-connected'
+
 export interface SolanaStoreSlice {
   solana: {
     status: SolanaConnectionStatus
@@ -96,11 +106,13 @@ export interface SolanaStoreSlice {
      * Connect a Wallet Standard wallet. Prompts the wallet unless `silent`
      * is set, in which case the wallet returns only already-authorised
      * accounts (used to restore after a reload). Replaces any existing
-     * Solana connection.
+     * Solana connection. An aborted `signal` turns a late answer from the
+     * wallet into a rejection (`AbortError`) instead of a connection: the
+     * session the wallet made is ended and nothing is committed or stored.
      */
     connect: (
       wallet: SolanaStandardWallet,
-      options?: { silent?: boolean },
+      options?: { silent?: boolean; signal?: AbortSignal },
     ) => Promise<SolanaConnection>
     disconnect: () => Promise<void>
     /**
@@ -108,9 +120,13 @@ export interface SolanaStoreSlice {
      * (installed Wallet Standard wallets, plus the WalletConnect wallet when
      * a session survived the reload). No-op when nothing was stored, the
      * wallet is absent, or already connected. Errors are swallowed: a failed
-     * restore is just "not connected".
+     * restore is just "not connected". Settles the restore itself except
+     * when the saved wallet is absent, which the caller settles after giving
+     * it time to announce.
      */
-    restore: (wallets: readonly SolanaStandardWallet[]) => Promise<void>
+    restore: (
+      wallets: readonly SolanaStandardWallet[],
+    ) => Promise<SolanaRestoreOutcome>
   }
 }
 
@@ -123,6 +139,11 @@ export const createSolanaStoreSlice: StateCreator<
   // The wallet's `standard:events` unsubscribe. Outside the state: it is
   // plumbing, not something components read.
   let offEvents: (() => void) | null = null
+  // Connection attempts, numbered. A connect commits only if it is still the
+  // latest attempt when the wallet answers: a disconnect (logout) or a newer
+  // connect in between makes the older answer stale, and a stale answer must
+  // not land as a connection, write the saved session, or flip the status.
+  let attempt = 0
 
   const clear = () => {
     offEvents?.()
@@ -171,6 +192,7 @@ export const createSolanaStoreSlice: StateCreator<
       },
 
       connect: async (wallet, options) => {
+        const mine = ++attempt
         set((state) => ({
           solana: {
             ...state.solana,
@@ -181,6 +203,16 @@ export const createSolanaStoreSlice: StateCreator<
           const { accounts } = await wallet.features[
             'standard:connect'
           ].connect(options?.silent ? { silent: true } : undefined)
+          if (mine !== attempt || options?.signal?.aborted) {
+            // Stale: the caller left (a closed pairing sheet), the user
+            // logged out, or a newer connect started while the wallet was
+            // answering. Its answer may have made a session on the wallet's
+            // side, so end it; a connection nobody asked for must not land.
+            await wallet.features['standard:disconnect']
+              ?.disconnect()
+              .catch(() => {})
+            throw new DOMException('Solana connect aborted', 'AbortError')
+          }
           const account = pickSolanaAccount(accounts)
           if (!account) {
             throw new Error(
@@ -196,18 +228,22 @@ export const createSolanaStoreSlice: StateCreator<
           return connection
         } catch (error) {
           // Keep a previous connection if the new attempt failed, otherwise
-          // fall back to disconnected.
-          set((state) => ({
-            solana: {
-              ...state.solana,
-              status: state.solana.connection ? 'connected' : 'disconnected',
-            },
-          }))
+          // fall back to disconnected. A stale attempt leaves the status to
+          // whatever superseded it.
+          if (mine === attempt) {
+            set((state) => ({
+              solana: {
+                ...state.solana,
+                status: state.solana.connection ? 'connected' : 'disconnected',
+              },
+            }))
+          }
           throw error
         }
       },
 
       disconnect: async () => {
+        attempt++
         const { connection } = get().solana
         writeLastWallet(null)
         clear()
@@ -221,23 +257,29 @@ export const createSolanaStoreSlice: StateCreator<
 
       restore: async (wallets) => {
         const { status, settleRestore } = get().solana
+        if (status !== 'disconnected') {
+          settleRestore()
+          return 'already-connected'
+        }
+        const last = readLastSolanaWallet()
+        if (!last) {
+          settleRestore()
+          return 'nothing-saved'
+        }
+        const wallet = wallets.find(
+          (w) => w.name === last.name && sourceOf(w) === last.source,
+        )
+        // Not settled: the wallet may still announce itself.
+        if (!wallet) return 'wallet-absent'
         try {
-          if (status !== 'disconnected') return
-          const last = readLastSolanaWallet()
-          if (!last) return
-          const wallet = wallets.find(
-            (w) => w.name === last.name && sourceOf(w) === last.source,
-          )
-          if (!wallet) return
-          try {
-            await get().solana.connect(wallet, { silent: true })
-          } catch {
-            // Not authorised any more (or the wallet ignores `silent`): the
-            // user connects again by hand.
-          }
+          await get().solana.connect(wallet, { silent: true })
+        } catch {
+          // Not authorised any more (or the wallet ignores `silent`): the
+          // user connects again by hand.
         } finally {
           settleRestore()
         }
+        return 'attempted'
       },
     },
   }

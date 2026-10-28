@@ -78,14 +78,22 @@ function openSolanaSignUp({ store, config }: AdapterContext): Promise<void> {
   })
 }
 
-/** Solana only: keep wagmi from adopting the wallet's EVM side. */
+/**
+ * Solana only: keep wagmi from adopting the wallet's EVM side. That can
+ * only happen for an installed (Wallet Standard) wallet; a WalletConnect
+ * session has no injected provider for wagmi to adopt, and guarding it
+ * would shim an unrelated extension that happens to share its name.
+ */
 async function connectSolanaWallet(
   { store, config }: AdapterContext,
   wallet: SolanaStandardWallet,
 ) {
-  await withoutEvmAdoption(config, wallet.name, () =>
-    store.getState().solana.connect(wallet),
-  )
+  const connect = () => store.getState().solana.connect(wallet)
+  if (wallet.source === 'walletconnect') {
+    await connect()
+    return
+  }
+  await withoutEvmAdoption(config, wallet.name, connect)
 }
 
 export function connectSolana(
@@ -104,9 +112,13 @@ export async function disconnectSolana({
   store,
   config,
 }: AdapterContext): Promise<void> {
-  const walletName = store.getState().solana.connection?.wallet.name
+  // The dormant EVM side exists only for an installed wallet; a
+  // WalletConnect session named like an extension must not revoke it.
+  const connection = store.getState().solana.connection
+  const dormantWalletName =
+    connection?.source === 'standard' ? connection.wallet.name : undefined
   await store.getState().solana.disconnect()
-  if (walletName) await revokeDormantEvmSide(config, walletName)
+  if (dormantWalletName) await revokeDormantEvmSide(config, dormantWalletName)
 }
 
 /**
