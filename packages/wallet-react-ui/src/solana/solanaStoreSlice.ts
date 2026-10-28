@@ -3,26 +3,51 @@ import type { WalletAccount } from '@wallet-standard/base'
 import type { StateCreator } from 'zustand'
 import type {
   SolanaConnection,
+  SolanaConnectionSource,
   SolanaConnectionStatus,
   SolanaStandardWallet,
 } from './types'
 
 const LAST_WALLET_STORAGE_KEY = 'zerodev:solana:lastWallet'
 
-function readLastWalletName(): string | null {
+/** What restore() needs to find the wallet again: an installed Phantom and
+ * Phantom over WalletConnect share a name, so the source is stored too. */
+export type LastSolanaWallet = {
+  name: string
+  source: SolanaConnectionSource
+}
+
+const sourceOf = (wallet: SolanaStandardWallet): SolanaConnectionSource =>
+  wallet.source ?? 'standard'
+
+/** The wallet connected last time, as persisted; null when none or unreadable. */
+export function readLastSolanaWallet(): LastSolanaWallet | null {
   if (typeof window === 'undefined') return null
   try {
-    return window.localStorage.getItem(LAST_WALLET_STORAGE_KEY)
+    const raw = window.localStorage.getItem(LAST_WALLET_STORAGE_KEY)
+    if (!raw) return null
+    let parsed: Partial<LastSolanaWallet> | null
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      // The earlier format stored the bare name of an installed wallet; the
+      // next successful connect rewrites it as a record.
+      return { name: raw, source: 'standard' }
+    }
+    return parsed?.name
+      ? { name: parsed.name, source: parsed.source ?? 'standard' }
+      : null
   } catch {
     return null
   }
 }
 
-function writeLastWalletName(name: string | null): void {
+function writeLastWallet(last: LastSolanaWallet | null): void {
   if (typeof window === 'undefined') return
   try {
-    if (name === null) window.localStorage.removeItem(LAST_WALLET_STORAGE_KEY)
-    else window.localStorage.setItem(LAST_WALLET_STORAGE_KEY, name)
+    if (last === null) window.localStorage.removeItem(LAST_WALLET_STORAGE_KEY)
+    else
+      window.localStorage.setItem(LAST_WALLET_STORAGE_KEY, JSON.stringify(last))
   } catch {
     // Storage unavailable — the session just won't restore after a reload.
   }
@@ -42,7 +67,7 @@ function toConnection(
   account: WalletAccount,
 ): SolanaConnection {
   return {
-    source: 'standard',
+    source: sourceOf(wallet),
     wallet,
     account,
     address: account.address,
@@ -69,10 +94,11 @@ export interface SolanaStoreSlice {
     ) => Promise<SolanaConnection>
     disconnect: () => Promise<void>
     /**
-     * Silently reconnect the wallet used last time, if it is among `wallets`.
-     * No-op when nothing was stored, the wallet is absent, or already
-     * connected. Errors are swallowed: a failed restore is just "not
-     * connected".
+     * Silently reconnect the wallet used last time, if it is among `wallets`
+     * (installed Wallet Standard wallets, plus the WalletConnect wallet when
+     * a session survived the reload). No-op when nothing was stored, the
+     * wallet is absent, or already connected. Errors are swallowed: a failed
+     * restore is just "not connected".
      */
     restore: (wallets: readonly SolanaStandardWallet[]) => Promise<void>
   }
@@ -119,7 +145,7 @@ export const createSolanaStoreSlice: StateCreator<
           return
         }
         clear()
-        writeLastWalletName(null)
+        writeLastWallet(null)
       }) ?? null
   }
 
@@ -142,7 +168,7 @@ export const createSolanaStoreSlice: StateCreator<
           }
           const connection = toConnection(wallet, account)
           watch(wallet)
-          writeLastWalletName(wallet.name)
+          writeLastWallet({ name: wallet.name, source: sourceOf(wallet) })
           set((state) => ({
             solana: { ...state.solana, status: 'connected', connection },
           }))
@@ -162,7 +188,7 @@ export const createSolanaStoreSlice: StateCreator<
 
       disconnect: async () => {
         const { connection } = get().solana
-        writeLastWalletName(null)
+        writeLastWallet(null)
         clear()
         try {
           await connection?.wallet.features['standard:disconnect']?.disconnect()
@@ -175,9 +201,11 @@ export const createSolanaStoreSlice: StateCreator<
       restore: async (wallets) => {
         const { status } = get().solana
         if (status !== 'disconnected') return
-        const name = readLastWalletName()
-        if (!name) return
-        const wallet = wallets.find((w) => w.name === name)
+        const last = readLastSolanaWallet()
+        if (!last) return
+        const wallet = wallets.find(
+          (w) => w.name === last.name && sourceOf(w) === last.source,
+        )
         if (!wallet) return
         try {
           await get().solana.connect(wallet, { silent: true })

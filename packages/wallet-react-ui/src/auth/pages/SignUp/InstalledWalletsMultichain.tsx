@@ -51,6 +51,8 @@ export function InstalledWalletsMultichain({
   const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement, registeredWallets } = useSignUpContext()
   const solanaWallets = useSolanaWallets()
+  // A reload that lands on a sheet offering Solana restores the last Solana
+  // wallet; a sheet without a Solana unit restores nothing.
   useSolanaAutoReconnect()
   const { connectSolana, pendingSolanaName, connectedSolanaName } =
     useSolanaConnect()
