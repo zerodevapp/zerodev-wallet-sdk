@@ -489,11 +489,10 @@ export default function DashboardPage() {
   // wallet keeps the dashboard open on its own, with the EVM-only parts
   // (balances, chain selector, export keys, the tx demos) hidden until an
   // EVM wallet is added. Both sides show their address rows below.
-  // wagmi 3 reports `connecting` the moment any connector starts a connect,
-  // even beside a current connection: the sign-up sheet preloads its
-  // WalletConnect pairing, so "Add a Solana wallet" would swap the dashboard
-  // for the loader. A current connection still has its address and is live.
-  const evmReady = !!address && (status === "connected" || status === "connecting");
+  // The adapter, not `useAccount().status`: wagmi reports `connecting` while
+  // the sign-up sheet's WalletConnect pairing preloads, which would swap the
+  // dashboard for the loader the moment "Add a Solana wallet" opens the sheet.
+  const evmReady = kit.eip155.isConnected && !!address;
   if (isLoggingOut || (!evmReady && !solanaConnected)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
