@@ -2,9 +2,13 @@
 
 ## Development setup
 
+Use the Node version in `.nvmrc` (`fnm use` or `nvm use`). `pnpm install` and
+`pnpm run` refuse any Node outside `engines.node` in `package.json`.
+
 ```bash
 git clone git@github.com:zerodevapp/zerodev-wallet-sdk.git
 cd zerodev-wallet-sdk
+fnm use   # or: nvm use
 pnpm install
 pnpm build
 ```

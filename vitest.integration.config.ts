@@ -30,6 +30,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
+    // Same reason as vitest.config.ts: keep Node 25+'s built-in Web Storage
+    // out of the happy-dom globals.
+    execArgv: ['--no-experimental-webstorage'],
     setupFiles: ['./vitest.integration.setup.ts'],
     include: ['packages/*/src/**/*.integration.test.ts'],
     exclude: configDefaults.exclude,
