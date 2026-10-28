@@ -288,6 +288,25 @@ describe('useZeroDevWalletKit', () => {
     expect(result.current.solana.isConnected).toBe(true)
   })
 
+  it('stays connected while another connector is connecting beside the current one', () => {
+    // wagmi 3 flips status to `connecting` for any connect, even with a
+    // current connection (the sign-up sheet preloads its WalletConnect
+    // pairing); the current connection still has an address and is live.
+    connectEvm(metamask)
+    account.status = 'connecting'
+    const { result } = render()
+    expect(result.current.eip155.isConnected).toBe(true)
+    expect(result.current.eip155.status).toBe('connected')
+    expect(result.current.isConnected).toBe(true)
+  })
+
+  it('is not connected during an initial connect with nothing current', () => {
+    account.status = 'connecting'
+    const { result } = render()
+    expect(result.current.eip155.isConnected).toBe(false)
+    expect(result.current.eip155.status).toBe('connecting')
+  })
+
   it('reflects the wagmi connection as the EVM side', () => {
     connectEvm(metamask)
     const { result } = render()
