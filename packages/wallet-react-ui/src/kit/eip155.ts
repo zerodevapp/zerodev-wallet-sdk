@@ -121,11 +121,19 @@ export function useEip155Adapter(ctx: AdapterContext): KitAdapter<'eip155'> {
   const evm = useAccount()
   const connectors = useConnectors()
   const { walletInfo } = useWalletInfo('eip155')
+  // wagmi 3 reports `connecting` the moment any connector starts a connect,
+  // even beside a current connection: the sign-up sheet preloads its
+  // WalletConnect pairing, so opening it to add a wallet would read as a
+  // lost session. A current connection (wagmi still reports its address)
+  // is connected as far as the host is concerned.
+  const connected =
+    evm.status === 'connected' ||
+    (evm.status === 'connecting' && evm.address !== undefined)
   return useMemo(
     () => ({
       namespace: 'eip155',
-      status: evm.status,
-      isConnected: evm.status === 'connected',
+      status: connected ? 'connected' : evm.status,
+      isConnected: connected,
       isReconnecting: evm.status === 'reconnecting',
       address: evm.address,
       walletInfo,
@@ -147,6 +155,6 @@ export function useEip155Adapter(ctx: AdapterContext): KitAdapter<'eip155'> {
           store.getState().solana.connection !== null,
         ),
     }),
-    [evm.status, evm.address, walletInfo, connectors, store, config],
+    [connected, evm.status, evm.address, walletInfo, connectors, store, config],
   )
 }
