@@ -53,7 +53,13 @@ export type SolanaWcProvider = {
   ) => Promise<unknown>
   on: (event: string, listener: (...args: unknown[]) => void) => unknown
   off: (event: string, listener: (...args: unknown[]) => void) => unknown
-  abortPairingAttempt?: () => void
+  /** Expires every pairing that has not settled into a session (with
+   * `deletePairings`), which kills an abandoned proposal's QR. The provider
+   * calls it itself on disconnect. `abortPairingAttempt` is a no-op since
+   * 2.x and is not used. */
+  cleanupPendingPairings?: (opts?: {
+    deletePairings?: boolean
+  }) => Promise<void>
 }
 
 /** Wallet Standard feature per `solana_*` method. The settled namespace

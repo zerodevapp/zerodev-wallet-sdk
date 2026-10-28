@@ -5,7 +5,9 @@ export type FakeWcProvider = SolanaWcProvider & {
   connect: Mock<SolanaWcProvider['connect']>
   disconnect: Mock<SolanaWcProvider['disconnect']>
   request: Mock<SolanaWcProvider['request']>
-  abortPairingAttempt: Mock<() => void>
+  cleanupPendingPairings: Mock<
+    (opts?: { deletePairings?: boolean }) => Promise<void>
+  >
   emit: (event: string, ...args: unknown[]) => void
 }
 
@@ -21,7 +23,7 @@ export function fakeWcProvider(session?: SolanaWcSession): FakeWcProvider {
       provider.session = undefined
     }),
     request: vi.fn(),
-    abortPairingAttempt: vi.fn(),
+    cleanupPendingPairings: vi.fn(async () => {}),
     on: (event, listener) => {
       listeners.set(event, (listeners.get(event) ?? new Set()).add(listener))
     },

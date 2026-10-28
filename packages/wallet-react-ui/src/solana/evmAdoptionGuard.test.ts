@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Config } from 'wagmi'
 import {
+  allowEvmConnection,
   detachEvmConnection,
   revokeDormantEvmSide,
   withoutEvmAdoption,
@@ -201,6 +202,21 @@ describe('withoutEvmAdoption', () => {
       }),
     ).rejects.toThrow('User rejected')
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
+  })
+
+  it('keeps an EVM connection the host asked for inside the grace period', async () => {
+    const { config, adopt } = fakeConfig()
+    const phantom = fakeConnector('Phantom')
+    await withoutEvmAdoption(config, 'Phantom', async () => undefined)
+
+    // The host connects the EVM side on purpose right after: declared, so
+    // the guard's grace sweep does not read it as an adoption.
+    const release = allowEvmConnection(phantom)
+    adopt(phantom)
+    release()
+    vi.advanceTimersByTime(2000)
+    expect(config.state.connections.size).toBe(1)
+    expect(config.state.status).toBe('connected')
   })
 
   it('still sweeps when the Solana connect rejects', async () => {
