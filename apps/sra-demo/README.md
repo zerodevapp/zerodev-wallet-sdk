@@ -14,8 +14,14 @@ in two modes:
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) v18+
+- [Node.js](https://nodejs.org): the version in the repo root `.nvmrc` (see [CONTRIBUTING.md](../../CONTRIBUTING.md))
 - [pnpm](https://pnpm.io/)
+
+The Vercel project for this app pins its Node major in the project settings
+(Node.js Version, currently 24.x), not in the repo. Do not add `engines` to
+this app's `package.json`: pnpm checks every workspace project's `engines`
+during the root install, and Vercel would auto-select the newest major that
+matches the range rather than the one CI runs.
 
 You'll need a [ZeroDev](https://dashboard.zerodev.app) account for a project
 ID if you plan to use Mainnet mode.

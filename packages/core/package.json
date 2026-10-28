@@ -160,7 +160,7 @@
     "@turnkey/api-key-stamper": "0.6.4",
     "@turnkey/crypto": "2.8.13",
     "@turnkey/react-native-passkey-stamper": "1.2.12",
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.0.0",
     "expo-secure-store": "55.0.9",
     "typescript": "5.9.3",
     "uuid": "^13.0.2"

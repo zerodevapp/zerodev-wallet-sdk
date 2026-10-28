@@ -9,3 +9,9 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+    ignore:
+      # changesets/action v2 renamed its inputs (version-script, publish-script,
+      # github-token), requires Changesets CLI v3 and pushes via the GitHub API.
+      # Hold at v1 until the CLI v3 migration PR; mirrors zerodev-data-api.
+      - dependency-name: changesets/action
+        update-types: ["version-update:semver-major"]

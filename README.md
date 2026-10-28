@@ -300,10 +300,16 @@ function ExportButton() {
 
 ### Setup
 
+Use the Node version in `.nvmrc` (`fnm use` or `nvm use`); `pnpm install`
+refuses any Node outside `engines.node`.
+
 ```bash
 # Clone repository
-git clone git@github.com:offchainlabs/doorway-kms-sdk.git
-cd doorway-kms-sdk
+git clone git@github.com:zerodevapp/zerodev-wallet-sdk.git
+cd zerodev-wallet-sdk
+
+# Select Node
+fnm use   # or: nvm use
 
 # Install dependencies
 pnpm install
