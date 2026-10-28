@@ -144,6 +144,11 @@ export const createSolanaStoreSlice: StateCreator<
   // connect in between makes the older answer stale, and a stale answer must
   // not land as a connection, write the saved session, or flip the status.
   let attempt = 0
+  // The wallet the latest attempt is for, or null after a disconnect. A stale
+  // answer ends its session on the wallet's side unless a newer attempt owns
+  // that same wallet: the wallet's disconnect is wallet-wide and would take
+  // the newer session down with it.
+  let attemptWallet: SolanaStandardWallet | null = null
 
   const clear = () => {
     offEvents?.()
@@ -193,6 +198,7 @@ export const createSolanaStoreSlice: StateCreator<
 
       connect: async (wallet, options) => {
         const mine = ++attempt
+        attemptWallet = wallet
         set((state) => ({
           solana: {
             ...state.solana,
@@ -207,10 +213,14 @@ export const createSolanaStoreSlice: StateCreator<
             // Stale: the caller left (a closed pairing sheet), the user
             // logged out, or a newer connect started while the wallet was
             // answering. Its answer may have made a session on the wallet's
-            // side, so end it; a connection nobody asked for must not land.
-            await wallet.features['standard:disconnect']
-              ?.disconnect()
-              .catch(() => {})
+            // side, so end it, unless a newer attempt on the same wallet now
+            // owns that session; a connection nobody asked for must not land.
+            const ownedByNewer = mine !== attempt && attemptWallet === wallet
+            if (!ownedByNewer) {
+              await wallet.features['standard:disconnect']
+                ?.disconnect()
+                .catch(() => {})
+            }
             throw new DOMException('Solana connect aborted', 'AbortError')
           }
           const account = pickSolanaAccount(accounts)
@@ -244,6 +254,7 @@ export const createSolanaStoreSlice: StateCreator<
 
       disconnect: async () => {
         attempt++
+        attemptWallet = null
         const { connection } = get().solana
         writeLastWallet(null)
         clear()
