@@ -1,5 +1,15 @@
 # @zerodev/smart-routing-address-react-ui
 
+## 0.0.7
+
+### Patch Changes
+
+- 4a66110: fix: require zod >=4.6.6
+
+  Raises the zod dependency floor from ^4.4.3 to ^4.6.6 so installs can no
+  longer resolve a release affected by GHSA-mrhx-c7xc-m3w5 (memory exhaustion
+  when validating oversized arrays). No API changes.
+
 ## 0.0.6
 
 ### Patch Changes
