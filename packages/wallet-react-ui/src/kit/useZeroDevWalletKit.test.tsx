@@ -110,13 +110,18 @@ function connectEvm(connector: FakeConnector, address = '0xabc') {
 
 const core = {
   connect: vi.fn(async () => ({})),
-  disconnect: vi.fn(async () => {}),
+  disconnect: vi.fn(
+    async (_config: unknown, _params: { connector: { uid: string } }) => {},
+  ),
   reconnect: vi.fn(async (): Promise<unknown[]> => []),
 }
 vi.mock('@wagmi/core', () => ({
-  connect: (...args: unknown[]) => core.connect(...(args as [])),
-  disconnect: (...args: unknown[]) => core.disconnect(...(args as [])),
-  reconnect: (...args: unknown[]) => core.reconnect(...(args as [])),
+  connect: (...args: unknown[]) =>
+    core.connect(...(args as Parameters<typeof core.connect>)),
+  disconnect: (...args: unknown[]) =>
+    core.disconnect(...(args as Parameters<typeof core.disconnect>)),
+  reconnect: (...args: unknown[]) =>
+    core.reconnect(...(args as Parameters<typeof core.reconnect>)),
 }))
 vi.mock('wagmi', () => ({
   useConfig: () => config,
