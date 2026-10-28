@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useConfig, useConnectors } from 'wagmi'
 import { StatusScreen } from '../../shared/components/StatusScreen'
 import { useKitStore } from '../../shared/hooks/useKitStore'
+import { allowEvmConnection } from '../../solana/evmAdoptionGuard'
 import type { ConnectFailure } from '../authStoreSlice'
 import { useAuth } from '../hooks/useAuth'
 import { isCancellationError } from '../utils/isCancellationError'
@@ -148,12 +149,17 @@ export function WalletConnecting() {
     // answered once the user left still closes the widget.
     const open = openFor(config)
     open.add(connector.uid)
+    // Asked for by the user: a Solana connect through the same wallet
+    // moments ago must not detach it as an adoption.
+    const releaseExplicit = allowEvmConnection(connector)
     connect(config, { connector }).then(
       () => {
+        releaseExplicit()
         open.delete(connector.uid)
         close()
       },
       (err: unknown) => {
+        releaseExplicit()
         open.delete(connector.uid)
         // The abandoned prompt is often dismissed much later, by which point
         // the user has moved on. Act only while the flow is still waiting on

@@ -226,12 +226,14 @@ describe('solana store slice', () => {
     ).toEqual({ name: 'Phantom', source: 'standard' })
   })
 
-  it('marks the restore settled on every exit', async () => {
+  it('settles the restore on every exit except a saved wallet that has not announced', async () => {
     const store = createStore()
     const phantom = fakeWallet('Phantom', [account()])
     expect(store.getState().solana.restoreSettled).toBe(false)
     // Nothing stored.
-    await store.getState().solana.restore([phantom.wallet])
+    await expect(
+      store.getState().solana.restore([phantom.wallet]),
+    ).resolves.toBe('nothing-saved')
     expect(store.getState().solana.restoreSettled).toBe(true)
 
     const absent = createStore()
@@ -239,20 +241,74 @@ describe('solana store slice', () => {
       'zerodev:solana:lastWallet',
       JSON.stringify({ name: 'Phantom', source: 'standard' }),
     )
-    await absent.getState().solana.restore([])
-    expect(absent.getState().solana.restoreSettled).toBe(true)
+    // The wallet may still register (late announce, SSR hydration): the
+    // caller decides when to give up, so this does not settle.
+    await expect(absent.getState().solana.restore([])).resolves.toBe(
+      'wallet-absent',
+    )
+    expect(absent.getState().solana.restoreSettled).toBe(false)
     expect(absent.getState().solana.status).toBe('disconnected')
 
     const found = createStore()
-    await found.getState().solana.restore([phantom.wallet])
+    await expect(
+      found.getState().solana.restore([phantom.wallet]),
+    ).resolves.toBe('attempted')
     expect(found.getState().solana.restoreSettled).toBe(true)
     expect(found.getState().solana.status).toBe('connected')
+  })
+
+  it('a disconnect while a connect is pending makes the late answer stale', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answer!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const pending = store.getState().solana.connect(phantom.wallet)
+    // Logout while the wallet is still answering (a silent restore, say).
+    await store.getState().solana.disconnect()
+    answer()
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    // The session the late answer made is ended; nothing lands or persists.
+    expect(phantom.disconnect).toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.connection).toBeNull()
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
   })
 
   it('settleRestore ends a restore that cannot be attempted', () => {
     const store = createStore()
     store.getState().solana.settleRestore()
     expect(store.getState().solana.restoreSettled).toBe(true)
+  })
+
+  it('refuses a connect whose signal was aborted before the wallet answered', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answer!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const controller = new AbortController()
+    const pending = store
+      .getState()
+      .solana.connect(phantom.wallet, { signal: controller.signal })
+    expect(store.getState().solana.status).toBe('connecting')
+
+    controller.abort()
+    answer()
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    // The session the wallet made is ended; nothing is committed or stored.
+    expect(phantom.disconnect).toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('disconnected')
+    expect(store.getState().solana.connection).toBeNull()
+    expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
   })
 
   it('swallows a failed silent restore', async () => {
@@ -266,7 +322,7 @@ describe('solana store slice', () => {
 
     await expect(
       store.getState().solana.restore([phantom.wallet]),
-    ).resolves.toBeUndefined()
+    ).resolves.toBe('attempted')
     expect(store.getState().solana.status).toBe('disconnected')
   })
 })

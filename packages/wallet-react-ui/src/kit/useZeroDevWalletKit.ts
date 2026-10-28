@@ -78,12 +78,12 @@ async function disconnectAll(
   }
   if (namespace === 'solana') return disconnectSolana(ctx)
   // Both go, so neither needs protecting from the other: a wallet-level
-  // revoke that takes Solana down with it is the intended outcome. Each side
-  // runs to the end even when the other fails.
-  const results = await Promise.allSettled([
-    disconnectEvm(ctx, false),
-    disconnectSolana(ctx),
-  ])
+  // revoke that takes Solana down with it is the intended outcome. Solana
+  // first, so its dormant-side scan still sees the EVM connection and skips
+  // the connector that the EVM disconnect is about to revoke anyway. Each
+  // side runs to the end even when the other fails.
+  const results = await Promise.allSettled([disconnectSolana(ctx)])
+  results.push(...(await Promise.allSettled([disconnectEvm(ctx, false)])))
   const failed = results.find(
     (r): r is PromiseRejectedResult => r.status === 'rejected',
   )

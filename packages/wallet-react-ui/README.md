@@ -185,7 +185,63 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 - `SignUp.Default` is the canonical composition; it accepts the same props as
   the root and forwards them.
 - Auth success/failure surfaces through wagmi — await `connect`, or watch
+  `useAccount()`. With Solana wallets offered too, watch
+  `useZeroDevWalletKit().isConnected` instead: a Solana sign-in never flips
   `useAccount()`.
+
+## Solana external wallets
+
+The kit connects external Solana wallets beside the EVM side: installed
+wallets through the Wallet Standard (Phantom, Solflare, Backpack, MetaMask),
+and a wallet on another device over a WalletConnect `solana` session. The kit
+signs nothing on the Solana side; requests are relayed to the wallet's own
+features, so the wallet shows its prompt.
+
+```tsx
+// wagmi config: the Solana session door needs `solana: true`
+zeroDevWalletConnect({ projectId, solana: true })
+
+// sign-up units
+<SignUp>
+  <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+  <SignUp.SolanaWalletConnect />
+</SignUp>
+```
+
+Read and drive both sides through one hook. Every namespace is an adapter
+with the same members and its own implementation behind them:
+
+```tsx
+import { useZeroDevWalletKit, useSolanaWallet } from '@zerodev/wallet-react-ui'
+
+const kit = useZeroDevWalletKit()            // both sides, side by side
+kit.isConnected                              // either side is connected
+kit.isReconnecting                           // hold a "signed out" redirect while true
+kit.eip155.address / kit.solana.address
+await kit.disconnect({ namespace: 'eip155' }) // EVM only; Solana stays
+await kit.disconnect()                       // both
+
+const solana = useZeroDevWalletKit({ namespace: 'solana' })  // one adapter
+await solana.connect({ wallet: solana.wallets[0] })          // prompt one wallet
+await solana.connect()                        // open the sign-up sheet instead
+
+const handle = useSolanaWallet()              // signing: signMessage, signTransaction,
+                                              // signAndSendTransaction (null if unsupported)
+```
+
+- `connect()` without a wallet opens the sign-up flow, so `<ConnectWallet />`
+  must be rendered. The promise resolves once that namespace connects and
+  rejects with `AuthFlowDismissedError` (an `isCancellationError`) when the
+  user closes the sheet.
+- One multichain wallet can serve both sides. `disconnect({ namespace: 'eip155' })`
+  keeps Solana connected through it, and disconnecting Solana ends that
+  wallet's unused EVM side so a reload does not log the user back in.
+- `isReconnecting` is true on the server and the first client render while a
+  saved session may still restore, like wagmi's `reconnecting` under
+  `ssr: true`; `reconnectOnMount: false` opts a component out of restoring.
+- `useWalletInfo('solana')` names the connected Solana wallet with its
+  `source`: `wallet-standard` for an installed wallet, `walletconnect` for a
+  session.
 
 ## API
 
@@ -196,6 +252,11 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 | `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `onClose`. |
 | `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Wallet`, `WalletConnect`, `InstalledWallets`, `MoreWallets`, `Divider`). |
 | `useAuth` | Read / drive the auth flow state. |
+| `useZeroDevWalletKit` | One adapter per namespace (`eip155`, `solana`): status, address, wallet identity, installed wallets, `connect`, `disconnect`; or all adapters plus the cross-namespace `connect` / `disconnect`. |
+| `useSolanaWallet` | The connected Solana wallet's signing handle (relayed to the wallet's own features). |
+| `useWalletInfo` | Identity of the connected wallet per namespace, call-compatible with AppKit's. |
+| `SignUp.SolanaWalletConnect` | Sign-up row for a Solana wallet on another device over WalletConnect. |
+| `isCancellationError`, `AuthFlowDismissedError` | Tell a user's cancellation (prompt declined, sheet closed) from a failure. |
 
 ### Types
 

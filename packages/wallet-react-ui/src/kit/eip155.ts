@@ -14,7 +14,10 @@ import { useWalletInfo } from '../auth/hooks/useWalletInfo.js'
 import { AuthFlowDismissedError } from '../auth/utils/isCancellationError.js'
 import { isZeroDevWalletConnect } from '../auth/utils/isZeroDevWalletConnect.js'
 import { equalsIgnoreCase } from '../shared/utils/common.js'
-import { detachEvmConnection } from '../solana/evmAdoptionGuard.js'
+import {
+  allowEvmConnection,
+  detachEvmConnection,
+} from '../solana/evmAdoptionGuard.js'
 import {
   type AdapterContext,
   endCompletedAuthFlow,
@@ -45,16 +48,34 @@ async function openEvmSignUp({ store, config }: AdapterContext) {
 }
 
 /**
- * Connect an installed EVM wallet. A multichain wallet that already
- * authorised this site on the Solana side also holds EVM accounts for it.
- * wagmi's explicit connect always asks the wallet for permissions again,
- * which MetaMask shows as a prompt; its reconnect path reads the authorised
- * accounts silently. Prompt only when that is empty.
+ * Connect an installed EVM wallet.
+ *
+ * With nothing connected yet, try wagmi's reconnect path first: a
+ * multichain wallet that already authorised this site on the Solana side
+ * also holds EVM accounts for it, and reconnect reads those silently where
+ * an explicit connect would prompt again. That path is startup code,
+ * though: on success it replaces the whole connection map with the one
+ * wallet, and when every candidate declines it wipes the map and reports
+ * disconnected. So with a connection already present, go straight to
+ * wagmi's connect, which prompts but leaves existing connections alone on
+ * failure. A wallet that is already current has nothing to do, and connect
+ * would throw for it rather than prompt.
  */
 async function connectEvmWallet({ config }: AdapterContext, wallet: Connector) {
-  await config.storage?.removeItem(`${wallet.id}.disconnected`)
-  const silent = await wagmiReconnect(config, { connectors: [wallet] })
-  if (silent.length === 0) await wagmiConnect(config, { connector: wallet })
+  if (config.state.current === wallet.uid) return
+  // A Solana connect through the same wallet moments ago may still be
+  // guarding against adoption; this connection is asked for.
+  const release = allowEvmConnection(wallet)
+  try {
+    await config.storage?.removeItem(`${wallet.id}.disconnected`)
+    if (config.state.connections.size === 0) {
+      const silent = await wagmiReconnect(config, { connectors: [wallet] })
+      if (silent.length > 0) return
+    }
+    await wagmiConnect(config, { connector: wallet })
+  } finally {
+    release()
+  }
 }
 
 export function connectEvm(
@@ -74,9 +95,14 @@ export async function disconnectEvm(
   { store, config }: AdapterContext,
   keepSolana: boolean,
 ): Promise<void> {
-  const solanaWalletName = keepSolana
-    ? store.getState().solana.connection?.wallet.name
-    : undefined
+  // Only an installed (Wallet Standard) Solana wallet can share a browser
+  // extension with the EVM side; a WalletConnect session named like one
+  // (Phantom on a phone) has nothing to do with the Phantom extension.
+  const solanaConnection = store.getState().solana.connection
+  const solanaWalletName =
+    keepSolana && solanaConnection?.source === 'standard'
+      ? solanaConnection.wallet.name
+      : undefined
   for (const { connector } of [...config.state.connections.values()]) {
     if (
       solanaWalletName &&
