@@ -1,5 +1,8 @@
 import type { Hex, LocalAccount } from 'viem'
-import type { CreateServerWalletReturnType } from '../actions/serverWallet/index.js'
+import type {
+  CreateServerWalletAddressReturnType,
+  CreateServerWalletReturnType,
+} from '../actions/serverWallet/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   createServerWalletClient,
@@ -17,6 +20,14 @@ export type ZeroDevServerWallet = {
   client: ServerWalletClient
   /** Creates a wallet in the wallet set. Role: `create`. */
   createWallet: () => Promise<CreateServerWalletReturnType>
+  /**
+   * Adds an address to one of the set's wallets at `path`, of the form
+   * `m/44'/60'/0'/0/<n>`; the wallet's first address is `<n>` 0. Role: `create`.
+   */
+  createAddress: (params: {
+    walletId: string
+    path: string
+  }) => Promise<CreateServerWalletAddressReturnType>
   /**
    * A viem `LocalAccount` for one wallet of the set. Pass it to viem, or to
    * Kernel as the signer in 4337 or 7702 mode.
@@ -37,6 +48,8 @@ export function createZeroDevServerWallet(
   return {
     client,
     createWallet: () => client.createServerWallet({ projectId }),
+    createAddress: ({ walletId, path }) =>
+      client.createServerWalletAddress({ projectId, walletId, path }),
     toAccount: ({ address }) =>
       toViemAccount({ client, organizationId, projectId, address }),
   }

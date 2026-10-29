@@ -17,6 +17,7 @@ import { createPrivateKeyStamper } from '../../stampers/privateKeyStamper.js'
 import type { SigningStamper, Stamp } from '../../stampers/types.js'
 import type { TurnkeyPayload } from '../wallet/signingUtils.js'
 import { createServerWallet } from './createServerWallet.js'
+import { createServerWalletAddress } from './createServerWalletAddress.js'
 import { sign7702Authorization } from './sign7702Authorization.js'
 import { signMessage } from './signMessage.js'
 import { signTransaction } from './signTransaction.js'
@@ -24,6 +25,13 @@ import { signTypedDataV4 } from './signTypedDataV4.js'
 
 const NOW = 1_700_000_000_000
 const WALLET = { walletId: 'wallet', walletAddress: `0x${'11'.repeat(20)}` }
+const PATH = "m/44'/60'/0'/0/1"
+const ADDRESS = {
+  walletId: 'wallet',
+  turnkeyId: 'account',
+  path: PATH,
+  walletAddress: `0x${'22'.repeat(20)}`,
+}
 // P-256 test key from RFC 6979, appendix A.2.5, and its published compressed public key.
 const TEST_PRIVATE_KEY =
   'c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721'
@@ -116,7 +124,38 @@ function verifyLikeKms(stampHeaderValue: string, payload: string) {
   return { envelope, verified }
 }
 
+/** The Turnkey activity the KMS rebuilds in `turnkey.CreateWalletAccountsPayload`. */
+function createWalletAccountsActivity(
+  organizationId: string,
+  walletId: string,
+  path: string,
+  timestampMs: number,
+) {
+  return {
+    organizationId,
+    parameters: {
+      accounts: [
+        {
+          addressFormat: 'ADDRESS_FORMAT_ETHEREUM',
+          curve: 'CURVE_SECP256K1',
+          path,
+          pathFormat: 'PATH_FORMAT_BIP32',
+        },
+      ],
+      walletId,
+    },
+    timestampMs: String(timestampMs),
+    type: 'ACTIVITY_TYPE_CREATE_WALLET_ACCOUNTS',
+  }
+}
+
 type CreateWalletBody = { timestampMs: number; stamp: Stamp }
+type CreateAddressBody = {
+  walletId: string
+  path: string
+  timestamp: string
+  stamp: Stamp
+}
 
 describe('createServerWallet', () => {
   afterEach(() => {
@@ -238,6 +277,136 @@ describe('createServerWallet', () => {
     await expect(
       createServerWallet(client, { projectId: 'project' }),
     ).rejects.toThrow('createServerWallet needs an organizationId')
+    expect(stamper.stamp).not.toHaveBeenCalled()
+    expect(request).not.toHaveBeenCalled()
+  })
+})
+
+describe('createServerWalletAddress', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('produces two stamps the KMS verifier accepts over the bytes it hashes', async () => {
+    const { client, request } = fakeClient(
+      createPrivateKeyStamper(TEST_PRIVATE_KEY),
+      { response: ADDRESS },
+    )
+
+    await createServerWalletAddress(client, {
+      projectId: 'project',
+      organizationId: 'org',
+      walletId: 'wallet',
+      path: PATH,
+    })
+
+    const call = firstCall<CreateAddressBody>(request)
+    const outer = verifyLikeKms(
+      call.headers['X-Agent-Stamp']!,
+      canonicalizeEx(call.body),
+    )
+    const inner = verifyLikeKms(
+      call.body.stamp.stampHeaderValue,
+      canonicalizeEx(
+        createWalletAccountsActivity(
+          'org',
+          'wallet',
+          PATH,
+          Date.parse(call.body.timestamp),
+        ),
+      ),
+    )
+    expect(outer.verified).toBe(true)
+    expect(outer.envelope.publicKey).toBe(TEST_PUBLIC_KEY)
+    expect(inner.verified).toBe(true)
+    expect(inner.envelope.publicKey).toBe(TEST_PUBLIC_KEY)
+  })
+
+  it('signs the CREATE_WALLET_ACCOUNTS activity the KMS rebuilds, then posts the stamps where the KMS reads them', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(NOW)
+    const stamper = echoStamper()
+    const { client, request } = fakeClient(stamper, { response: ADDRESS })
+
+    await expect(
+      createServerWalletAddress(client, {
+        projectId: 'project',
+        organizationId: 'org',
+        walletId: 'wallet',
+        path: PATH,
+      }),
+    ).resolves.toEqual(ADDRESS)
+
+    const call = firstCall<CreateAddressBody>(request)
+    const activity = canonicalizeEx(
+      createWalletAccountsActivity('org', 'wallet', PATH, NOW),
+    )
+    const [innerPayload, outerPayload] = vi
+      .mocked(stamper.stamp)
+      .mock.calls.map(([payload]) => payload)
+    expect(innerPayload).toBe(activity)
+    expect(outerPayload).toBe(canonicalizeEx(call.body))
+
+    expect(call.path).toBe('project/server-wallet/wallet-addresses')
+    expect(call.method).toBe('POST')
+    expect(call.body).toEqual({
+      walletId: 'wallet',
+      path: PATH,
+      timestamp: new Date(NOW).toISOString(),
+      stamp: {
+        stampHeaderName: 'X-Stamp',
+        stampHeaderValue: `signed:${activity}`,
+      },
+    })
+    expect(call.headers).toEqual({
+      'X-Agent-Stamp': `signed:${outerPayload}`,
+    })
+  })
+
+  it('falls back to the client organizationId', async () => {
+    const stamper = echoStamper()
+    const { client } = fakeClient(stamper, { organizationId: 'client-org' })
+
+    await createServerWalletAddress(client, {
+      projectId: 'project',
+      walletId: 'wallet',
+      path: PATH,
+    })
+
+    const [innerPayload] = vi.mocked(stamper.stamp).mock.calls[0]!
+    expect(JSON.parse(innerPayload).organizationId).toBe('client-org')
+  })
+
+  it.each([
+    ["m/44'/60'/0'/1/0", 'a change branch other than 0'],
+    ["m/44'/60'/0'/0/01", 'a leading zero in the index'],
+    ["44'/60'/0'/0/1", 'no root'],
+  ])('rejects %s (%s) before stamping', async (path) => {
+    const stamper = echoStamper()
+    const { client, request } = fakeClient(stamper, { organizationId: 'org' })
+
+    await expect(
+      createServerWalletAddress(client, {
+        projectId: 'project',
+        walletId: 'wallet',
+        path,
+      }),
+    ).rejects.toThrow("path must be of the form m/44'/60'/0'/0/<n>")
+    expect(stamper.stamp).not.toHaveBeenCalled()
+    expect(request).not.toHaveBeenCalled()
+  })
+
+  it('throws before stamping when no organizationId is available', async () => {
+    const stamper = echoStamper()
+    const { client, request } = fakeClient(stamper)
+
+    await expect(
+      createServerWalletAddress(client, {
+        projectId: 'project',
+        walletId: 'wallet',
+        path: PATH,
+      }),
+    ).rejects.toThrow('createServerWalletAddress needs an organizationId')
     expect(stamper.stamp).not.toHaveBeenCalled()
     expect(request).not.toHaveBeenCalled()
   })
