@@ -93,6 +93,11 @@ export type AuthParams =
     }
 
 export interface ZeroDevWalletSDK {
+  /**
+   * The raw API client. Each call stamps with the key this instance loaded and
+   * the token the caller passes, so it is not kept in step with other tabs;
+   * for requests that must be, use `toAccount()`.
+   */
   client: ZeroDevWalletClient
   auth: (params: AuthParams) => Promise<any>
 
@@ -114,8 +119,25 @@ export interface ZeroDevWalletSDK {
    * remote revocation first but permits local recovery if that attempt fails;
    * use it only when accepting that the remote key may remain until expiry.
    */
-  logout: (options?: { force?: boolean }) => Promise<boolean>
+  logout: (options?: {
+    force?: boolean
+    /**
+     * Only log out while the active session belongs to this account; otherwise
+     * resolve `true` and change nothing, e.g. when another tab signed in someone else.
+     */
+    account?: { organizationId: string; userId: string }
+    /**
+     * Only log out while this is the active session, e.g. one the server
+     * rejected; otherwise resolve `true` and change nothing.
+     */
+    sessionId?: string
+  }) => Promise<boolean>
 
+  /**
+   * An account whose every request reads the stored token and stamps with its
+   * key under the cross-tab lock, so it follows another tab's refresh, and
+   * refuses once another tab signed in to a different owner.
+   */
   toAccount: () => Promise<LocalAccount>
 }
 
@@ -174,6 +196,75 @@ export async function createZeroDevWalletCore(
   }
 
   const normalizeKey = (key: string) => key.replace(/^0x/, '').toLowerCase()
+  // A key this tab reloaded because another tab committed it, so a refresh can
+  // still adopt that tab's session; cleared when this tab commits its own key.
+  let keyFromAnotherTab: string | null = null
+  // This tab's key commits that succeeded and those still running, so a reload
+  // that overlapped one, possible only without Web Locks, never labels this
+  // tab's key as another tab's, while a failed attempt doesn't count.
+  const ownCommits = { committed: 0, inFlight: 0 }
+
+  // Another tab may have rotated the shared key since this tab's stamper loaded
+  // it. Callers hold the cross-tab lock and pass a stored session, so reload()
+  // never runs on an empty vault, where it would generate a key.
+  const reconcileApiKey = async (session: ZeroDevWalletSession) => {
+    if (session.stamperType !== 'apiKey' || !client.apiKeyStamper.reload) return
+    const expected = session.publicKey ?? parseSession(session.token).publicKey
+    const commitsBefore = ownCommits.committed
+    const loaded = await client.apiKeyStamper.getPublicKey()
+    if (
+      expected &&
+      (!loaded || normalizeKey(loaded) !== normalizeKey(expected))
+    ) {
+      await client.apiKeyStamper.reload()
+      const reloaded = await client.apiKeyStamper.getPublicKey()
+      // Without Web Locks the vault can hold a third tab's half-committed key;
+      // pairing the session's token with it would stamp as that tab.
+      if (!reloaded || normalizeKey(reloaded) !== normalizeKey(expected)) {
+        throw new Error(
+          "The key vault doesn't hold the stored session's key; another tab may be replacing it.",
+        )
+      }
+      // Only a key the reload changed, with no commit of this tab's own around
+      // it, came from another tab.
+      if (
+        normalizeKey(reloaded) !== normalizeKey(loaded ?? '') &&
+        ownCommits.committed === commitsBefore &&
+        ownCommits.inFlight === 0
+      ) {
+        keyFromAnotherTab = reloaded
+      }
+    }
+  }
+
+  // Reads the token and stamps with its key under one shared hold, so no tab
+  // can rotate them in between, and refuses to act for another account than
+  // the one the caller started with.
+  const withActiveCredentials = <T>(
+    account: { organizationId: string; userId: string },
+    request: (token: string) => Promise<T>,
+  ) =>
+    withCrossTabLock(
+      async () => {
+        const active = await sessionStorageManager.getActiveSession()
+        if (!active?.token) {
+          throw new Error(
+            'No active session token; refusing to make a request without authentication.',
+          )
+        }
+        if (
+          active.organizationId !== account.organizationId ||
+          active.userId !== account.userId
+        ) {
+          throw new Error(
+            'Refusing to sign: the active session belongs to another owner than this account.',
+          )
+        }
+        await reconcileApiKey(active)
+        return request(active.token)
+      },
+      { mode: 'shared' },
+    )
 
   const createReplacementSession = (
     token: string,
@@ -210,8 +301,20 @@ export async function createZeroDevWalletCore(
     targetPublicKey: string,
   ) => {
     await sessionStorageManager.stageSessionTransition(session, targetPublicKey)
+    ownCommits.inFlight++
+    try {
+      await commitOwnKeyAndSession(targetPublicKey)
+    } finally {
+      ownCommits.inFlight--
+    }
+  }
+
+  const commitOwnKeyAndSession = async (targetPublicKey: string) => {
     try {
       await client.apiKeyStamper.commitKeyRotation()
+      // This tab's own key is active now, not one taken over from another tab.
+      keyFromAnotherTab = null
+      ownCommits.committed++
     } catch (error) {
       await client.apiKeyStamper.discardKeyRotation()
       const activePublicKey = await client.apiKeyStamper.getPublicKey()
@@ -224,6 +327,8 @@ export async function createZeroDevWalletCore(
       ) {
         throw error
       }
+      keyFromAnotherTab = null
+      ownCommits.committed++
       return
     }
 
@@ -351,18 +456,23 @@ export async function createZeroDevWalletCore(
           }
           if (expectedId && expectedId !== activeSessionKey) {
             // Another tab replaced the session while this one waited. Adopt it
-            // only when that tab also replaced the key under this one. Within
-            // one tab, a call without an id refreshes the current session and
-            // an inactive id stays an error. Callers should still compare the
-            // identity: the other tab may have signed in to a different account.
+            // only when that tab also replaced the key under this one, now or
+            // earlier, when a request reloaded it. Within one tab, a call
+            // without an id refreshes the current session and an inactive id
+            // stays an error. Callers should still compare the identity: the
+            // other tab may have signed in to a different account.
             if (activeSession.stamperType === 'apiKey') {
               const keyBefore = await client.apiKeyStamper.getPublicKey()
               await client.apiKeyStamper.reload?.()
               const activePublicKey = await client.apiKeyStamper.getPublicKey()
+              const replacedByAnotherTab =
+                normalizeKey(activePublicKey ?? '') !==
+                  normalizeKey(keyBefore ?? '') ||
+                normalizeKey(activePublicKey ?? '') ===
+                  normalizeKey(keyFromAnotherTab ?? '')
               if (
                 activePublicKey &&
-                normalizeKey(activePublicKey) !==
-                  normalizeKey(keyBefore ?? '') &&
+                replacedByAnotherTab &&
                 normalizeKey(activePublicKey) ===
                   normalizeKey(activeSession.publicKey ?? '') &&
                 normalizeTimestamp(activeSession.expiry) > Date.now()
@@ -380,6 +490,9 @@ export async function createZeroDevWalletCore(
             throw new Error('Invalid session type')
           }
 
+          // The login is stamped with the current key, which another tab may
+          // have rotated in since this tab loaded it.
+          await reconcileApiKey(activeSession)
           const targetPublicKey = await prepareFreshKeyRotation()
           try {
             const data = await client.loginWithStamp({
@@ -642,66 +755,78 @@ export async function createZeroDevWalletCore(
     },
 
     async logout(options) {
-      return withKeyTransition(async () => {
-        const session = await sessionStorageManager.getActiveSession()
-        if (session) {
-          const publicKey = await client.apiKeyStamper.getPublicKey()
-          if (publicKey) {
-            try {
-              const authenticators = await client.getAuthenticators({
-                subOrganizationId: session.organizationId,
-                projectId,
-                token: session.token,
-              })
-              const sessionKey = authenticators.sessionKeys?.find((key) => {
-                const candidate = key.ApiKey ?? key.apiKey
-                return (
-                  candidate !== undefined &&
-                  normalizeKey(candidate) === normalizeKey(publicKey)
-                )
-              })
-              const apiKeyId = sessionKey?.TurnkeyId ?? sessionKey?.turnkeyId
-              if (!apiKeyId) {
-                throw new Error(
-                  'Current session key was not found in the authenticated key list; refusing to erase local credentials without confirmed remote revocation.',
-                )
-              }
-              await client.logout({
-                projectId,
-                organizationId: session.organizationId,
-                userId: session.userId,
-                apiKeyId,
-              })
-            } catch (error) {
-              // Only a confirmed rejection (401) or an explicit `force` clears
-              // local credentials below. Any other failure (403, 5xx, network)
-              // is ambiguous — erasing the only key on an inconclusive signal
-              // could lock the user out unrecoverably — so preserve it and
-              // return without throwing, so callers (e.g. a logout button)
-              // don't crash. Pass `logout({ force: true })` to clear locally
-              // regardless when the caller knows the remote is gone.
-              const credentialIsRejected =
-                error instanceof RestRequestError && error.status === 401
-              if (!options?.force && !credentialIsRejected) return false
-            }
-          }
-        }
-
-        preparedOAuthPublicKey = undefined
-        return withCrossTabLock(async () => {
-          // Another tab may have signed in while the revoke was in flight. Keep
-          // a session for a different account, or one that appeared after a
-          // signed-out start; a same-account refresh is still ours to clear.
-          const current = await sessionStorageManager.getActiveSession()
+      // Exclusive for the whole logout, so the key it revokes is the one it
+      // clears, and no tab signs in between the check and the revoke.
+      return withKeyTransition(() =>
+        withCrossTabLock(async () => {
+          const session = await sessionStorageManager.getActiveSession()
           if (
-            current &&
+            options?.account &&
             (!session ||
-              current.organizationId !== session.organizationId ||
-              current.userId !== session.userId)
+              session.organizationId !== options.account.organizationId ||
+              session.userId !== options.account.userId)
           ) {
-            await client.apiKeyStamper.discardKeyRotation()
             return true
           }
+          if (
+            options?.sessionId !== undefined &&
+            session?.id !== options.sessionId
+          ) {
+            return true
+          }
+          // A session whose key can't be read is an ambiguous failure like the
+          // revoke's below: it stays unless forced, and logout reports false.
+          if (session) {
+            const reconciled = await reconcileApiKey(session).then(
+              () => true,
+              () => false,
+            )
+            if (!reconciled && !options?.force) return false
+          }
+          if (session) {
+            const publicKey = await client.apiKeyStamper.getPublicKey()
+            if (publicKey) {
+              try {
+                const authenticators = await client.getAuthenticators({
+                  subOrganizationId: session.organizationId,
+                  projectId,
+                  token: session.token,
+                })
+                const sessionKey = authenticators.sessionKeys?.find((key) => {
+                  const candidate = key.ApiKey ?? key.apiKey
+                  return (
+                    candidate !== undefined &&
+                    normalizeKey(candidate) === normalizeKey(publicKey)
+                  )
+                })
+                const apiKeyId = sessionKey?.TurnkeyId ?? sessionKey?.turnkeyId
+                if (!apiKeyId) {
+                  throw new Error(
+                    'Current session key was not found in the authenticated key list; refusing to erase local credentials without confirmed remote revocation.',
+                  )
+                }
+                await client.logout({
+                  projectId,
+                  organizationId: session.organizationId,
+                  userId: session.userId,
+                  apiKeyId,
+                })
+              } catch (error) {
+                // Only a confirmed rejection (401) or an explicit `force` clears
+                // local credentials below. Any other failure (403, 5xx, network)
+                // is ambiguous — erasing the only key on an inconclusive signal
+                // could lock the user out unrecoverably — so preserve it and
+                // return without throwing, so callers (e.g. a logout button)
+                // don't crash. Pass `logout({ force: true })` to clear locally
+                // regardless when the caller knows the remote is gone.
+                const credentialIsRejected =
+                  error instanceof RestRequestError && error.status === 401
+                if (!options?.force && !credentialIsRejected) return false
+              }
+            }
+          }
+
+          preparedOAuthPublicKey = undefined
           let cleanupError: unknown
           try {
             await client.apiKeyStamper.clear()
@@ -715,8 +840,8 @@ export async function createZeroDevWalletCore(
           }
           if (cleanupError) throw cleanupError
           return true
-        })
-      })
+        }),
+      )
     },
 
     async toAccount(): Promise<LocalAccount> {
@@ -725,10 +850,27 @@ export async function createZeroDevWalletCore(
         throw new Error('No active session')
       }
 
+      // Each request reads the token and stamps with its key at that moment,
+      // which another tab may have refreshed since this account was built.
+      const withToken =
+        <P extends { token: string }, R>(request: (params: P) => Promise<R>) =>
+        (params: P) =>
+          withActiveCredentials(session, (token) =>
+            request({ ...params, token }),
+          )
       return toViemAccount({
-        client,
+        client: {
+          ...client,
+          getUserWallet: withToken(client.getUserWallet),
+          signMessage: withToken(client.signMessage),
+          signTransaction: withToken(client.signTransaction),
+          signTypedDataV4: withToken(client.signTypedDataV4),
+          sign7702Authorization: withToken(client.sign7702Authorization),
+        },
         organizationId: session.organizationId,
         projectId,
+        // Every request above replaces this token with the one it reads under
+        // the lock; toViemAccount still requires a getter.
         getToken: async () => {
           const activeSession = await sessionStorageManager.getActiveSession()
           if (!activeSession?.token) {
