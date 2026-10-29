@@ -2,6 +2,7 @@ import { type Hex, keccak256, parseSignature, zeroAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { hashAuthorization } from 'viem/utils'
 import { describe, expect, it, vi } from 'vitest'
+import type { ServerWalletClient } from '../client/createServerWalletClient.js'
 import type { ZeroDevWalletClient } from '../client/index.js'
 import { toViemAccount } from './viem.js'
 
@@ -170,6 +171,57 @@ describe('toViemAccount owner resolution', () => {
         nonce: 0,
       }),
     ).rejects.toThrow(/recover|owner/i)
+  })
+
+  it('uses a given address and skips the wallet lookup', async () => {
+    const getUserWallet = vi.fn()
+    const { signer, signMessage } = signWith(`0x${'11'.repeat(32)}`)
+    const client = clientWith(getUserWallet, signMessage)
+
+    const account = await toViemAccount({
+      ...base,
+      client,
+      address: signer.address,
+    })
+
+    expect(account.address).toBe(signer.address)
+    expect(getUserWallet).not.toHaveBeenCalled()
+  })
+
+  it('refuses a zero address given directly', async () => {
+    const client = clientWith(undefined)
+    await expect(
+      toViemAccount({ ...base, client, address: zeroAddress }),
+    ).rejects.toThrow(/Cannot build account/i)
+  })
+
+  it('requires an address for a client without a wallet lookup', async () => {
+    const client = {} as unknown as ServerWalletClient
+    await expect(toViemAccount({ ...base, client })).rejects.toThrow(
+      /pass `address`/,
+    )
+  })
+
+  it('signs without a session token when getToken is omitted', async () => {
+    const { signer, signMessage } = signWith(`0x${'11'.repeat(32)}`)
+    const client = clientWith(undefined, signMessage)
+    const account = await toViemAccount({
+      organizationId: 'org',
+      projectId: 'proj',
+      client,
+      address: signer.address,
+    })
+
+    await expect(account.signMessage({ message: 'transfer' })).resolves.toBe(
+      await signer.signMessage({ message: 'transfer' }),
+    )
+    expect(signMessage).toHaveBeenCalledWith({
+      organizationId: 'org',
+      projectId: 'proj',
+      address: signer.address,
+      message: 'transfer',
+      encoding: 'utf8',
+    })
   })
 
   it('preserves a zero yParity in a 7702 authorization', async () => {

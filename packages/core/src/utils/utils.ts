@@ -1,4 +1,6 @@
+import { p256 } from '@noble/curves/nist.js'
 import type { PartialBy } from 'viem'
+import { TURNKEY_API_KEY_SCHEME } from '../constants.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
 
 /**
@@ -87,10 +89,36 @@ export const generateRandomBuffer = (): ArrayBuffer => {
  * @param challenge - The challenge to encode.
  * @returns {string} - The encoded challenge.
  */
-export const base64UrlEncode = (challenge: ArrayBuffer): string => {
+export const base64UrlEncode = (
+  challenge: ArrayBuffer | Uint8Array,
+): string => {
   const bytes = new Uint8Array(challenge)
   const binary = String.fromCharCode(...bytes)
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+/**
+ * Turnkey wants ECDSA signatures as ASN.1 DER hex; WebCrypto and noble produce
+ * the 64-byte compact form.
+ */
+export function compactSignatureToDerHex(signature: Uint8Array): string {
+  return p256.Signature.fromBytes(signature, 'compact').toHex('der')
+}
+
+/**
+ * The Turnkey API-key stamp: base64url of `{ publicKey, scheme, signature }`,
+ * sent under `X-Stamp` or embedded in a request body for the KMS to relay.
+ */
+export function encodeStamp(
+  publicKey: string,
+  signatureDerHex: string,
+): string {
+  const envelope = JSON.stringify({
+    publicKey,
+    scheme: TURNKEY_API_KEY_SCHEME,
+    signature: signatureDerHex,
+  })
+  return base64UrlEncode(new TextEncoder().encode(envelope))
 }
 
 /**
