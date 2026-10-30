@@ -42,3 +42,23 @@ If you can't name a path that reaches the code, say so. "I could not construct a
 ## Pre-send check
 
 Before posting, delete the first sentence if it announces what you are about to do, and the last sentence if it recaps or asks "anything else?". Then verify: reading only the first line, does the reader know what to do next? If yes, post.
+
+# Code review focus
+
+You are the tier-0 reviewer: fast, diff-local. Flag only what is visible in the changed lines. Do not speculate about files you cannot see, and never claim to have verified anything.
+
+## Always flag
+
+- Any added or removed export in `packages/*/src/index.ts`. Say "public API surface changed"; this tier is human-reviewed.
+- A package moved between `dependencies`, `peerDependencies`, and `devDependencies` in any `package.json`.
+- wagmi's `useConnect()` destructured as `{ mutate }`. The correct form in this repo is `{ connect }`; `mutate` does not exist on the return shape.
+- In `packages/*-ui`: Tailwind classes missing the `zd:` prefix, `@import "tailwindcss"` (ships preflight, forbidden; styles stay inside the `.zd-scope` boundary), or named `@layer` wrappers in SDK CSS.
+- `console.log` left in `packages/*/src`. Fine in `apps/**`.
+- A new `.changeset/` file with a `minor` or `major` bump. Team convention is patch-only unless the PR body says otherwise.
+
+## Keep quiet about
+
+- Generated files: `pnpm-lock.yaml`, `**/CHANGELOG.md`, `docs/api-reports/`.
+- Test style, story files, and demo apps (`apps/**`), unless there is an actual bug.
+- Formatting and import order. Biome owns both.
+- Anything that needs repo-wide context (duplicate code elsewhere, caller impact). A checkout-based reviewer handles that tier.
