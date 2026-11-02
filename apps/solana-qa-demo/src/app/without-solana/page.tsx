@@ -73,7 +73,12 @@ export default function WithoutSolana() {
           would otherwise push the sheet off screen. */}
       <ConnectWallet
         renderSignUp={() => (
-          <SignUp>
+          <SignUp emailAuthMethod="otp">
+            {/* Here only as the control for the embedded-login repro: this
+                route reaches the sheet through a raw wagmi connectAsync, so
+                nothing on the Solana path runs. */}
+            <SignUp.Email />
+            <SignUp.Divider label="or a wallet" />
             <SignUp.InstalledWallets />
           </SignUp>
         )}

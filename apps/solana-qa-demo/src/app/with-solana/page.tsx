@@ -3,7 +3,9 @@
 import {
   ConnectWallet,
   SignUp,
+  useAuth,
   useSolanaWallet,
+  useWalletInfo,
   useZeroDevWalletKit,
 } from '@zerodev/wallet-react-ui'
 import { bytesToHex } from 'viem'
@@ -20,6 +22,12 @@ export default function WithSolana() {
   // disagree. Nothing on this page gates on it.
   const evm = useAccount()
   const { signMessageAsync } = useSignMessage()
+  // An embedded login lands in the EVM namespace like any other connection, so
+  // `eip155.status: connected` alone cannot say whether email auth or a wallet
+  // put it there. `source` is the only thing that separates them: the embedded
+  // connector is the one the kit filters out of `eip155.wallets`.
+  const { walletInfo: evmWalletInfo } = useWalletInfo()
+  const { step: authStep, email: authEmail, connectError } = useAuth()
 
   // wagmi reports `isConnected: false` for status `connecting` whatever the
   // address, so opening the sign-up sheet beside a live connection reads as a
@@ -38,6 +46,8 @@ export default function WithSolana() {
       'kit.isConnected': String(kit.isConnected),
       'kit.isReconnecting': String(kit.isReconnecting),
       'handle.signMessage': handle?.signMessage ? 'available' : 'null',
+      'auth.step': authStep ?? '—',
+      'eip155.source': evmWalletInfo?.source ?? '—',
     },
     disagree
       ? `wagmi.isConnected=${evm.isConnected} but kit.eip155.isConnected=${kit.eip155.isConnected} (wagmi status ${evm.status}, address ${evm.address ?? 'none'})`
@@ -146,6 +156,16 @@ export default function WithSolana() {
           },
           { label: 'eip155.status', value: kit.eip155.status },
           { label: 'eip155.address', value: kit.eip155.address ?? '—' },
+          // `source: 'embedded'` is what says an email or passkey login made
+          // this connection rather than a wallet. The connector id is the
+          // same fact unresolved: the embedded one is `zerodev-wallet`.
+          {
+            label: 'eip155.walletInfo',
+            value: evmWalletInfo
+              ? `${evmWalletInfo.name ?? '(unnamed)'} (${evmWalletInfo.source})`
+              : '—',
+          },
+          { label: 'eip155.connector', value: evm.connector?.id ?? '—' },
           // A wallet in both lists announces on both sides, which is what
           // makes the adoption guard apply to it. In solana.wallets only, it
           // is Solana-only as far as the kit is concerned.
@@ -154,6 +174,21 @@ export default function WithSolana() {
             value:
               kit.eip155.wallets.map((c) => c.name).join(', ') ||
               '(none found)',
+          },
+          // The email flow's own state, and it is live rather than durable:
+          // `authenticated` is where OtpInput lands once the code verifies and
+          // it stays there, but the next kit.connect() wipes all three through
+          // endCompletedAuthFlow, as does the sheet's X, and a reload starts
+          // them empty. Read them before connecting again. `auth.email` is
+          // also set when the code is SENT, so on its own it says a code was
+          // requested, not that anyone entered it.
+          { label: 'auth.step', value: authStep ?? '—' },
+          { label: 'auth.email', value: authEmail ?? '—' },
+          {
+            label: 'auth.connectError',
+            value: connectError
+              ? `${connectError.title}: ${connectError.message}`
+              : '—',
           },
           {
             label: 'handle.signMessage',
@@ -175,7 +210,16 @@ export default function WithSolana() {
           that grows would otherwise push the sheet off screen. */}
       <ConnectWallet
         renderSignUp={() => (
-          <SignUp>
+          <SignUp emailAuthMethod="otp">
+            {/* An embedded unit beside the wallet rows: completing it settles
+                the Solana request as AuthFlowDismissedError. OTP, because the
+                code is entered in this tab — a magic link returns to the
+                origin baked into the project's email template, and this app
+                has no /verify route to land on. Needs an OTP-configured
+                project id; the magic-link one answers the send call but never
+                delivers a code. */}
+            <SignUp.Email />
+            <SignUp.Divider label="or a wallet" />
             <SignUp.InstalledWallets
               namespaces={['eip155', 'solana'] as const}
             />

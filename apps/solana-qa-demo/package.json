@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3003 --webpack",
+    "dev": "next dev -p 3000 --webpack",
     "hot-dev": "trap 'kill 0' SIGINT; pnpm --filter @zerodev/wallet-react-ui exec vite build --watch & (sleep 2 && open http://localhost:3003) & pnpm --filter @zerodev/solana-qa-demo dev",
     "build": "next build --webpack",
-    "start": "next start -p 3003"
+    "start": "next start -p 3000"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
