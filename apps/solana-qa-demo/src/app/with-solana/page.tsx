@@ -64,6 +64,10 @@ export default function WithSolana() {
             label: 'Connect (Solana)',
             busyLabel: 'Connecting…',
             tone: 'primary',
+            // Clickable with its own sheet still open, so a second request can
+            // be made while the first is in flight. openSolanaSignUp rejects
+            // that with 'Auth flow already in progress' once auth.step is set.
+            allowWhileBusy: true,
             run: () => kit.connect({ namespace: 'solana' }),
           },
           {
@@ -221,6 +225,7 @@ export default function WithSolana() {
             <SignUp.Email />
             <SignUp.Divider label="or a wallet" />
             <SignUp.InstalledWallets
+              maxWallets={3}
               namespaces={['eip155', 'solana'] as const}
             />
             {/* Both rows, so the sheet shows which door each one is. Each

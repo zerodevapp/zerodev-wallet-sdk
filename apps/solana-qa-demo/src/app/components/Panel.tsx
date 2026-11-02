@@ -14,6 +14,11 @@ export type Action = {
    * harness must not show. */
   hint?: string
   tone?: 'primary' | 'accent' | 'quiet'
+  /** Stay clickable while another action is still running. Only for cases
+   * whose subject IS the second call, such as opening a sign-up flow while
+   * one is already open. The panel holds one result and one error, so the
+   * second outcome shows first and the first overwrites it when it settles. */
+  allowWhileBusy?: boolean
 }
 
 const TONE = {
@@ -72,7 +77,9 @@ export function Panel({
             key={action.label}
             type="button"
             onClick={run(action)}
-            disabled={busy !== null || action.disabled}
+            disabled={
+              (busy !== null && !action.allowWhileBusy) || action.disabled
+            }
             className={`rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-40 ${
               TONE[action.tone ?? 'quiet']
             }`}
