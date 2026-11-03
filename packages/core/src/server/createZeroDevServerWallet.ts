@@ -2,6 +2,7 @@ import type { Hex, LocalAccount } from 'viem'
 import type {
   CreateServerWalletAddressReturnType,
   CreateServerWalletReturnType,
+  GetServerWalletsReturnType,
 } from '../actions/serverWallet/index.js'
 import { toViemAccount } from '../adapters/viem.js'
 import {
@@ -18,6 +19,8 @@ export type ZeroDevServerWalletConfig = ServerWalletClientConfig & {
 export type ZeroDevServerWallet = {
   /** The underlying client, for the raw actions the account is built on. */
   client: ServerWalletClient
+  /** Lists every address in the wallet set. Role: `read`. */
+  getWallets: () => Promise<GetServerWalletsReturnType>
   /** Creates a wallet in the wallet set. Role: `create`. */
   createWallet: () => Promise<CreateServerWalletReturnType>
   /**
@@ -47,6 +50,7 @@ export function createZeroDevServerWallet(
   const client = createServerWalletClient(config)
   return {
     client,
+    getWallets: () => client.getServerWallets({ projectId }),
     createWallet: () => client.createServerWallet({ projectId }),
     createAddress: ({ walletId, path }) =>
       client.createServerWalletAddress({ projectId, walletId, path }),

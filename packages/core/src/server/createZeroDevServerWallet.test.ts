@@ -24,6 +24,19 @@ describe('createZeroDevServerWallet', () => {
     )
   })
 
+  it('getWallets targets the configured project', async () => {
+    const wallet = createZeroDevServerWallet(config)
+    const addresses = {
+      walletAddresses: [`0x${'11'.repeat(20)}` as const],
+    }
+    const getServerWallets = vi
+      .spyOn(wallet.client, 'getServerWallets')
+      .mockResolvedValue(addresses)
+
+    await expect(wallet.getWallets()).resolves.toEqual(addresses)
+    expect(getServerWallets).toHaveBeenCalledWith({ projectId: 'project' })
+  })
+
   it('createWallet targets the configured project', async () => {
     const wallet = createZeroDevServerWallet(config)
     const created = {

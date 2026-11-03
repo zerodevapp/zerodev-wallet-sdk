@@ -9,6 +9,11 @@ export {
   createServerWalletAddress,
 } from './createServerWalletAddress.js'
 export {
+  type GetServerWalletsParameters,
+  type GetServerWalletsReturnType,
+  getServerWallets,
+} from './getServerWallets.js'
+export {
   type Sign7702AuthorizationParameters,
   type Sign7702AuthorizationReturnType,
   sign7702Authorization,
