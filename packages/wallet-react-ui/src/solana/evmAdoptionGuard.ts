@@ -1,9 +1,15 @@
-import type { Config } from 'wagmi'
+import type { Config, Connection } from 'wagmi'
 import { equalsIgnoreCase } from '../shared/utils/common'
 
 /** How long after the Solana connect settles to keep watching for a late
  * adoption (the wallet's EVM provider emits its accounts asynchronously). */
 const GRACE_MS = 1500
+
+/** How long to wait for wagmi's reload reconnect to begin before taking the
+ * page to have none: the host's provider has `reconnectOnMount` off, or it
+ * ran to the end before the guard mounted. It otherwise begins within
+ * microtasks of wagmi's mount. */
+const RECONNECT_START_MS = 1000
 
 /** Connector uids the host is connecting on purpose right now. */
 const explicitEvmConnections = new Set<string>()
@@ -111,8 +117,151 @@ async function shimDormantEvmSide(
   config: Config,
   walletName: string,
 ): Promise<void> {
+  const ids = new Set(dormantEvmConnectors(config, walletName).map((c) => c.id))
+  // Under `ssr`, wagmi turns the announced EIP-6963 providers into connectors
+  // only in its mount effect, right before its reconnect sweep: at mount the
+  // connector may not exist yet, but its id (the rdns) is known, and the
+  // shim is keyed on it.
+  for (const { info } of config._internal.mipd?.getProviders() ?? []) {
+    if (equalsIgnoreCase(info.name, walletName)) ids.add(info.rdns)
+  }
+  for (const id of ids) {
+    await config.storage?.setItem(`${id}.disconnected`, true)
+  }
+}
+
+/**
+ * Take wagmi's self-connect listener off the dormant EVM connectors of
+ * `walletName`. A reload re-arms it on every injected connector, and the
+ * connector's `accountsChanged` handler adopts the wallet as long as the
+ * listener is there (and deletes the `disconnected` shim as it does). With it
+ * gone the handler emits a plain `change` instead, which wagmi ignores for a
+ * connector it holds no connection for. An explicit EVM connect does not
+ * need the listener: wagmi's connect action attaches its own.
+ */
+export function muteDormantEvmSide(config: Config, walletName: string): void {
   for (const connector of dormantEvmConnectors(config, walletName)) {
-    await config.storage?.setItem(`${connector.id}.disconnected`, true)
+    connector.emitter.off('connect', config._internal.events.connect)
+  }
+}
+
+const hasWallet = (
+  connections: Iterable<Pick<Connection, 'connector'>>,
+  walletName: string,
+) =>
+  [...connections].some((c) => equalsIgnoreCase(c.connector.name, walletName))
+
+/**
+ * Whether `walletName` was connected on the EVM side when the page loaded,
+ * per the connections wagmi persisted: those are the ones held on purpose
+ * (an adoption the guard detached is gone from them, and so is anything
+ * disconnected). `restored` is that map read off the config at the first
+ * render, where wagmi rehydrates it before rendering; under `ssr` it reads
+ * storage in its mount effect instead, so pass null and the record is read
+ * here, ahead of the sweep that could add to it.
+ */
+async function wasConnectedAtLoad(
+  config: Config,
+  walletName: string,
+  restored: Config['state']['connections'] | null,
+): Promise<boolean> {
+  if (restored) return hasWallet(restored.values(), walletName)
+  // The persisted record sits under wagmi's `store` key, which its storage
+  // type does not list.
+  const storage = config.storage as {
+    getItem(key: string): unknown
+  } | null
+  const persisted = (await storage?.getItem('store')) as {
+    state?: { connections?: unknown }
+  } | null
+  const connections = persisted?.state?.connections
+  return connections instanceof Map
+    ? hasWallet(connections.values(), walletName)
+    : false
+}
+
+/**
+ * Run `fn` once wagmi's reload reconnect has settled: it reports
+ * `connecting` or `reconnecting` while sweeping the connectors and a settled
+ * status after. A page with no sweep (the host turned `reconnectOnMount`
+ * off, or it ended before this mounted) runs `fn` after a short wait.
+ */
+function afterReconnectSettles(config: Config, fn: () => void): () => void {
+  const isSettled = (status: Config['state']['status']) =>
+    status === 'connected' || status === 'disconnected'
+  let sweeping = !isSettled(config.state.status)
+  const stop = () => {
+    unsubscribe()
+    clearTimeout(timer)
+  }
+  const unsubscribe = config.subscribe(
+    (s) => s.status,
+    (status) => {
+      if (!isSettled(status)) {
+        sweeping = true
+        return
+      }
+      if (!sweeping) return
+      stop()
+      fn()
+    },
+  )
+  const timer = setTimeout(() => {
+    if (sweeping) return
+    stop()
+    fn()
+  }, RECONNECT_START_MS)
+  return stop
+}
+
+/**
+ * Keep the EVM side of `walletName`, a multichain wallet whose Solana
+ * session is being restored after a reload, from coming back on its own.
+ * Mount with the saved Solana wallet's name; returns the cleanup.
+ *
+ * The wallet granted its EVM accounts alongside Solana in one prompt, so
+ * after a reload wagmi's reconnect sweep finds its injected connector
+ * authorised, and the wallet announcing its accounts would be adopted as a
+ * self-connect. The `disconnected` shim keeps the sweep off, but it is not
+ * to be relied on: the connector's own `accountsChanged` handler deletes it
+ * whenever the wallet announces accounts while nothing is connected, which
+ * a multichain wallet does around the Solana connect itself. So, when the
+ * wallet was not connected on the EVM side at load (`wasConnectedAtLoad`,
+ * the host's own connections are never touched): write the shim again,
+ * ahead of the sweep where the ordering allows; take the self-connect
+ * listener off; and once the sweep has settled, detach what it adopted all
+ * the same, at wagmi's state level (the wallet's permission is left alone,
+ * see `detachFromWagmiState`). A connection the host asks for meanwhile is
+ * declared through `allowEvmConnection` and kept.
+ */
+export function guardDormantEvmSide(
+  config: Config,
+  walletName: string,
+  restored: Config['state']['connections'] | null,
+): () => void {
+  let stopped = false
+  let stopWatch: (() => void) | undefined
+  const guard = async () => {
+    if (await wasConnectedAtLoad(config, walletName, restored)) return
+    if (stopped) return
+    muteDormantEvmSide(config, walletName)
+    await shimDormantEvmSide(config, walletName)
+    if (stopped) return
+    stopWatch = afterReconnectSettles(config, () => {
+      for (const [uid, connection] of config.state.connections) {
+        if (explicitEvmConnections.has(uid)) continue
+        if (!equalsIgnoreCase(connection.connector.name, walletName)) continue
+        // The state-level drop is synchronous; only the storage writes
+        // after it can fail, and a failed shim costs nothing here.
+        detachEvmConnection(config, uid).catch(() => {})
+      }
+    })
+  }
+  // Best effort: with storage unreadable the guard stands down.
+  guard().catch(() => {})
+  return () => {
+    stopped = true
+    stopWatch?.()
   }
 }
 
