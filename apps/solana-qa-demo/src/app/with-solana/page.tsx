@@ -225,7 +225,7 @@ export default function WithSolana() {
             <SignUp.Email />
             <SignUp.Divider label="or a wallet" />
             <SignUp.InstalledWallets
-              maxWallets={3}
+              maxWallets={6}
               namespaces={['eip155', 'solana'] as const}
             />
             {/* Both rows, so the sheet shows which door each one is. Each
