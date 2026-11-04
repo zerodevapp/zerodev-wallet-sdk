@@ -7,7 +7,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
+  completeVariants,
   renderTokensCss,
+  renderVariantBlocks,
   renderVariantDeclarations,
 } from '../../scripts/gen-tokens.mjs'
 import {
@@ -66,6 +68,38 @@ describe('generated tokens.css', () => {
       expect(css).toContain(`  --zd-${name}: `)
       expect(css).toContain(`@utility ${name} {`)
     }
+  })
+
+  it('carries a block per complete variant, keyed on the theme attributes', () => {
+    const css = renderVariantBlocks()
+    const complete = completeVariants().map((v) => `${v.mode}/${v.brand}`)
+    expect(complete).toContain('light/branded')
+    expect(complete).toContain('light/plain')
+    for (const { mode, brand } of completeVariants()) {
+      expect(css).toContain(
+        `:where([data-zd-mode="${mode}"][data-zd-brand="${brand}"]) {\n  color-scheme: ${mode};`,
+      )
+    }
+    // `system` takes the light values outright and the dark ones under the
+    // media query, where a dark variant is complete.
+    expect(css).toContain(
+      ':where([data-zd-mode="system"][data-zd-brand="plain"]) {\n  color-scheme: light;',
+    )
+    for (const { mode, brand } of completeVariants()) {
+      if (mode === 'dark') {
+        expect(css).toContain(
+          `@media (prefers-color-scheme: dark) {\n  :where([data-zd-mode="system"][data-zd-brand="${brand}"]) {\n    color-scheme: dark;`,
+        )
+      }
+    }
+  })
+
+  it('leaves an incomplete variant out instead of emitting a gap', () => {
+    const css = renderVariantBlocks({
+      'bg-neutral-primary': ['#ffffff', '#ffffff', null, '#000000'],
+    })
+    expect(css).toContain('[data-zd-mode="dark"][data-zd-brand="plain"]')
+    expect(css).not.toContain('[data-zd-mode="dark"][data-zd-brand="branded"]')
   })
 
   it('refuses a token whose utility would shadow a palette colour', () => {

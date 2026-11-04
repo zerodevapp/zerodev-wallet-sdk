@@ -110,4 +110,25 @@ export {
   ZeroDevLogo,
   type ZeroDevLogoProps,
 } from './components/ZeroDevLogo'
+export {
+  applyThemeToElement,
+  DEFAULT_THEME,
+  isThemeAvailable,
+  type ResolvedTheme,
+  resolveTheme,
+  type Theme,
+  type ThemeInput,
+  type ThemeModeSetting,
+  type ThemeName,
+  type ThemeTokenOverrides,
+  themeAttributes,
+  themeStyle,
+  themes,
+} from './theme/theme'
+export {
+  type ThemeBrand,
+  type ThemeMode,
+  type ThemeTokenName,
+  themeTokens,
+} from './theme/tokens'
 export { camelCaseToTitle, cn } from './utils/common'
