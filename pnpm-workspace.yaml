@@ -17,6 +17,10 @@ overrides:
   # move. Expect two "unmet peer zod" warnings under @reown/appkit-wallet on a full
   # re-resolution; they refer to that same ignored 3.22.4 copy.
   'zod@>=4 <4.6.6': '^4.6.6'
+  # node-forge 1.4.1 patches the PEM, TLS, PKCS#12, X.509 and ASN.1 advisories
+  # (GHSA-7wch-p9px-956x and others). @expo/cli and
+  # @expo/code-signing-certificates declare ^1.4.0 but the lockfile held 1.4.0.
+  'node-forge@<1.4.1': '^1.4.1'
 
 # Security: Only install packages that are at least 24 hours old (1440 minutes)
 # This helps protect against typosquatting and malicious packages
@@ -42,13 +46,6 @@ auditConfig:
     # Only the expo-example app pulls it in. Remove this entry once expo-router
     # depends on query-string >=9.5.
     - GHSA-vcc3-ghjq-m6fr
-    # node-forge RSA PKCS#1 v1.5 signature check accepts extra nested
-    # DigestAlgorithm elements (high). No patched release: every version up to
-    # 1.4.0, the latest, is affected. Pulled in by @expo/cli and
-    # @expo/code-signing-certificates, development tooling only, through
-    # expo-example and the expo peer chain behind wagmi's porto connector.
-    # Remove this entry once node-forge ships a fix.
-    - GHSA-86w9-cpqp-85rv
     # zod array validation can exhaust memory on oversized inputs (high).
     # Patched from 4.6.6; no 3.x release has the fix, and the override above
     # keeps every 4.x copy patched. Two 3.x copies remain that we do not
@@ -60,3 +57,18 @@ auditConfig:
     # hard-codes to false. @expo/cli is development tooling behind the
     # expo-example app. Remove this entry once both upstreams move to zod 4.
     - GHSA-mrhx-c7xc-m3w5
+    # decode-uri-component quadratic replacement of percent-encoded runs (high),
+    # patched in >=0.5.1 (verified 2026-11-04). Same pin as GHSA-vcc3-ghjq-m6fr
+    # above: expo-router -> query-string 7.1.3 -> decode-uri-component ^0.2.2,
+    # expo-example only. Remove with that entry.
+    - GHSA-qr28-fpjm-wq7f
+    # glob AbortSignal cancellation bypass (moderate), patched only in >=14.0.2
+    # (verified 2026-11-04). @expo/cli (latest 58.1.19) pins glob ^13, dev
+    # tooling behind expo-example; forcing glob 14 is a major bump under it.
+    # Remove once @expo/cli moves to glob >=14.0.2.
+    - GHSA-3g3m-2fjr-6pw4
+    # minimatch DoS via globparts amplification (moderate), patched only in
+    # >=11.0.1 (verified 2026-11-04). Pulled in at ^10 by glob 13 (@expo/cli,
+    # see above) and at ^3 by @eslint/eslintrc in qa-lab-testing; both are dev
+    # tooling. Remove once those upstreams move to minimatch >=11.0.1.
+    - GHSA-g3hv-75wg-m249
