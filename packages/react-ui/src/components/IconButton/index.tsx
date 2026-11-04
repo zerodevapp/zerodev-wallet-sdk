@@ -17,7 +17,10 @@ export function IconButton({ iconName, className, ...rest }: IconButtonProps) {
         className="zd:flex zd:items-center zd:justify-center zd:flex-1 zd:h-full zd:w-full zd:cursor-pointer zd:hover:bg-white/20 zd:active:bg-white/30 zd:transition-colors"
         {...rest}
       >
-        <Icon name={iconName} className="zd:h-6 zd:w-6 zd:text-greyScale" />
+        <Icon
+          name={iconName}
+          className="zd:h-6 zd:w-6 zd:icon-neutral-primary"
+        />
       </button>
     </Wrapper>
   )

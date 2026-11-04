@@ -14,21 +14,21 @@ export function ListItemSkeleton({ className }: ListItemSkeletonProps) {
   return (
     <div
       className={cn(
-        'zd:w-full zd:h-17 zd:rounded-2xl zd:border-offWhite zd:border-[0.3px]',
+        'zd:w-full zd:h-17 zd:rounded-2xl zd:border-neutral-primary zd:border-[0.3px]',
         className,
       )}
     >
       <div className="zd:flex zd:flex-row zd:justify-between zd:items-center zd:p-2">
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
-          <div className="zd:w-13 zd:h-13 zd:rounded-2xl zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:w-13 zd:h-13 zd:rounded-2xl zd:bg-inverse-hover zd:animate-skel-pulse" />
           <div className="zd:gap-2">
-            <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse zd:mb-2" />
-            <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+            <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse zd:mb-2" />
+            <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
           </div>
         </div>
         <div className="zd:gap-2">
-          <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse zd:mb-2" />
-          <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse zd:mb-2" />
+          <div className="zd:w-14 zd:h-3 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
         </div>
       </div>
     </div>
@@ -85,13 +85,13 @@ export function ListItem({
       >
         {asChild && <Slot.Slottable>{children}</Slot.Slottable>}
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-3">
-          <div className="zd:w-13 zd:h-13 zd:rounded-2xl zd:bg-white zd:flex zd:items-center zd:justify-center zd:shrink-0">
+          <div className="zd:w-13 zd:h-13 zd:rounded-2xl zd:bg-bright-primary zd:flex zd:items-center zd:justify-center zd:shrink-0">
             {icon}
           </div>
           <div className="zd:flex zd:flex-col zd:justify-center zd:text-left zd:gap-1">
             <Text className="zd:text-body1">{title}</Text>
             {typeof subtitle === 'string' ? (
-              <Text className="zd:text-body3 zd:text-greyScale/50">
+              <Text className="zd:text-body3 zd:text-neutral-tertiary">
                 {subtitle}
               </Text>
             ) : (
@@ -111,12 +111,12 @@ export interface ListItemIconProps {
 }
 
 /** Standard leading icon for the tile — pre-sized and colored for the slot;
- * override via `className` (e.g. `zd:text-solarOrange`). */
+ * override via `className` (e.g. `zd:icon-brand-primary`). */
 export function ListItemIcon({ name, className }: ListItemIconProps) {
   return (
     <Icon
       name={name}
-      className={cn('zd:w-6 zd:h-6 zd:text-greyScale', className)}
+      className={cn('zd:w-6 zd:h-6 zd:icon-neutral-primary', className)}
     />
   )
 }
@@ -125,7 +125,10 @@ export function ListItemIcon({ name, className }: ListItemIconProps) {
 export function ListItemChevron() {
   return (
     <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
-      <Icon name="chevronRight" className="zd:h-6 zd:w-6 zd:text-greyScale" />
+      <Icon
+        name="chevronRight"
+        className="zd:h-6 zd:w-6 zd:icon-neutral-primary"
+      />
     </div>
   )
 }

@@ -46,7 +46,7 @@ export function TokenSummary({
         )}
       </Wrapper>
       {/* Token tile — straddles the card's top edge, centred. */}
-      <div className="zd:absolute zd:top-0 zd:left-1/2 zd:size-18.5 zd:-translate-x-1/2 zd:rounded-3xl zd:border zd:border-white/20 zd:bg-offWhite/80 zd:backdrop-blur-[15px]">
+      <div className="zd:absolute zd:top-0 zd:left-1/2 zd:size-18.5 zd:-translate-x-1/2 zd:rounded-3xl zd:border zd:border-neutral-secondary zd:bg-neutral-primary zd:backdrop-blur-[15px]">
         {tokenLogoUrl && (
           <img
             src={tokenLogoUrl}

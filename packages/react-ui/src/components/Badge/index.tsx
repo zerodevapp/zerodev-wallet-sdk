@@ -11,8 +11,8 @@ export interface BadgeProps {
 }
 
 const variantStyles = {
-  primary: 'zd:bg-white/40',
-  secondary: 'zd:bg-orange/10',
+  primary: 'zd:bg-bright-secondary',
+  secondary: 'zd:bg-warning-subtle',
 }
 
 export function Badge({
@@ -33,7 +33,7 @@ export function Badge({
       {leadingIcon && (
         <Icon
           name={leadingIcon}
-          className="zd:w-3 zd:h-3 zd:text-solarOrange"
+          className="zd:w-3 zd:h-3 zd:icon-brand-primary"
         />
       )}
       <Text className="zd:text-body3">{text}</Text>

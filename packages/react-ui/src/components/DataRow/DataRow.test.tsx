@@ -153,22 +153,22 @@ describe('DataRow', () => {
 
   it('applies default styling (no orange text)', () => {
     render(<DataRow label="X" value="Y" />)
-    expect(screen.getByText('X').className).not.toContain('solarOrange')
+    expect(screen.getByText('X').className).not.toContain('brand-primary')
   })
 
   it('warning variant tints the card but keeps label and value in default ink', () => {
     const { container } = render(
       <DataRow label="Minimum deposit" value="27.88 USDC" variant="warning" />,
     )
-    // Card treatment: orange-tinted background on the root
+    // Card treatment: warning-tinted background on the root
     const root = container.firstChild as HTMLElement
-    expect(root.style.backgroundColor).toBe('rgba(242, 123, 62, 0.1)')
+    expect(root.className).toContain('zd:bg-warning-subtle')
     // Text stays default ink (design review: no orange label/value)
     expect(screen.getByText('Minimum deposit').className).not.toContain(
-      'solarOrange',
+      'brand-primary',
     )
     expect(screen.getByText('27.88 USDC').className).not.toContain(
-      'solarOrange',
+      'brand-primary',
     )
   })
 

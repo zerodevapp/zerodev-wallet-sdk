@@ -49,13 +49,13 @@ export const WithIcon: Story = {
 
 export const WithDetails: Story = {
   args: {
-    icon: <ListItemIcon name="wallet" className="zd:text-solarOrange" />,
+    icon: <ListItemIcon name="wallet" className="zd:icon-brand-primary" />,
     title: 'Transaction',
     subtitle: 'Pending',
     trailing: (
       <div className="zd:flex zd:flex-col zd:pr-1">
         <Text className="zd:text-body1">$100.00</Text>
-        <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
+        <Text className="zd:text-body3 zd:text-neutral-tertiary zd:self-end">
           USD
         </Text>
       </div>
