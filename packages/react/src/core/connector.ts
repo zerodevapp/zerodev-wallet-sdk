@@ -383,13 +383,25 @@ export function zeroDevWalletCore(
       async disconnect() {
         console.log('Disconnecting ZeroDevWallet...')
         if (!store) return
-        const wallet = store.getState().wallet
+        const { wallet, session } = store.getState()
 
         // Stop refresh immediately when the user asks to disconnect. If
         // remote revocation fails, Core keeps the credentials for an explicit
         // retry, but this dead provider cannot silently extend the session.
         resetProvider()
-        await wallet?.logout()
+        // Only this tab's account: another tab may have signed in to another
+        // one since. A tab that never learned its session logs out whatever
+        // is stored, as before.
+        await wallet?.logout(
+          session
+            ? {
+                account: {
+                  organizationId: session.organizationId,
+                  userId: session.userId,
+                },
+              }
+            : undefined,
+        )
         store.getState().clear()
       },
 

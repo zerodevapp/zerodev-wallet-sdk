@@ -1,5 +1,5 @@
 import type { KernelSmartAccountImplementation } from '@zerodev/sdk'
-import { normalizeTimestamp } from '@zerodev/wallet-core'
+import { normalizeTimestamp, withCrossTabLock } from '@zerodev/wallet-core'
 import { Provider } from 'ox'
 import type { Chain, LocalAccount } from 'viem'
 import type { SmartAccount } from 'viem/account-abstraction'
@@ -74,6 +74,38 @@ export function createProvider({
   let sessionRefreshTimer: ReturnType<typeof setTimeout> | null = null
   let refreshPromise: Promise<void> | null = null
 
+  // Another tab may already have stored a newer session for this account, e.g.
+  // while this tab slept past expiry. Adopt it instead of signing out; Core
+  // reloads the key on its next request. The read waits out another tab's
+  // commit, so it never sees a session halfway through being replaced.
+  const clearUnlessRefreshedElsewhere = async (
+    session: NonNullable<ReturnType<typeof store.getState>['session']>,
+  ) => {
+    const wallet = store.getState().wallet
+    const stored = await withCrossTabLock(
+      async () => {
+        try {
+          return await wallet?.getSession()
+        } catch {
+          return undefined
+        }
+      },
+      { mode: 'shared' },
+    )
+    if (store.getState().session?.id !== session.id) return
+    if (
+      stored &&
+      stored.id !== session.id &&
+      stored.organizationId === session.organizationId &&
+      stored.userId === session.userId &&
+      normalizeTimestamp(stored.expiry) > Date.now()
+    ) {
+      store.getState().setSession(stored)
+      return
+    }
+    store.getState().clear()
+  }
+
   // Session auto-refresh logic
   const scheduleSessionRefresh = () => {
     if (config.autoRefreshSession === false) return
@@ -90,7 +122,7 @@ export function createProvider({
       // the pre-expiry refresh timer never fired. Drop the dead session so the
       // app re-authenticates instead of hammering the backend with the expired
       // key (DPL-662). Mirrors the refresh-failure path below.
-      store.getState().clear()
+      clearUnlessRefreshedElsewhere(state.session).catch(() => {})
       return
     }
 
@@ -125,7 +157,7 @@ export function createProvider({
     const wallet = state.wallet
     const session = state.session
     if (normalizeTimestamp(session.expiry) <= Date.now()) {
-      store.getState().clear()
+      await clearUnlessRefreshedElsewhere(session)
       return
     }
 
@@ -166,8 +198,10 @@ export function createProvider({
           err.status === 401
         ) {
           try {
-            await wallet.logout()
-            store.getState().clear()
+            // Only the rejected session: another tab may have signed in since,
+            // or refreshed this account, whose session this tab then adopts.
+            await wallet.logout({ sessionId: session.id })
+            await clearUnlessRefreshedElsewhere(session)
             return
           } catch (logoutError) {
             console.error('Failed to clear rejected session:', logoutError)
@@ -176,7 +210,7 @@ export function createProvider({
 
         const timeRemaining = normalizeTimestamp(session.expiry) - Date.now()
         if (timeRemaining <= 0) {
-          store.getState().clear()
+          await clearUnlessRefreshedElsewhere(session)
           return
         }
         // A temporary backend/network failure must not discard a still-valid

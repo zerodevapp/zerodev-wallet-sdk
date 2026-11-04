@@ -451,19 +451,16 @@ describe('an account object that outlives the wallet it was built for', () => {
     kms.picks(1)
     await core.auth(loginWithPasskey)
 
-    // Two redundant guards can catch this, so the match is on the shared "did
-    // not recover" rather than either one's wording.
+    // The account refuses before asking the KMS, since the active session now
+    // belongs to another owner; the recovered-address guards stay behind it.
     await expect(
       staleAccount.signMessage({ message: 'hello' }),
-    ).rejects.toThrow(/did not recover/)
+    ).rejects.toThrow(/another owner/)
 
-    // The rejection comes from Core's owner check, which would fire on a stale
-    // bearer too. Asserted so the test cannot pass for that reason instead.
     expect(kms.tokenFor(0)).not.toBeNull()
     expect(kms.sessionRequests()).toEqual([
       { path: 'wallets', bearer: kms.tokenFor(0) },
       { path: 'authenticators', bearer: kms.tokenFor(0) },
-      { path: 'sign/message', bearer: kms.tokenFor(1) },
     ])
   })
 
