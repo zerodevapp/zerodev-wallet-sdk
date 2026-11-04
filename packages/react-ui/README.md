@@ -79,6 +79,22 @@ text utilities — which the components reference. Consuming apps that use Tailw
 can scan this package's source (the published `src/` is included for that
 purpose) to pick up the same tokens.
 
+### Semantic colour tokens
+
+`src/theme/tokens.ts` is the single source of truth for every themed colour:
+one row per token (`bg-neutral-primary`, `text-brand-inverse`,
+`border-error-primary`, …) with a value per theme variant. The variants form
+the design system's 2×2 grid, light or dark × branded or plain; branded light
+is the default and the only one the stylesheet applies today.
+
+`pnpm gen:tokens` renders the table into `src/theme/tokens.css`: a
+`--zd-<token>` custom property per token on `:root`, and a `zd:<token>`
+utility (`zd:bg-neutral-primary`, `zd:text-neutral-secondary`,
+`zd:icon-brand-primary`, `zd:border-neutral-primary`) that reads it. Values
+carry their own alpha, so the utilities take no opacity modifier. Both files
+are committed; `tokens.test.ts` fails when they drift. A host restyles the
+UI by setting the custom properties from its own stylesheet.
+
 ## Development
 
 ```bash
