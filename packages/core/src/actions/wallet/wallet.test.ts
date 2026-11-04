@@ -270,7 +270,8 @@ describe('signMessage', () => {
     expect(parsed.message).toBe('Hello')
     expect(parsed.encoding).toBe('utf8')
     expect(parsed.turnkeyPayload).toBeDefined()
-    expect(parsed.stampHeader.stampHeaderName).toBe('X-Stamp-Webauthn')
+    // Fixed to X-Stamp even though the mock stamper names its header X-Stamp-Webauthn
+    expect(parsed.stampHeader.stampHeaderName).toBe('X-Stamp')
     expect(parsed.stampHeader.stampHeaderValue).toBe('mock-stamp-value')
   })
 
@@ -303,8 +304,8 @@ describe('signMessage', () => {
     )
     expect(body.turnkeyPayload.organizationId).toBe('org-123')
 
-    // Embedded inner stamp
-    expect(body.stampHeader.stampHeaderName).toBe('X-Stamp-Webauthn')
+    // Embedded inner stamp, header name fixed to what the KMS accepts
+    expect(body.stampHeader.stampHeaderName).toBe('X-Stamp')
     expect(body.stampHeader.stampHeaderValue).toBe('mock-stamp-value')
   })
 
