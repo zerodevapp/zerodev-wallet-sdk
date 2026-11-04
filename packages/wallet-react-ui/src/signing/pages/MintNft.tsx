@@ -90,7 +90,7 @@ export function MintNft({ contract, data, confirm, reject }: MintNftProps) {
                   trailing={
                     <Icon
                       name="gasStation"
-                      className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                      className="zd:w-4 zd:h-4 zd:icon-brand-primary"
                     />
                   }
                 />
