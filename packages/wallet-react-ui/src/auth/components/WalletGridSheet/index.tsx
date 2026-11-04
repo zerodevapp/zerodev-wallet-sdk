@@ -21,13 +21,13 @@ function WalletTile({ tile }: { tile: WalletTileData }) {
       onClick={tile.onSelect}
       className="zd:flex zd:flex-col zd:items-center zd:gap-1.5 zd:cursor-pointer"
     >
-      <div className="zd:w-16 zd:h-16 zd:rounded-2xl zd:bg-greyScale/5 zd:flex zd:items-center zd:justify-center">
+      <div className="zd:w-16 zd:h-16 zd:rounded-2xl zd:bg-inverse-hover zd:flex zd:items-center zd:justify-center">
         {tile.icon ? (
           <img src={tile.icon} alt="" className="zd:w-8 zd:h-8" />
         ) : (
           <Icon
             name="walletOutline"
-            className="zd:w-8 zd:h-8 zd:text-greyScale"
+            className="zd:w-8 zd:h-8 zd:icon-neutral-primary"
           />
         )}
       </div>
@@ -60,7 +60,7 @@ export function WalletGridSheet({
             <button
               type="button"
               aria-label="Close"
-              className="zd:cursor-pointer zd:px-2 zd:text-greyScale/60"
+              className="zd:cursor-pointer zd:px-2 zd:text-neutral-tertiary"
             >
               ✕
             </button>

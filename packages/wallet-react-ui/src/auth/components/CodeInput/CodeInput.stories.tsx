@@ -58,25 +58,25 @@ export const AllStates: Story = {
   render: () => (
     <div className="zd:flex zd:flex-col zd:gap-8 zd:items-center">
       <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-        <span className="zd:text-sm zd:text-gray-500 zd:font-medium">
+        <span className="zd:text-sm zd:text-neutral-tertiary zd:font-medium">
           Default (6)
         </span>
         <CodeInput onComplete={() => window.alert('Completed')} />
       </div>
       <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-        <span className="zd:text-sm zd:text-gray-500 zd:font-medium">
+        <span className="zd:text-sm zd:text-neutral-tertiary zd:font-medium">
           4 digits
         </span>
         <CodeInput length={4} />
       </div>
       <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-        <span className="zd:text-sm zd:text-gray-500 zd:font-medium">
+        <span className="zd:text-sm zd:text-neutral-tertiary zd:font-medium">
           8 digits
         </span>
         <CodeInput length={8} />
       </div>
       <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-        <span className="zd:text-sm zd:text-gray-400 zd:font-medium">
+        <span className="zd:text-sm zd:text-neutral-tertiary zd:font-medium">
           Disabled
         </span>
         <CodeInput disabled />

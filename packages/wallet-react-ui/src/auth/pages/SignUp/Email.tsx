@@ -65,7 +65,7 @@ export function SignUpEmail() {
     >
       {isEmailLoading ? (
         <div className="zd:w-13 zd:h-13 zd:flex zd:items-center zd:justify-center">
-          <div className="zd:w-5 zd:h-5 zd:border-2 zd:border-solarOrange zd:border-t-transparent zd:rounded-full zd:animate-spin" />
+          <div className="zd:w-5 zd:h-5 zd:border-2 zd:border-brand-inverse zd:border-t-transparent zd:rounded-full zd:animate-spin" />
         </div>
       ) : (
         <button
@@ -78,7 +78,7 @@ export function SignUpEmail() {
           }`}
           onClick={() => handleSubmit()}
         >
-          <Icon name="chevronRight" className="zd:text-greyScale" />
+          <Icon name="chevronRight" className="zd:icon-neutral-primary" />
         </button>
       )}
     </Input>

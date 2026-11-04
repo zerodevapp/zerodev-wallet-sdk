@@ -118,7 +118,7 @@ function SheetBody({
           <button
             type="button"
             aria-label="Close"
-            className="zd:cursor-pointer zd:px-2 zd:text-greyScale/60"
+            className="zd:cursor-pointer zd:px-2 zd:text-neutral-tertiary"
           >
             ✕
           </button>
@@ -134,8 +134,8 @@ function SheetBody({
               onClick={() => setTab(t)}
               className={`zd:flex-1 zd:rounded-2xl zd:py-1.5 zd:text-body3 zd:cursor-pointer ${
                 tab === t
-                  ? 'zd:bg-greyScale/10 zd:font-semibold'
-                  : 'zd:text-greyScale/60'
+                  ? 'zd:bg-inverse-hover zd:font-semibold'
+                  : 'zd:text-neutral-tertiary'
               }`}
             >
               {t === 'mobile' ? 'Mobile' : 'Browser'}
@@ -147,24 +147,26 @@ function SheetBody({
       {!wallet || tab === 'mobile' ? (
         shownError ? (
           <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-            <Text className="zd:text-center zd:text-red-500">{shownError}</Text>
+            <Text className="zd:text-center zd:text-error-primary">
+              {shownError}
+            </Text>
             <Button action="secondary" text="Try again" onClick={retry} />
           </div>
         ) : (
           <>
-            <div className="zd:bg-white zd:rounded-2xl zd:p-2 zd:border zd:border-greyScale/10">
+            <div className="zd:bg-bright-primary zd:rounded-2xl zd:p-2 zd:border zd:border-inverse-secondary">
               {qrValue ? (
                 <QrCode value={qrValue} size={176} />
               ) : (
                 <div className="zd:w-[176px] zd:h-[176px] zd:flex zd:items-center zd:justify-center">
-                  <div className="zd:w-8 zd:h-8 zd:border-2 zd:border-solarOrange zd:border-t-transparent zd:rounded-full zd:animate-spin" />
+                  <div className="zd:w-8 zd:h-8 zd:border-2 zd:border-brand-inverse zd:border-t-transparent zd:rounded-full zd:animate-spin" />
                 </div>
               )}
             </div>
             {qrValue && wallet?.mobileLink && (
               <a
                 href={qrValue}
-                className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
+                className="zd:w-full zd:rounded-2xl zd:bg-inverse-hover zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
               >
                 Open in {wallet.name}
               </a>
@@ -179,7 +181,9 @@ function SheetBody({
         )
       ) : shownError ? (
         <div className="zd:flex zd:flex-col zd:gap-2 zd:items-center">
-          <Text className="zd:text-center zd:text-red-500">{shownError}</Text>
+          <Text className="zd:text-center zd:text-error-primary">
+            {shownError}
+          </Text>
           <Button
             action="secondary"
             text="Try again"
@@ -190,7 +194,7 @@ function SheetBody({
         <button
           type="button"
           onClick={connectInstalled}
-          className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
+          className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:bg-inverse-hover zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
         >
           Open in {wallet.name}
         </button>
@@ -200,7 +204,7 @@ function SheetBody({
             href={wallet.downloadUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="zd:w-full zd:rounded-2xl zd:bg-greyScale/10 zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
+            className="zd:w-full zd:rounded-2xl zd:bg-inverse-hover zd:py-2 zd:text-center zd:text-body2 zd:font-semibold"
           >
             Get {wallet.name}
           </a>
