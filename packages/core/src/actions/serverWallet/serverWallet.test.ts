@@ -18,6 +18,7 @@ import type { SigningStamper, Stamp } from '../../stampers/types.js'
 import type { TurnkeyPayload } from '../wallet/signingUtils.js'
 import { createServerWallet } from './createServerWallet.js'
 import { createServerWalletAddress } from './createServerWalletAddress.js'
+import { getServerWallets } from './getServerWallets.js'
 import { sign7702Authorization } from './sign7702Authorization.js'
 import { signMessage } from './signMessage.js'
 import { signTransaction } from './signTransaction.js'
@@ -279,6 +280,72 @@ describe('createServerWallet', () => {
     ).rejects.toThrow('createServerWallet needs an organizationId')
     expect(stamper.stamp).not.toHaveBeenCalled()
     expect(request).not.toHaveBeenCalled()
+  })
+})
+
+describe('getServerWallets', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('stamps the X-Timestamp value the KMS rebuilds and sends it under the agent header', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(NOW)
+    const stamper = echoStamper()
+    const addresses = { walletAddresses: [WALLET.walletAddress] }
+    const { client, request } = fakeClient(stamper, { response: addresses })
+
+    await expect(
+      getServerWallets(client, { projectId: 'project' }),
+    ).resolves.toEqual(addresses)
+
+    // A GET carries no body: the only thing signed is the timestamp header.
+    expect(vi.mocked(stamper.stamp).mock.calls).toEqual([[String(NOW)]])
+    const call = firstCall<undefined>(request)
+    expect(call.path).toBe('project/server-wallet/wallets')
+    expect(call.method).toBe('GET')
+    expect(call.body).toBeUndefined()
+    expect(call.headers).toEqual({
+      'X-Timestamp': String(NOW),
+      'X-Agent-Stamp': `signed:${NOW}`,
+    })
+  })
+
+  it('produces a stamp the KMS verifier accepts over the timestamp it reads back', async () => {
+    const { client, request } = fakeClient(
+      createPrivateKeyStamper(TEST_PRIVATE_KEY),
+      { response: { walletAddresses: [] } },
+    )
+
+    await getServerWallets(client, { projectId: 'project' })
+
+    const call = firstCall<undefined>(request)
+    const { envelope, verified } = verifyLikeKms(
+      call.headers['X-Agent-Stamp']!,
+      call.headers['X-Timestamp']!,
+    )
+    expect(verified).toBe(true)
+    expect(envelope.publicKey).toBe(TEST_PUBLIC_KEY)
+  })
+
+  it('returns an empty list when the KMS answers null for an empty set', async () => {
+    const { client } = fakeClient(echoStamper(), {
+      response: { walletAddresses: null },
+    })
+
+    await expect(
+      getServerWallets(client, { projectId: 'project' }),
+    ).resolves.toEqual({ walletAddresses: [] })
+  })
+
+  it('needs no organizationId: the KMS resolves the set from the agent key', async () => {
+    const { client } = fakeClient(echoStamper(), {
+      response: { walletAddresses: [] },
+    })
+
+    await expect(
+      getServerWallets(client, { projectId: 'project' }),
+    ).resolves.toEqual({ walletAddresses: [] })
   })
 })
 
