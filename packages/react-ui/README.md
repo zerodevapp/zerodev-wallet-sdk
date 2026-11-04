@@ -92,8 +92,41 @@ is the default and the only one the stylesheet applies today.
 utility (`zd:bg-neutral-primary`, `zd:text-neutral-secondary`,
 `zd:icon-brand-primary`, `zd:border-neutral-primary`) that reads it. Values
 carry their own alpha, so the utilities take no opacity modifier. Both files
-are committed; `tokens.test.ts` fails when they drift. A host restyles the
-UI by setting the custom properties from its own stylesheet.
+are committed; `tokens.test.ts` fails when they drift.
+
+### Theming
+
+A theme is a point on that grid plus optional token overrides. `Screen`
+takes it as `theme`: a preset name or an object.
+
+```tsx
+<Screen theme="plain-light">…</Screen>
+
+<Screen
+  theme={{
+    ...themes.plainLight,
+    tokens: { 'bg-neutral-primary': '#0b1020' },
+  }}
+>
+  …
+</Screen>
+```
+
+- `mode`: `light`, `dark`, or `system` (follows `prefers-color-scheme`).
+- `brand`: `branded` keeps the ZeroDev look; `plain` folds the brand onto
+  neutrals.
+- `tokens`: per-token overrides, typed from the table.
+
+Under the hood `Screen` writes `data-zd-mode` and `data-zd-brand` on its
+root (and on the portal root, so tooltips and sheets follow) and the token
+overrides as inline custom properties; `tokens.css` carries a block per
+variant keyed on those attributes. No React is needed to theme: set the two
+attributes on any ancestor, or override the `--zd-*` properties from a
+stylesheet. A host rule on the surface beats the preset, and the inline
+overrides beat both.
+
+The stylesheet carries a variant only once every token states a value for
+it; `isThemeAvailable` tells. Today that is the two light variants.
 
 ## Development
 

@@ -3,9 +3,20 @@ import {
   createContext,
   type ReactNode,
   useContext,
+  useEffect,
+  useMemo,
   useState,
 } from 'react'
+import {
+  applyThemeToElement,
+  type ResolvedTheme,
+  resolveTheme,
+  type ThemeInput,
+  themeAttributes,
+  themeStyle,
+} from '../../theme/theme'
 import { cn } from '../../utils/common'
+import { getZdPortalRoot } from '../../utils/portal'
 import { TOP_NAV_HEIGHT } from '../TopNav'
 import {
   CardGlow,
@@ -34,6 +45,7 @@ export function Screen({
   className,
   contentClassName,
   size = 'lg',
+  theme,
   style,
   topNav,
   footer,
@@ -43,6 +55,10 @@ export function Screen({
   className?: string | undefined
   contentClassName?: string | undefined
   size?: 'sm' | 'md' | 'lg' | undefined
+  /** The theme: a preset name (`'plain-dark'`), or mode, brand and token
+   * overrides. Omitted, the frame inherits whatever theme an ancestor sets,
+   * else the default (branded light). See `Theme`. */
+  theme?: ThemeInput | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
   /** Pinned bottom band — mirrors `topNav`. Same edge-to-edge, blurred
@@ -56,9 +72,28 @@ export function Screen({
   const [overlayContainer, setOverlayContainer] =
     useState<HTMLDivElement | null>(null)
 
+  // Keyed on the resolved value, not the prop's identity: a host passing an
+  // inline object must not re-run the portal sync every render.
+  const themeKey =
+    theme === undefined ? null : JSON.stringify(resolveTheme(theme))
+  const resolvedTheme = useMemo(
+    (): ResolvedTheme | null =>
+      themeKey === null ? null : (JSON.parse(themeKey) as ResolvedTheme),
+    [themeKey],
+  )
+  // Surfaces that portal out of the frame (tooltips, selects) land in the
+  // portal root on document.body, outside this element's attributes and
+  // inline properties; mirror the theme there. With several themed frames
+  // mounted at once the latest one wins, and its unmount clears it.
+  useEffect(() => {
+    if (resolvedTheme === null) return
+    return applyThemeToElement(getZdPortalRoot(), resolvedTheme)
+  }, [resolvedTheme])
+
   return (
     <div
       data-zd-size={size}
+      {...(resolvedTheme && themeAttributes(resolvedTheme))}
       className={cn(
         // Style boundary. reset.css scopes its preflight replacement under
         // this class.
@@ -76,7 +111,7 @@ export function Screen({
         'zd:w-100 zd:h-202.5 zd:max-w-full zd:max-h-full zd:overflow-hidden zd:rounded-[38px]',
         className,
       )}
-      style={style}
+      style={resolvedTheme ? { ...themeStyle(resolvedTheme), ...style } : style}
     >
       {/* Gradient border layer — fills the frame; the card on top has a 6px
           margin so this shows as the border ring. */}

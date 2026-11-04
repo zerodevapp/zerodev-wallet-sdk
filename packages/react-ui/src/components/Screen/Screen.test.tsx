@@ -8,6 +8,50 @@ afterEach(() => {
 })
 
 describe('Screen', () => {
+  describe('theme', () => {
+    it('writes no theme attributes when none is given', () => {
+      const { container } = render(<Screen>x</Screen>)
+      const root = container.firstChild as HTMLElement
+      expect(root.hasAttribute('data-zd-mode')).toBe(false)
+      expect(root.hasAttribute('data-zd-brand')).toBe(false)
+    })
+
+    it('writes the preset attributes and token overrides on the root', () => {
+      const { container } = render(
+        <Screen
+          theme={{
+            mode: 'system',
+            brand: 'plain',
+            tokens: { 'bg-neutral-primary': '#0b1020' },
+          }}
+        >
+          x
+        </Screen>,
+      )
+      const root = container.firstChild as HTMLElement
+      expect(root.getAttribute('data-zd-mode')).toBe('system')
+      expect(root.getAttribute('data-zd-brand')).toBe('plain')
+      expect(root.style.getPropertyValue('--zd-bg-neutral-primary')).toBe(
+        '#0b1020',
+      )
+    })
+
+    it('accepts a preset name', () => {
+      const { container } = render(<Screen theme="plain-light">x</Screen>)
+      const root = container.firstChild as HTMLElement
+      expect(root.getAttribute('data-zd-mode')).toBe('light')
+      expect(root.getAttribute('data-zd-brand')).toBe('plain')
+    })
+
+    it('mirrors the theme onto the portal root and clears it on unmount', () => {
+      const { unmount } = render(<Screen theme="plain-light">x</Screen>)
+      const portalRoot = document.getElementById('zd-portal-root')
+      expect(portalRoot?.getAttribute('data-zd-brand')).toBe('plain')
+      unmount()
+      expect(portalRoot?.hasAttribute('data-zd-brand')).toBe(false)
+    })
+  })
+
   describe('rendering', () => {
     it('renders children', () => {
       const { container } = render(

@@ -155,6 +155,28 @@ export const themeTokens = {
 
 export type ThemeTokenName = keyof typeof themeTokens
 
+/** Column of `variant` in every row of the table. */
+export function themeVariantIndex(mode: ThemeMode, brand: ThemeBrand): number {
+  return THEME_VARIANTS.findIndex((v) => v.mode === mode && v.brand === brand)
+}
+
+/**
+ * Whether every token states a value for the variant. The stylesheet only
+ * carries complete variants, so a preset for an incomplete one falls back
+ * to the default values.
+ */
+export function isThemeVariantComplete(
+  mode: ThemeMode,
+  brand: ThemeBrand,
+  tokens: Record<string, ThemeValues> = themeTokens,
+): boolean {
+  const column = themeVariantIndex(mode, brand)
+  return (
+    column >= 0 &&
+    Object.values(tokens).every((values) => values[column] !== null)
+  )
+}
+
 /** The CSS custom property a token is read from, e.g. `--zd-bg-neutral-primary`. */
 export function themeTokenVar(name: ThemeTokenName): `--zd-${ThemeTokenName}` {
   return `--zd-${name}`

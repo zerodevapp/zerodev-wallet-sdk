@@ -1,4 +1,4 @@
-import { Screen, TopNav } from '@zerodev/react-ui'
+import { Screen, type ThemeInput, TopNav } from '@zerodev/react-ui'
 import { type ReactNode, useEffect } from 'react'
 import { StatusScreen } from '../shared/components/StatusScreen'
 import { useAuth } from './hooks/useAuth'
@@ -60,11 +60,16 @@ function renderStep(
 export function ConnectWallet({
   onClose: userOnClose,
   size,
+  theme,
   renderSignUp,
   logo,
 }: {
   onClose?: (() => void) | undefined
   size?: 'sm' | 'md' | 'lg' | undefined
+  /** The theme: a preset name such as `'plain-dark'`, or mode, brand and
+   * token overrides. Omitted, the card follows any theme an ancestor sets,
+   * else the default (branded light). */
+  theme?: ThemeInput | undefined
   /** Replace the default sign-up page: compose `SignUp.*` units inside
    * `<SignUp>`. Omit to render the canonical page (`SignUp.Default`). */
   renderSignUp?: (() => ReactNode) | undefined
@@ -92,6 +97,7 @@ export function ConnectWallet({
   return (
     <Screen
       {...(size && { size })}
+      {...(theme !== undefined && { theme })}
       // Sign-up shrinks to its content (few methods → shorter card) but never
       // grows past the standard height; other steps keep the fixed size.
       className={step === 'sign-up' ? 'zd:h-auto zd:max-h-202.5' : undefined}
