@@ -53,14 +53,13 @@ export function TooltipContent({
       sideOffset={sideOffset}
       className={cn(
         'zd:z-50 zd:max-w-[220px] zd:rounded-lg zd:px-2 zd:py-1.5',
-        'zd:text-body3 zd:font-semibold zd:text-white zd:text-center',
+        'zd:bg-inverse-primary zd:text-body3 zd:font-semibold zd:text-inverse-primary zd:text-center',
         'zd:shadow-[0_8px_22px_-10px_rgba(25,17,11,0.45)]',
         // Match the popper-in animation used by Select so all our floating
         // surfaces share one motion vocabulary.
         'zd:data-[state=delayed-open]:animate-popper-in',
         className,
       )}
-      style={{ backgroundColor: 'rgba(25, 17, 11, 0.94)' }}
       {...props}
     />
   )

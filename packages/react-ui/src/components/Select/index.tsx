@@ -66,7 +66,10 @@ export function SelectIcon({
       {...props}
     >
       {children ?? (
-        <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+        <Icon
+          name="chevronDown"
+          className="zd:size-4 zd:icon-neutral-primary"
+        />
       )}
     </SelectPrimitive.Icon>
   )
@@ -105,10 +108,8 @@ export function SelectContent({
         }}
       >
         <Wrapper
+          // Opaque: a dropdown over content must not let it bleed through.
           variant="solid"
-          // Override Wrapper's 80% white translucency — a dropdown over
-          // content shouldn't let the content bleed through.
-          style={{ backgroundColor: '#fff' }}
           className="zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden"
         >
           <SelectPrimitive.Viewport className="zd:overflow-y-auto zd:max-h-80">
@@ -137,8 +138,8 @@ export function SelectItem({
         // Default padding for plain-text items. Complex children with their
         // own padding (e.g. `<TokenListItem>`) opt out via `className="zd:p-0"`.
         'zd:relative zd:outline-none zd:cursor-pointer zd:px-3 zd:py-2',
-        'zd:data-[highlighted]:bg-offWhite/40',
-        'zd:data-[state=checked]:bg-offWhite/60',
+        'zd:data-[highlighted]:bg-neutral-secondary',
+        'zd:data-[state=checked]:bg-neutral-primary',
         className,
       )}
       {...props}
@@ -158,7 +159,10 @@ export function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       ref={ref}
-      className={cn('zd:h-px zd:bg-offWhite/50 zd:mx-2 zd:my-1', className)}
+      className={cn(
+        'zd:h-px zd:bg-neutral-secondary zd:mx-2 zd:my-1',
+        className,
+      )}
       {...props}
     />
   )

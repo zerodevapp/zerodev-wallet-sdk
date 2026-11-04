@@ -26,7 +26,7 @@ export function Section({
           {iconName && (
             <Icon
               name={iconName}
-              className="zd:h-4 zd:w-4 zd:text-solarOrange"
+              className="zd:h-4 zd:w-4 zd:icon-brand-primary"
             />
           )}
           <Text className="zd:text-h3">{title}</Text>
@@ -39,7 +39,7 @@ export function Section({
           >
             <Icon
               name={collapsed ? 'chevronDown' : 'chevronUp'}
-              className="zd:w-4 zd:h-4 zd:text-greyScale"
+              className="zd:w-4 zd:h-4 zd:icon-neutral-primary"
             />
           </button>
         )}

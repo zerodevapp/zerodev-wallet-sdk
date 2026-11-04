@@ -55,9 +55,9 @@ export function DataRow({
         'zd:relative zd:flex zd:w-full zd:items-center',
         isWarning
           ? // Warning: card treatment — 14px radius, border, backdrop blur,
-            // 10% orange tint, universal inner shadow, tighter row padding.
+            // warning tint, universal inner shadow, tighter row padding.
             [
-              'zd:gap-2 zd:overflow-hidden zd:rounded-[14px] zd:border-[0.3px] zd:border-offWhite zd:px-4 zd:py-2 zd:backdrop-blur-[15px]',
+              'zd:gap-2 zd:overflow-hidden zd:rounded-[14px] zd:border-[0.3px] zd:border-neutral-primary zd:bg-warning-subtle zd:px-4 zd:py-2 zd:backdrop-blur-[15px]',
               'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
             ]
           : // Default: plain inline row with a 4px gap between children and
@@ -65,9 +65,6 @@ export function DataRow({
             'zd:gap-1 zd:py-1',
         className,
       )}
-      style={
-        isWarning ? { backgroundColor: 'rgba(242, 123, 62, 0.1)' } : undefined
-      }
     >
       <Text className="zd:whitespace-nowrap">{label}</Text>
       {info && (
@@ -89,8 +86,8 @@ export function DataRow({
                 className={cn(
                   'zd:w-3.5 zd:h-3.5',
                   isWarning
-                    ? 'zd:text-solarOrange zd:opacity-50'
-                    : 'zd:text-greyScale/50',
+                    ? 'zd:icon-brand-primary zd:opacity-50'
+                    : 'zd:icon-neutral-tertiary',
                 )}
                 aria-hidden
               />
@@ -114,8 +111,8 @@ export function DataRow({
                 className={cn(
                   'zd:w-3.5 zd:h-3.5',
                   isWarning
-                    ? 'zd:text-solarOrange zd:opacity-50'
-                    : 'zd:text-greyScale/50',
+                    ? 'zd:icon-brand-primary zd:opacity-50'
+                    : 'zd:icon-neutral-tertiary',
                 )}
                 aria-hidden
               />
@@ -160,9 +157,9 @@ export function DataRowSkeleton({ label, className }: DataRowSkeletonProps) {
       {label ? (
         <Text>{label}</Text>
       ) : (
-        <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
       )}
-      <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+      <div className="zd:w-24 zd:h-3 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
     </div>
   )
 }

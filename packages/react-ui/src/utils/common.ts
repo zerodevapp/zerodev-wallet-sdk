@@ -1,13 +1,40 @@
 import { type ClassValue, clsx } from 'clsx'
 import { extendTailwindMerge } from 'tailwind-merge'
+import {
+  type ThemeTokenName,
+  type TokenRole,
+  themeTokens,
+} from '../theme/tokens'
 
-const customTwMerge = extendTailwindMerge({
+/** The utility tails of one token role: `neutral-primary` for
+ * `bg-neutral-primary`, so tailwind-merge can file `zd:bg-neutral-primary`
+ * with the other background colours. */
+function tokenTails(role: TokenRole): string[] {
+  return (Object.keys(themeTokens) as ThemeTokenName[])
+    .filter((name) => name.startsWith(`${role}-`))
+    .map((name) => name.slice(role.length + 1))
+}
+
+const customTwMerge = extendTailwindMerge<'icon-color'>({
   prefix: 'zd',
   extend: {
     classGroups: {
       'font-size': [
         { text: ['h1', 'h2', 'h3', 'body1', 'body2', 'body3', 'body4'] },
       ],
+      // The semantic token utilities (theme/tokens.css) merge like the
+      // palette colours they replace: a later `zd:bg-*` wins.
+      'bg-color': [{ bg: tokenTails('bg') }],
+      'text-color': [{ text: tokenTails('text') }],
+      'border-color': [{ border: tokenTails('border') }],
+      // `zd:icon-*` sets `color` like `zd:text-*` does, so each displaces
+      // the other; without this both would stay and stylesheet order would
+      // decide.
+      'icon-color': [{ icon: tokenTails('icon') }],
+    },
+    conflictingClassGroups: {
+      'icon-color': ['text-color'],
+      'text-color': ['icon-color'],
     },
   },
 })

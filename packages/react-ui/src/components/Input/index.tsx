@@ -34,15 +34,18 @@ function InputIcon({
 }) {
   if (variant === 'listItemStyle') {
     return (
-      <div className="zd:w-13 zd:h-13 zd:shrink-0 zd:bg-white zd:rounded-2xl zd:flex zd:items-center zd:justify-center">
-        <Icon name={iconName} className="zd:w-6 zd:h-6 zd:text-greyScale" />
+      <div className="zd:w-13 zd:h-13 zd:shrink-0 zd:bg-bright-primary zd:rounded-2xl zd:flex zd:items-center zd:justify-center">
+        <Icon
+          name={iconName}
+          className="zd:w-6 zd:h-6 zd:icon-neutral-primary"
+        />
       </div>
     )
   }
   return (
     <Icon
       name={iconName}
-      className="zd:w-5 zd:h-5 zd:shrink-0 zd:text-greyScale/50"
+      className="zd:w-5 zd:h-5 zd:shrink-0 zd:icon-neutral-tertiary"
     />
   )
 }
@@ -51,7 +54,7 @@ function InputIcon({
 // width on mobile browsers (Chrome on Android most visibly), which would
 // squash the leading icon and the trailing chevron-button child.
 const baseInputClass =
-  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-body1 zd:text-gray-900 zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-gray-900/50 zd:caret-gray-900'
+  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-body1 zd:text-neutral-primary zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-neutral-tertiary zd:caret-(--zd-text-neutral-primary)'
 
 export function Input({
   variant = 'default',
@@ -134,10 +137,10 @@ export function Input({
       )}
       variant="soft"
     >
-      {/* On focus, overlay a white/20 tint over the soft (white/0.5) base so the
+      {/* On focus, overlay a bright-tertiary tint over the soft base so the
           field matches the button hover state. */}
       {isFocused && (
-        <div className="zd:absolute zd:inset-0 zd:bg-white/20 zd:pointer-events-none" />
+        <div className="zd:absolute zd:inset-0 zd:bg-bright-tertiary zd:pointer-events-none" />
       )}
       {iconName && <InputIcon variant={variant} iconName={iconName} />}
       {inputElement}

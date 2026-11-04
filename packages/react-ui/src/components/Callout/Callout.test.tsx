@@ -38,11 +38,11 @@ describe('Callout', () => {
     expect(screen.getByTestId('icon-info')).toBeDefined()
   })
 
-  it('uses the solid Wrapper variant (rgba alpha 0.8)', () => {
+  it('uses the solid Wrapper variant (bright-primary surface)', () => {
     const { container } = render(
       <Callout title="Heads up" description="Detail" />,
     )
     const wrapper = container.firstChild as HTMLElement
-    expect(wrapper.style.backgroundColor).toBe('rgba(255, 255, 255, 0.8)')
+    expect(wrapper.className).toContain('zd:bg-bright-primary')
   })
 })
