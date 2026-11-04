@@ -1,9 +1,9 @@
 'use client'
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
-import {ConnectWallet, SignUp, useAuth} from '@zerodev/wallet-react-ui'
+import {ConnectWallet, SignUp, type ThemeName, useAuth} from '@zerodev/wallet-react-ui'
 import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
-import {useRouter} from 'next/navigation'
+import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useEffect, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
@@ -37,8 +37,23 @@ export default function LandingPage() {
   )
 }
 
+const THEME_NAMES: readonly ThemeName[] = [
+  'branded-light',
+  'plain-light',
+  'branded-dark',
+  'plain-dark',
+]
+
 function LandingPageInner() {
   const router = useRouter()
+  // `?theme=plain-dark` picks the starting preset; the toggle under the card
+  // flips between branded light (the kit's default) and plain dark.
+  const themeParam = useSearchParams().get('theme')
+  const [theme, setTheme] = useState<ThemeName>(
+    () => THEME_NAMES.find((name) => name === themeParam) ?? 'branded-light',
+  )
+  const toggleTheme = () =>
+    setTheme((current) => (current === 'plain-dark' ? 'branded-light' : 'plain-dark'))
 
   const [items, setItems] = useState<PlaygroundItem[]>(DEFAULT_ITEMS)
   const [settings, setSettings] = useState<PlaygroundSettings>(DEFAULT_SETTINGS)
@@ -157,6 +172,7 @@ function LandingPageInner() {
               // to <SignUp.Default />.
               <ConnectWallet
                 size="md"
+                theme={theme}
                 logo={<ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />}
                 renderSignUp={
                   items.length === 0
@@ -173,6 +189,15 @@ function LandingPageInner() {
                 }
               />
           )}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-pressed={theme === 'plain-dark'}
+            className="mt-3 cursor-pointer rounded-full border border-[var(--ink)] px-4 py-1.5 text-xs font-semibold text-[var(--ink)] hover:bg-[var(--ink)] hover:text-white"
+          >
+            {theme === 'plain-dark' ? 'Theme: non-branded dark' : 'Theme: branded light'}
+          </button>
 
           <p className="mt-3 max-w-[360px] text-center text-xs leading-5 text-[var(--muted)]">
             By signing up for ZeroDev Wallet Demo, you agree to our{' '}

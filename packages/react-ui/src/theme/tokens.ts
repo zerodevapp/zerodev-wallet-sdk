@@ -70,10 +70,11 @@ export const themeTokens = {
   'bg-neutral-secondary': ['#f7f5f066', '#f7f5f0cc', '#f7f5f00d', '#f7f5f00d'],
   'bg-neutral-tertiary': ['#ffffff33', '#ffffff80', '#f7f5f01a', '#f7f5f00d'],
   'bg-neutral-disabled': ['#ffffff0d', '#ffffff0d', '#ffffff0d', '#ffffff0d'],
-  // Dark cells: the design file shows swatches but states no values yet.
-  'bg-bright-primary': ['#ffffff', '#ffffff', null, null],
-  'bg-bright-secondary': ['#ffffff80', '#ffffff80', null, null],
-  'bg-bright-tertiary': ['#ffffff33', '#ffffff33', null, null],
+  // Dark cells: not bound to variables in the design file; read off its
+  // swatches (white at 100%, 50% and 20% over the card), the same as light.
+  'bg-bright-primary': ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
+  'bg-bright-secondary': ['#ffffff80', '#ffffff80', '#ffffff80', '#ffffff80'],
+  'bg-bright-tertiary': ['#ffffff33', '#ffffff33', '#ffffff33', '#ffffff33'],
   'bg-inverse-primary': ['#130e0b', '#130e0b', '#f7f5f0', '#f7f5f0'],
   'bg-inverse-secondary': ['#130e0be5', '#130e0be5', '#f7f5f0cc', '#f7f5f0'],
   'bg-inverse-tertiary': ['#130e0b80', '#130e0b80', '#f7f5f080', '#f7f5f080'],
@@ -86,9 +87,9 @@ export const themeTokens = {
   'bg-surface-secondary': ['#f7f5f066', '#f7f5f066', '#f7f5f00d', '#f7f5f00d'],
   'bg-surface-tertiary': ['#f7f5f033', '#f7f5f033', '#f7f5f01a', '#f7f5f01a'],
   // Dark cells: as for bg-bright-*.
-  'bg-surface-bright-primary': ['#ffffff', '#ffffff', null, null],
-  'bg-surface-bright-secondary': ['#ffffff80', '#ffffff80', null, null],
-  'bg-surface-bright-tertiary': ['#ffffff33', '#ffffff33', null, null],
+  'bg-surface-bright-primary': ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
+  'bg-surface-bright-secondary': ['#ffffff80', '#ffffff80', '#ffffff80', '#ffffff80'],
+  'bg-surface-bright-tertiary': ['#ffffff33', '#ffffff33', '#ffffff33', '#ffffff33'],
   'bg-success-subtle': ['#2283001a', '#2283001a', '#22830033', '#22830033'],
   'bg-success-bold': ['#228300', '#228300', '#228300', '#228300'],
   'bg-warning-subtle': ['#f27b3e1a', '#f27b3e1a', '#e7600033', '#e7600033'],

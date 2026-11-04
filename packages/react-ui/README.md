@@ -126,7 +126,12 @@ stylesheet. A host rule on the surface beats the preset, and the inline
 overrides beat both.
 
 The stylesheet carries a variant only once every token states a value for
-it; `isThemeAvailable` tells. Today that is the two light variants.
+it; `isThemeAvailable` tells. All four are carried today.
+
+The brand axis also decides the decorative layers: `branded` keeps the
+gradient border ring, the card glow, the sign-up blob and the sheet
+gradient; `plain` drops them for a flat frosted surface with a hairline
+border (`src/theme/brand.css`, keyed on the same attribute).
 
 ## Development
 

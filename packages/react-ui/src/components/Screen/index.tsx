@@ -114,11 +114,15 @@ export function Screen({
       style={resolvedTheme ? { ...themeStyle(resolvedTheme), ...style } : style}
     >
       {/* Gradient border layer — fills the frame; the card on top has a 6px
-          margin so this shows as the border ring. */}
-      <WrapperBorder />
+          margin so this shows as the border ring. Brand art: hidden under
+          the plain brand (theme/brand.css). */}
+      <div className="zd-brand-art zd:contents">
+        <WrapperBorder />
+      </div>
       {/* Inner card sits on top with a 6px margin, exposing the border ring.
           Its own gradient (base + CardGlow) fills the card so the colour stays
-          vivid and distinct from the border. */}
+          vivid and distinct from the border. Under the plain brand the ring
+          and glow go and the card fills the frame over a flat surface. */}
       <div
         ref={setOverlayContainer}
         className={cn(
@@ -128,7 +132,7 @@ export function Screen({
           // at the corners — a minor cosmetic trade-off.)
           // Horizontal padding lives on the scroll container so TopNav and
           // footer can span edge-to-edge without escape offsets.
-          'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:overflow-hidden zd:rounded-4xl zd:relative',
+          'zd-screen-card zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:overflow-hidden zd:rounded-4xl zd:relative',
           contentClassName,
         )}
         // clip-path clips backdrop-filter to the rounded corners; plain
@@ -136,8 +140,16 @@ export function Screen({
         // children bleeding past the radius). Must match rounded-4xl (32px).
         style={{ clipPath: 'inset(0 round 32px)' }}
       >
-        <MultiRadialBackground />
-        <CardGlow />
+        <div className="zd-brand-art zd:contents">
+          <MultiRadialBackground />
+          <CardGlow />
+        </div>
+        {/* The plain surface: the neutral background token, frosted, with a
+            hairline border — the design's "blur effect" card. */}
+        <div
+          aria-hidden
+          className="zd-plain-surface zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:border zd:border-neutral-primary zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:pointer-events-none"
+        />
         <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}
           <div

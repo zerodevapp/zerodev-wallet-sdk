@@ -1,0 +1,21 @@
+/* The brand axis beyond colour. `branded` keeps the ZeroDev art: the
+   gradient border ring, the card glow, the sign-up blob and the sheet
+   gradient. `plain` drops it for a flat frosted surface and a hairline
+   border, as the design's non-branded variants show. Keyed on the same
+   data-zd-brand attribute as the colour blocks (Screen writes it, or a host
+   sets it on an ancestor), in :where() so a host rule still wins. Unlayered
+   like the rest of the stylesheet, and imported after the utilities so it
+   beats them at equal specificity. */
+:where([data-zd-brand="plain"]) .zd-brand-art {
+  display: none;
+}
+.zd-plain-surface {
+  display: none;
+}
+:where([data-zd-brand="plain"]) .zd-plain-surface {
+  display: block;
+}
+/* No border ring to reveal: the card fills the frame. */
+:where([data-zd-brand="plain"]) .zd-screen-card {
+  margin: 0;
+}

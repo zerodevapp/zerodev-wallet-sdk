@@ -62,16 +62,13 @@ describe('themeAttributes and themeStyle', () => {
 })
 
 describe('isThemeAvailable', () => {
-  it('is true for the light variants the table states in full', () => {
-    expect(isThemeAvailable(resolveTheme('branded-light'))).toBe(true)
-    expect(isThemeAvailable(resolveTheme('plain-light'))).toBe(true)
+  it('is true for every preset, the table being complete', () => {
+    for (const theme of Object.values(themes)) {
+      expect(isThemeAvailable(resolveTheme(theme))).toBe(true)
+    }
     expect(
       isThemeAvailable(resolveTheme({ mode: 'system', brand: 'plain' })),
     ).toBe(true)
-  })
-
-  it('is false while a dark variant has unstated cells', () => {
-    expect(isThemeAvailable(resolveTheme('plain-dark'))).toBe(false)
   })
 })
 

@@ -121,7 +121,9 @@ function SignUpRoot({
       >
         <div className="zd:flex-1 zd:flex zd:flex-col zd:justify-center">
           <div className="zd:px-4 zd:flex zd:flex-col zd:items-center">
-            <div className="zd:w-full zd:px-16 zd:py-4">
+            {/* Brand art: the plain brand drops the blob (react-ui's
+                theme/brand.css), leaving the header logo as the only mark. */}
+            <div className="zd-brand-art zd:w-full zd:px-16 zd:py-4">
               <BlobAnimation className="zd:w-full zd:pointer-events-none zd:select-none" />
             </div>
             <Text className="zd:text-h2 zd:text-center">

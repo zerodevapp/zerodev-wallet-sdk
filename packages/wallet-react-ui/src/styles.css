@@ -16,6 +16,7 @@
 @config "../../react-ui/tailwind.config.ts";
 /* The semantic colour tokens, likewise single-sourced (generated there). */
 @import "../../react-ui/src/theme/tokens.css";
+@import "../../react-ui/src/theme/brand.css";
 /* Scan both packages' sources so the built CSS serves apps with one stylesheet. */
 @source "./";
 @source "../../react-ui/src";

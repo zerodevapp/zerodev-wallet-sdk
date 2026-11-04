@@ -36,6 +36,16 @@ describe('Screen', () => {
       )
     })
 
+    it('carries both the brand art and the plain surface for the stylesheet to pick', () => {
+      // Which one shows is decided by theme/brand.css on data-zd-brand, so
+      // the DOM holds both whatever the theme.
+      const { container } = render(<Screen theme="plain-dark">x</Screen>)
+      expect(container.querySelectorAll('.zd-brand-art').length).toBe(2)
+      const surface = container.querySelector('.zd-plain-surface')
+      expect(surface?.className).toContain('zd:bg-neutral-primary')
+      expect(container.querySelector('.zd-screen-card')).not.toBeNull()
+    })
+
     it('accepts a preset name', () => {
       const { container } = render(<Screen theme="plain-light">x</Screen>)
       const root = container.firstChild as HTMLElement
