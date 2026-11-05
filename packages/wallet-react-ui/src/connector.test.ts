@@ -67,6 +67,37 @@ function createKitConnector(
 }
 
 describe('connector', () => {
+  describe('EVM connections at load', () => {
+    it("reads wagmi's persisted connections when wagmi invokes the creator", async () => {
+      const record = {
+        state: {
+          connections: new Map([
+            ['u1', { connector: { id: 'io.metamask', name: 'MetaMask' } }],
+          ]),
+        },
+      }
+      const storage = {
+        getItem: vi.fn(async (key: string) =>
+          key === 'store' ? record : null,
+        ),
+      }
+      const factory = zeroDevWallet({ projectId: 'test', chains: [] })
+      const connector = factory({ storage } as never) as unknown as KitConnector
+      // Read inside the creator, before wagmi overwrites the record.
+      expect(storage.getItem).toHaveBeenCalledWith('store')
+      await expect(
+        connector.getKitStore().getState().evmConnectionsAtLoad,
+      ).resolves.toEqual([{ id: 'io.metamask', name: 'MetaMask' }])
+    })
+
+    it('resolves null without storage', async () => {
+      const connector = createKitConnector()
+      await expect(
+        connector.getKitStore().getState().evmConnectionsAtLoad,
+      ).resolves.toBeNull()
+    })
+  })
+
   describe('setup', () => {
     it('calls base setup without throwing', async () => {
       const connector = createKitConnector()

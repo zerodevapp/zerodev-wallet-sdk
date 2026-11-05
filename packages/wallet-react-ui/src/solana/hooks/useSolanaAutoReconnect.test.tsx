@@ -27,9 +27,13 @@ vi.mock('wagmi', () => ({
   useConnectors: () => wagmi.connectors.value,
 }))
 
+const atLoad = vi.hoisted(() => ({
+  value: Promise.resolve([{ id: 'io.metamask', name: 'MetaMask' }]),
+}))
 vi.mock('../../shared/hooks/useKitStore', () => ({
   useKitStore: () => ({
     getState: () => ({
+      evmConnectionsAtLoad: atLoad.value,
       solana: {
         restore: async () => 'attempted',
         settleRestore: () => {},
@@ -57,14 +61,14 @@ beforeEach(() => {
 })
 
 describe('useSolanaAutoReconnect', () => {
-  it('mounts the EVM guard once for the saved wallet', () => {
+  it("mounts the EVM guard once for the saved wallet, with the kit's record at load", () => {
     renderHook(() => useSolanaAutoReconnect())
 
     expect(guard.mount).toHaveBeenCalledTimes(1)
     expect(guard.mount).toHaveBeenCalledWith(
       wagmi.config,
       'MetaMask',
-      wagmi.config.state.connections,
+      atLoad.value,
     )
   })
 

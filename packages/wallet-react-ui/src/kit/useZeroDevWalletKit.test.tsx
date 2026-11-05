@@ -104,7 +104,7 @@ function makeConfig() {
         storage.delete(k)
       },
     },
-    _internal: { events },
+    _internal: { events, connectors: { subscribe: () => () => {} } },
   }
 }
 let config = makeConfig()
@@ -401,7 +401,13 @@ describe('useZeroDevWalletKit', () => {
 
     it('keeps an EVM connection wagmi restored from before the reload', async () => {
       saveLast('MetaMask', 'standard')
-      // What wagmi rehydrates at render: MetaMask was connected on purpose.
+      // MetaMask was connected on purpose: the kit connector read it off
+      // wagmi's record at load, and the reload reconnect restores it.
+      store
+        .getState()
+        .setEvmConnectionsAtLoad(
+          Promise.resolve([{ id: metamask.id, name: metamask.name }]),
+        )
       connectEvm(metamask)
       renderLive()
       await act(async () => {})
