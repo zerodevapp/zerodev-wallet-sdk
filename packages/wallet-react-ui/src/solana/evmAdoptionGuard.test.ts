@@ -5,6 +5,7 @@ import {
   detachEvmConnection,
   guardDormantEvmSide,
   muteDormantEvmSide,
+  readEvmConnectionsAtLoad,
   revokeDormantEvmSide,
   withoutEvmAdoption,
 } from './evmAdoptionGuard'
@@ -406,12 +407,73 @@ describe('muteDormantEvmSide', () => {
   })
 })
 
+describe('readEvmConnectionsAtLoad', () => {
+  const storageWith = (record: unknown) => ({
+    getItem: async (key: string) => (key === 'store' ? record : null),
+  })
+
+  it('lists the connectors of the persisted connections', async () => {
+    const record = {
+      state: {
+        connections: new Map([
+          ['u1', { connector: { id: 'io.metamask', name: 'MetaMask' } }],
+          ['u2', { connector: { id: 'io.rabby', name: 'Rabby' } }],
+        ]),
+      },
+    }
+    await expect(
+      readEvmConnectionsAtLoad(storageWith(record)),
+    ).resolves.toEqual([
+      { id: 'io.metamask', name: 'MetaMask' },
+      { id: 'io.rabby', name: 'Rabby' },
+    ])
+  })
+
+  it('reads storage at once, so a record overwritten right after is still seen', async () => {
+    let record: unknown = {
+      state: {
+        connections: new Map([
+          ['u1', { connector: { id: 'io.metamask', name: 'MetaMask' } }],
+        ]),
+      },
+    }
+    const storage = {
+      getItem: (key: string) =>
+        Promise.resolve(key === 'store' ? record : null),
+    }
+    const pending = readEvmConnectionsAtLoad(storage)
+    // wagmi's createConfig overwrites the record straight after the
+    // connectors are set up.
+    record = { state: { connections: new Map() } }
+    await expect(pending).resolves.toEqual([
+      { id: 'io.metamask', name: 'MetaMask' },
+    ])
+  })
+
+  it('is null without storage, without a record, or with an unreadable one', async () => {
+    await expect(readEvmConnectionsAtLoad(null)).resolves.toBeNull()
+    await expect(readEvmConnectionsAtLoad(undefined)).resolves.toBeNull()
+    await expect(
+      readEvmConnectionsAtLoad(storageWith(null)),
+    ).resolves.toBeNull()
+    await expect(
+      readEvmConnectionsAtLoad(storageWith({ state: { connections: [] } })),
+    ).resolves.toBeNull()
+    await expect(
+      readEvmConnectionsAtLoad({
+        getItem: async () => {
+          throw new Error('storage unavailable')
+        },
+      }),
+    ).resolves.toBeNull()
+  })
+})
+
 describe('guardDormantEvmSide', () => {
-  /** The connector as wagmi persists it: the restored map after a reload. */
+  /** The record the kit connector took at load: the connectors wagmi had
+   * persisted as connected. */
   const restored = (...connectors: FakeConnector[]) =>
-    new Map(
-      connectors.map((c) => [c.uid, { connector: c }]),
-    ) as unknown as Config['state']['connections']
+    connectors.map((c) => ({ id: c.id, name: c.name }))
   const flush = () => vi.advanceTimersByTimeAsync(0)
 
   it('writes the shim and mutes the dormant side ahead of the sweep', async () => {
@@ -474,13 +536,12 @@ describe('guardDormantEvmSide', () => {
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
   })
 
-  it("reads wagmi's persisted record when the restored map is not available (ssr)", async () => {
+  it('awaits a pending record, as the kit connector hands it over', async () => {
     const { config, sweep, storage, connectors } = fakeConfig()
     const metamask = fakeConnector('MetaMask')
     connectors.push(metamask)
-    storage.set('store', { state: { connections: restored(metamask) } })
 
-    guardDormantEvmSide(config, 'MetaMask', null)
+    guardDormantEvmSide(config, 'MetaMask', Promise.resolve(restored(metamask)))
     await flush()
     sweep([metamask])
     await flush()
@@ -489,7 +550,7 @@ describe('guardDormantEvmSide', () => {
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
   })
 
-  it('treats a missing persisted record as dormant', async () => {
+  it('treats a missing record as dormant', async () => {
     const { config, sweep, connectors } = fakeConfig()
     const metamask = fakeConnector('MetaMask')
     connectors.push(metamask)

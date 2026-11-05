@@ -8,6 +8,7 @@ import {
   NotAuthenticatedError,
 } from '@zerodev/wallet-react'
 import { AuthFlowDismissedError } from './auth/utils/isCancellationError.js'
+import { readEvmConnectionsAtLoad } from './solana/evmAdoptionGuard.js'
 import { createStore } from './store.js'
 import type { Request, RequestMethod } from './types.js'
 import { version } from './version.js'
@@ -72,6 +73,14 @@ export function zeroDevWallet(
 
   return (wagmiConfig) => {
     const connector = baseFactory(wagmiConfig)
+    // wagmi invokes this while building its connectors, before it creates
+    // the store that overwrites the persisted connections: the one window
+    // in which the previous page's EVM connections can still be read. The
+    // Solana auto-reconnect guard needs them to tell the host's own EVM
+    // session apart from a multichain wallet's dormant side.
+    store
+      .getState()
+      .setEvmConnectionsAtLoad(readEvmConnectionsAtLoad(wagmiConfig.storage))
 
     return {
       ...connector,
