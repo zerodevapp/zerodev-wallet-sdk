@@ -121,9 +121,15 @@ async function shimDormantEvmSide(
   // Under `ssr`, wagmi turns the announced EIP-6963 providers into connectors
   // only in its mount effect, right before its reconnect sweep: at mount the
   // connector may not exist yet, but its id (the rdns) is known, and the
-  // shim is keyed on it.
+  // shim is keyed on it. A provider whose connector holds a connection is
+  // the host's own EVM session, not a dormant side: shimming it would make
+  // the next reload skip that session.
+  const connectedIds = new Set(
+    [...config.state.connections.values()].map(({ connector }) => connector.id),
+  )
   for (const { info } of config._internal.mipd?.getProviders() ?? []) {
-    if (equalsIgnoreCase(info.name, walletName)) ids.add(info.rdns)
+    if (!equalsIgnoreCase(info.name, walletName)) continue
+    if (!connectedIds.has(info.rdns)) ids.add(info.rdns)
   }
   for (const id of ids) {
     await config.storage?.setItem(`${id}.disconnected`, true)
@@ -233,6 +239,14 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
  * the same, at wagmi's state level (the wallet's permission is left alone,
  * see `detachFromWagmiState`). A connection the host asks for meanwhile is
  * declared through `allowEvmConnection` and kept.
+ *
+ * The sweep is watched once; the muting and the shim are repeated for
+ * connectors that arrive later (under `ssr` wagmi sets the EIP-6963
+ * connectors up in its mount effect, after the guard mounts; a provider can
+ * also announce itself late). Both leave a connected wallet alone, so a
+ * connection the host made in between stays. Mount once per page: a remount
+ * would judge the host's later connections by the load-time record and
+ * sweep them away.
  */
 export function guardDormantEvmSide(
   config: Config,
@@ -241,12 +255,17 @@ export function guardDormantEvmSide(
 ): () => void {
   let stopped = false
   let stopWatch: (() => void) | undefined
+  let stopConnectors: (() => void) | undefined
   const guard = async () => {
     if (await wasConnectedAtLoad(config, walletName, restored)) return
     if (stopped) return
     muteDormantEvmSide(config, walletName)
     await shimDormantEvmSide(config, walletName)
     if (stopped) return
+    stopConnectors = config._internal.connectors.subscribe(() => {
+      muteDormantEvmSide(config, walletName)
+      shimDormantEvmSide(config, walletName).catch(() => {})
+    })
     stopWatch = afterReconnectSettles(config, () => {
       for (const [uid, connection] of config.state.connections) {
         if (explicitEvmConnections.has(uid)) continue
@@ -261,6 +280,7 @@ export function guardDormantEvmSide(
   guard().catch(() => {})
   return () => {
     stopped = true
+    stopConnectors?.()
     stopWatch?.()
   }
 }
