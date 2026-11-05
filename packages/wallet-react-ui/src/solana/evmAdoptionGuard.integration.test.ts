@@ -220,10 +220,9 @@ describe('evmAdoptionGuard against a real wagmi config', () => {
       await reconnect(config)
       expect(config.state.status).toBe('connected')
 
-      // The hook read the restored connections at its first render, before
-      // the sweep: none. (wagmi has since persisted the adoption, so the
-      // record is no guide here.)
-      const stop = guardDormantEvmSide(config, connector.name, new Map())
+      // The record taken at load held nothing. (wagmi has since persisted
+      // the adoption, so the record is no guide here.)
+      const stop = guardDormantEvmSide(config, connector.name, [])
       await vi.advanceTimersByTimeAsync(1000)
       stop()
 
@@ -235,14 +234,15 @@ describe('evmAdoptionGuard against a real wagmi config', () => {
     }
   })
 
-  it('guardDormantEvmSide leaves MetaMask alone when wagmi persisted it as connected', async () => {
+  it('guardDormantEvmSide leaves MetaMask alone when the record at load lists it', async () => {
     const { config, connector } = reloadedConfig()
-    // An explicit EVM connection before the reload: wagmi persisted it.
+    // An explicit EVM connection before the reload, which the kit connector
+    // read back at load; the sweep restores it.
     await reconnect(config)
     expect(config.state.status).toBe('connected')
-    // A fresh guard on this page reads that record (`restored` null, as
-    // under ssr) and must not touch the connection.
-    const stop = guardDormantEvmSide(config, connector.name, null)
+    const stop = guardDormantEvmSide(config, connector.name, [
+      { id: connector.id, name: connector.name },
+    ])
     for (let i = 0; i < 10; i++) await Promise.resolve()
     stop()
 

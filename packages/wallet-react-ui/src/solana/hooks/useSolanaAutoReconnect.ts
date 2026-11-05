@@ -43,13 +43,12 @@ export function useSolanaAutoReconnect(enabled = true): void {
     error: walletConnectError,
   } = useSolanaWalletConnect(wantsWalletConnect)
   const config = useConfig()
-  // The EVM connections wagmi restored from storage, read at the first
-  // render, before its reload reconnect can add to them. Under `ssr` wagmi
-  // reads storage in its own mount effect instead; the guard reads the
-  // record then.
-  const [restoredEvm] = useState(() =>
-    config._internal.ssr ? null : config.state.connections,
-  )
+  // The EVM connections wagmi had persisted when the page loaded: the ones
+  // the host held on purpose. The kit connector takes that record inside
+  // wagmi's config creation, the only point where it can still be read
+  // (wagmi overwrites it right after, and its reload reconnect rebuilds the
+  // state from the wallets instead).
+  const [restoredEvm] = useState(() => store.getState().evmConnectionsAtLoad)
   // The EVM side a multichain wallet granted alongside the saved Solana
   // session must not come back on its own. Mounted once: the guard follows
   // connectors that arrive later by itself (under `ssr` wagmi sets the

@@ -1,4 +1,4 @@
-import type { Config, Connection } from 'wagmi'
+import type { Config } from 'wagmi'
 import { equalsIgnoreCase } from '../shared/utils/common'
 
 /** How long after the Solana connect settles to keep watching for a late
@@ -151,39 +151,81 @@ export function muteDormantEvmSide(config: Config, walletName: string): void {
   }
 }
 
-const hasWallet = (
-  connections: Iterable<Pick<Connection, 'connector'>>,
-  walletName: string,
-) =>
-  [...connections].some((c) => equalsIgnoreCase(c.connector.name, walletName))
+/** An EVM connection wagmi had persisted when the page loaded. */
+export type EvmConnectionAtLoad = { id: string; name: string }
+
+/**
+ * The EVM connections wagmi persisted before this page load, or null when
+ * there is no record to read (no storage, nothing saved, or an unreadable
+ * record). Awaited by the guard, so a connector can pass the pending read.
+ */
+export type EvmConnectionsAtLoad =
+  | readonly EvmConnectionAtLoad[]
+  | null
+  | Promise<readonly EvmConnectionAtLoad[] | null>
+
+/**
+ * Read the EVM connections wagmi persisted, as of now. Those are the ones
+ * the previous page held on purpose: an adoption the guard detached is gone
+ * from them, and so is anything disconnected.
+ *
+ * Call it from inside a connector's creator function: wagmi's `createConfig`
+ * builds the connectors first and then creates its store, which overwrites
+ * the record with an empty one straight away (with or without `ssr`), so
+ * the record is only readable in that window. The underlying storage read
+ * happens synchronously inside the call; only its result is awaited.
+ */
+export function readEvmConnectionsAtLoad(
+  storage:
+    | { getItem(key: string, ...rest: never[]): unknown }
+    | null
+    | undefined,
+): Promise<readonly EvmConnectionAtLoad[] | null> {
+  if (!storage) return Promise.resolve(null)
+  // The record sits under wagmi's `store` key, which its storage type does
+  // not list. Read now, not in a microtask: the overwrite is next.
+  let pending: unknown
+  try {
+    pending = storage.getItem('store')
+  } catch {
+    return Promise.resolve(null)
+  }
+  return Promise.resolve(pending)
+    .then((persisted) => {
+      const connections = (
+        persisted as { state?: { connections?: unknown } } | null
+      )?.state?.connections
+      if (!(connections instanceof Map)) return null
+      const list: EvmConnectionAtLoad[] = []
+      for (const connection of connections.values()) {
+        const connector = (
+          connection as { connector?: { id?: unknown; name?: unknown } }
+        )?.connector
+        if (
+          typeof connector?.id !== 'string' ||
+          typeof connector.name !== 'string'
+        ) {
+          continue
+        }
+        list.push({ id: connector.id, name: connector.name })
+      }
+      return list
+    })
+    .catch(() => null)
+}
 
 /**
  * Whether `walletName` was connected on the EVM side when the page loaded,
- * per the connections wagmi persisted: those are the ones held on purpose
- * (an adoption the guard detached is gone from them, and so is anything
- * disconnected). `restored` is that map read off the config at the first
- * render, where wagmi rehydrates it before rendering; under `ssr` it reads
- * storage in its mount effect instead, so pass null and the record is read
- * here, ahead of the sweep that could add to it.
+ * per the record `readEvmConnectionsAtLoad` took. No record reads as not
+ * connected: the guard then stands in, which costs the host nothing when
+ * the wallet is indeed dormant.
  */
 async function wasConnectedAtLoad(
-  config: Config,
   walletName: string,
-  restored: Config['state']['connections'] | null,
+  restored: EvmConnectionsAtLoad,
 ): Promise<boolean> {
-  if (restored) return hasWallet(restored.values(), walletName)
-  // The persisted record sits under wagmi's `store` key, which its storage
-  // type does not list.
-  const storage = config.storage as {
-    getItem(key: string): unknown
-  } | null
-  const persisted = (await storage?.getItem('store')) as {
-    state?: { connections?: unknown }
-  } | null
-  const connections = persisted?.state?.connections
-  return connections instanceof Map
-    ? hasWallet(connections.values(), walletName)
-    : false
+  const list = await restored
+  return list?.some((c) => equalsIgnoreCase(c.name, walletName)) ?? false
 }
 
 /**
@@ -233,7 +275,9 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
  * whenever the wallet announces accounts while nothing is connected, which
  * a multichain wallet does around the Solana connect itself. So, when the
  * wallet was not connected on the EVM side at load (`wasConnectedAtLoad`,
- * the host's own connections are never touched): write the shim again,
+ * the host's own connections are never touched; `restored` is the record
+ * the kit connector took at load, see `readEvmConnectionsAtLoad`): write the
+ * shim again,
  * ahead of the sweep where the ordering allows; take the self-connect
  * listener off; and once the sweep has settled, detach what it adopted all
  * the same, at wagmi's state level (the wallet's permission is left alone,
@@ -251,13 +295,13 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
 export function guardDormantEvmSide(
   config: Config,
   walletName: string,
-  restored: Config['state']['connections'] | null,
+  restored: EvmConnectionsAtLoad,
 ): () => void {
   let stopped = false
   let stopWatch: (() => void) | undefined
   let stopConnectors: (() => void) | undefined
   const guard = async () => {
-    if (await wasConnectedAtLoad(config, walletName, restored)) return
+    if (await wasConnectedAtLoad(walletName, restored)) return
     if (stopped) return
     muteDormantEvmSide(config, walletName)
     await shimDormantEvmSide(config, walletName)
@@ -276,7 +320,7 @@ export function guardDormantEvmSide(
       }
     })
   }
-  // Best effort: with storage unreadable the guard stands down.
+  // Best effort: with storage unwritable the guard stands down.
   guard().catch(() => {})
   return () => {
     stopped = true
