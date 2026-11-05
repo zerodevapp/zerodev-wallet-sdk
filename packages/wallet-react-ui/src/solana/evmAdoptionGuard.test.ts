@@ -12,11 +12,11 @@ import {
 type Listener = (...args: unknown[]) => void
 
 /** The slice of a wagmi Connector the guard touches. */
-function fakeConnector(name: string) {
+function fakeConnector(name: string, id = name.toLowerCase()) {
   const listeners = new Map<string, Set<Listener>>()
   return {
     uid: crypto.randomUUID(),
-    id: name.toLowerCase(),
+    id,
     name,
     type: 'injected',
     disconnect: vi.fn(async () => {}),
@@ -59,6 +59,16 @@ function fakeConfig() {
   }
   const storage = new Map<string, unknown>()
   const connectors: FakeConnector[] = []
+  const connectorListeners = new Set<() => void>()
+  /** A connector set up after the config was created: a late EIP-6963
+   * announcement, or wagmi's mount-time setup under `ssr`. */
+  const announce = (...late: FakeConnector[]) => {
+    connectors.push(...late)
+    for (const listener of connectorListeners) listener()
+  }
+  /** The EIP-6963 providers wagmi's discovery has announced; under `ssr`
+   * their connectors may not exist yet. */
+  const providers: { info: { name: string; rdns: string } }[] = []
   const config = {
     connectors,
     storage: {
@@ -88,7 +98,16 @@ function fakeConfig() {
       subscribers.add(entry)
       return () => subscribers.delete(entry)
     },
-    _internal: { events },
+    _internal: {
+      events,
+      mipd: { getProviders: () => providers },
+      connectors: {
+        subscribe: (listener: () => void) => {
+          connectorListeners.add(listener)
+          return () => connectorListeners.delete(listener)
+        },
+      },
+    },
   }
   /** wagmi's reload reconnect: `connecting` while it sweeps, then the
    * adoptions it made land, then the status settles. */
@@ -136,6 +155,9 @@ function fakeConfig() {
     events,
     storage,
     connectors,
+    providers,
+    announce,
+    connectorListeners,
   }
 }
 
@@ -223,6 +245,49 @@ describe('withoutEvmAdoption', () => {
 
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
     expect(config.state.connections.size).toBe(1)
+  })
+
+  it('shims an announced EIP-6963 provider whose connector does not exist yet (ssr)', async () => {
+    const { config, storage, providers } = fakeConfig()
+    providers.push(
+      { info: { name: 'MetaMask', rdns: 'io.metamask' } },
+      { info: { name: 'Rabby', rdns: 'io.rabby' } },
+    )
+
+    await withoutEvmAdoption(config, 'MetaMask', async () => undefined)
+
+    expect(storage.get('io.metamask.disconnected')).toBe(true)
+    expect(storage.has('io.rabby.disconnected')).toBe(false)
+  })
+
+  it('leaves the shim alone for an announced provider connected on the EVM side', async () => {
+    const { config, adopt, storage, connectors, providers } = fakeConfig()
+    // The EIP-6963 connector's id is the provider's rdns.
+    const metamask = fakeConnector('MetaMask', 'io.metamask')
+    connectors.push(metamask)
+    providers.push({ info: { name: 'MetaMask', rdns: 'io.metamask' } })
+    adopt(metamask)
+
+    await withoutEvmAdoption(config, 'MetaMask', async () => undefined)
+
+    // Shimming the host's own EVM session would make the next reload skip it.
+    expect(storage.has('io.metamask.disconnected')).toBe(false)
+    expect(config.state.connections.size).toBe(1)
+  })
+
+  it('still shims the dormant EIP-6963 provider when the wallet is connected through another connector', async () => {
+    const { config, adopt, storage, connectors, providers } = fakeConfig()
+    // The host connected MetaMask through its SDK connector; the announced
+    // EIP-6963 one holds nothing and the reload sweep would adopt it.
+    const sdk = fakeConnector('MetaMask', 'metaMaskSDK')
+    connectors.push(sdk)
+    providers.push({ info: { name: 'MetaMask', rdns: 'io.metamask' } })
+    adopt(sdk)
+
+    await withoutEvmAdoption(config, 'MetaMask', async () => undefined)
+
+    expect(storage.get('io.metamask.disconnected')).toBe(true)
+    expect(storage.has('metaMaskSDK.disconnected')).toBe(false)
   })
 
   it('sets no shim when the Solana connect rejects', async () => {
@@ -465,6 +530,63 @@ describe('guardDormantEvmSide', () => {
     release()
 
     expect(config.state.connections.size).toBe(1)
+  })
+
+  it('mutes and shims a connector announced after it mounted', async () => {
+    const { config, events, storage, announce } = fakeConfig()
+    guardDormantEvmSide(config, 'MetaMask', restored())
+    await flush()
+
+    const metamask = fakeConnector('MetaMask', 'io.metamask')
+    metamask.emitter.on('connect', events.connect)
+    announce(metamask)
+    await flush()
+
+    expect(metamask.emitter.listenerCount('connect')).toBe(0)
+    expect(storage.get('io.metamask.disconnected')).toBe(true)
+  })
+
+  it('keeps an EVM connection the host made before a late connector announced', async () => {
+    const { config, adopt, storage, connectors, announce } = fakeConfig()
+    const metamask = fakeConnector('MetaMask', 'io.metamask')
+    connectors.push(metamask)
+
+    guardDormantEvmSide(config, 'MetaMask', restored())
+    await flush()
+    // No reload sweep on this page: the watcher gives up after its wait.
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(config.state.connections.size).toBe(0)
+
+    // The host connects the EVM side on purpose; the exemption ends with it.
+    const release = allowEvmConnection(metamask)
+    adopt(metamask)
+    await config.storage?.removeItem(`${metamask.id}.disconnected`)
+    release()
+
+    announce(fakeConnector('Rabby', 'io.rabby'))
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect([...config.state.connections.keys()]).toEqual([metamask.uid])
+    expect(config.state.status).toBe('connected')
+    expect(storage.has('io.metamask.disconnected')).toBe(false)
+  })
+
+  it('stops following connectors after its cleanup', async () => {
+    const { config, events, storage, announce, connectorListeners } =
+      fakeConfig()
+    const stop = guardDormantEvmSide(config, 'MetaMask', restored())
+    await flush()
+    expect(connectorListeners.size).toBe(1)
+
+    stop()
+    const metamask = fakeConnector('MetaMask', 'io.metamask')
+    metamask.emitter.on('connect', events.connect)
+    announce(metamask)
+    await flush()
+
+    expect(connectorListeners.size).toBe(0)
+    expect(metamask.emitter.listenerCount('connect')).toBe(1)
+    expect(storage.has('io.metamask.disconnected')).toBe(false)
   })
 
   it('does nothing after its cleanup', async () => {

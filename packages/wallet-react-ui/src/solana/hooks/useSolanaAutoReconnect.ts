@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useConfig, useConnectors } from 'wagmi'
+import { useConfig } from 'wagmi'
 import { useKitStore } from '../../shared/hooks/useKitStore'
 import { guardDormantEvmSide } from '../evmAdoptionGuard'
 import {
@@ -43,7 +43,6 @@ export function useSolanaAutoReconnect(enabled = true): void {
     error: walletConnectError,
   } = useSolanaWalletConnect(wantsWalletConnect)
   const config = useConfig()
-  const connectors = useConnectors()
   // The EVM connections wagmi restored from storage, read at the first
   // render, before its reload reconnect can add to them. Under `ssr` wagmi
   // reads storage in its own mount effect instead; the guard reads the
@@ -52,17 +51,17 @@ export function useSolanaAutoReconnect(enabled = true): void {
     config._internal.ssr ? null : config.state.connections,
   )
   // The EVM side a multichain wallet granted alongside the saved Solana
-  // session must not come back on its own. Re-run as connectors announce:
-  // under `ssr` wagmi sets the EIP-6963 connectors up in its mount effect,
-  // after this one. Only an installed wallet has an EVM side wagmi could
-  // adopt.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `connectors` is the re-run trigger; the guard reads them off `config`
+  // session must not come back on its own. Mounted once: the guard follows
+  // connectors that arrive later by itself (under `ssr` wagmi sets the
+  // EIP-6963 connectors up in its mount effect, after this one), and a
+  // re-run would judge the host's later EVM connections by the load-time
+  // record. Only an installed wallet has an EVM side wagmi could adopt.
   useEffect(() => {
     if (!enabled) return
     const last = readLastSolanaWallet()
     if (last?.source !== 'standard') return
     return guardDormantEvmSide(config, last.name, restoredEvm)
-  }, [enabled, config, connectors, restoredEvm])
+  }, [enabled, config, restoredEvm])
   useEffect(() => {
     if (!enabled) return
     const { solana } = store.getState()
