@@ -43,6 +43,7 @@
     "dev:css": "npx @tailwindcss/cli -i ./src/styles.css -o ./dist/styles.css --watch",
     "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
     "clean": "rm -rf dist",
+    "gen:tokens": "node scripts/gen-tokens.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "vitest run",
