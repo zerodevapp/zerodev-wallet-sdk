@@ -73,9 +73,10 @@ export function ConnectWallet({
   /** Replace the default sign-up page: compose `SignUp.*` units inside
    * `<SignUp>`. Omit to render the canonical page (`SignUp.Default`). */
   renderSignUp?: (() => ReactNode) | undefined
-  /** Optional brand logo for the top nav on the sign-up page. When omitted,
-   * no logo is shown. `PoweredBy` always shows the ZeroDev mark
-   * independently. */
+  /** Optional brand logo for the sign-up page: a centred row under the top
+   * nav, 32px tall in the design (e.g. `<ZeroDevLogo variant="lockup"
+   * tone="auto" className="zd:h-8 zd:w-auto" />`). When omitted, no logo is
+   * shown. `PoweredBy` always shows the ZeroDev mark independently. */
   logo?: ReactNode | undefined
 } = {}) {
   const { step, goToStep, goBack, reset } = useAuth()
@@ -105,13 +106,18 @@ export function ConnectWallet({
         <TopNav
           {...(goBack !== null && { onLeftButtonClick: goBack })}
           onRightButtonClick={handleClose}
-          {...(step === 'sign-up' && {
-            ...(logo && { logo }),
-            className: 'zd:px-4',
-          })}
+          {...(step === 'sign-up' && { className: 'zd:px-4' })}
         />
       }
     >
+      {step === 'sign-up' && logo && (
+        // The design's brand row: under the nav band, centred, 52px tall,
+        // starting 20px up into the band's bottom padding, with 24px to the
+        // title below.
+        <div className="zd:-mt-5 zd:mb-6 zd:flex zd:h-13 zd:shrink-0 zd:items-center zd:justify-center">
+          {logo}
+        </div>
+      )}
       {content}
     </Screen>
   )

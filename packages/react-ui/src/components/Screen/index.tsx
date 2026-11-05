@@ -61,8 +61,8 @@ export function Screen({
   theme?: ThemeInput | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
-  /** Pinned bottom band — mirrors `topNav`. Same edge-to-edge, blurred
-   * background treatment; scrolled content passes behind it. */
+  /** Pinned bottom band — mirrors `topNav`: edge-to-edge, transparent;
+   * scrolled content stops at its top edge. */
   footer?: ReactNode
   overlay?: ReactNode
 }) {
@@ -119,10 +119,16 @@ export function Screen({
       <div className="zd-brand-art zd:contents">
         <WrapperBorder />
       </div>
+      {/* The plain band in its place: the frame-ring token, shown through
+          the same 6px margin. */}
+      <div
+        aria-hidden
+        className="zd-plain-frame zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-frame-ring zd:pointer-events-none"
+      />
       {/* Inner card sits on top with a 6px margin, exposing the border ring.
           Its own gradient (base + CardGlow) fills the card so the colour stays
           vivid and distinct from the border. Under the plain brand the ring
-          and glow go and the card fills the frame over a flat surface. */}
+          becomes a flat band and the glow a flat frosted surface. */}
       <div
         ref={setOverlayContainer}
         className={cn(
@@ -132,7 +138,7 @@ export function Screen({
           // at the corners — a minor cosmetic trade-off.)
           // Horizontal padding lives on the scroll container so TopNav and
           // footer can span edge-to-edge without escape offsets.
-          'zd-screen-card zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:overflow-hidden zd:rounded-4xl zd:relative',
+          'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:overflow-hidden zd:rounded-4xl zd:relative',
           contentClassName,
         )}
         // clip-path clips backdrop-filter to the rounded corners; plain
@@ -144,11 +150,11 @@ export function Screen({
           <MultiRadialBackground />
           <CardGlow />
         </div>
-        {/* The plain surface: the neutral background token, frosted, with a
-            hairline border — the design's "blur effect" card. */}
+        {/* The plain surface: the neutral background token, frosted — the
+            design's "blur effect" card. */}
         <div
           aria-hidden
-          className="zd-plain-surface zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:border zd:border-neutral-primary zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:pointer-events-none"
+          className="zd-plain-surface zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:pointer-events-none"
         />
         <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}
@@ -171,7 +177,7 @@ export function Screen({
             <div
               // Flex sibling so scrolled content stops at the footer's top
               // edge; internal px-4 keeps the content at the 16px inset.
-              className="zd:flex zd:shrink-0 zd:items-center zd:justify-center zd:px-4 zd:pb-4 zd:backdrop-blur-[15px]"
+              className="zd:flex zd:shrink-0 zd:items-center zd:justify-center zd:px-4 zd:pb-4"
               style={{
                 height: `calc(${FOOTER_HEIGHT / 4} * var(--zd-spacing))`,
               }}

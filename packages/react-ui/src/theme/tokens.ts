@@ -66,15 +66,21 @@ export type TokenRole = keyof typeof TOKEN_ROLES
 // biome-ignore format: one row per token keeps the four columns readable
 export const themeTokens = {
   // --- Background ---------------------------------------------------------
-  'bg-neutral-primary': ['#f7f5f0cc', '#f7f5f0cc', '#130e0bcc', '#130e0be5'],
+  // Plain dark card: the design binds 90% ink over a near-black canvas,
+  // which renders as #15110e; that opaque value is used so the card looks
+  // the same on a light host page (90% ink over white reads brown).
+  'bg-neutral-primary': ['#f7f5f0cc', '#f7f5f0cc', '#130e0bcc', '#15110e'],
   'bg-neutral-secondary': ['#f7f5f066', '#f7f5f0cc', '#f7f5f00d', '#f7f5f00d'],
   'bg-neutral-tertiary': ['#ffffff33', '#ffffff80', '#f7f5f01a', '#f7f5f00d'],
   'bg-neutral-disabled': ['#ffffff0d', '#ffffff0d', '#ffffff0d', '#ffffff0d'],
-  // Dark cells: not bound to variables in the design file; read off its
-  // swatches (white at 100%, 50% and 20% over the card), the same as light.
-  'bg-bright-primary': ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
-  'bg-bright-secondary': ['#ffffff80', '#ffffff80', '#ffffff80', '#ffffff80'],
-  'bg-bright-tertiary': ['#ffffff33', '#ffffff33', '#ffffff33', '#ffffff33'],
+  // Dark cells: the values the wallet screens (ZeroDev-Wallet-UX) bind, an
+  // off-white tint for tiles and surfaces. The design-system file's own
+  // swatch table shows white at 100/50/20% here instead; the screens are
+  // what ships, so they win until design reconciles the two. Tertiary is
+  // not bound anywhere: 3% continues the 10/5 step.
+  'bg-bright-primary': ['#ffffff', '#ffffff', '#f7f5f01a', '#f7f5f01a'],
+  'bg-bright-secondary': ['#ffffff80', '#ffffff80', '#f7f5f00d', '#f7f5f00d'],
+  'bg-bright-tertiary': ['#ffffff33', '#ffffff33', '#f7f5f008', '#f7f5f008'],
   'bg-inverse-primary': ['#130e0b', '#130e0b', '#f7f5f0', '#f7f5f0'],
   'bg-inverse-secondary': ['#130e0be5', '#130e0be5', '#f7f5f0cc', '#f7f5f0'],
   'bg-inverse-tertiary': ['#130e0b80', '#130e0b80', '#f7f5f080', '#f7f5f080'],
@@ -87,9 +93,14 @@ export const themeTokens = {
   'bg-surface-secondary': ['#f7f5f066', '#f7f5f066', '#f7f5f00d', '#f7f5f00d'],
   'bg-surface-tertiary': ['#f7f5f033', '#f7f5f033', '#f7f5f01a', '#f7f5f01a'],
   // Dark cells: as for bg-bright-*.
-  'bg-surface-bright-primary': ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
-  'bg-surface-bright-secondary': ['#ffffff80', '#ffffff80', '#ffffff80', '#ffffff80'],
-  'bg-surface-bright-tertiary': ['#ffffff33', '#ffffff33', '#ffffff33', '#ffffff33'],
+  'bg-surface-bright-primary': ['#ffffff', '#ffffff', '#f7f5f01a', '#f7f5f01a'],
+  'bg-surface-bright-secondary': ['#ffffff80', '#ffffff80', '#f7f5f00d', '#f7f5f00d'],
+  'bg-surface-bright-tertiary': ['#ffffff33', '#ffffff33', '#f7f5f008', '#f7f5f008'],
+  // The 6px band around the card under the plain brand ("Background /
+  // Non-branded Background" in the wallet screens, 10% off-white, which
+  // renders as #252525 over the design's canvas: opaque here for the same
+  // reason as the card). The branded art covers it in the branded variants.
+  'bg-frame-ring': ['#f7f5f0', '#f7f5f0', '#252525', '#252525'],
   'bg-success-subtle': ['#2283001a', '#2283001a', '#22830033', '#22830033'],
   'bg-success-bold': ['#228300', '#228300', '#228300', '#228300'],
   'bg-warning-subtle': ['#f27b3e1a', '#f27b3e1a', '#e7600033', '#e7600033'],

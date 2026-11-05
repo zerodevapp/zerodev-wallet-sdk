@@ -173,7 +173,7 @@ function LandingPageInner() {
               <ConnectWallet
                 size="md"
                 theme={theme}
-                logo={<ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />}
+                logo={<ZeroDevLogo variant="lockup" tone="auto" className="zd:h-8 zd:w-auto" />}
                 renderSignUp={
                   items.length === 0
                     ? undefined

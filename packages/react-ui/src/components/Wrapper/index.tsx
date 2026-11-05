@@ -28,7 +28,8 @@ export function Wrapper({
     <div
       ref={ref}
       className={cn(
-        'zd:overflow-hidden zd:border-neutral-primary zd:border-[0.3px] zd:backdrop-blur-[15px]',
+        // `zd-surface` marks the frosted surface for theme/brand.css.
+        'zd-surface zd:overflow-hidden zd:border-neutral-primary zd:border-[0.3px] zd:backdrop-blur-[15px]',
         backgroundClasses[variant],
         className,
       )}

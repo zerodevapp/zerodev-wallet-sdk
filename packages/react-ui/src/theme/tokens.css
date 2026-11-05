@@ -35,6 +35,7 @@
   --zd-bg-surface-bright-primary: #ffffff;
   --zd-bg-surface-bright-secondary: #ffffff80;
   --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-frame-ring: #f7f5f0;
   --zd-bg-success-subtle: #2283001a;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #f27b3e1a;
@@ -115,6 +116,7 @@
   --zd-bg-surface-bright-primary: #ffffff;
   --zd-bg-surface-bright-secondary: #ffffff80;
   --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-frame-ring: #f7f5f0;
   --zd-bg-success-subtle: #2283001a;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #f27b3e1a;
@@ -195,6 +197,7 @@
   --zd-bg-surface-bright-primary: #ffffff;
   --zd-bg-surface-bright-secondary: #ffffff80;
   --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-frame-ring: #f7f5f0;
   --zd-bg-success-subtle: #2283001a;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #f27b3e1a;
@@ -275,6 +278,7 @@
   --zd-bg-surface-bright-primary: #ffffff;
   --zd-bg-surface-bright-secondary: #ffffff80;
   --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-frame-ring: #f7f5f0;
   --zd-bg-success-subtle: #2283001a;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #f27b3e1a;
@@ -355,6 +359,7 @@
   --zd-bg-surface-bright-primary: #ffffff;
   --zd-bg-surface-bright-secondary: #ffffff80;
   --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-frame-ring: #f7f5f0;
   --zd-bg-success-subtle: #2283001a;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #f27b3e1a;
@@ -419,9 +424,9 @@
   --zd-bg-neutral-secondary: #f7f5f00d;
   --zd-bg-neutral-tertiary: #f7f5f01a;
   --zd-bg-neutral-disabled: #ffffff0d;
-  --zd-bg-bright-primary: #ffffff;
-  --zd-bg-bright-secondary: #ffffff80;
-  --zd-bg-bright-tertiary: #ffffff33;
+  --zd-bg-bright-primary: #f7f5f01a;
+  --zd-bg-bright-secondary: #f7f5f00d;
+  --zd-bg-bright-tertiary: #f7f5f008;
   --zd-bg-inverse-primary: #f7f5f0;
   --zd-bg-inverse-secondary: #f7f5f0cc;
   --zd-bg-inverse-tertiary: #f7f5f080;
@@ -432,9 +437,10 @@
   --zd-bg-surface-primary: #130e0be5;
   --zd-bg-surface-secondary: #f7f5f00d;
   --zd-bg-surface-tertiary: #f7f5f01a;
-  --zd-bg-surface-bright-primary: #ffffff;
-  --zd-bg-surface-bright-secondary: #ffffff80;
-  --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-surface-bright-primary: #f7f5f01a;
+  --zd-bg-surface-bright-secondary: #f7f5f00d;
+  --zd-bg-surface-bright-tertiary: #f7f5f008;
+  --zd-bg-frame-ring: #252525;
   --zd-bg-success-subtle: #22830033;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #e7600033;
@@ -500,9 +506,9 @@
     --zd-bg-neutral-secondary: #f7f5f00d;
     --zd-bg-neutral-tertiary: #f7f5f01a;
     --zd-bg-neutral-disabled: #ffffff0d;
-    --zd-bg-bright-primary: #ffffff;
-    --zd-bg-bright-secondary: #ffffff80;
-    --zd-bg-bright-tertiary: #ffffff33;
+    --zd-bg-bright-primary: #f7f5f01a;
+    --zd-bg-bright-secondary: #f7f5f00d;
+    --zd-bg-bright-tertiary: #f7f5f008;
     --zd-bg-inverse-primary: #f7f5f0;
     --zd-bg-inverse-secondary: #f7f5f0cc;
     --zd-bg-inverse-tertiary: #f7f5f080;
@@ -513,9 +519,10 @@
     --zd-bg-surface-primary: #130e0be5;
     --zd-bg-surface-secondary: #f7f5f00d;
     --zd-bg-surface-tertiary: #f7f5f01a;
-    --zd-bg-surface-bright-primary: #ffffff;
-    --zd-bg-surface-bright-secondary: #ffffff80;
-    --zd-bg-surface-bright-tertiary: #ffffff33;
+    --zd-bg-surface-bright-primary: #f7f5f01a;
+    --zd-bg-surface-bright-secondary: #f7f5f00d;
+    --zd-bg-surface-bright-tertiary: #f7f5f008;
+    --zd-bg-frame-ring: #252525;
     --zd-bg-success-subtle: #22830033;
     --zd-bg-success-bold: #228300;
     --zd-bg-warning-subtle: #e7600033;
@@ -577,13 +584,13 @@
 
 :where([data-zd-mode="dark"][data-zd-brand="plain"]) {
   color-scheme: dark;
-  --zd-bg-neutral-primary: #130e0be5;
+  --zd-bg-neutral-primary: #15110e;
   --zd-bg-neutral-secondary: #f7f5f00d;
   --zd-bg-neutral-tertiary: #f7f5f00d;
   --zd-bg-neutral-disabled: #ffffff0d;
-  --zd-bg-bright-primary: #ffffff;
-  --zd-bg-bright-secondary: #ffffff80;
-  --zd-bg-bright-tertiary: #ffffff33;
+  --zd-bg-bright-primary: #f7f5f01a;
+  --zd-bg-bright-secondary: #f7f5f00d;
+  --zd-bg-bright-tertiary: #f7f5f008;
   --zd-bg-inverse-primary: #f7f5f0;
   --zd-bg-inverse-secondary: #f7f5f0;
   --zd-bg-inverse-tertiary: #f7f5f080;
@@ -594,9 +601,10 @@
   --zd-bg-surface-primary: #130e0be5;
   --zd-bg-surface-secondary: #f7f5f00d;
   --zd-bg-surface-tertiary: #f7f5f01a;
-  --zd-bg-surface-bright-primary: #ffffff;
-  --zd-bg-surface-bright-secondary: #ffffff80;
-  --zd-bg-surface-bright-tertiary: #ffffff33;
+  --zd-bg-surface-bright-primary: #f7f5f01a;
+  --zd-bg-surface-bright-secondary: #f7f5f00d;
+  --zd-bg-surface-bright-tertiary: #f7f5f008;
+  --zd-bg-frame-ring: #252525;
   --zd-bg-success-subtle: #22830033;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #e7600033;
@@ -658,13 +666,13 @@
 @media (prefers-color-scheme: dark) {
   :where([data-zd-mode="system"][data-zd-brand="plain"]) {
     color-scheme: dark;
-    --zd-bg-neutral-primary: #130e0be5;
+    --zd-bg-neutral-primary: #15110e;
     --zd-bg-neutral-secondary: #f7f5f00d;
     --zd-bg-neutral-tertiary: #f7f5f00d;
     --zd-bg-neutral-disabled: #ffffff0d;
-    --zd-bg-bright-primary: #ffffff;
-    --zd-bg-bright-secondary: #ffffff80;
-    --zd-bg-bright-tertiary: #ffffff33;
+    --zd-bg-bright-primary: #f7f5f01a;
+    --zd-bg-bright-secondary: #f7f5f00d;
+    --zd-bg-bright-tertiary: #f7f5f008;
     --zd-bg-inverse-primary: #f7f5f0;
     --zd-bg-inverse-secondary: #f7f5f0;
     --zd-bg-inverse-tertiary: #f7f5f080;
@@ -675,9 +683,10 @@
     --zd-bg-surface-primary: #130e0be5;
     --zd-bg-surface-secondary: #f7f5f00d;
     --zd-bg-surface-tertiary: #f7f5f01a;
-    --zd-bg-surface-bright-primary: #ffffff;
-    --zd-bg-surface-bright-secondary: #ffffff80;
-    --zd-bg-surface-bright-tertiary: #ffffff33;
+    --zd-bg-surface-bright-primary: #f7f5f01a;
+    --zd-bg-surface-bright-secondary: #f7f5f00d;
+    --zd-bg-surface-bright-tertiary: #f7f5f008;
+    --zd-bg-frame-ring: #252525;
     --zd-bg-success-subtle: #22830033;
     --zd-bg-success-bold: #228300;
     --zd-bg-warning-subtle: #e7600033;
@@ -796,6 +805,9 @@
 }
 @utility bg-surface-bright-tertiary {
   background-color: var(--zd-bg-surface-bright-tertiary);
+}
+@utility bg-frame-ring {
+  background-color: var(--zd-bg-frame-ring);
 }
 @utility bg-success-subtle {
   background-color: var(--zd-bg-success-subtle);

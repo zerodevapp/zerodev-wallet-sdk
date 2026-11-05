@@ -129,7 +129,7 @@ function SignUpRoot({
             <Text className="zd:text-h2 zd:text-center">
               Continue to your wallet
             </Text>
-            <Text className="zd:mt-2 zd:text-center zd:text-neutral-tertiary">
+            <Text className="zd:mt-2 zd:text-center zd:text-neutral-secondary">
               Choose a sign-in method to proceed
             </Text>
           </div>

@@ -41,9 +41,10 @@ describe('Screen', () => {
       // the DOM holds both whatever the theme.
       const { container } = render(<Screen theme="plain-dark">x</Screen>)
       expect(container.querySelectorAll('.zd-brand-art').length).toBe(2)
+      const frame = container.querySelector('.zd-plain-frame')
+      expect(frame?.className).toContain('zd:bg-frame-ring')
       const surface = container.querySelector('.zd-plain-surface')
       expect(surface?.className).toContain('zd:bg-neutral-primary')
-      expect(container.querySelector('.zd-screen-card')).not.toBeNull()
     })
 
     it('accepts a preset name', () => {
