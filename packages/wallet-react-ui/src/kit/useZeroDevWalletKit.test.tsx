@@ -21,6 +21,22 @@ type FakeConnector = {
   icon?: string
   getKitStore?: () => unknown
   disconnect?: ReturnType<typeof vi.fn>
+  emitter?: ReturnType<typeof fakeEmitter>
+}
+
+/** The slice of a connector's emitter the kit touches: wagmi's self-connect
+ * listener sits on every injected connector after setup. */
+function fakeEmitter() {
+  const listeners = new Map<string, Set<unknown>>()
+  return {
+    on: (event: string, fn: unknown) => {
+      listeners.set(event, (listeners.get(event) ?? new Set()).add(fn))
+    },
+    off: (event: string, fn: unknown) => {
+      listeners.get(event)?.delete(fn)
+    },
+    listenerCount: (event: string) => listeners.get(event)?.size ?? 0,
+  }
 }
 
 let store = createStore()
@@ -36,12 +52,14 @@ const metamask: FakeConnector = {
   id: 'io.metamask',
   name: 'MetaMask',
   type: 'injected',
+  emitter: fakeEmitter(),
 }
 const rabby: FakeConnector = {
   uid: 'rb',
   id: 'io.rabby',
   name: 'Rabby',
   type: 'injected',
+  emitter: fakeEmitter(),
 }
 /** An installed Phantom extension: shares its name with Phantom on a phone. */
 const phantomExtension: FakeConnector = {
@@ -50,6 +68,7 @@ const phantomExtension: FakeConnector = {
   name: 'Phantom',
   type: 'injected',
   disconnect: vi.fn(async () => {}),
+  emitter: fakeEmitter(),
 }
 
 const storage = new Map<string, unknown>()
@@ -58,7 +77,7 @@ function makeConfig() {
   const state = {
     connections: new Map<
       string,
-      { connector: FakeConnector & { emitter: { off: () => void } } }
+      { connector: FakeConnector & { emitter: ReturnType<typeof fakeEmitter> } }
     >(),
     current: null as string | null,
     status: 'disconnected' as string,
@@ -98,7 +117,7 @@ const account = {
 
 function connectEvm(connector: FakeConnector, address = '0xabc') {
   config.state.connections.set(connector.uid, {
-    connector: { ...connector, emitter: { off() {} } },
+    connector: { ...connector, emitter: connector.emitter ?? fakeEmitter() },
   })
   config.state.current = connector.uid
   config.state.status = 'connected'
@@ -188,6 +207,12 @@ beforeEach(() => {
   core.disconnect.mockReset().mockResolvedValue(undefined)
   core.reconnect.mockReset().mockResolvedValue([])
   phantomExtension.disconnect?.mockClear()
+  // A fresh wagmi config arms its self-connect listener on every injected
+  // connector.
+  for (const c of [metamask, rabby, phantomExtension]) {
+    c.emitter = fakeEmitter()
+    c.emitter.on('connect', events.connect)
+  }
 })
 
 const render = () =>
@@ -335,6 +360,69 @@ describe('useZeroDevWalletKit', () => {
       })
       return { ...rendered, seen }
     }
+
+    it("takes wagmi's self-connect listener off the saved wallet's EVM connector, and only that one", async () => {
+      saveLast('MetaMask', 'standard')
+      renderLive()
+      await act(async () => {})
+      // A multichain wallet announces its EVM accounts after a reload; with
+      // the listener gone wagmi cannot adopt that side on its own.
+      expect(metamask.emitter?.listenerCount('connect')).toBe(0)
+      expect(rabby.emitter?.listenerCount('connect')).toBe(1)
+    })
+
+    it("writes the saved wallet's disconnected shim ahead of wagmi's reload reconnect", async () => {
+      saveLast('MetaMask', 'standard')
+      renderLive()
+      await act(async () => {})
+      expect(storage.get(`${metamask.id}.disconnected`)).toBe(true)
+      expect(storage.has(`${rabby.id}.disconnected`)).toBe(false)
+    })
+
+    it("detaches the saved wallet's EVM side when the reload reconnect adopts it anyway", async () => {
+      vi.useFakeTimers()
+      try {
+        saveLast('MetaMask', 'standard')
+        renderLive()
+        await act(async () => {})
+        // The sweep ran to the end with MetaMask authorised (its shim had
+        // been deleted). No status change reaches the guard through this
+        // config stand-in, so it acts once the wait for a sweep runs out.
+        connectEvm(metamask)
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000)
+        })
+        expect(config.state.connections.size).toBe(0)
+        expect(config.state.status).toBe('disconnected')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('keeps an EVM connection wagmi restored from before the reload', async () => {
+      saveLast('MetaMask', 'standard')
+      // What wagmi rehydrates at render: MetaMask was connected on purpose.
+      connectEvm(metamask)
+      renderLive()
+      await act(async () => {})
+      expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
+      expect(metamask.emitter?.listenerCount('connect')).toBe(1)
+      expect(config.state.connections.size).toBe(1)
+    })
+
+    it('leaves the EVM connectors alone when the saved wallet is a WalletConnect session', async () => {
+      saveLast('Phantom', 'walletconnect')
+      renderLive()
+      await act(async () => {})
+      expect(phantomExtension.emitter?.listenerCount('connect')).toBe(1)
+    })
+
+    it('leaves the EVM connectors alone with reconnectOnMount off', async () => {
+      saveLast('MetaMask', 'standard')
+      render()
+      await act(async () => {})
+      expect(metamask.emitter?.listenerCount('connect')).toBe(1)
+    })
 
     it('reports reconnecting on the first render with nothing saved, then settles at once', async () => {
       // No storage read during render: the server and the first client
