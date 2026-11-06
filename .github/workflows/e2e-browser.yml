@@ -47,6 +47,11 @@ jobs:
   browser-e2e:
     name: ${{ inputs.job_name || 'Browser E2E Tests' }}
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    defaults:
+      run:
+        shell: bash
     # Serializes runs against the same KMS. The fallback repeats the staging URL
     # instead of a short label, so a blank input and an explicit staging URL land
     # in one group. `env` is not available in `concurrency`, hence the repeat.
@@ -66,9 +71,11 @@ jobs:
 
       - name: Show target
         run: |
+          set -euo pipefail
           echo "- KMS: $KMS_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- AA host: $AA_HOST" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tests: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          sha=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
+          echo "- Tests: $sha" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -82,11 +89,47 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check the image matches the lockfile
+        run: |
+          set -euo pipefail
+          version=$(pnpm exec playwright --version | awk '{print $2}')
+          if [ -z "$version" ]; then
+            echo "::error::could not read the Playwright version"
+            exit 1
+          fi
+
+          # Capture before parsing. A command that fails inside a `for $(...)` word
+          # list does NOT trip `set -e` or pipefail — the loop just runs zero times
+          # and the guard passes, which is worse than having no guard. Verified:
+          # `for x in $(false | awk ...)` exits 0 under `bash -eo pipefail`.
+          dry_run=$(pnpm exec playwright install --dry-run chromium)
+          paths=$(printf '%s\n' "$dry_run" | awk '/Install location:/{print $3}')
+          count=$(printf '%s\n' "$paths" | grep -c . || true)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::parsed no install locations from 'playwright install --dry-run'; its output format has changed and this guard needs updating"
+            printf '%s\n' "$dry_run"
+            exit 1
+          fi
+
+          missing=0
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            if [ -d "$path" ]; then
+              echo "ok: $path"
+            else
+              echo "missing: $path"
+              missing=1
+            fi
+          done <<< "$paths"
+
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::@playwright/test is ${version}, but the container image does not carry all of its browser builds. Bump the container tag in this workflow to v${version}-noble."
+            exit 1
+          fi
+          echo "Playwright ${version}: all ${count} browser paths present."
+
       - name: Build demo SDK dependencies
         run: pnpm build:e2e
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
 
       - name: Cache browser e2e fixtures
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
