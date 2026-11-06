@@ -33,10 +33,6 @@ vi.mock('./MoreWallets', () => ({
   SignUpMoreWallets: () => <div data-testid="unit-more-wallets" />,
 }))
 
-vi.mock('../../components/BlobAnimation', () => ({
-  BlobAnimation: () => null,
-}))
-
 vi.mock('../../../shared/components/SignUpFooter', () => ({
   SignUpFooter: ({
     setAgreedToTerms,

@@ -18,10 +18,21 @@
 :where([data-zd-brand="plain"]) .zd-plain-surface {
   display: block;
 }
-/* Surfaces (Wrapper): the frosted 0.3px stroke becomes a 1px border in the
+/* Surfaces (Wrapper): the frosted 0.3px stroke reads as a 1px line in the
    neutral border colour, on buttons too, which hide it under the branded
-   look. */
+   look. The line is an inset outline, not a wider border: WebKit and Gecko
+   lay the 0.3px stroke out as half a device pixel on a 2x screen, so a 1px
+   border would make every content-sized surface a pixel taller than its
+   branded twin and shift the layout on a theme switch. The stroke itself
+   keeps its width and takes the line's colour, so it sits under the line. */
 :where([data-zd-brand="plain"]) .zd-surface {
-  border-width: 1px;
   border-color: var(--zd-border-neutral-primary);
+  outline: 1px solid var(--zd-border-neutral-primary);
+  outline-offset: -1px;
+}
+/* The outline above replaces the browser's focus ring on surfaces that are
+   buttons; give keyboard focus the platform ring back. */
+:where([data-zd-brand="plain"]) .zd-surface:focus-visible {
+  outline: auto;
+  outline-offset: 0;
 }
