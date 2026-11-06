@@ -113,7 +113,19 @@ describe('generated tokens.css', () => {
 
   it('refuses a variant with an unstated cell', () => {
     expect(() =>
-      renderVariantDeclarations({ mode: 'dark', brand: 'plain' }),
+      renderVariantDeclarations(
+        { mode: 'dark', brand: 'plain' },
+        { 'bg-neutral-primary': ['#ffffff', '#ffffff', '#000000', null] },
+      ),
     ).toThrow(/no value for dark\/plain/)
+  })
+
+  it('states every cell, so all four variants are carried', () => {
+    expect(completeVariants().map((v) => `${v.mode}/${v.brand}`)).toEqual([
+      'light/branded',
+      'light/plain',
+      'dark/branded',
+      'dark/plain',
+    ])
   })
 })

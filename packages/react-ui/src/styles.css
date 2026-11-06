@@ -17,6 +17,8 @@
 /* Semantic colour tokens: the custom properties for the default theme and
    one utility per token. Generated from theme/tokens.ts; see that file. */
 @import "./theme/tokens.css";
+/* The brand axis beyond colour: which decorative layers show. */
+@import "./theme/brand.css";
 
 /* Density base. --zd-density is a unitless multiplier (1 = default) that the
    spacing base and the font tokens (see tailwind.config.ts) derive from, so the

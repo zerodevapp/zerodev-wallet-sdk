@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  // Emit package-relative asset URLs (e.g. blob.webm from BlobAnimation) so they
+  // Emit package-relative asset URLs (the StatusScreen state images) so they
   // resolve when the package is served from any subpath, not root-absolute.
   base: './',
   plugins: [react({ jsxRuntime: 'automatic' })],
