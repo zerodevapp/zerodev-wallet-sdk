@@ -47,6 +47,8 @@ jobs:
   browser-e2e:
     name: ${{ inputs.job_name || 'Browser E2E Tests' }}
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
     # Serializes runs against the same KMS. The fallback repeats the staging URL
     # instead of a short label, so a blank input and an explicit staging URL land
     # in one group. `env` is not available in `concurrency`, hence the repeat.
@@ -82,11 +84,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check the image matches the lockfile
+        run: |
+          set -euo pipefail
+          version=$(pnpm exec playwright --version | awk '{print $2}')
+          missing=0
+          for path in $(pnpm exec playwright install --dry-run chromium \
+                        | awk '/Install location:/{print $3}'); do
+            if [ -d "$path" ]; then
+              echo "ok: $path"
+            else
+              echo "missing: $path"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::@playwright/test is ${version}, but the container image does not carry its browsers. Bump the container tag in this workflow to v${version}-noble."
+            exit 1
+          fi
+
       - name: Build demo SDK dependencies
         run: pnpm build:e2e
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
 
       - name: Cache browser e2e fixtures
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
