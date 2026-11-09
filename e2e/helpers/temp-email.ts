@@ -42,6 +42,11 @@ const jsonHeaders = {
 /** A refusal no amount of polling fixes: bad key, bad server id, outage. */
 class FatalEmailError extends Error {}
 
+/** Searches at the caller's interval before the gap starts doubling. */
+const EMAIL_POLL_FLAT_SEARCHES = 3
+/** Ceiling on the backed-off gap, so a late email is still noticed promptly. */
+const EMAIL_POLL_MAX_INTERVAL_MS = 15_000
+
 /** Collections have shipped both bare and `items`-wrapped; accept either. */
 function itemsOf(data: unknown): { id: string }[] {
   if (Array.isArray(data)) return data as { id: string }[]
@@ -82,9 +87,21 @@ export async function searchForNewEmail(
     inboxOpenedAt.get(address) ?? new Date(Date.now() - 60_000).toISOString()
   const deadline = Date.now() + timeoutMs
   let lastTransportError: unknown
+  let searches = 0
+  let wait = 0
 
   while (Date.now() < deadline) {
-    await sleep(intervalMs)
+    if (wait > 0) {
+      const remaining = deadline - Date.now()
+      if (remaining <= 0) break
+      await sleep(Math.min(wait, remaining))
+    }
+    searches++
+
+    wait =
+      searches < EMAIL_POLL_FLAT_SEARCHES
+        ? intervalMs
+        : Math.min(Math.max(wait, intervalMs) * 2, EMAIL_POLL_MAX_INTERVAL_MS)
 
     try {
       // Search rather than list: the server is shared, so the recipient filter
