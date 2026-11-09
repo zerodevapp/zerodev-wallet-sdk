@@ -23,7 +23,7 @@ const expectedAddress = () =>
 test.describe('Preset 2 — real MetaMask', () => {
   test.describe.configure({ timeout: 300_000 })
 
-  test('the pinned row is badged INSTALLED once the extension is present', async ({
+  test('the announced row is badged INSTALLED once the extension is present', async ({
     page,
   }) => {
     await page.goto('/?preset=preset-2')

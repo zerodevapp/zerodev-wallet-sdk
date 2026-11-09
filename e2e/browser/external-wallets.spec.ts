@@ -143,19 +143,23 @@ test.describe('Preset 2 — external wallets', () => {
   // the config's 120s default leaves no headroom above that.
   test.describe.configure({ timeout: 180_000 })
 
-  test('pinned MetaMask row pairs by deep link and offers the download page', async ({
+  // OKX is the pinned row, and is installed in no project here, so clicking it
+  // takes the handoff branch: no EIP-6963 announcement means pair by deep link
+  // rather than connect. An installed wallet would connect instead and never
+  // reach this sheet.
+  test('pinned OKX row pairs by deep link and offers the download page', async ({
     page,
   }) => {
     await openPresetTwo(page)
 
-    await page.getByRole('button', { name: /^MetaMask/ }).click()
+    await page.getByRole('button', { name: /^OKX Wallet/ }).click()
 
-    const sheet = page.getByRole('dialog', { name: 'Connect MetaMask' })
+    const sheet = page.getByRole('dialog', { name: 'Connect OKX Wallet' })
     await expect(sheet).toBeVisible()
 
-    await expectQrEncoding(sheet, 'https://metamask.app.link/wc?uri=')
+    await expectQrEncoding(sheet, 'okex://main/wc?uri=')
 
-    await expectDownloadLink(sheet, 'MetaMask', 'https://metamask.io/download')
+    await expectDownloadLink(sheet, 'OKX Wallet', 'https://okx.com/download')
   })
 
   test('a wallet chosen from More wallets pairs the same way', async ({
@@ -218,8 +222,8 @@ test.describe('Preset 2 — external wallets', () => {
 
     await expect(row).not.toContainText(MOCK_WALLET_TWO.name)
 
-    const metamask = page.getByRole('button', { name: /^MetaMask/ })
-    await expect(metamask).toBeVisible()
-    await expect(metamask).not.toContainText('INSTALLED')
+    const okx = page.getByRole('button', { name: /^OKX Wallet/ })
+    await expect(okx).toBeVisible()
+    await expect(okx).not.toContainText('INSTALLED')
   })
 })

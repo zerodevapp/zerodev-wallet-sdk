@@ -42,10 +42,39 @@ export const AUTH_UNITS = {
   email: "Email",
   divider: 'Separator ("or")',
   "wallet:metamask": "MetaMask, pinned row",
+  "wallet:okx": "OKX Wallet, pinned row",
   installedWallets: "Installed wallets, auto-detected (EIP-6963)",
   moreWallets: "More wallets, opens the full grid",
   walletConnect: "WalletConnect, QR pairing",
+  solanaDivider: 'Separator ("Solana")',
+  installedWalletsMultichain:
+    "Installed wallets, EVM + Solana merged by name (one row per wallet)",
+  installedWalletsSolana: "Installed wallets, Solana only (Wallet Standard)",
+  solanaWalletConnect: "WalletConnect for Solana, QR pairing",
 } as const;
+
+/**
+ * Chain families the sign-in surface can offer, in render order.
+ */
+export const AUTH_NAMESPACES = [
+  { id: "eip155", label: "EVM" },
+  { id: "solana", label: "Solana" },
+] as const;
+
+export type AuthNamespace = (typeof AUTH_NAMESPACES)[number]["id"];
+
+export const AUTH_NAMESPACE_IDS = AUTH_NAMESPACES.map(
+  (n) => n.id,
+) as AuthNamespace[];
+
+export const isAuthNamespace = (value: string): value is AuthNamespace =>
+  (AUTH_NAMESPACE_IDS as readonly string[]).includes(value);
+
+/** What the surface offers when `?ns=` says nothing. */
+export const defaultNamespaces = (
+  solanaEnabled: boolean,
+): readonly AuthNamespace[] =>
+  solanaEnabled ? ["eip155", "solana"] : ["eip155"];
 
 export type AuthUnitId = keyof typeof AUTH_UNITS;
 
@@ -69,7 +98,7 @@ export const AUTH_PRESETS = {
     description:
       "External wallets only, with no embedded-wallet method — so the wallet paths can be exercised on their own.",
     units: [
-      "wallet:metamask",
+      "wallet:okx",
       "divider",
       "installedWallets",
       "moreWallets",
@@ -93,6 +122,69 @@ export const DEFAULT_AUTH_PRESET: AuthPresetId = "preset-1";
 
 export const isAuthPresetId = (value: string): value is AuthPresetId =>
   (AUTH_PRESET_IDS as readonly string[]).includes(value);
+
+/**
+ * The units that actually render: the preset, plus the Solana surface when it
+ * is switched on.
+ *
+ * `LoginScreen` and `/config` both go through this rather than reading
+ * `AUTH_PRESETS[id].units` directly, for the same reason `units` is the render
+ * order: the config page must not advertise a surface you do not get.
+ *
+ * Solana applies to any preset, including the embedded one — the flag means
+ * "offer Solana here", and which preset you are on is a separate axis.
+ */
+export function resolveAuthUnits(
+  preset: AuthPresetId,
+  namespaces: readonly AuthNamespace[],
+): readonly AuthUnitId[] {
+  const units = AUTH_PRESETS[preset].units;
+  const withEvm = namespaces.includes("eip155");
+  const withSolana = namespaces.includes("solana");
+
+  if (!withSolana) return units;
+
+  // Solana only: drop the EVM surfaces outright rather than leaving rows that
+  // cannot connect anything.
+  if (!withEvm) {
+    const kept = units.filter(
+      (unit) =>
+        unit !== "installedWallets" &&
+        unit !== "moreWallets" &&
+        unit !== "walletConnect" &&
+        !unit.startsWith("wallet:"),
+    );
+    const solanaSurface: readonly AuthUnitId[] = [
+      "installedWalletsSolana",
+      "solanaWalletConnect",
+    ];
+    // A preset that still has embedded methods keeps them, behind a divider.
+    return kept.length > 0
+      ? [...kept, "solanaDivider", ...solanaSurface]
+      : solanaSurface;
+  }
+
+  // Both: swap the EVM-only list for the merged one rather than adding a
+  // second, Solana-only list. The kit merges by name — a wallet installed for
+  // both chains is one row that asks which to connect — so two lists would
+  // split MetaMask and Phantom apart instead of showing each once.
+  const swapped = units.map((unit): AuthUnitId =>
+    unit === "installedWallets" ? "installedWalletsMultichain" : unit,
+  );
+
+  if (swapped.includes("installedWalletsMultichain")) {
+    return [...swapped, "solanaWalletConnect"];
+  }
+
+  // A preset with no wallet list at all (the embedded one): add the Solana
+  // surface behind a divider rather than running it on from the email field.
+  return [
+    ...swapped,
+    "solanaDivider",
+    "installedWalletsMultichain",
+    "solanaWalletConnect",
+  ];
+}
 
 /**
  * Where the active preset persists. Namespaced so it can't collide with the

@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { AppHeader } from "../AppHeader";
+import { ConnectorStatus } from "../ConnectorStatus";
 import { LoginScreen } from "../LoginScreen";
 import { LabSidebar } from "./LabSidebar";
 import { WalletStrip } from "./WalletStrip";
@@ -42,6 +43,7 @@ export function LabShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       <AppHeader />
+      <ConnectorStatus />
 
       {/*
         Full width, above the nav, at every breakpoint. It sits outside the
