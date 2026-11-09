@@ -5,6 +5,7 @@ import {
   ListItemIcon,
 } from '@zerodev/react-ui'
 import { useState } from 'react'
+import { useConnections } from 'wagmi'
 import { equalsIgnoreCase } from '../../../shared/utils/common'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
@@ -56,6 +57,11 @@ export function InstalledWalletsMultichain({
   useSolanaAutoReconnect()
   const { connectSolana, pendingSolanaName, connectedSolanaName } =
     useSolanaConnect()
+  // The EVM side's connected wallets, so a wallet already connected there
+  // reads as connected and cannot be connected again, as on the Solana
+  // side. The host adds the other side from this list.
+  const connections = useConnections()
+  const connectedEvmUids = new Set(connections.map((c) => c.connector.uid))
   // Name of the multichain wallet whose chain choice is expanded.
   const [choosing, setChoosing] = useState<string | null>(null)
 
@@ -106,8 +112,17 @@ export function InstalledWalletsMultichain({
 
   const visible = rows.sort((a, b) => a.rank - b.rank).slice(0, maxWallets)
 
+  const isEvmConnected = (row: Row) =>
+    !!row.evm && connectedEvmUids.has(row.evm.connector.uid)
+  const isSolanaConnected = (row: Row) =>
+    !!row.solana && connectedSolanaName === row.solana.name
+  /** A side is left to connect. */
+  const isConnectable = (row: Row) =>
+    (!!row.evm && !isEvmConnected(row)) ||
+    (!!row.solana && !isSolanaConnected(row))
+
   const connectEvm = (row: Row) => {
-    if (!row.evm) return
+    if (!row.evm || isEvmConnected(row)) return
     if (authPending) return
     if (!guardAgreement()) return
     setChoosing(null)
@@ -119,14 +134,14 @@ export function InstalledWalletsMultichain({
   }
 
   const connectSol = (row: Row) => {
-    if (!row.solana) return
+    if (!row.solana || isSolanaConnected(row)) return
     setChoosing(null)
     // Settles through the shared hook (error takeover or closed flow).
     connectSolana(row.solana)
   }
 
   const onRowClick = (row: Row) => {
-    if (authPending) return
+    if (authPending || !isConnectable(row)) return
     if (row.evm && row.solana) {
       setChoosing((current) => (current === row.name ? null : row.name))
       return
@@ -136,8 +151,6 @@ export function InstalledWalletsMultichain({
   }
 
   const badgesFor = (row: Row) => {
-    const isSolanaConnected =
-      !!row.solana && connectedSolanaName === row.solana.name
     const isSolanaPending =
       !!row.solana && pendingSolanaName === row.solana.name
     return (
@@ -146,7 +159,7 @@ export function InstalledWalletsMultichain({
         {row.solana && <Badge text="SOLANA" variant="secondary" />}
         <Badge
           text={
-            isSolanaConnected
+            isSolanaConnected(row) || isEvmConnected(row)
               ? 'CONNECTED'
               : isSolanaPending
                 ? 'CONNECTING'
@@ -172,10 +185,7 @@ export function InstalledWalletsMultichain({
               }
               subtitle={badgesFor(row)}
               trailing={<ListItemChevron />}
-              disabled={
-                authPending ||
-                (!row.evm && connectedSolanaName === row.solana?.name)
-              }
+              disabled={authPending || !isConnectable(row)}
               onClick={() => onRowClick(row)}
             />
             {expanded && (
@@ -188,7 +198,7 @@ export function InstalledWalletsMultichain({
                   icon={<ListItemIcon name="ethereum" />}
                   subtitle={<Badge text="EVM" variant="secondary" />}
                   trailing={<ListItemChevron />}
-                  disabled={authPending}
+                  disabled={authPending || isEvmConnected(row)}
                   onClick={() => connectEvm(row)}
                 />
                 <ListItem
@@ -196,7 +206,7 @@ export function InstalledWalletsMultichain({
                   icon={<ListItemIcon name="solana" />}
                   subtitle={<Badge text="SOLANA" variant="secondary" />}
                   trailing={<ListItemChevron />}
-                  disabled={authPending || connectedSolanaName === row.name}
+                  disabled={authPending || isSolanaConnected(row)}
                   onClick={() => connectSol(row)}
                 />
               </div>

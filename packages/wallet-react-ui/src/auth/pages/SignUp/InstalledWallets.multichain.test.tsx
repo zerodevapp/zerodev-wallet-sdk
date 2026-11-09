@@ -91,8 +91,11 @@ const fakeWagmiConfig = {
   subscribe: () => () => {},
   _internal: { events: { change() {}, disconnect() {}, connect() {} } },
 }
+/** wagmi's live EVM connections: the wallets already connected there. */
+let connections: { connector: FakeConnector }[] = []
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
+  useConnections: () => connections,
   useConfig: () => fakeWagmiConfig,
 }))
 
@@ -140,6 +143,7 @@ beforeEach(() => {
   window.localStorage.clear()
   store = createStore()
   connectors = []
+  connections = []
   solanaWallets = []
 })
 
@@ -193,6 +197,65 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
       name: 'Phantom',
     })
     expect(store.getState().solana.status).toBe('disconnected')
+  })
+
+  it('greys out the Ethereum choice of a wallet already connected on EVM, as it does for Solana', () => {
+    connectors = [announced('app.phantom', 'Phantom')]
+    connections = [{ connector: connectors[0] as FakeConnector }]
+    solanaWallets = [solanaWallet('Phantom').wallet]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    const rowButton = (name: string) =>
+      screen.getByText(name).closest('button') as HTMLButtonElement
+
+    // The wallet reads as connected, and the row still opens the choice:
+    // the Solana side is left to connect.
+    expect(screen.getByText('CONNECTED')).toBeTruthy()
+    expect(rowButton('Phantom').disabled).toBe(false)
+    fireEvent.click(screen.getByText('Phantom'))
+    expect(rowButton('Ethereum').disabled).toBe(true)
+    expect(rowButton('Solana').disabled).toBe(false)
+    fireEvent.click(screen.getByText('Ethereum'))
+    expect(startWalletConnection).not.toHaveBeenCalled()
+  })
+
+  it('disables an EVM-only row whose wallet is already connected', () => {
+    connectors = [announced('io.metamask', 'MetaMask')]
+    connections = [{ connector: connectors[0] as FakeConnector }]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    const row = screen
+      .getByText('MetaMask')
+      .closest('button') as HTMLButtonElement
+    expect(screen.getByText('CONNECTED')).toBeTruthy()
+    expect(row.disabled).toBe(true)
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(startWalletConnection).not.toHaveBeenCalled()
+  })
+
+  it('disables a wallet row once both of its sides are connected', async () => {
+    connectors = [announced('app.phantom', 'Phantom')]
+    connections = [{ connector: connectors[0] as FakeConnector }]
+    const phantom = solanaWallet('Phantom')
+    solanaWallets = [phantom.wallet]
+    await store.getState().solana.connect(phantom.wallet)
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    const row = screen
+      .getByText('Phantom')
+      .closest('button') as HTMLButtonElement
+    expect(row.disabled).toBe(true)
+    fireEvent.click(screen.getByText('Phantom'))
+    expect(screen.queryByTestId('chain-choice-Phantom')).toBeNull()
   })
 
   it('connects single-namespace wallets directly', async () => {
