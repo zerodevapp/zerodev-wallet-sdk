@@ -79,6 +79,9 @@ async function switchToken({
 }
 
 test.describe('SRA deposits', () => {
+  // Signs in against staging, which rate-limits concurrent logins.
+  test.describe.configure({ lock: 'staging-auth' })
+
   test('drives one deposit from detected through routing to received', async ({
     authedPage: page,
   }) => {

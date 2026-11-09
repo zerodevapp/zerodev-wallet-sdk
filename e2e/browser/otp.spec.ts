@@ -14,6 +14,8 @@ import {
 } from '../helpers/ui-login.js'
 
 test.describe('OTP Flow', () => {
+  test.describe.configure({ lock: 'staging-auth' })
+
   test('should verify OTP for an existing wallet after logout', async ({
     page,
   }) => {
