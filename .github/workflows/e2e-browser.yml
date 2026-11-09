@@ -91,6 +91,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check the image matches the lockfile
+        id: image-check
         run: |
           set -euo pipefail
           version=$(pnpm exec playwright --version | awk '{print $2}')
@@ -128,6 +129,7 @@ jobs:
             exit 1
           fi
           echo "Playwright ${version}: all ${count} browser paths present."
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Build demo SDK dependencies
         run: pnpm build:e2e
@@ -136,7 +138,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: e2e/.cache
-          key: e2e-fixtures-${{ runner.os }}-${{ hashFiles('e2e/helpers/wallet-versions.ts') }}
+          key: e2e-fixtures-${{ runner.os }}-pw${{ steps.image-check.outputs.version }}-${{ hashFiles('e2e/helpers/wallet-versions.ts') }}
 
       - name: Build and start QA lab
         working-directory: apps/qa-lab-testing
