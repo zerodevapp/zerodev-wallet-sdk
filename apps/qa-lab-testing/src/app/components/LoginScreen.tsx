@@ -8,13 +8,14 @@ import { Fragment, useEffect, useMemo } from 'react'
 import { useAccount, useConnect } from 'wagmi'
 import { pickConfigParams, resolveWalletConfig } from '../lib/config-params'
 import { useAuthPreset } from '../lib/use-auth-preset'
-import { AUTH_PRESETS, type AuthUnitId } from '../lib/wallet-config'
+import { type AuthUnitId, resolveAuthUnits } from '../lib/wallet-config'
 import { AppHeader } from './AppHeader'
+import { ConnectorStatus } from './ConnectorStatus'
 
 /**
- * Which units a preset renders, and in what order,
- * lives in `wallet-config.ts` → `AUTH_PRESETS[...].units`, which stays free of
- * JSX so server components can import it.
+ * Which units render, and in what order, lives in `wallet-config.ts` →
+ * `resolveAuthUnits`, which stays free of JSX so server components can import
+ * it.
  */
 const UNIT_BY_ID: Record<AuthUnitId, () => React.ReactNode> = {
   passkey: () => <SignUp.Passkey />,
@@ -22,9 +23,21 @@ const UNIT_BY_ID: Record<AuthUnitId, () => React.ReactNode> = {
   email: () => <SignUp.Email />,
   divider: () => <SignUp.Divider />,
   'wallet:metamask': () => <SignUp.Wallet walletId="metamask" />,
+  'wallet:okx': () => <SignUp.Wallet walletId="okx" />,
   installedWallets: () => <SignUp.InstalledWallets />,
   moreWallets: () => <SignUp.MoreWallets />,
   walletConnect: () => <SignUp.WalletConnect />,
+  solanaDivider: () => <SignUp.Divider label="Solana" />,
+  // Replaces `installedWallets` when Solana is on, rather than sitting beside
+  // it: the kit merges the two registries by name, so a wallet with both sides
+  // is one row carrying a SOLANA badge that asks which chain to connect.
+  installedWalletsMultichain: () => (
+    <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+  ),
+  installedWalletsSolana: () => (
+    <SignUp.InstalledWallets namespaces={['solana']} />
+  ),
+  solanaWalletConnect: () => <SignUp.SolanaWalletConnect />,
 }
 
 /**
@@ -86,6 +99,7 @@ export function LoginScreen() {
   return (
     <div className="min-h-screen">
       <AppHeader />
+      <ConnectorStatus />
       <main className="flex min-h-[calc(100vh-88px)] flex-col items-center justify-center px-4 py-8">
         {showLoading ? (
           <Loader2 className="h-10 w-10 animate-spin text-[var(--muted)]" />
@@ -113,7 +127,7 @@ export function LoginScreen() {
               }
               renderSignUp={() => (
                 <SignUp emailAuthMethod={resolved.emailAuthMethod}>
-                  {AUTH_PRESETS[preset].units.map((id) => (
+                  {resolveAuthUnits(preset, resolved.namespaces).map((id) => (
                     <Fragment key={id}>{UNIT_BY_ID[id]()}</Fragment>
                   ))}
                 </SignUp>

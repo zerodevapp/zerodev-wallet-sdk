@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthenticators } from "@zerodev/wallet-react";
+import { useZeroDevWalletKit } from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
@@ -11,10 +12,14 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { useConfigHref } from "../../lib/use-wallet-config";
 import { cn } from "../../lib/utils";
 import { ChainSelector } from "../ChainSelector";
+import {
+  type DisconnectChoice,
+  DisconnectDialog,
+} from "../DisconnectDialog";
 import { ExportWalletModal } from "../ExportWalletModal";
 
 type WalletAsset = "ETH" | "USDC";
@@ -57,11 +62,17 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
   const [copied, setCopied] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
+  const [showDisconnectChoice, setDisconnectChoice] = useState(false);
+  const [disconnecting, setDisconnecting] = useState<DisconnectChoice | null>(
+    null,
+  );
 
   const configHref = useConfigHref();
   const { address, chain } = useAccount();
   const publicClient = usePublicClient({ chainId: chain?.id });
-  const { disconnectAsync: logout } = useDisconnect();
+  // Read-only here: ConnectorStatus owns the Solana restore, and a second
+  // `reconnectOnMount` would run the silent reconnect twice.
+  const kit = useZeroDevWalletKit({ reconnectOnMount: false });
   const { data: authenticatorData } = useAuthenticators({});
   const authMethodLabel = formatAuthMethod(authenticatorData);
 
@@ -119,10 +130,42 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
   // Keeps the active config across the logout reload — landing on a bare "/"
   // would silently drop any URL overrides and log you back into a different
   // setup than the one you were testing.
-  const handleLogout = async () => {
+  // An embedded session is one connection in one namespace, so there is nothing
+  // to choose between. Solana only ever connects an external wallet today, so
+  // any Solana connection means the choice is real.
+  const needsDisconnectChoice =
+    kit.solana.isConnected ||
+    (kit.eip155.isConnected && kit.eip155.walletInfo?.source !== "embedded");
+
+  const handleLogout = () => {
+    if (needsDisconnectChoice) {
+      setDisconnectChoice(true);
+      return;
+    }
+    void runDisconnect("all");
+  };
+
+  const runDisconnect = async (choice: DisconnectChoice) => {
+    setDisconnecting(choice);
+
+    // Disconnecting one side leaves the other connected, so the session
+    // continues and the page stays put — the connector status strip is what
+    // shows the result. Only a full disconnect ends the session and reloads.
+    if (choice !== "all") {
+      try {
+        await kit.disconnect({ namespace: choice });
+      } finally {
+        setDisconnecting(null);
+        setDisconnectChoice(false);
+      }
+      return;
+    }
+
     onLogout();
     try {
-      await logout();
+      // The kit's disconnect, not wagmi's: wagmi only knows the EVM side, so a
+      // logout with a Solana wallet attached used to leave it connected.
+      await kit.disconnect();
     } finally {
       window.location.assign(configHref("/"));
     }
@@ -135,6 +178,15 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
 
   return (
     <>
+      <DisconnectDialog
+        isOpen={showDisconnectChoice}
+        onClose={() => setDisconnectChoice(false)}
+        onChoose={(choice) => void runDisconnect(choice)}
+        evmConnected={kit.eip155.isConnected}
+        solanaConnected={kit.solana.isConnected}
+        busy={disconnecting}
+      />
+
       <ExportWalletModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}

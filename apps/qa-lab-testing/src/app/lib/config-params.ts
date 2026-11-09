@@ -7,8 +7,13 @@ import {
   type AuthPresetId,
   CHAINS,
   DEFAULT_AUTH_FLAVOR,
+  AUTH_NAMESPACE_IDS,
+  type AuthNamespace,
+  defaultNamespaces,
   defaultTransportUrl,
+  isAuthNamespace,
   isAuthPresetId,
+  WALLETCONNECT_PROJECT_ID,
 } from "./wallet-config";
 
 /**
@@ -32,6 +37,13 @@ export type TransportSource = "param" | "default" | "local" | "chain";
 export const PARAM = {
   preset: "preset",
   authFlavor: "authFlavor",
+  /** Offer the Solana namespace. Off unless `?solana=true`. */
+  solana: "solana",
+  /**
+   * Which namespaces the surface offers, comma separated (`eip155,solana`).
+   * Absent means whatever `?solana=` implies.
+   */
+  namespaces: "ns",
   /** Per-chain transport, e.g. `rpc.421614`. */
   rpcPrefix: "rpc.",
 } as const;
@@ -51,6 +63,8 @@ const RETIRED_PARAMS: Record<string, string> = {
 export const isConfigParam = (key: string) =>
   key === PARAM.preset ||
   key === PARAM.authFlavor ||
+  key === PARAM.solana ||
+  key === PARAM.namespaces ||
   key.startsWith(PARAM.rpcPrefix);
 
 export interface ResolvedWalletConfig {
@@ -70,6 +84,8 @@ export interface ResolvedWalletConfig {
   /** The ZeroDev project the connector authenticates against. */
   projectId: string | undefined;
   emailAuthMethod: EmailAuthMethodId;
+  solanaEnabled: boolean;
+  namespaces: readonly AuthNamespace[];
   /** Params that were present and applied — drives the "overridden" badge. */
   applied: string[];
   /** Params that were present but rejected. Never fail silently. */
@@ -139,6 +155,61 @@ export function resolveWalletConfig(
     );
   }
 
+  // Solana namespace. Only "true" turns it on; anything else is a typo worth
+  // reporting rather than quietly reading as falsy.
+  let solanaEnabled = false;
+  const rawSolana = get(PARAM.solana);
+  if (rawSolana !== undefined) {
+    if (rawSolana === "true" || rawSolana === "false") {
+      solanaEnabled = rawSolana === "true";
+      applied.push(PARAM.solana);
+    } else {
+      warnings.push(
+        `${PARAM.solana}: "${rawSolana}" must be true | false — Solana stays off.`,
+      );
+    }
+  }
+  if (solanaEnabled && !WALLETCONNECT_PROJECT_ID) {
+    warnings.push(
+      `${PARAM.solana}: NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set — Solana is on but its WalletConnect door is not, so only installed wallets will be offered.`,
+    );
+  }
+
+  // Which namespaces the surface offers. EVM alone by default, both once
+  // Solana is wired, or any subset this names.
+  let namespaces = defaultNamespaces(solanaEnabled);
+  const rawNamespaces = get(PARAM.namespaces);
+  if (rawNamespaces !== undefined) {
+    const requested = rawNamespaces
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const unknown = requested.filter((id) => !isAuthNamespace(id));
+    const known = requested.filter(isAuthNamespace);
+    // Render order comes from AUTH_NAMESPACES, not from the param, so two URLs
+    // naming the same set behave identically.
+    const picked = AUTH_NAMESPACE_IDS.filter((id) => known.includes(id));
+
+    if (unknown.length > 0) {
+      warnings.push(
+        `${PARAM.namespaces}: unknown ${unknown.map((id) => `"${id}"`).join(", ")} — must be ${AUTH_NAMESPACE_IDS.join(" | ")}.`,
+      );
+    }
+    if (picked.length === 0) {
+      warnings.push(
+        `${PARAM.namespaces}: named no usable namespace — offering ${defaultNamespaces(solanaEnabled).join(", ")}.`,
+      );
+    } else {
+      namespaces = picked;
+      applied.push(PARAM.namespaces);
+    }
+  }
+  if (namespaces.includes("solana") && !solanaEnabled) {
+    warnings.push(
+      `${PARAM.namespaces}: Solana is offered but ${PARAM.solana}=true is not set, so its rows have no WalletConnect door and no restore behind them.`,
+    );
+  }
+
   // Transports, one lookup per selected chain. Precedence: URL param, then the
   // ZeroDev staging RPC scoped to the active project (localhost for Anvil). Only
   // if both are absent does `http(undefined)` fall back to viem's public RPC.
@@ -205,6 +276,8 @@ export function resolveWalletConfig(
     authFlavor,
     projectId,
     emailAuthMethod,
+    solanaEnabled,
+    namespaces,
     applied,
     warnings,
   };
@@ -268,11 +341,27 @@ export function serializeOverrides(overrides: {
   rpcUrls?: Record<number, string>;
   preset?: AuthPresetId;
   authFlavor?: AuthFlavorId;
+  solana?: boolean;
+  namespaces?: readonly AuthNamespace[];
 }): URLSearchParams {
   const params = new URLSearchParams();
 
   if (overrides.preset) {
     params.set(PARAM.preset, overrides.preset);
+  }
+  if (overrides.solana) {
+    params.set(PARAM.solana, "true");
+  }
+  // Only when it differs from what `solana` already implies, so the common
+  // cases stay a one-param URL.
+  if (overrides.namespaces) {
+    const fallback = defaultNamespaces(overrides.solana ?? false);
+    const differs =
+      overrides.namespaces.length !== fallback.length ||
+      overrides.namespaces.some((id, index) => id !== fallback[index]);
+    if (differs && overrides.namespaces.length > 0) {
+      params.set(PARAM.namespaces, overrides.namespaces.join(","));
+    }
   }
   const activeProjectId =
     AUTH_FLAVORS[overrides.authFlavor ?? DEFAULT_AUTH_FLAVOR].projectId;
