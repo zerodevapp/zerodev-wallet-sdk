@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     defaults:
       run:
         shell: bash
@@ -141,7 +142,8 @@ jobs:
         working-directory: apps/qa-lab-testing
         run: |
           pnpm build
-          pnpm start &
+          pnpm start > "$GITHUB_WORKSPACE/qa-lab.log" 2>&1 &
+          echo $! > "$GITHUB_WORKSPACE/qa-lab.pid"
         env:
           # Both ids are inlined so a URL param can select the flavor per test,
           # instead of building the app twice as the signer demo does.
@@ -166,6 +168,38 @@ jobs:
           echo "QA lab failed to start"
           exit 1
 
+      - name: Watch the QA lab
+        run: |
+          set -euo pipefail
+          # Records when the lab stops answering, and what memory looked like at that
+          # moment. Nothing else can: the suite runs as one command, so there is no
+          # step boundary between Playwright projects to probe at, and the only
+          # symptom in the report is a bare `net::ERR_ABORTED` with no response.
+          # `set +e` inside the loop so one failed probe does not end the watch.
+          # Liveness comes from /proc state, not from a name match or `kill -0`, because
+          # both lie here. A pattern like `[n]ext` also matches this script's own command
+          # line, and this container's PID 1 is `tail`, which never reaps — so a dead
+          # child lingers as a zombie and `kill -0` keeps reporting it alive. Verified:
+          # a killed server showed `state=Z` with `kill -0` still succeeding. The state
+          # letter also separates running from blocked, which tells a hang from a crash.
+          lab=$(cat "$GITHUB_WORKSPACE/qa-lab.pid")
+          (
+            set +e
+            while true; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3000)
+              [ -n "$code" ] || code=000
+              st=$(sed -E 's/^.*\) //' "/proc/$lab/stat" 2>/dev/null | cut -d' ' -f1)
+              case "$st" in '' | Z) state=GONE ;; *) state="alive($st)" ;; esac
+              # comm is `node-MainThread` in this image, not `node`, so match a prefix.
+              node_rss=$(ps -eo rss,comm | awk '$2 ~ /^node/ {s+=$1} END{print s+0}')
+              mem=$(free -m | awk '/^Mem:/{print "used="$3"MB avail="$7"MB"}')
+              oom=$(grep -E '^oom(_group)?_kill ' /sys/fs/cgroup/memory.events 2>/dev/null | tr '\n' ' ')
+              echo "$(date -u +%H:%M:%S) http=$code lab=$state node_rss_kb=$node_rss mem[$mem] oom[$oom]"
+              sleep 5
+            done
+          ) > "$GITHUB_WORKSPACE/qa-lab-health.log" 2>&1 &
+          echo "watching lab pid $lab"
+
       - name: Run E2E tests
         run: pnpm exec playwright test --config e2e/playwright.config.ts
         env:
@@ -180,4 +214,15 @@ jobs:
         with:
           name: playwright-report-${{ github.job }}
           path: playwright-report/
+          retention-days: 14
+
+      - name: Upload QA lab logs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: qa-lab-logs-${{ github.job }}
+          path: |
+            qa-lab.log
+            qa-lab-health.log
+          if-no-files-found: warn
           retention-days: 14
