@@ -18,7 +18,11 @@ import {
   MOCK_WALLET,
   MOCK_WALLET_TWO,
 } from '../helpers/mock-injected-wallet.js'
-import { openSignIn } from '../helpers/ui-login.js'
+import {
+  expectSignUpSheet,
+  openSignIn,
+  openWalletPreset,
+} from '../helpers/ui-login.js'
 
 /** The relay round-trip, plus a cold Next dev compile on the first spec. */
 const PAIRING_TIMEOUT_MS = 60_000
@@ -69,18 +73,15 @@ test.beforeEach(async ({ page }) => {
   throw new Error(detail)
 })
 
-/**
- * Opens the lab on preset 2 and waits for the sign-up screen.
- *
- * The URL is what a spec can set, and it writes through to storage, so this
- * also leaves the lab on preset 2 for anything that navigates afterwards.
- */
-async function openPresetTwo(page: Page): Promise<void> {
-  await page.goto('/?preset=preset-2')
-  await openSignIn(page)
-  await expect(page.getByText('Continue to your wallet')).toBeVisible({
-    timeout: PAIRING_TIMEOUT_MS,
-  })
+/** Opens the lab on preset 2 and waits for the sign-up screen. */
+async function openPresetTwo(
+  page: Page,
+  /** Offers the Solana rows beside the EVM ones. */
+  withSolana = false,
+): Promise<void> {
+  await openWalletPreset(page, { solana: withSolana })
+  await openSignIn(page, withSolana ? 'solana' : 'eip155')
+  await expectSignUpSheet(page)
 }
 
 /**
@@ -203,6 +204,26 @@ test.describe('Preset 2 — external wallets', () => {
 
     // Empty prefix. The bare URI, so any wallet's in-app scanner can claim the
     // pairing rather than one vendor's.
+    await expectQrEncoding(sheet, '')
+  })
+
+  test('TC-02 — the Solana WalletConnect row offers a usable pairing', async ({
+    page,
+  }) => {
+    await openPresetTwo(page, true)
+
+    // Both doors are titled "WalletConnect"; only the badge tells them apart.
+    const solanaRow = page
+      .getByRole('button', { name: /^WalletConnect/ })
+      .filter({ hasText: 'SOLANA' })
+    await expect(solanaRow).toHaveCount(1)
+    await solanaRow.click()
+
+    const sheet = page.getByRole('dialog', { name: 'WalletConnect' })
+    await expect(sheet).toBeVisible()
+
+    // Scanning starts in a Solana wallet's own scanner, so the payload is the
+    // bare URI rather than a vendor deep link.
     await expectQrEncoding(sheet, '')
   })
 

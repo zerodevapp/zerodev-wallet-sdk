@@ -270,9 +270,9 @@ export function ConnectorStatus() {
           </div>
         </div>
       </section>
-      
+
       <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center p-4">
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto" data-testid="connect-wallet">
           <ConnectWallet
             size="md"
             logo={
