@@ -15,7 +15,7 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { expectTxRunSucceeded } from '../helpers/tx-runs.js'
-import { expectLabReady } from '../helpers/ui-login.js'
+import { expectLabReady, openSignIn } from '../helpers/ui-login.js'
 import {
   getVirtualCredentials,
   setupVirtualAuthenticator,
@@ -31,6 +31,7 @@ async function registerAndEnterLab(page: Page): Promise<VirtualAuthenticator> {
   const virtualAuth = await setupVirtualAuthenticator(page)
 
   await page.goto('/')
+  await openSignIn(page)
   await expect(page.getByText('Continue to your wallet')).toBeVisible()
 
   await page.getByRole('button', { name: /Create a passkey/i }).click()
