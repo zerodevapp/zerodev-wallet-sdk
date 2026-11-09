@@ -11,3 +11,11 @@ export const OTP_CODE_LENGTH = 6
 
 export const HEALTH_CHECK_RETRIES = 5
 export const HEALTH_CHECK_INTERVAL_MS = 2_000
+
+/** A cold Next dev compile, plus a wallet extension handshake. */
+export const LAB_TIMEOUT_MS = 90_000
+
+export const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/
+
+/** A Solana address, base58 and 32-44 characters. */
+export const BASE58_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
