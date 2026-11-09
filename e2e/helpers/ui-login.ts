@@ -16,6 +16,23 @@ import {
 } from './otp-utils.js'
 import { searchForNewEmail } from './temp-email.js'
 
+/** Which connector-bar button opens the flow. */
+export type SignInNamespace = 'eip155' | 'solana' | 'all'
+
+/**
+ * Opens the sign-in flow from the connector bar.
+ */
+export async function openSignIn(
+  page: Page,
+  namespace: SignInNamespace = 'eip155',
+): Promise<void> {
+  // Disabled while that namespace is already connected or restoring, so waiting
+  // on enabled also waits out a silent reconnect.
+  const button = page.getByTestId(`connector-connect-${namespace}`)
+  await expect(button).toBeEnabled({ timeout: 60_000 })
+  await button.click()
+}
+
 /**
  * Waits for the authenticated lab. The lab has no post-login route — its auth
  * gate swaps the login surface for the lab at the same URL once wagmi reports
@@ -42,7 +59,9 @@ export async function logoutAndExpectLoginSurface(page: Page): Promise<void> {
   await page.getByTestId('wallet-logout').click()
 
   await expect(page.getByTestId('wallet-strip')).toBeHidden({ timeout: 60_000 })
-  await expect(page.getByText('Sign in to open the QA Lab')).toBeVisible({
+  // The hint, not a sign-in surface: the connector bar survives the gate, so
+  // this is the only element that only renders while signed out and idle.
+  await expect(page.getByTestId('signed-out-hint')).toBeVisible({
     timeout: 60_000,
   })
 }
@@ -60,6 +79,7 @@ export async function loginWithOtp(
   authToken: string,
 ): Promise<void> {
   await page.goto('/?authFlavor=otp')
+  await openSignIn(page)
   await page.getByPlaceholder('Enter your email').fill(email)
   await page.getByPlaceholder('Enter your email').press('Enter')
   await expect(
@@ -98,6 +118,7 @@ export async function loginWithMagicLink(
   await page.request.get('/verify')
 
   await page.goto('/')
+  await openSignIn(page)
   await page.getByPlaceholder('Enter your email').fill(email)
   await page.getByPlaceholder('Enter your email').press('Enter')
   await expect(page.getByText(/check your email/i)).toBeVisible({

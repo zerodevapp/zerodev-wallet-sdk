@@ -18,6 +18,7 @@ import {
   MOCK_WALLET,
   MOCK_WALLET_TWO,
 } from '../helpers/mock-injected-wallet.js'
+import { openSignIn } from '../helpers/ui-login.js'
 
 /** The relay round-trip, plus a cold Next dev compile on the first spec. */
 const PAIRING_TIMEOUT_MS = 60_000
@@ -76,6 +77,7 @@ test.beforeEach(async ({ page }) => {
  */
 async function openPresetTwo(page: Page): Promise<void> {
   await page.goto('/?preset=preset-2')
+  await openSignIn(page)
   await expect(page.getByText('Continue to your wallet')).toBeVisible({
     timeout: PAIRING_TIMEOUT_MS,
   })
