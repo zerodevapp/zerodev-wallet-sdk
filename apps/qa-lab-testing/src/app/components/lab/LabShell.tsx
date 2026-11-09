@@ -1,8 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useZeroDevWalletKit } from "@zerodev/wallet-react-ui";
 import { AppHeader } from "../AppHeader";
 import { ConnectorStatus } from "../ConnectorStatus";
 import { LoginScreen } from "../LoginScreen";
@@ -22,43 +20,34 @@ import { WalletStrip } from "./WalletStrip";
  * Loading treatment belongs inside LoginScreen, which keys off the auth step.
  */
 export function LabShell({ children }: { children: React.ReactNode }) {
-  const { isConnected, address } = useAccount();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  if (isLoggingOut) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-[#9c958c]" />
-          <span className="text-sm text-[var(--muted)]">Signing out...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isConnected || !address) {
-    return <LoginScreen />;
-  }
+  const kit = useZeroDevWalletKit({ reconnectOnMount: false });
+  const signedIn = kit.isConnected || kit.isReconnecting;
 
   return (
     <div className="min-h-screen">
       <AppHeader />
       <ConnectorStatus />
 
-      {/*
-        Full width, above the nav, at every breakpoint. It sits outside the
-        content column so mobile gets wallet-then-nav without a second
-        WalletStrip — two instances would mean two sets of state and two
-        balance polls hitting the RPC every 10s.
-      */}
-      <WalletStrip onLogout={() => setIsLoggingOut(true)} />
+      {signedIn ? (
+        <>
+          {/*
+            Full width, above the nav, at every breakpoint. It sits outside the
+            content column so mobile gets wallet-then-nav without a second
+            WalletStrip — two instances would mean two sets of state and two
+            balance polls hitting the RPC every 10s.
+          */}
+          <WalletStrip />
 
-      <div className="flex flex-col lg:flex-row">
-        <LabSidebar />
-        <main className="min-w-0 flex-1" data-testid="lab-main">
-          <div className="px-4 py-4 sm:px-6 sm:py-6">{children}</div>
-        </main>
-      </div>
+          <div className="flex flex-col lg:flex-row">
+            <LabSidebar />
+            <main className="min-w-0 flex-1" data-testid="lab-main">
+              <div className="px-4 py-4 sm:px-6 sm:py-6">{children}</div>
+            </main>
+          </div>
+        </>
+      ) : (
+        <LoginScreen />
+      )}
     </div>
   );
 }

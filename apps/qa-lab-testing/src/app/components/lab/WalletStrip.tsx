@@ -1,25 +1,18 @@
 "use client";
 
-import { useAuthenticators } from "@zerodev/wallet-react";
 import { useZeroDevWalletKit } from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
   ExternalLink,
   Key,
-  LogOut,
   RefreshCw,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
-import { useConfigHref } from "../../lib/use-wallet-config";
 import { cn } from "../../lib/utils";
 import { ChainSelector } from "../ChainSelector";
-import {
-  type DisconnectChoice,
-  DisconnectDialog,
-} from "../DisconnectDialog";
 import { ExportWalletModal } from "../ExportWalletModal";
 
 type WalletAsset = "ETH" | "USDC";
@@ -33,20 +26,6 @@ const ERC20_BALANCE_ABI = parseAbi([
   "function balanceOf(address owner) external view returns (uint256 balance)",
 ]);
 
-function formatAuthMethod(
-  authenticators: Awaited<ReturnType<typeof useAuthenticators>>["data"],
-) {
-  const oauthProvider = authenticators?.oauths?.[0]?.provider;
-  if (oauthProvider) {
-    return oauthProvider.toLowerCase() === "google"
-      ? "Google"
-      : oauthProvider.charAt(0).toUpperCase() + oauthProvider.slice(1);
-  }
-  if (authenticators?.emailContacts?.[0]?.email) return "Email";
-  if (authenticators?.passkeys?.length) return "Passkey";
-  return "Connected";
-}
-
 /**
  * Shared wallet context for every feature in the lab — address, balances,
  * chain, export and logout.
@@ -55,26 +34,23 @@ function formatAuthMethod(
  * and it's a strip rather than the old full-height card so the first test case
  * is visible without scrolling.
  */
-export function WalletStrip({ onLogout }: { onLogout: () => void }) {
+export function WalletStrip() {
   const [selectedAsset, setSelectedAsset] = useState<WalletAsset>("ETH");
   const [balance, setBalance] = useState("0");
   const [usdcBalance, setUsdcBalance] = useState("0");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"evm" | "solana" | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
-  const [showDisconnectChoice, setDisconnectChoice] = useState(false);
-  const [disconnecting, setDisconnecting] = useState<DisconnectChoice | null>(
-    null,
-  );
 
-  const configHref = useConfigHref();
   const { address, chain } = useAccount();
   const publicClient = usePublicClient({ chainId: chain?.id });
   // Read-only here: ConnectorStatus owns the Solana restore, and a second
   // `reconnectOnMount` would run the silent reconnect twice.
   const kit = useZeroDevWalletKit({ reconnectOnMount: false });
-  const { data: authenticatorData } = useAuthenticators({});
-  const authMethodLabel = formatAuthMethod(authenticatorData);
+  const evmConnected = kit.eip155.isConnected;
+  // Only the embedded wallet's keys are the lab's to export; an external wallet
+  // keeps its own, so Export would promise something it cannot do.
+  const isEmbedded = kit.eip155.walletInfo?.source === "embedded";
 
   const walletExplorerUrl =
     address && chain?.blockExplorers?.default?.url
@@ -120,57 +96,17 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
     return () => window.clearInterval(interval);
   }, [loadBalances]);
 
-  const handleCopy = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Keyed rather than boolean: two addresses with two buttons, and one tick at
+  // a time tells you which you actually copied.
+  const copyAddress = async (value: string, key: "evm" | "solana") => {
+    await navigator.clipboard.writeText(value);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   // Keeps the active config across the logout reload — landing on a bare "/"
   // would silently drop any URL overrides and log you back into a different
   // setup than the one you were testing.
-  // An embedded session is one connection in one namespace, so there is nothing
-  // to choose between. Solana only ever connects an external wallet today, so
-  // any Solana connection means the choice is real.
-  const needsDisconnectChoice =
-    kit.solana.isConnected ||
-    (kit.eip155.isConnected && kit.eip155.walletInfo?.source !== "embedded");
-
-  const handleLogout = () => {
-    if (needsDisconnectChoice) {
-      setDisconnectChoice(true);
-      return;
-    }
-    void runDisconnect("all");
-  };
-
-  const runDisconnect = async (choice: DisconnectChoice) => {
-    setDisconnecting(choice);
-
-    // Disconnecting one side leaves the other connected, so the session
-    // continues and the page stays put — the connector status strip is what
-    // shows the result. Only a full disconnect ends the session and reloads.
-    if (choice !== "all") {
-      try {
-        await kit.disconnect({ namespace: choice });
-      } finally {
-        setDisconnecting(null);
-        setDisconnectChoice(false);
-      }
-      return;
-    }
-
-    onLogout();
-    try {
-      // The kit's disconnect, not wagmi's: wagmi only knows the EVM side, so a
-      // logout with a Solana wallet attached used to leave it connected.
-      await kit.disconnect();
-    } finally {
-      window.location.assign(configHref("/"));
-    }
-  };
-
   const shown =
     selectedAsset === "ETH"
       ? parseFloat(balance).toFixed(4)
@@ -178,15 +114,6 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
 
   return (
     <>
-      <DisconnectDialog
-        isOpen={showDisconnectChoice}
-        onClose={() => setDisconnectChoice(false)}
-        onChoose={(choice) => void runDisconnect(choice)}
-        evmConnected={kit.eip155.isConnected}
-        solanaConnected={kit.solana.isConnected}
-        busy={disconnecting}
-      />
-
       <ExportWalletModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
@@ -196,7 +123,12 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
         className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-[var(--border-warm)] bg-white px-4 py-3 sm:px-6"
         data-testid="wallet-strip"
       >
+        <div className="flex min-w-0 flex-col gap-1">
+        {address && (
         <div className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-[#9c958c]">
+            EVM
+          </span>
           <p
             className="min-w-0 truncate font-mono text-sm font-semibold text-[var(--ink)]"
             data-testid="wallet-address"
@@ -205,12 +137,12 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
           </p>
           <button
             type="button"
-            onClick={handleCopy}
+            onClick={() => address && copyAddress(address, "evm")}
             className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
             title="Copy address"
             data-testid="wallet-copy-address"
           >
-            {copied ? (
+            {copied === "evm" ? (
               <Check className="h-4 w-4 text-green-600" />
             ) : (
               <Copy className="h-4 w-4" />
@@ -228,14 +160,41 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
               <ExternalLink className="h-4 w-4" />
             </a>
           )}
-          <span
-            className="hidden shrink-0 rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 lg:inline"
-            data-testid="wallet-auth-method"
-          >
-            {authMethodLabel}
-          </span>
+        </div>
+        )}
+
+          {kit.solana.address && (
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-[#9c958c]">
+                SOL
+              </span>
+              <p
+                className="min-w-0 truncate font-mono text-xs text-[var(--muted)]"
+                data-testid="wallet-address-solana"
+              >
+                {kit.solana.address}
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  kit.solana.address &&
+                  copyAddress(kit.solana.address, "solana")
+                }
+                className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                title="Copy Solana address"
+                data-testid="wallet-copy-address-solana"
+              >
+                {copied === "solana" ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
+        {address && (
         <div className="flex items-center gap-2">
           <span
             className="font-[var(--font-dm-sans)] text-lg font-bold leading-none text-[var(--ink)]"
@@ -275,32 +234,32 @@ export function WalletStrip({ onLogout }: { onLogout: () => void }) {
             />
           </button>
         </div>
+        )}
 
-        <div className="ml-auto flex items-center gap-2">
-          <ChainSelector className="h-8 rounded-full px-3 text-xs" />
-          <button
-            type="button"
-            onClick={() => setShowExportModal(true)}
-            title="Export keys"
-            aria-label="Export keys"
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-2.5 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] sm:px-3"
-            data-testid="wallet-export-keys"
-          >
-            <Key className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Export</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Logout"
-            aria-label="Logout"
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-red-200 bg-white px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 sm:px-3"
-            data-testid="wallet-logout"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-        </div>
+        {(evmConnected || isEmbedded) && (
+          <div className="ml-auto flex items-center gap-2 self-start">
+            {/* The EVM chain, so only while there is an EVM account. */}
+            {evmConnected && (
+              <ChainSelector className="h-8 rounded-full px-3 text-xs" />
+            )}
+
+            {/* Exports the embedded wallet's own key material. An external
+                wallet holds its keys itself and has nothing to export here. */}
+            {isEmbedded && (
+              <button
+                type="button"
+                onClick={() => setShowExportModal(true)}
+                title="Export keys"
+                aria-label="Export keys"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-2.5 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] sm:px-3"
+                data-testid="wallet-export-keys"
+              >
+                <Key className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
