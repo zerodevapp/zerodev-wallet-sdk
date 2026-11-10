@@ -300,7 +300,7 @@ export function ConnectorStatus() {
             }
             renderSignUp={() => (
               <SignUp emailAuthMethod={emailAuthMethod}>
-                {resolveAuthUnits(preset, namespaces).map((id) => (
+                {resolveAuthUnits(preset, namespaces, solanaEnabled).map((id) => (
                   <Fragment key={id}>
                     {UNIT_BY_ID[id]({ maxWallets })}
                   </Fragment>

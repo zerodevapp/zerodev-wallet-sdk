@@ -35,12 +35,19 @@ export async function openWalletPreset(
   options: {
     /** Offers the Solana rows beside the EVM ones. */
     solana?: boolean
+    /**
+     * Which namespaces the wallet lists offer. Omitted follows `solana`, which
+     * is the pairing a host would normally ship; naming them apart is how the
+     * half-configured surfaces are reached.
+     */
+    namespaces?: readonly Namespace[]
     /** Row cap on the installed-wallets unit; omitted leaves its default. */
     maxWallets?: number
   } = {},
 ): Promise<void> {
   const params = new URLSearchParams({ preset: 'preset-2' })
   if (options.solana) params.set('solana', 'true')
+  if (options.namespaces) params.set('ns', options.namespaces.join(','))
   if (options.maxWallets !== undefined) {
     params.set('maxWallets', String(options.maxWallets))
   }

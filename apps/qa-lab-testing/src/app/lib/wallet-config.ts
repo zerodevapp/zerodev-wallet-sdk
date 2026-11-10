@@ -133,16 +133,32 @@ export const isAuthPresetId = (value: string): value is AuthPresetId =>
  *
  * Solana applies to any preset, including the embedded one — the flag means
  * "offer Solana here", and which preset you are on is a separate axis.
+ *
+ * `namespaces` and `solanaEnabled` are a third pair of independent axes, and
+ * they gate different rows. The wallet lists read `namespaces`, because that is
+ * the prop `SignUp.InstalledWallets` takes; the WalletConnect door reads
+ * `solanaEnabled`, because `SignUp.SolanaWalletConnect` renders on the
+ * connector's own `solana: true` and never looks at a namespace. Setting one
+ * without the other is a surface a host can really ship, so it is one the lab
+ * can really render.
  */
 export function resolveAuthUnits(
   preset: AuthPresetId,
   namespaces: readonly AuthNamespace[],
+  solanaEnabled: boolean,
 ): readonly AuthUnitId[] {
-  const units = AUTH_PRESETS[preset].units;
+  const units: readonly AuthUnitId[] = AUTH_PRESETS[preset].units;
   const withEvm = namespaces.includes("eip155");
   const withSolana = namespaces.includes("solana");
 
-  if (!withSolana) return units;
+  // The connector flag on its own: the Solana door opens, and the wallet list
+  // beside it stays EVM-only because that is what its default prop says.
+  if (!withSolana) {
+    if (!solanaEnabled) return units;
+    return units.includes("installedWallets")
+      ? [...units, "solanaWalletConnect"]
+      : [...units, "solanaDivider", "solanaWalletConnect"];
+  }
 
   // Solana only: drop the EVM surfaces outright rather than leaving rows that
   // cannot connect anything.
