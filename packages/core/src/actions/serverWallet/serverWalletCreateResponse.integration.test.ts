@@ -20,6 +20,12 @@ const WALLET_ID = 'wallet-1'
 const TURNKEY_ID = 'tk-1'
 const FIRST_PATH = "m/44'/60'/0'/0/0"
 
+/**
+ * Not the wallet's first address. The control asks for this one so a facade
+ * that hard-codes `/0` is caught instead of matching by coincidence.
+ */
+const LATER_PATH = "m/44'/60'/0'/0/7"
+
 /** What a route is answered with. A degenerate case differs only in this. */
 type Answer =
   | { json: unknown }
@@ -54,19 +60,24 @@ function respond(answer: Answer): Response {
  * sent, or assert none was.
  */
 function serverWalletAgainst(routes: Routes) {
-  const fetchSpy = vi.fn(async (url: string | URL | Request) => {
-    const path = String(url)
-    if (path.endsWith('/server-wallet/wallets') && routes.wallets) {
-      return respond(routes.wallets)
-    }
-    if (path.endsWith('/server-wallet/wallet-addresses') && routes.addresses) {
-      return respond(routes.addresses)
-    }
-    return new Response(JSON.stringify({ error: 'not_found' }), {
-      status: 404,
-      headers: { 'content-type': 'application/json' },
-    })
-  })
+  const fetchSpy = vi.fn(
+    async (url: string | URL | Request, _init?: RequestInit) => {
+      const path = String(url)
+      if (path.endsWith('/server-wallet/wallets') && routes.wallets) {
+        return respond(routes.wallets)
+      }
+      if (
+        path.endsWith('/server-wallet/wallet-addresses') &&
+        routes.addresses
+      ) {
+        return respond(routes.addresses)
+      }
+      return new Response(JSON.stringify({ error: 'not_found' }), {
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+      })
+    },
+  )
   vi.stubGlobal('fetch', fetchSpy)
 
   const wallet = createZeroDevServerWallet({
@@ -87,9 +98,9 @@ const caught = (p: Promise<unknown>): Promise<Outcome> =>
   )
 
 /**
- * Determines if the error in the outcome blames the KMS response.
- * @param outcome The outcome of a promise, either returned or threw.
- * @returns True if the error blames the KMS response, false otherwise.
+ * Attributable = the caller can tell the KMS response was at fault. Rejects a
+ * `TypeError` and a message naming nothing, so neither a raw dereference nor a
+ * bare `Error('failed')` passes for a guard.
  */
 function blamesTheResponse(outcome: Outcome): boolean {
   if (!('threw' in outcome)) return false
@@ -102,10 +113,9 @@ function blamesTheResponse(outcome: Outcome): boolean {
 }
 
 /**
- * Determines if the error in the outcome blames the input as specified by the naming regex.
- * @param outcome The outcome of a promise, either returned or threw.
- * @param naming A regular expression to match against the error message.
- * @returns True if the error blames the input as specified by the naming regex, false otherwise.
+ * The caller-input counterpart: no response exists, so the error must name what
+ * the caller passed. Kept separate from `blamesTheResponse` because conflating
+ * the two hides which side was at fault.
  */
 function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
   if (!('threw' in outcome)) return false
@@ -118,10 +128,10 @@ function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
 }
 
 /**
- * Checks if the fetch spy recorded a call to a specific route.
- * @param fetchSpy The fetch spy used to track network requests.
- * @param route The route to check if it was reached.
- * @returns True if the fetch spy recorded a call to the specified route, false otherwise.
+ * The degenerate body must actually have been delivered and consumed. Asserted
+ * in a plain `it` per route rather than inside the markers: a precondition that
+ * shares a body with an `it.fails` can be the thing failing, and the marker
+ * would clear on a request that never reached the route.
  */
 function reached(
   fetchSpy: ReturnType<typeof serverWalletAgainst>['fetchSpy'],
@@ -131,6 +141,17 @@ function reached(
     fetchSpy.mock.calls.length === 1 &&
     String(fetchSpy.mock.calls[0]?.[0]).endsWith(route)
   )
+}
+
+/**
+ * The body the client sent, not the one the double answered with. The double
+ * echoes whatever it was told to return, so a control that reads only the
+ * response passes even when the facade drops what the caller asked for.
+ */
+function sentBody(
+  fetchSpy: ReturnType<typeof serverWalletAgainst>['fetchSpy'],
+): Record<string, unknown> {
+  return JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body))
 }
 
 const WALLETS_ROUTE = '/server-wallet/wallets'
@@ -153,10 +174,6 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-/**
- * Tests the behavior of the SDK when creating a wallet and the response is as expected.
- * Ensures that the wallet returned matches the one specified by the KMS.
- */
 describe('createWallet: the control', () => {
   it('hands back exactly the wallet the KMS named', async () => {
     const { wallet } = serverWalletAgainst({
@@ -171,8 +188,9 @@ describe('createWallet: the control', () => {
 })
 
 /**
- * Tests the behavior of the SDK when the response body cannot produce a usable wallet.
- * Ensures that the SDK refuses to return a wallet when the response is empty, malformed, or contains invalid fields.
+ * No guard exists yet: every body below is handed back to the caller as a
+ * wallet. The markers assert the refusal that should happen, so they turn red
+ * when it lands.
  */
 describe('createWallet: a body that cannot produce a usable wallet', () => {
   const unusable: [string, unknown][] = [
@@ -191,53 +209,63 @@ describe('createWallet: a body that cannot produce a usable wallet', () => {
     ['the wallet id is empty', { walletId: '', walletAddress: OWNER.address }],
   ]
 
+  // The markers below say nothing if the body never arrived, and this is the
+  // only test here that stays green on the fix: the request is still made, and
+  // only then rejected.
+  it('delivers a degenerate body to the wallets route and consumes it', async () => {
+    const { wallet, fetchSpy } = serverWalletAgainst({ wallets: { json: {} } })
+
+    await caught(wallet.createWallet())
+
+    expect(reached(fetchSpy, WALLETS_ROUTE)).toBe(true)
+  })
+
   for (const [label, json] of unusable) {
     it.fails(`refuses to return a wallet when ${label}`, async () => {
-      const { wallet, fetchSpy } = serverWalletAgainst({ wallets: { json } })
+      const { wallet } = serverWalletAgainst({ wallets: { json } })
 
       const outcome = await caught(wallet.createWallet())
 
-      expect(reached(fetchSpy, WALLETS_ROUTE)).toBe(true)
       expect(blamesTheResponse(outcome)).toBe(true)
     })
   }
 
   it.fails('refuses a 200 that is not JSON at all', async () => {
-    const { wallet, fetchSpy } = serverWalletAgainst({
+    const { wallet } = serverWalletAgainst({
       wallets: { raw: '<html>gateway</html>', contentType: 'text/html' },
     })
 
     const outcome = await caught(wallet.createWallet())
 
-    expect(reached(fetchSpy, WALLETS_ROUTE)).toBe(true)
     expect(blamesTheResponse(outcome)).toBe(true)
   })
 })
 
-/**
- * Tests the behavior of the SDK when creating an address and the response is as expected.
- * Ensures that the address returned matches the one derived by the KMS for the specified path.
- */
 describe('createAddress: the control', () => {
-  it('hands back exactly the address the KMS derived, for the path asked for', async () => {
-    const { wallet } = serverWalletAgainst({
-      addresses: { json: derivedAddress },
+  it('asks the KMS for the wallet and path it was given, and hands back what was derived', async () => {
+    const { wallet, fetchSpy } = serverWalletAgainst({
+      addresses: { json: { ...derivedAddress, path: LATER_PATH } },
     })
 
     const derived = await wallet.createAddress({
       walletId: WALLET_ID,
-      path: FIRST_PATH,
+      path: LATER_PATH,
     })
 
+    // The request, because the response is only the double's own echo. A
+    // facade that dropped the caller's path would still return this body.
+    const sent = sentBody(fetchSpy)
+    expect(sent.walletId).toBe(WALLET_ID)
+    expect(sent.path).toBe(LATER_PATH)
+
     expect(derived.walletAddress).toBe(derivedAddress.walletAddress)
-    expect(derived.walletId).toBe(WALLET_ID)
-    expect(derived.path).toBe(FIRST_PATH)
   })
 })
 
 /**
- * Tests the behavior of the SDK when the response body cannot produce a usable address.
- * Ensures that the SDK refuses to return an address when the response is empty, malformed, or contains invalid fields.
+ * The same degenerate set as `createWallet`, because the guard is missing in
+ * the same way and a fix that covers only the absent case would leave `null`,
+ * a malformed string and the zero address still flowing to the caller.
  */
 describe('createAddress: a body that cannot produce a usable address', () => {
   const unusable: [string, unknown][] = [
@@ -262,39 +290,42 @@ describe('createAddress: a body that cannot produce a usable address', () => {
     ['the path is empty', { ...derivedAddress, path: '' }],
   ]
 
+  it('delivers a degenerate body to the addresses route and consumes it', async () => {
+    const { wallet, fetchSpy } = serverWalletAgainst({
+      addresses: { json: {} },
+    })
+
+    await caught(
+      wallet.createAddress({ walletId: WALLET_ID, path: FIRST_PATH }),
+    )
+
+    expect(reached(fetchSpy, ADDRESSES_ROUTE)).toBe(true)
+  })
+
   for (const [label, json] of unusable) {
     it.fails(`refuses to return an address when ${label}`, async () => {
-      const { wallet, fetchSpy } = serverWalletAgainst({ addresses: { json } })
+      const { wallet } = serverWalletAgainst({ addresses: { json } })
 
       const outcome = await caught(
         wallet.createAddress({ walletId: WALLET_ID, path: FIRST_PATH }),
       )
 
-      expect(reached(fetchSpy, ADDRESSES_ROUTE)).toBe(true)
       expect(blamesTheResponse(outcome)).toBe(true)
     })
   }
 })
 
 /**
- * Tests the behavior of the SDK when attempting to build an account on the zero address.
- * Ensures that the SDK initially accepts the zero address from createWallet, but later refuses to build an account on it.
+ * `toAccount` is the guard that does exist. That `createWallet` hands the zero
+ * address back first is the gap, and it is marked where the other missing
+ * guards are; asserting it here too would pin the defect and turn this file red
+ * on the fix.
  */
-describe('toAccount: how late the zero address is caught', () => {
-  it('accepts the zero address from createWallet, then refuses to build an account on it', async () => {
-    const { wallet, fetchSpy } = serverWalletAgainst({
-      wallets: { json: { walletId: WALLET_ID, walletAddress: zeroAddress } },
-    })
+describe('toAccount: the zero address is caught here and not before', () => {
+  it('refuses to build an account on the zero address', async () => {
+    const { wallet } = serverWalletAgainst({ wallets: { json: createdWallet } })
 
-    // Step one reports success. This is the call a caller would act on.
-    const created = await wallet.createWallet()
-    expect(created.walletAddress).toBe(zeroAddress)
-    expect(reached(fetchSpy, WALLETS_ROUTE)).toBe(true)
-
-    // Step two is where it is finally refused -- after the wallet "exists".
-    const outcome = await caught(
-      wallet.toAccount({ address: created.walletAddress }),
-    )
+    const outcome = await caught(wallet.toAccount({ address: zeroAddress }))
 
     expect(blamesTheInput(outcome, /missing, malformed, or zero/i)).toBe(true)
   })

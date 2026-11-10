@@ -1,5 +1,9 @@
 /**
- * Boundary: the server wallet client <-> the KMS, across all four sign routes.
+ * Boundary: the server wallet client <-> the KMS, across the sign routes.
+ *
+ * `signMessage`, `signTransaction` and `sign7702Authorization` are driven end
+ * to end. `signTypedDataV4` appears only in the 32-byte-hash guard: its digest
+ * comes from the caller, so there is no round trip here to assert.
  */
 import {
   concat,
@@ -49,9 +53,10 @@ function respond(answer: Answer): Response {
 }
 
 /**
- * Builds a server wallet instance that responds according to the provided routes.
- * @param routes The routes object defining how the server wallet should respond to sign requests.
- * @returns An object containing the server wallet instance and the fetch spy for inspecting requests.
+ * Builds a real server wallet over a stubbed KMS. The double dispatches on
+ * route and decides nothing, so a degenerate case differs from the control only
+ * in `answer`. Returns the fetch spy so a test can read the request that was
+ * sent, or assert none was.
  */
 function serverWalletAgainst(routes: Routes) {
   const fetchSpy = vi.fn(
@@ -92,25 +97,34 @@ const caught = (p: Promise<unknown>): Promise<Outcome> =>
   )
 
 /**
- * Determines if the error in the outcome blames the KMS response.
- * @param outcome The outcome of a promise, either returned or threw.
- * @returns True if the error blames the KMS response, false otherwise.
+ * Attributable = the caller can tell the KMS response was at fault. Rejects a
+ * `TypeError` and a message naming nothing, so neither a raw dereference nor a
+ * bare `Error('failed')` passes for a guard.
+ *
+ * `naming` narrows it. The default matches both sign-path errors — the absent
+ * signature and the one that recovers to a stranger — so a test about the
+ * second has to say `WRONG_SIGNER` or it also passes when nothing came back.
  */
-function blamesTheResponse(outcome: Outcome): boolean {
+function blamesTheResponse(
+  outcome: Outcome,
+  naming: RegExp = /address|wallet|response/i,
+): boolean {
   if (!('threw' in outcome)) return false
   const error = outcome.threw
   return (
     error instanceof Error &&
     !(error instanceof TypeError) &&
-    /address|wallet|response/i.test(error.message)
+    naming.test(error.message)
   )
 }
 
+/** Only `sendSigningRequest`'s recovery check produces this. */
+const WRONG_SIGNER = /did not recover/i
+
 /**
- * Determines if the error in the outcome blames the input as specified by the naming regex.
- * @param outcome The outcome of a promise, either returned or threw.
- * @param naming A regular expression to match against the error message.
- * @returns True if the error blames the input as specified by the naming regex, false otherwise.
+ * The caller-input counterpart: no response exists, so the error must name what
+ * the caller passed. Kept separate from `blamesTheResponse` because conflating
+ * the two hides which side was at fault.
  */
 function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
   if (!('threw' in outcome)) return false
@@ -123,9 +137,8 @@ function blamesTheInput(outcome: Outcome, naming: RegExp): boolean {
 }
 
 /**
- * Asserts that the server wallet is wired correctly for the specified signing route.
- * @param fetchSpy The fetch spy used to intercept and inspect network requests.
- * @param route The specific signing route to assert against.
+ * The asserted wiring the docblocks claim: the exact route, the agent stamp
+ * header the KMS reads, and no session token.
  */
 function assertServerWiring(
   fetchSpy: ReturnType<typeof serverWalletAgainst>['fetchSpy'],
@@ -142,10 +155,6 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-/**
- * Tests the behavior of the SDK when signing a message.
- * Ensures that the server client reaches the shared signing guards and correctly handles signatures.
- */
 describe('signMessage: the server client reaches the shared signing guards', () => {
   it('asks the KMS to sign the message it was given, and returns a signature that recovers to the owner', async () => {
     const expectedHash = hashMessage('hello')
@@ -189,14 +198,10 @@ describe('signMessage: the server client reaches the shared signing guards', () 
       }),
     )
 
-    expect(blamesTheResponse(outcome)).toBe(true)
+    expect(blamesTheResponse(outcome, WRONG_SIGNER)).toBe(true)
   })
 })
 
-/**
- * Tests the behavior of the SDK when signing a message with addresses that should be refused before reaching the KMS.
- * Ensures that invalid or zero addresses are rejected immediately, without invoking the KMS.
- */
 describe('signMessage: addresses refused before the KMS is asked', () => {
   const refused: [string, Hex][] = [
     ['the zero address', zeroAddress],
@@ -228,8 +233,9 @@ describe('signMessage: addresses refused before the KMS is asked', () => {
 })
 
 /**
- * Tests the behavior of the SDK when a caller supplies a hash that is not 32 bytes.
- * Ensures that such hashes are rejected immediately, without invoking the KMS.
+ * These two take the digest from the caller rather than computing it, so the
+ * 32-byte check in `buildTurnkeyPayload` is the only thing between a typo and
+ * a stamp over it.
  */
 describe('a caller-supplied hash that is not 32 bytes', () => {
   const routes: [string, (w: Wallet) => Promise<Hex>][] = [
@@ -272,10 +278,6 @@ describe('a caller-supplied hash that is not 32 bytes', () => {
   }
 })
 
-/**
- * Tests the behavior of the SDK when signing transactions and 7702 authorizations.
- * Ensures that the server client reaches the shared signing guards and correctly handles signatures.
- */
 describe('signTransaction and sign7702Authorization: the server client reaches the shared guards', () => {
   const TX = serializeTransaction({
     chainId: 1,
@@ -354,14 +356,22 @@ describe('signTransaction and sign7702Authorization: the server client reaches t
         }),
       })
 
-      expect(blamesTheResponse(await caught(run(wallet)))).toBe(true)
+      expect(blamesTheResponse(await caught(run(wallet)), WRONG_SIGNER)).toBe(
+        true,
+      )
     })
   }
 })
 
 /**
- * Tests the behavior of the SDK when signing transactions with bytes that are not valid transactions.
- * Ensures that such inputs are rejected immediately, without invoking the KMS.
+ * No guard exists yet, and the reason is that nothing throws: viem's
+ * `keccak256` does not validate its input, so `computeDataPayloadHash` turns
+ * both of these into a well-formed 32-byte digest, `buildTurnkeyPayload`'s
+ * length check passes, and the KMS is asked to sign it.
+ *
+ * The no-send assertion comes first because that is the harm. Attribution is
+ * second, so a guard that refuses to send but names nothing keeps the marker
+ * red instead of reading as fixed.
  */
 describe('signTransaction: transaction bytes that are not a transaction', () => {
   const unusable: [string, string][] = [
@@ -385,8 +395,8 @@ describe('signTransaction: transaction bytes that are not a transaction', () => 
         }),
       )
 
-      expect(blamesTheInput(outcome, /transaction|bytes|hex/i)).toBe(true)
       expect(fetchSpy).not.toHaveBeenCalled()
+      expect(blamesTheInput(outcome, /transaction|bytes|hex/i)).toBe(true)
     })
   }
 })

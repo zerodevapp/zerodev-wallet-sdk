@@ -13,16 +13,21 @@ const PROJECT = 'proj'
 const ORG = 'wallet-set-sub-org'
 const BASE_URL = 'https://kms.test.invalid/api/v1'
 
-const GOOD_STAMP: Stamp = {
-  stampHeaderName: 'X-Stamp',
-  stampHeaderValue: 'a-real-der-signature',
-}
-
 /**
- * Creates a stamper that generates stamps based on the provided answer function.
- * @param answer A function that receives the call count and returns a promise resolving to a Stamp.
- * @returns A SigningStamper that uses the provided answer function to generate stamps.
+ * Distinct per call, so the control can tell the inner stamp from the outer
+ * one. A single shared value passes just as well when the two are swapped,
+ * which is the mistake the KMS would reject and this file exists to catch.
  */
+const stampFor = (call: number): Stamp => ({
+  stampHeaderName: 'X-Stamp',
+  stampHeaderValue: `stamp-${call}`,
+})
+
+/** 1 is the stamp over the Turnkey payload, 2 the stamp over the whole body. */
+const INNER_STAMP = stampFor(1).stampHeaderValue
+const OUTER_STAMP = stampFor(2).stampHeaderValue
+
+/** `answer` is given the call number, counted per stamper instance. */
 function stamperThat(answer: (call: number) => Promise<Stamp>): SigningStamper {
   let calls = 0
   return {
@@ -33,31 +38,21 @@ function stamperThat(answer: (call: number) => Promise<Stamp>): SigningStamper {
   }
 }
 
-/**
- * Creates a stamper that always returns a valid stamp.
- * @returns A SigningStamper that always produces the GOOD_STAMP.
- */
-const working = () => stamperThat(async () => GOOD_STAMP)
+const working = () => stamperThat(async (call) => stampFor(call))
 
 const throwingOn = (nth: number) =>
   stamperThat(async (call) => {
     if (call === nth) throw new Error('HSM unavailable')
-    return GOOD_STAMP
+    return stampFor(call)
   })
 
-/**
- * Creates a stamper that returns a specific stamp on the nth call and GOOD_STAMP otherwise.
- * @param nth The call number on which the stamper should return the specified stamp.
- * @param stamp The stamp to return on the specified call.
- * @returns A SigningStamper that returns the given stamp on the nth call and GOOD_STAMP otherwise.
- */
 const answeringOn = (nth: number, stamp: Stamp) =>
-  stamperThat(async (call) => (call === nth ? stamp : GOOD_STAMP))
+  stamperThat(async (call) => (call === nth ? stamp : stampFor(call)))
 
 /**
- * Creates a server wallet instance with the given stamper and a fetch spy for testing.
- * @param stamper The stamper to use for signing requests.
- * @returns An object containing the created wallet and a fetch spy.
+ * A real server wallet over the given stamper. Every request is answered 401,
+ * so anything that does reach the wire is distinguishable from a local refusal
+ * by the error that comes back.
  */
 function walletWith(stamper: SigningStamper) {
   const fetchSpy = vi.fn(
@@ -97,7 +92,6 @@ const actions: [string, (w: Wallet) => Promise<unknown>][] = [
   ],
 ]
 
-/** 1 is the stamp over the Turnkey payload, 2 the stamp over the whole body. */
 const callSites: [number, string][] = [
   [1, 'the inner payload'],
   [2, 'the whole body'],
@@ -112,9 +106,9 @@ const caught = (p: Promise<unknown>): Promise<Outcome> =>
   )
 
 /**
- * Identifies the error from the outcome of a promise.
- * @param outcome The outcome of a promise, either returned or threw.
- * @returns A string identifying the error, or 'NO ERROR' if none occurred.
+ * `name: message`, so an assertion can say which error arrived rather than
+ * only that one did. `NO ERROR` when the call resolved, which reads better in
+ * a failure than `undefined`.
  */
 function errorIdentity(outcome: Outcome): string {
   if (!('threw' in outcome)) return 'NO ERROR'
@@ -129,8 +123,8 @@ afterEach(() => {
 })
 
 /**
- * Tests the behavior of the SDK when the stamper refuses to provide a valid stamp.
- * Ensures that such refusals are surfaced correctly and that no network request is made.
+ * The guard that does exist: a stamper that throws stops the request, and the
+ * stamper's own message reaches the caller rather than being swallowed.
  */
 describe('a stamper that refuses: the healthy reaction, kept healthy', () => {
   for (const [name, run] of actions) {
@@ -140,7 +134,10 @@ describe('a stamper that refuses: the healthy reaction, kept healthy', () => {
 
         const outcome = await caught(run(wallet))
 
-        expect(errorIdentity(outcome)).toBe('Error: HSM unavailable')
+        // Matched, not compared. Wrapping this in an SDK error with the
+        // stamper's as `cause` would be a fix, not a regression, and an exact
+        // string would call it one.
+        expect(errorIdentity(outcome)).toMatch(/HSM unavailable/)
         expect(fetchSpy).not.toHaveBeenCalled()
       })
     }
@@ -158,7 +155,7 @@ describe('a stamper that refuses: the healthy reaction, kept healthy', () => {
     expect(error.status).toBe(401)
   })
 
-  it('control: a working stamper lands both stamps where the KMS reads them', async () => {
+  it('control: a working stamper lands each stamp where the KMS reads it', async () => {
     const { wallet, fetchSpy } = walletWith(working())
 
     await caught(wallet.createWallet())
@@ -168,14 +165,18 @@ describe('a stamper that refuses: the healthy reaction, kept healthy', () => {
     const [, init] = fetchSpy.mock.calls[0] ?? []
     const headers = init?.headers as Record<string, string>
     const body = JSON.parse(String(init?.body))
-    expect(body.stamp.stampHeaderValue).toBe(GOOD_STAMP.stampHeaderValue)
-    expect(headers['X-Agent-Stamp']).toBe(GOOD_STAMP.stampHeaderValue)
+
+    // The inner stamp travels in the body and the outer one in the header.
+    // Swapping them is what the KMS rejects, so the two values differ here.
+    expect(body.stamp.stampHeaderValue).toBe(INNER_STAMP)
+    expect(headers['X-Agent-Stamp']).toBe(OUTER_STAMP)
   })
 })
 
 /**
- * Tests the behavior of the SDK when the stamper returns an unusable value.
- * Ensures that such cases are detected and rejected immediately, without sending a network request.
+ * No guard exists yet: a stamp that resolves to an empty or absent value is
+ * put on the wire, and the 401 the KMS answers with is what the caller sees.
+ * The markers assert the refusal that should happen instead.
  */
 describe('a stamper that answers with nothing usable', () => {
   const unusable: [string, Stamp][] = [
@@ -205,8 +206,11 @@ describe('a stamper that answers with nothing usable', () => {
 })
 
 /**
- * Tests the behavior of the SDK when a stamper resolves to nothing.
- * Ensures that such cases are treated as programming errors and reported correctly, without invoking the network.
+ * A stamper resolving to nothing at all is a programming error in the caller's
+ * own code, and the SDK reports it by dereferencing the result:
+ * `TypeError: Cannot read properties of undefined (reading
+ * 'stampHeaderValue')`, which names an internal field and not the stamper.
+ * The markers assert the attributable error that should replace it.
  */
 describe('a stamper that resolves to nothing', () => {
   for (const [name, run] of actions) {
