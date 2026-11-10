@@ -2,18 +2,31 @@
  * Registers Wallet Standard wallets so the lab's Solana discovery and restore
  * can be driven without an extension.
  *
- * **Discovery, grant and restore, not signing.** The wallet answers
- * `standard:connect` and `standard:disconnect` and nothing else, which is what
- * the kit needs to list it, connect it and bring it back after a reload. It
- * must not grow signing features.
+ * **The signatures are fabricated.** Signing features are declared only so the
+ * handle's capability plumbing can be driven; the bytes they return are made up
+ * here and prove nothing about any wallet. Anything asserting that a wallet
+ * signed what was sent needs a real extension.
  */
 
 import type { Page } from '@playwright/test'
+
+/** The `solana:*` signing features a mock can declare. */
+export type MockSolanaFeature =
+  | 'solana:signMessage'
+  | 'solana:signTransaction'
+  | 'solana:signAndSendTransaction'
 
 export type MockSolanaWallet = {
   name: string
   /** Base58, 32-44 characters, so it satisfies the lab's address assertion. */
   address: string
+  /** What the wallet implements. Omitted means none, the discovery-only shape. */
+  features?: MockSolanaFeature[]
+  /**
+   * What the connected account declares, when it is not what the wallet
+   * implements
+   */
+  accountFeatures?: MockSolanaFeature[]
 }
 
 /**
@@ -89,6 +102,9 @@ export async function registerMockSolanaWallets(
           }
         }
 
+        const implemented = mock.features ?? []
+        const declared = mock.accountFeatures ?? implemented
+
         const account = {
           address: mock.address,
           // Deterministic 32 bytes. Nothing derives the address from this —
@@ -99,9 +115,44 @@ export async function registerMockSolanaWallets(
               (mock.address.charCodeAt(i % mock.address.length) + i) % 256,
           ),
           chains: ['solana:mainnet'],
-          features: ['solana:signMessage'],
+          features: declared,
           label: mock.name,
           icon: undefined,
+        }
+
+        /** Fabricated, and deterministic so a run can be compared with itself. */
+        const fakeSignature = Uint8Array.from(
+          { length: 64 },
+          (_, i) =>
+            (mock.address.charCodeAt(i % mock.address.length) * 7 + i) % 256,
+        )
+
+        const signing: Record<string, unknown> = {}
+        if (implemented.includes('solana:signMessage')) {
+          signing['solana:signMessage'] = {
+            version: '1.0.0',
+            signMessage: async ({ message }: { message: Uint8Array }) => [
+              // Echoes the bytes it was given, so this mock never looks like a
+              // wallet that prefixes the message.
+              { signature: fakeSignature, signedMessage: message },
+            ],
+          }
+        }
+        if (implemented.includes('solana:signTransaction')) {
+          signing['solana:signTransaction'] = {
+            version: '1.0.0',
+            signTransaction: async ({
+              transaction,
+            }: {
+              transaction: Uint8Array
+            }) => [{ signedTransaction: transaction }],
+          }
+        }
+        if (implemented.includes('solana:signAndSendTransaction')) {
+          signing['solana:signAndSendTransaction'] = {
+            version: '1.0.0',
+            signAndSendTransaction: async () => [{ signature: fakeSignature }],
+          }
         }
 
         register({
@@ -131,6 +182,7 @@ export async function registerMockSolanaWallets(
               version: '1.0.0',
               on: () => () => {},
             },
+            ...signing,
           },
         })
       }
