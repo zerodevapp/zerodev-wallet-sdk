@@ -32,10 +32,19 @@ export type SignInNamespace = Namespace | 'all'
  */
 export async function openWalletPreset(
   page: Page,
-  /** Offers the Solana rows beside the EVM ones. */
-  options: { solana?: boolean } = {},
+  options: {
+    /** Offers the Solana rows beside the EVM ones. */
+    solana?: boolean
+    /** Row cap on the installed-wallets unit; omitted leaves its default. */
+    maxWallets?: number
+  } = {},
 ): Promise<void> {
-  await page.goto(`/?preset=preset-2${options.solana ? '&solana=true' : ''}`)
+  const params = new URLSearchParams({ preset: 'preset-2' })
+  if (options.solana) params.set('solana', 'true')
+  if (options.maxWallets !== undefined) {
+    params.set('maxWallets', String(options.maxWallets))
+  }
+  await page.goto(`/?${params}`)
 }
 
 /** Waits for the sign-up sheet, whose heading is the same on every preset. */

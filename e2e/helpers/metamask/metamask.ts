@@ -109,6 +109,70 @@ export class MetaMask {
     if (!page.isClosed()) await page.close()
   }
 
+  /**
+   * Asserts the wallet lists `origin` on its own connected-sites page.
+   */
+  async expectSiteConnected(origin: string): Promise<void> {
+    await this.expectSiteRowCount(origin, 1)
+  }
+
+  async expectSiteNotConnected(origin: string): Promise<void> {
+    await this.expectSiteRowCount(origin, 0)
+  }
+
+  /**
+   * Counts the rows for `origin`, waiting for the list to render first.
+   */
+  private async expectSiteRowCount(
+    origin: string,
+    count: number,
+  ): Promise<void> {
+    const page = await this.openPermissions()
+    const rows = page.getByTestId('connection-list-item')
+
+    try {
+      await expect(
+        rows.first().or(page.getByText('Nothing to see here')),
+      ).toBeVisible({ timeout: APPROVAL_TIMEOUT_MS })
+
+      await expect(rows.filter({ hasText: origin })).toHaveCount(count)
+    } finally {
+      await page.close()
+    }
+  }
+
+  /**
+   * Revokes every site's permissions from the wallet's own UI.
+   */
+  async disconnectAllSites(): Promise<void> {
+    const page = await this.openPermissions()
+
+    await page
+      .getByRole('button', { name: 'Disconnect all' })
+      .click({ timeout: APPROVAL_TIMEOUT_MS })
+
+    // The confirmation repeats the name, so this has to be scoped to the
+    // dialog or the click resolves back to the button behind it.
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Disconnect all' })
+      .click({ timeout: APPROVAL_TIMEOUT_MS })
+
+    await expect(page.getByText('Nothing to see here')).toBeVisible({
+      timeout: APPROVAL_TIMEOUT_MS,
+    })
+    await page.close()
+  }
+
+  /**
+   * The connected-sites list.
+   */
+  private async openPermissions(): Promise<Page> {
+    const page = await this.openWallet()
+    await page.goto(extensionUrl(this.extensionId, '#/permissions'))
+    return page
+  }
+
   /** The wallet's own UI, unlocked. */
   async openWallet(): Promise<Page> {
     const page = await this.context.newPage()

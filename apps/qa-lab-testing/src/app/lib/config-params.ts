@@ -44,6 +44,11 @@ export const PARAM = {
    * Absent means whatever `?solana=` implies.
    */
   namespaces: "ns",
+  /**
+   * Row cap on the installed-wallets units. Absent leaves the component's own
+   * default, which is what an integrator who passes nothing gets.
+   */
+  maxWallets: "maxWallets",
   /** Per-chain transport, e.g. `rpc.421614`. */
   rpcPrefix: "rpc.",
 } as const;
@@ -65,6 +70,7 @@ export const isConfigParam = (key: string) =>
   key === PARAM.authFlavor ||
   key === PARAM.solana ||
   key === PARAM.namespaces ||
+  key === PARAM.maxWallets ||
   key.startsWith(PARAM.rpcPrefix);
 
 export interface ResolvedWalletConfig {
@@ -86,6 +92,8 @@ export interface ResolvedWalletConfig {
   emailAuthMethod: EmailAuthMethodId;
   solanaEnabled: boolean;
   namespaces: readonly AuthNamespace[];
+  /** Row cap for the installed-wallets units; undefined keeps their default. */
+  maxWallets: number | undefined;
   /** Params that were present and applied — drives the "overridden" badge. */
   applied: string[];
   /** Params that were present but rejected. Never fail silently. */
@@ -210,6 +218,22 @@ export function resolveWalletConfig(
     );
   }
 
+  // Row cap on the installed-wallets units. Left undefined when absent: the
+  // component's own default is itself a case worth being able to test.
+  let maxWallets: number | undefined;
+  const rawMaxWallets = get(PARAM.maxWallets);
+  if (rawMaxWallets !== undefined) {
+    const parsed = Number(rawMaxWallets);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      maxWallets = parsed;
+      applied.push(PARAM.maxWallets);
+    } else {
+      warnings.push(
+        `${PARAM.maxWallets}: "${rawMaxWallets}" must be a positive integer — using the component default.`,
+      );
+    }
+  }
+
   // Transports, one lookup per selected chain. Precedence: URL param, then the
   // ZeroDev staging RPC scoped to the active project (localhost for Anvil). Only
   // if both are absent does `http(undefined)` fall back to viem's public RPC.
@@ -278,6 +302,7 @@ export function resolveWalletConfig(
     emailAuthMethod,
     solanaEnabled,
     namespaces,
+    maxWallets,
     applied,
     warnings,
   };
