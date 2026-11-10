@@ -12,7 +12,11 @@ import { ZeroDevLogo } from "@zerodev/react-ui";
 import { Fragment, useState } from "react";
 import { useAuthPreset } from "../lib/use-auth-preset";
 import { useConfigHref, useResolvedConfig } from "../lib/use-wallet-config";
-import { type AuthUnitId, resolveAuthUnits } from "../lib/wallet-config";
+import {
+  type AuthNamespace,
+  type AuthUnitId,
+  resolveAuthUnits,
+} from "../lib/wallet-config";
 import { type DisconnectChoice, DisconnectDialog } from "./DisconnectDialog";
 
 /**
@@ -40,6 +44,10 @@ const STATUS_STYLES: Record<string, string> = {
 type UnitOptions = {
   /** Undefined leaves the component's own default. */
   maxWallets: number | undefined;
+  /**
+   * Which chain families a row connects. 
+   */
+  namespaces: readonly AuthNamespace[];
 };
 
 const UNIT_BY_ID: Record<AuthUnitId, (options: UnitOptions) => React.ReactNode> =
@@ -48,8 +56,12 @@ const UNIT_BY_ID: Record<AuthUnitId, (options: UnitOptions) => React.ReactNode> 
     google: () => <SignUp.Google />,
     email: () => <SignUp.Email />,
     divider: () => <SignUp.Divider />,
-    "wallet:metamask": () => <SignUp.Wallet walletId="metamask" />,
-    "wallet:okx": () => <SignUp.Wallet walletId="okx" />,
+    "wallet:metamask": ({ namespaces }) => (
+      <SignUp.Wallet walletId="metamask" namespaces={namespaces} />
+    ),
+    "wallet:okx": ({ namespaces }) => (
+      <SignUp.Wallet walletId="okx" namespaces={namespaces} />
+    ),
     installedWallets: ({ maxWallets }) => (
       <SignUp.InstalledWallets maxWallets={maxWallets} />
     ),
@@ -163,6 +175,10 @@ export function ConnectorStatus() {
   const connectAll = async () => {
     setFailure(null);
     for (const namespace of namespaces) {
+      // The button stays enabled while one side is still free, so this runs
+      // with the other already connected. `kit.connect` has no wallet to go
+      // to from here, so it reopens that namespace's sign-up sheet.
+      if (kit[namespace].isConnected) continue;
       try {
         await kit.connect({ namespace });
       } catch (error: unknown) {
@@ -302,7 +318,7 @@ export function ConnectorStatus() {
               <SignUp emailAuthMethod={emailAuthMethod}>
                 {resolveAuthUnits(preset, namespaces, solanaEnabled).map((id) => (
                   <Fragment key={id}>
-                    {UNIT_BY_ID[id]({ maxWallets })}
+                    {UNIT_BY_ID[id]({ maxWallets, namespaces })}
                   </Fragment>
                 ))}
               </SignUp>
