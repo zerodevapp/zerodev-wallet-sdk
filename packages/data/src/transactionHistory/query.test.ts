@@ -11,10 +11,14 @@ import {
   transactionHistoryRetryDelay,
 } from './query.js'
 
-function dataApiError(status: number, retryAfterMs?: number) {
+function dataApiError(
+  status: number,
+  retryAfterMs?: number,
+  body: unknown = { error: 'test' },
+) {
   return new DataApiError({
     status,
-    body: { error: 'test' },
+    body,
     url: 'https://data.example/v1/me/transaction-history',
     ...(retryAfterMs === undefined ? {} : { retryAfterMs }),
   })
@@ -41,6 +45,32 @@ describe('transactionHistoryRetry', () => {
     expect(transactionHistoryRetry(0, delayed)).toBe(true)
     expect(transactionHistoryRetry(1, delayed)).toBe(false)
     expect(transactionHistoryRetryDelay(0, delayed)).toBe(30_000)
+  })
+
+  it('does not retry a 429 for an exhausted monthly budget', () => {
+    const error = dataApiError(429, 30_000, {
+      error: 'throttled',
+      reason: 'quota_exhausted',
+    })
+    expect(transactionHistoryRetry(0, error)).toBe(false)
+  })
+
+  it('retries a 429 for an upstream throttle once', () => {
+    const error = dataApiError(429, 30_000, {
+      error: 'throttled',
+      reason: 'upstream_throttled',
+    })
+    expect(transactionHistoryRetry(0, error)).toBe(true)
+    expect(transactionHistoryRetry(1, error)).toBe(false)
+  })
+
+  it('caps the server-provided delay at 30s', () => {
+    expect(transactionHistoryRetryDelay(0, dataApiError(429, 3_600_000))).toBe(
+      30_000,
+    )
+    expect(transactionHistoryRetryDelay(0, dataApiError(429, 5_000))).toBe(
+      5_000,
+    )
   })
 
   it('retries a 503 once only when Retry-After was valid', () => {

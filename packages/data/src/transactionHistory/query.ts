@@ -6,6 +6,8 @@ import {
   InvalidDataApiResponseError,
 } from '../errors.js'
 
+const MAX_RETRY_DELAY_MS = 30_000
+
 /**
  * Retry policy for read-only transaction-history queries.
  *
@@ -15,6 +17,8 @@ import {
  * - Local auth/config/response-contract errors: no retry; repeating cannot
  *   connect an account, repair a URL, or reconcile an incompatible response.
  * - 400/401: no retry; the request or authorization must change first.
+ * - 429 with body reason `quota_exhausted`: no retry; the monthly lookup
+ *   budget is spent and Retry-After points to the next UTC month.
  * - 429 or 503: one retry only when Retry-After tells us when it can succeed.
  *   A 503 is the Data API reporting that its identity backend is briefly
  *   unreachable, and it names the wait itself.
@@ -36,6 +40,8 @@ export function transactionHistoryRetry(
   if (error instanceof DataApiError) {
     if (error.status === 400 || error.status === 401) return false
 
+    if (error.status === 429 && isQuotaExhausted(error.body)) return false
+
     if (error.status === 429 || error.status === 503) {
       return error.retryAfterMs !== undefined && failureCount < 1
     }
@@ -52,7 +58,7 @@ export function transactionHistoryRetry(
 /**
  * Delay paired with `transactionHistoryRetry`:
  *
- * - 429 and 503 use the server's validated Retry-After delay exactly.
+ * - 429 and 503 use the server's validated Retry-After delay, capped at 30s.
  * - Network and 502 retries use 1s, then 2s exponential backoff, capped at
  *   30s if the retry budget is expanded in the future.
  * - Non-retryable errors never consume this value.
@@ -66,8 +72,17 @@ export function transactionHistoryRetryDelay(
     (error.status === 429 || error.status === 503) &&
     error.retryAfterMs !== undefined
   ) {
-    return error.retryAfterMs
+    return Math.min(error.retryAfterMs, MAX_RETRY_DELAY_MS)
   }
 
-  return Math.min(1_000 * 2 ** attemptIndex, 30_000)
+  return Math.min(1_000 * 2 ** attemptIndex, MAX_RETRY_DELAY_MS)
+}
+
+function isQuotaExhausted(body: unknown): boolean {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'reason' in body &&
+    body.reason === 'quota_exhausted'
+  )
 }
