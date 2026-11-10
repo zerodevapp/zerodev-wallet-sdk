@@ -79,6 +79,9 @@ export function useTransactionHistory<
     },
     getNextPageParam: (lastPage) => lastPage.next ?? undefined,
     enabled: Boolean(connector) && accountReady && (query?.enabled ?? true),
+    // TanStack's default of 0 refetches every loaded page on mount, focus and
+    // reconnect.
+    staleTime: query?.staleTime ?? 30_000,
     retry: query?.retry ?? transactionHistoryRetry,
     retryDelay: query?.retryDelay ?? transactionHistoryRetryDelay,
   })

@@ -27,13 +27,25 @@ const baseUrl = 'https://data.example'
 const connector = { id: 'zerodev-wallet' }
 const config = { connectors: [connector] }
 
-function wrapper() {
-  const client = new QueryClient({
+function wrapper(
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
-  })
+  }),
+) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>
   }
+}
+
+function renderedStaleTime(query?: { staleTime: number }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  renderHook(() => useTransactionHistory({ baseUrl, query }), {
+    wrapper: wrapper(client),
+  })
+  const [cached] = client.getQueryCache().getAll()
+  return cached?.options.staleTime
 }
 
 describe('useTransactionHistory', () => {
@@ -152,6 +164,14 @@ describe('useTransactionHistory', () => {
 
     expect(result.current.fetchStatus).toBe('idle')
     expect(h.getTransactionHistory).not.toHaveBeenCalled()
+  })
+
+  it('defaults staleTime to 30s', () => {
+    expect(renderedStaleTime()).toBe(30_000)
+  })
+
+  it("keeps the caller's staleTime", () => {
+    expect(renderedStaleTime({ staleTime: 5_000 })).toBe(5_000)
   })
 
   it('keys the feed by URL, wallet, environment, and chainIds but not cursor', () => {
