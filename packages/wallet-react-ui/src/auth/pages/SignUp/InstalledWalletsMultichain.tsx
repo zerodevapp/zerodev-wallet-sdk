@@ -1,9 +1,4 @@
-import {
-  Badge,
-  ListItem,
-  ListItemChevron,
-  ListItemIcon,
-} from '@zerodev/react-ui'
+import { ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useState } from 'react'
 import { useConnections } from 'wagmi'
 import { equalsIgnoreCase } from '../../../shared/utils/common'
@@ -12,6 +7,7 @@ import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import type { SolanaStandardWallet } from '../../../solana/types'
 import { useAuth } from '../../hooks/useAuth'
 import { WALLET_GUIDE } from '../../walletGuide'
+import { ChainChoice, MultichainBadges } from './ChainChoice'
 import { useSignUpContext } from './context'
 import {
   type InstalledEvmRow,
@@ -71,7 +67,8 @@ export function InstalledWalletsMultichain({
   const installedEvmRows = useInstalledEvmRows(excludeWalletIds)
   const evmRows = withEvm ? installedEvmRows : []
   // A wallet pinned through `SignUp.Wallet` is excluded by guide id on the
-  // EVM side; its Solana registration carries the guide name instead.
+  // EVM side; its Solana registration carries the guide name instead. The
+  // pinned row offers that side itself (`namespaces` on `SignUp.Wallet`).
   const registeredNames = registeredWallets.flatMap((id) => {
     const entry = WALLET_GUIDE.find((w) => w.id === id)
     return entry ? [entry.name] : []
@@ -154,19 +151,17 @@ export function InstalledWalletsMultichain({
     const isSolanaPending =
       !!row.solana && pendingSolanaName === row.solana.name
     return (
-      <span className="zd:flex zd:gap-1">
-        {row.evm && <Badge text="EVM" variant="secondary" />}
-        {row.solana && <Badge text="SOLANA" variant="secondary" />}
-        <Badge
-          text={
-            isSolanaConnected(row) || isEvmConnected(row)
-              ? 'CONNECTED'
-              : isSolanaPending
-                ? 'CONNECTING'
-                : 'INSTALLED'
-          }
-        />
-      </span>
+      <MultichainBadges
+        evm={!!row.evm}
+        solana={!!row.solana}
+        state={
+          isSolanaConnected(row) || isEvmConnected(row)
+            ? 'CONNECTED'
+            : isSolanaPending
+              ? 'CONNECTING'
+              : 'INSTALLED'
+        }
+      />
     )
   }
 
@@ -189,27 +184,13 @@ export function InstalledWalletsMultichain({
               onClick={() => onRowClick(row)}
             />
             {expanded && (
-              <div
-                className="zd:flex zd:flex-col zd:gap-2 zd:pl-8"
-                data-testid={`chain-choice-${row.name}`}
-              >
-                <ListItem
-                  title="Ethereum"
-                  icon={<ListItemIcon name="ethereum" />}
-                  subtitle={<Badge text="EVM" variant="secondary" />}
-                  trailing={<ListItemChevron />}
-                  disabled={authPending || isEvmConnected(row)}
-                  onClick={() => connectEvm(row)}
-                />
-                <ListItem
-                  title="Solana"
-                  icon={<ListItemIcon name="solana" />}
-                  subtitle={<Badge text="SOLANA" variant="secondary" />}
-                  trailing={<ListItemChevron />}
-                  disabled={authPending || isSolanaConnected(row)}
-                  onClick={() => connectSol(row)}
-                />
-              </div>
+              <ChainChoice
+                name={row.name}
+                evmDisabled={authPending || isEvmConnected(row)}
+                solanaDisabled={authPending || isSolanaConnected(row)}
+                onEvm={() => connectEvm(row)}
+                onSolana={() => connectSol(row)}
+              />
             )}
           </div>
         )

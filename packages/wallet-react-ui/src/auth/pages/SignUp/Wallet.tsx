@@ -1,19 +1,39 @@
 import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
-import { useLayoutEffect } from 'react'
-import { useConnectors } from 'wagmi'
+import { useLayoutEffect, useState } from 'react'
+import { useConnections, useConnectors } from 'wagmi'
+import { equalsIgnoreCase } from '../../../shared/utils/common'
+import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
+import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import { useAuth } from '../../hooks/useAuth'
 import { isZeroDevWalletConnect } from '../../utils/isZeroDevWalletConnect'
 import {
   announcesWallet,
   matchesWallet,
   WALLET_GUIDE,
+  type WalletGuideEntry,
   type WalletId,
 } from '../../walletGuide'
+import { ChainChoice, MultichainBadges } from './ChainChoice'
 import { useSignUpContext } from './context'
+import type { InstalledWalletNamespace } from './InstalledWalletsMultichain'
+import { useSolanaConnect } from './useSolanaConnect'
 
 /** Dedicated row for a single guide wallet: connects it directly when a live
- * connector claims it, and is a download link for the vendor page otherwise. */
-export function SignUpWallet({ walletId }: { walletId: WalletId }) {
+ * connector claims it, and is a download link for the vendor page otherwise.
+ *
+ * With `namespaces` including `'solana'`, the wallet's Wallet Standard
+ * registration counts too: a wallet installed for both EVM and Solana
+ * (MetaMask, Phantom) asks which chain to connect, and one installed for
+ * Solana only connects that side directly. */
+export function SignUpWallet({
+  walletId,
+  namespaces = ['eip155'],
+}: {
+  walletId: WalletId
+  /** Which chain families the row connects (default `['eip155']`, EVM
+   * only). Add `'solana'` to offer the wallet's Solana side as well. */
+  namespaces?: readonly InstalledWalletNamespace[]
+}) {
   const wallet = WALLET_GUIDE.find((w) => w.id === walletId)
   if (!wallet) {
     // Unreachable for TS consumers; catches raw-JS typos.
@@ -22,11 +42,21 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
     )
   }
 
-  const { startWalletConnection } = useAuth()
-  const { authPending, guardAgreement, registerWallet, openWalletSheet } =
-    useSignUpContext()
-  const connectors = useConnectors()
+  const { registerWallet } = useSignUpContext()
   useLayoutEffect(() => registerWallet(wallet.id), [registerWallet, wallet.id])
+
+  if (namespaces.includes('solana')) {
+    return <SignUpWalletMultichain wallet={wallet} />
+  }
+  return <SignUpWalletEvm wallet={wallet} />
+}
+
+/** The EVM-only row: a claiming wagmi connector, the pairing sheet, or the
+ * download link. */
+function SignUpWalletEvm({ wallet }: { wallet: WalletGuideEntry }) {
+  const { startWalletConnection } = useAuth()
+  const { authPending, guardAgreement, openWalletSheet } = useSignUpContext()
+  const connectors = useConnectors()
 
   // Only a 6963 announcement proves a live extension (or the wallet's own
   // in-app browser) — it earns the badge and a direct connect.
@@ -91,5 +121,101 @@ export function SignUpWallet({ walletId }: { walletId: WalletId }) {
       disabled={authPending}
       onClick={handleClick}
     />
+  )
+}
+
+/**
+ * The row with a Solana namespace. The wallet's Wallet Standard registration
+ * is matched by the guide name (MetaMask registers as "MetaMask", Phantom as
+ * "Phantom"). Without one the row is the EVM row; with one and an announced
+ * EVM provider it opens the chain choice; with one alone it connects Solana
+ * directly — an installed wallet beats a pairing handoff, as on the EVM side.
+ */
+function SignUpWalletMultichain({ wallet }: { wallet: WalletGuideEntry }) {
+  const { startWalletConnection } = useAuth()
+  const { authPending, guardAgreement } = useSignUpContext()
+  const connectors = useConnectors()
+  const connections = useConnections()
+  const solanaWallets = useSolanaWallets()
+  // A reload that lands on a sheet offering Solana restores the last Solana
+  // wallet; a sheet without a Solana unit restores nothing.
+  useSolanaAutoReconnect()
+  const { connectSolana, pendingSolanaName, connectedSolanaName } =
+    useSolanaConnect()
+  const [choosing, setChoosing] = useState(false)
+
+  const solana = solanaWallets.find((w) =>
+    equalsIgnoreCase(w.name, wallet.name),
+  )
+  if (!solana) return <SignUpWalletEvm wallet={wallet} />
+
+  // Only an announced EVM provider joins the Solana side in the choice: a
+  // configured SDK connector or the pairing sheet is not "installed".
+  const announced = connectors.find((c) => announcesWallet(c, wallet))
+  const isEvmConnected =
+    !!announced && connections.some((c) => c.connector.uid === announced.uid)
+  const isSolanaConnected = connectedSolanaName === solana.name
+  const isSolanaPending = pendingSolanaName === solana.name
+  const isConnectable = (!!announced && !isEvmConnected) || !isSolanaConnected
+
+  const connectEvm = () => {
+    if (!announced || isEvmConnected || authPending) return
+    if (!guardAgreement()) return
+    setChoosing(false)
+    startWalletConnection({
+      connectorUid: announced.uid,
+      name: wallet.name,
+      icon: wallet.icon,
+    })
+  }
+
+  const connectSol = () => {
+    if (isSolanaConnected) return
+    setChoosing(false)
+    // Settles through the shared hook (error takeover or closed flow).
+    connectSolana(solana)
+  }
+
+  const onRowClick = () => {
+    if (authPending || !isConnectable) return
+    if (announced) {
+      setChoosing((current) => !current)
+      return
+    }
+    connectSol()
+  }
+
+  return (
+    <div className="zd:flex zd:flex-col zd:gap-2">
+      <ListItem
+        title={wallet.name}
+        icon={<img src={wallet.icon} alt="" className="zd:w-6 zd:h-6" />}
+        subtitle={
+          <MultichainBadges
+            evm={!!announced}
+            solana
+            state={
+              isEvmConnected || isSolanaConnected
+                ? 'CONNECTED'
+                : isSolanaPending
+                  ? 'CONNECTING'
+                  : 'INSTALLED'
+            }
+          />
+        }
+        trailing={<ListItemChevron />}
+        disabled={authPending || !isConnectable}
+        onClick={onRowClick}
+      />
+      {choosing && !!announced && (
+        <ChainChoice
+          name={wallet.name}
+          evmDisabled={authPending || isEvmConnected}
+          solanaDisabled={authPending || isSolanaConnected}
+          onEvm={connectEvm}
+          onSolana={connectSol}
+        />
+      )}
+    </div>
   )
 }

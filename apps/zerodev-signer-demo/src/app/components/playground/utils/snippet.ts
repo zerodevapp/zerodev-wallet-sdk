@@ -17,7 +17,13 @@ export type PlaygroundItem =
       type: Exclude<UnitType, 'email' | 'wallet' | 'installedWallets'>
     }
   | { key: string; type: 'email'; method: EmailAuthMethod }
-  | { key: string; type: 'wallet'; walletId: WalletId }
+  | {
+      key: string
+      type: 'wallet'
+      walletId: WalletId
+      /** Also offer the wallet's Solana side (chain choice when installed for both). */
+      solana: boolean
+    }
   | {
       key: string
       type: 'installedWallets'
@@ -114,7 +120,8 @@ const UNIT_TAG: Record<
 
 function unitLine(item: PlaygroundItem): string {
   if (item.type === 'wallet') {
-    return `<SignUp.Wallet walletId="${item.walletId}" />`
+    const namespaces = item.solana ? ` namespaces={['eip155', 'solana']}` : ''
+    return `<SignUp.Wallet walletId="${item.walletId}"${namespaces} />`
   }
   if (item.type === 'installedWallets') {
     const props: string[] = []
