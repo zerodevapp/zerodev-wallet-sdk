@@ -214,6 +214,8 @@ function renderSignUpItem(item: PlaygroundItem) {
       return <SignUp.Passkey key={item.key} />
     case 'google':
       return <SignUp.Google key={item.key} />
+    case 'x':
+      return <SignUp.X key={item.key} />
     case 'email':
       return <SignUp.Email key={item.key} />
     case 'wallet':

@@ -3,6 +3,7 @@ import type { EmailAuthMethod, WalletId } from '@zerodev/wallet-react-ui'
 export type UnitType =
   | 'passkey'
   | 'google'
+  | 'x'
   | 'email'
   | 'wallet'
   | 'walletConnect'
@@ -40,6 +41,7 @@ export const DEFAULT_SETTINGS: PlaygroundSettings = {
 export const UNIT_DEFS: { type: UnitType; label: string; multi: boolean }[] = [
   { type: 'passkey', label: 'Passkey', multi: false },
   { type: 'google', label: 'Google', multi: false },
+  { type: 'x', label: 'X', multi: false },
   { type: 'email', label: 'Email', multi: false },
   { type: 'wallet', label: 'Pinned wallet', multi: true },
   { type: 'walletConnect', label: 'WalletConnect', multi: false },
@@ -101,6 +103,7 @@ const UNIT_TAG: Record<
 > = {
   passkey: 'Passkey',
   google: 'Google',
+  x: 'X',
   email: 'Email',
   walletConnect: 'WalletConnect',
   moreWallets: 'MoreWallets',
