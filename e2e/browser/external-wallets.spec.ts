@@ -13,11 +13,16 @@
 
 import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { connector } from '../helpers/connector-bar.js'
 import {
   announceMockWallets,
   MOCK_WALLET,
   MOCK_WALLET_TWO,
 } from '../helpers/mock-injected-wallet.js'
+import {
+  MOCK_SOLANA_WALLET,
+  registerMockSolanaWallets,
+} from '../helpers/mock-solana-wallet.js'
 import {
   expectSignUpSheet,
   openSignIn,
@@ -225,6 +230,37 @@ test.describe('Preset 2 — external wallets', () => {
     // Scanning starts in a Solana wallet's own scanner, so the payload is the
     // bare URI rather than a vendor deep link.
     await expectQrEncoding(sheet, '')
+  })
+
+  test('the connector flag alone opens the Solana door with no Solana wallet list', async ({
+    page,
+  }) => {
+    await registerMockSolanaWallets(page, [MOCK_SOLANA_WALLET])
+    await openWalletPreset(page, { solana: true, namespaces: ['eip155'] })
+    await openSignIn(page, 'eip155')
+    await expectSignUpSheet(page)
+
+    // The door the connector flag opens. Both rows are titled "WalletConnect"
+    // and only the badge separates them, so the count carries as much of the
+    // assertion as the badge does.
+    const walletConnectRows = page.getByRole('button', {
+      name: /^WalletConnect/,
+    })
+    await expect(walletConnectRows).toHaveCount(2)
+    await expect(walletConnectRows.filter({ hasText: 'SOLANA' })).toHaveCount(1)
+
+    // Discovered and still not offered. Reading the bar first is what makes the
+    // missing row attributable to the wallet list's default `['eip155']` rather
+    // than to a mock that never registered.
+    await expect(connector(page, 'solana')).toHaveAttribute(
+      'data-wallets',
+      MOCK_SOLANA_WALLET.name,
+    )
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(`^${MOCK_SOLANA_WALLET.name}`),
+      }),
+    ).toHaveCount(0)
   })
 
   test('an EIP-6963 announcement is discovered and listed as installed', async ({

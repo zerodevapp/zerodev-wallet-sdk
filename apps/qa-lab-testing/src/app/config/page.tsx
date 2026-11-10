@@ -176,7 +176,7 @@ export default function ConfigBuilderPage() {
                         {AUTH_PRESETS[id].description}
                       </p>
                       <ol className="mt-1.5 flex flex-col gap-0.5">
-                        {resolveAuthUnits(id, namespaces).map(
+                        {resolveAuthUnits(id, namespaces, solanaEnabled).map(
                           (unit, index) => (
                           <li
                             key={unit}
