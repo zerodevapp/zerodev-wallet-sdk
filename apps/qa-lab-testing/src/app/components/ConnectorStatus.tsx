@@ -36,25 +36,40 @@ const STATUS_STYLES: Record<string, string> = {
   disconnected: "border-[var(--border-warm)] bg-white text-[#9c958c]",
 };
 
-const UNIT_BY_ID: Record<AuthUnitId, () => React.ReactNode> = {
-  passkey: () => <SignUp.Passkey />,
-  google: () => <SignUp.Google />,
-  email: () => <SignUp.Email />,
-  divider: () => <SignUp.Divider />,
-  "wallet:metamask": () => <SignUp.Wallet walletId="metamask" />,
-  "wallet:okx": () => <SignUp.Wallet walletId="okx" />,
-  installedWallets: () => <SignUp.InstalledWallets />,
-  moreWallets: () => <SignUp.MoreWallets />,
-  walletConnect: () => <SignUp.WalletConnect />,
-  solanaDivider: () => <SignUp.Divider label="Solana" />,
-  installedWalletsMultichain: () => (
-    <SignUp.InstalledWallets namespaces={["eip155", "solana"]} />
-  ),
-  installedWalletsSolana: () => (
-    <SignUp.InstalledWallets namespaces={["solana"]} />
-  ),
-  solanaWalletConnect: () => <SignUp.SolanaWalletConnect />,
+/** What a unit needs from the resolved config. */
+type UnitOptions = {
+  /** Undefined leaves the component's own default. */
+  maxWallets: number | undefined;
 };
+
+const UNIT_BY_ID: Record<AuthUnitId, (options: UnitOptions) => React.ReactNode> =
+  {
+    passkey: () => <SignUp.Passkey />,
+    google: () => <SignUp.Google />,
+    email: () => <SignUp.Email />,
+    divider: () => <SignUp.Divider />,
+    "wallet:metamask": () => <SignUp.Wallet walletId="metamask" />,
+    "wallet:okx": () => <SignUp.Wallet walletId="okx" />,
+    installedWallets: ({ maxWallets }) => (
+      <SignUp.InstalledWallets maxWallets={maxWallets} />
+    ),
+    moreWallets: () => <SignUp.MoreWallets />,
+    walletConnect: () => <SignUp.WalletConnect />,
+    solanaDivider: () => <SignUp.Divider label="Solana" />,
+    installedWalletsMultichain: ({ maxWallets }) => (
+      <SignUp.InstalledWallets
+        namespaces={["eip155", "solana"]}
+        maxWallets={maxWallets}
+      />
+    ),
+    installedWalletsSolana: ({ maxWallets }) => (
+      <SignUp.InstalledWallets
+        namespaces={["solana"]}
+        maxWallets={maxWallets}
+      />
+    ),
+    solanaWalletConnect: () => <SignUp.SolanaWalletConnect />,
+  };
 
 const ACTION_CLASS =
   "cursor-pointer rounded-full border border-[var(--border-warm)] bg-white px-3 py-1 text-[11px] font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-not-allowed disabled:opacity-40";
@@ -114,7 +129,8 @@ function NamespaceRow({ adapter }: { adapter: KitAdapter<KitNamespace> }) {
 }
 
 export function ConnectorStatus() {
-  const { solanaEnabled, namespaces, emailAuthMethod } = useResolvedConfig();
+  const { solanaEnabled, namespaces, emailAuthMethod, maxWallets } =
+    useResolvedConfig();
   const { preset } = useAuthPreset();
   const configHref = useConfigHref();
   // This strip renders on every page, signed in or not, so it owns the Solana
@@ -285,7 +301,9 @@ export function ConnectorStatus() {
             renderSignUp={() => (
               <SignUp emailAuthMethod={emailAuthMethod}>
                 {resolveAuthUnits(preset, namespaces).map((id) => (
-                  <Fragment key={id}>{UNIT_BY_ID[id]()}</Fragment>
+                  <Fragment key={id}>
+                    {UNIT_BY_ID[id]({ maxWallets })}
+                  </Fragment>
                 ))}
               </SignUp>
             )}
