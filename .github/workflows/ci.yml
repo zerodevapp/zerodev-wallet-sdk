@@ -5,30 +5,24 @@ on:
     branches: [main, develop]
   pull_request:
     types: [opened, synchronize, reopened, labeled, edited]
-  # Dispatch is listed on the default branch but runs the chosen branch's copy.
-  workflow_dispatch:
 
-# RUN CONDITION, on every job below. Eligible ref, then a guard per added
-# activity type — `types:` widens what fires, not just what is allowed:
-#   - `labeled`: only the 'run-ci' label builds. Any other would rebuild a
-#     main-targeting PR for a change that touched no code.
-#   - `edited`: only a base change builds, not a title or body edit.
-#     `changes.base.ref.from` is absent otherwise, and GitHub casts an absent
-#     value and '' alike, so `!= ''` is false exactly then.
-# `push` and `workflow_dispatch` have no `event.action`, so both guards pass.
+# One run per PR
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# RUN CONDITION, on every job below: push, a PR targeting main or develop, or a
+# PR carrying the 'run-ci' label. The first two are what the old
+# `pull_request: branches:` filter did; the third is the opt-in.
 
 jobs:
   lint-and-format:
     name: Lint and Format
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
+      github.event_name == 'push'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -57,13 +51,9 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
+      github.event_name == 'push'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -90,13 +80,9 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
+      github.event_name == 'push'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,13 +116,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
+      github.event_name == 'push'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -173,15 +155,11 @@ jobs:
     #   - PRs from forks — fork `pull_request` runs get no repository secrets.
     #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      (github.event_name == 'push'
        || github.base_ref == 'main' || github.base_ref == 'develop'
        || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
       &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]'))
     needs: [build]
@@ -198,15 +176,11 @@ jobs:
     name: Browser E2E Tests
     # Same guard as above.
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      (github.event_name == 'push'
        || github.base_ref == 'main' || github.base_ref == 'develop'
        || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
       &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]'))
     needs: [build]
@@ -224,13 +198,9 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
+      github.event_name == 'push'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -254,13 +224,9 @@ jobs:
     name: Dependency Audit
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
+      github.event_name == 'push'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -290,13 +256,9 @@ jobs:
       - audit
     if: >-
       always() &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      (github.event_name == 'push'
        || github.base_ref == 'main' || github.base_ref == 'develop'
        || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-      && (github.event.action != 'labeled'
-          || github.event.label.name == 'run-ci')
-      && (github.event.action != 'edited'
-          || github.event.changes.base.ref.from != '')
     steps:
       - name: Verify every job succeeded
         env:
