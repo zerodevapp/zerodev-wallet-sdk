@@ -31,10 +31,6 @@ vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep: vi.fn() }),
 }))
 
-vi.mock('../../components/BlobAnimation', () => ({
-  BlobAnimation: () => null,
-}))
-
 describe('SignUpPasskey terms gate', () => {
   it('blocks both passkey actions until terms are accepted', () => {
     render(

@@ -9,6 +9,10 @@ export interface QrCodeProps {
   errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H'
   /** Corner radius (in modules, scaled to px internally) for finder patterns. */
   eyeRadius?: number
+  /** Light modules around the code, inside `size` (the spec asks for at
+   * least 4). Drawn by the component, so a scan never depends on what the
+   * host paints around it; a themed wrapper can carry any tint. */
+  quietZone?: number
 }
 
 const FINDER_SIZE = 7 // every QR has three 7×7 finder patterns
@@ -29,16 +33,16 @@ const PILL_PAD_RATIO = 0.05
  * Default `errorCorrectionLevel` is `'H'` (30% recovery) so the decorative
  * rounding + shrinkage has plenty of headroom before scans fail.
  *
- * Quiet zone (spec: ≥4 modules of white around the code) is expected to be
- * provided by the caller — e.g. via a white-background padded wrapper. This
- * component fills the given `size` with the QR data area itself so the
- * consumer controls the visual footprint.
+ * The quiet zone (spec: ≥4 modules of white around the code) is part of the
+ * SVG: white in every theme, with its own corners rounded to sit in a tile.
+ * `size` is the whole square, quiet zone included.
  */
 export function QrCode({
   value,
   size,
   errorCorrectionLevel = 'H',
   eyeRadius = 0,
+  quietZone = 4,
 }: QrCodeProps) {
   // `uqr` returns a 2D boolean matrix (`data[row][col]`) and the module count
   // per side. Same information as `qrcode`, just shaped differently — the
@@ -46,7 +50,8 @@ export function QrCode({
   const qr = encode(value, { ecc: errorCorrectionLevel, border: 0 })
   const matrix = qr.data
   const moduleCount = qr.size
-  const cellSize = size / moduleCount
+  const cellSize = size / (moduleCount + 2 * quietZone)
+  const offset = quietZone * cellSize
   const eyeRadiusPx = eyeRadius * cellSize
 
   const finders = [
@@ -99,7 +104,13 @@ export function QrCode({
       role="img"
       aria-label={`QR code for ${value}`}
     >
-      <rect width={size} height={size} fill={BG_COLOR} />
+      <rect
+        width={size}
+        height={size}
+        rx={offset / 2}
+        ry={offset / 2}
+        fill={BG_COLOR}
+      />
       {runs.map(({ row, col, length }) => {
         // Shrink each pill vertically so rows read as distinct without
         // creating scanner-confusing white gaps mid-run. Isolated modules
@@ -111,8 +122,8 @@ export function QrCode({
         return (
           <rect
             key={`r${row}-${col}`}
-            x={col * cellSize + (isSingle ? pad : 0)}
-            y={row * cellSize + pad}
+            x={offset + col * cellSize + (isSingle ? pad : 0)}
+            y={offset + row * cellSize + pad}
             width={length * cellSize - (isSingle ? 2 * pad : 0)}
             height={pillHeight}
             rx={pillHeight / 2}
@@ -122,8 +133,8 @@ export function QrCode({
         )
       })}
       {finders.map(({ row, col }) => {
-        const x = col * cellSize
-        const y = row * cellSize
+        const x = offset + col * cellSize
+        const y = offset + row * cellSize
         const outerSize = FINDER_SIZE * cellSize
         const innerSize = 3 * cellSize
         return (

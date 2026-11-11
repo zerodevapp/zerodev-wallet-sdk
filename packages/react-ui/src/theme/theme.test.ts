@@ -86,15 +86,17 @@ describe('inheritedThemeAttributes', () => {
 })
 
 describe('isThemeAvailable', () => {
-  it('is true for the light variants the stylesheet carries', () => {
-    expect(isThemeAvailable(resolveTheme('branded-light'))).toBe(true)
-    expect(isThemeAvailable(resolveTheme('plain-light'))).toBe(true)
+  it('is true for every shipped preset; branded dark is held for its art', () => {
+    expect(isThemeAvailable(resolveTheme(themes.brandedLight))).toBe(true)
+    expect(isThemeAvailable(resolveTheme(themes.plainLight))).toBe(true)
+    expect(isThemeAvailable(resolveTheme(themes.plainDark))).toBe(true)
+    expect(isThemeAvailable(resolveTheme(themes.brandedDark))).toBe(false)
+    // `system` needs the light half only.
     expect(
       isThemeAvailable(resolveTheme({ mode: 'system', brand: 'plain' })),
     ).toBe(true)
-  })
-
-  it('is false while the stylesheet carries no dark variant', () => {
-    expect(isThemeAvailable(resolveTheme('plain-dark'))).toBe(false)
+    expect(
+      isThemeAvailable(resolveTheme({ mode: 'system', brand: 'branded' })),
+    ).toBe(true)
   })
 })
