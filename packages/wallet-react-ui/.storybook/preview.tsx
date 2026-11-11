@@ -1,14 +1,16 @@
 import type { Decorator, Preview } from '@storybook/react-vite'
-import { Screen } from '@zerodev/react-ui'
+import { Screen, type ThemeName } from '@zerodev/react-ui'
 import '../src/styles.css'
 
 const withScreen: Decorator = (Story, context) => {
   const screen = context.globals.screen as 'on' | 'off'
+  // The toolbar value is a preset name, `<brand>-<mode>`.
+  const [brand, mode] = (context.globals.theme as string).split('-')
   // Screen-off stories render outside a Screen, so this wrapper carries the
-  // zd-scope class the scoped reset applies to.
+  // zd-scope class the scoped reset applies to, and the theme attributes.
   if (screen !== 'on')
     return (
-      <div className="zd-scope">
+      <div className="zd-scope" data-zd-mode={mode} data-zd-brand={brand}>
         <Story />
       </div>
     )
@@ -19,6 +21,7 @@ const withScreen: Decorator = (Story, context) => {
   // instead of being clipped.
   return (
     <Screen
+      theme={context.globals.theme as ThemeName}
       className="zd:w-125 zd:min-h-75 zd:flex zd:flex-col zd:relative zd:overflow-hidden zd:rounded-[34px]"
       contentClassName="zd:flex-1 zd:grid zd:place-items-center zd:bg-neutral-primary zd:m-1.5 zd:px-4 zd:py-6 zd:rounded-[30px] zd:relative"
     >
@@ -31,6 +34,20 @@ const withScreen: Decorator = (Story, context) => {
 
 const preview: Preview = {
   globalTypes: {
+    theme: {
+      name: 'Theme',
+      description: 'Theme preset (mode × brand)',
+      defaultValue: 'branded-light',
+      toolbar: {
+        icon: 'paintbrush',
+        items: [
+          { value: 'branded-light', title: 'Branded light' },
+          { value: 'plain-light', title: 'Plain light' },
+          { value: 'branded-dark', title: 'Branded dark' },
+          { value: 'plain-dark', title: 'Plain dark' },
+        ],
+      },
+    },
     screen: {
       name: 'Screen',
       description: 'Render the story inside the ConnectWallet card chrome',
