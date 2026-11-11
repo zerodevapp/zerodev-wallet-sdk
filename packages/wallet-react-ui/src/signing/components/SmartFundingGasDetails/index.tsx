@@ -33,7 +33,10 @@ export function SmartFundingGasDetails({
     <Wrapper className="zd:p-4 zd:flex zd:flex-col zd:gap-6 zd:rounded-xl zd:w-full">
       <div className="zd:flex zd:flex-row zd:justify-between zd:items-center">
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
-          <Icon name="stars" className="zd:h-4 zd:w-4 zd:text-solarOrange" />
+          <Icon
+            name="stars"
+            className="zd:h-4 zd:w-4 zd:text-icon-brand-primary"
+          />
           <Text className="zd:text-h3">Smart Funding Gas Details</Text>
         </div>
         <button
@@ -47,7 +50,7 @@ export function SmartFundingGasDetails({
         >
           <Icon
             name={expanded ? 'chevronUp' : 'chevronDown'}
-            className="zd:w-4 zd:h-4 zd:text-greyScale"
+            className="zd:w-4 zd:h-4 zd:text-icon-neutral-primary"
           />
         </button>
       </div>
@@ -60,7 +63,7 @@ export function SmartFundingGasDetails({
               trailing={
                 <Icon
                   name="clock"
-                  className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                  className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
                 />
               }
             />
@@ -70,7 +73,7 @@ export function SmartFundingGasDetails({
               trailing={
                 <Icon
                   name="settings"
-                  className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                  className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
                 />
               }
             />
@@ -114,7 +117,7 @@ export function SmartFundingGasDetails({
                 trailing={
                   <Icon
                     name="gasStation"
-                    className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                    className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
                   />
                 }
               />

@@ -13,14 +13,14 @@ const withScreen: Decorator = (Story, context) => {
       </div>
     )
   // Storybook-flavored mimic of <Screen>: same gradient + rounded
-  // offWhite card, but with no TopNav padding and content-driven height
+  // neutral card, but with no TopNav padding and content-driven height
   // (with a 500x500 floor). This way the story is genuinely centered and
   // taller stories (e.g. Button — all variants) can grow the wrapper
   // instead of being clipped.
   return (
     <Screen
       className="zd:w-125 zd:min-h-75 zd:flex zd:flex-col zd:relative zd:overflow-hidden zd:rounded-[34px]"
-      contentClassName="zd:flex-1 zd:grid zd:place-items-center zd:bg-offWhite/85 zd:m-1.5 zd:px-4 zd:py-6 zd:rounded-[30px] zd:relative"
+      contentClassName="zd:flex-1 zd:grid zd:place-items-center zd:bg-neutral-primary zd:m-1.5 zd:px-4 zd:py-6 zd:rounded-[30px] zd:relative"
     >
       <div>
         <Story />

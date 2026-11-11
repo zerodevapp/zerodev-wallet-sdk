@@ -41,10 +41,12 @@ export function GenericRequest({
             <Text className="zd:text-h2">Confirm Request</Text>
           </div>
           <div className="zd:text-sm">
-            <span className="zd:font-medium zd:text-gray-500">Method: </span>
-            <span className="zd:text-gray-900">{request.method}</span>
+            <span className="zd:font-medium zd:text-neutral-secondary">
+              Method:{' '}
+            </span>
+            <span className="zd:text-neutral-primary">{request.method}</span>
           </div>
-          <pre className="zd:rounded-lg zd:bg-gray-50 zd:p-3 zd:text-xs zd:text-gray-700 zd:overflow-auto zd:max-h-48 zd:border zd:border-gray-100">
+          <pre className="zd:rounded-lg zd:bg-bright-secondary zd:p-3 zd:text-xs zd:text-neutral-secondary zd:overflow-auto zd:max-h-48 zd:border zd:border-neutral-secondary">
             {JSON.stringify(request.params, null, 2)}
           </pre>
         </div>
@@ -119,7 +121,7 @@ function GenericSendTransaction({
                 trailing={
                   <Icon
                     name="gasStation"
-                    className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                    className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
                   />
                 }
               />
