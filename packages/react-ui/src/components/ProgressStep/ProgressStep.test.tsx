@@ -50,7 +50,9 @@ describe('ProgressStep', () => {
     it('failed renders the warning marker and negative label', () => {
       render(<ProgressStep label="Step" status="failed" />)
       expect(screen.getByTestId('icon-warning')).toBeDefined()
-      expect(screen.getByText('Step').className).toContain('zd:text-negative')
+      expect(screen.getByText('Step').className).toContain(
+        'zd:text-error-primary',
+      )
     })
 
     it('pending renders no icon marker', () => {
@@ -65,15 +67,15 @@ describe('ProgressStep', () => {
     it('mutes the label until done', () => {
       render(<ProgressStep label="Completed" status="pending" />)
       expect(screen.getByText('Completed').className).toContain(
-        'zd:text-greyScale/50',
+        'zd:text-neutral-tertiary',
       )
     })
 
     it('renders the label at full intensity when done', () => {
       render(<ProgressStep label="Completed" status="done" />)
       const className = screen.getByText('Completed').className
-      expect(className).toContain('zd:text-greyScale')
-      expect(className).not.toContain('zd:text-greyScale/50')
+      expect(className).toContain('zd:text-neutral-primary')
+      expect(className).not.toContain('zd:text-neutral-tertiary')
     })
   })
 

@@ -54,7 +54,7 @@ function IconBlock({
   return (
     <div
       className={cn(
-        'zd:shrink-0 zd:bg-white zd:flex zd:items-center zd:justify-center zd:overflow-hidden',
+        'zd:shrink-0 zd:bg-bright-primary zd:flex zd:items-center zd:justify-center zd:overflow-hidden',
         isNetwork
           ? 'zd:w-9 zd:h-9 zd:rounded-full'
           : 'zd:w-11 zd:h-11 zd:rounded-2xl',
@@ -86,15 +86,15 @@ function TokenListItemSkeleton({
       )}
     >
       <div className="zd:flex zd:flex-row zd:items-center zd:gap-2 zd:min-w-0">
-        <div className="zd:w-11 zd:h-11 zd:shrink-0 zd:rounded-2xl zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        <div className="zd:w-11 zd:h-11 zd:shrink-0 zd:rounded-2xl zd:bg-inverse-hover zd:animate-skel-pulse" />
         <div className="zd:flex zd:flex-col zd:gap-2">
-          <div className="zd:h-3 zd:w-14 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
-          <div className="zd:h-3 zd:w-10 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-14 zd:rounded-md zd:bg-inverse-hover zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-10 zd:rounded-md zd:bg-inverse-hover zd:animate-skel-pulse" />
         </div>
       </div>
       <div className="zd:flex zd:flex-col zd:items-end zd:gap-2 zd:shrink-0">
-        <div className="zd:h-3 zd:w-12 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
-        <div className="zd:h-3 zd:w-10 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
+        <div className="zd:h-3 zd:w-12 zd:rounded-md zd:bg-inverse-hover zd:animate-skel-pulse" />
+        <div className="zd:h-3 zd:w-10 zd:rounded-md zd:bg-inverse-hover zd:animate-skel-pulse" />
       </div>
     </div>
   )
@@ -117,8 +117,8 @@ export function TokenListItem({
   if (loading) return <TokenListItemSkeleton className={className} />
 
   const changeColor = change?.startsWith('-')
-    ? 'zd:text-negative'
-    : 'zd:text-positive'
+    ? 'zd:text-error-primary'
+    : 'zd:text-success-primary'
 
   const content = (
     <>
@@ -133,11 +133,11 @@ export function TokenListItem({
           {subtitle && (
             <div className="zd:flex zd:flex-row zd:items-center zd:gap-1 zd:min-w-0">
               {subtitleIcon && (
-                <span className="zd:inline-flex zd:w-3 zd:h-3 zd:rounded-full zd:bg-offWhite/50 zd:overflow-hidden zd:shrink-0 zd:items-center zd:justify-center">
+                <span className="zd:inline-flex zd:w-3 zd:h-3 zd:rounded-full zd:bg-neutral-secondary zd:overflow-hidden zd:shrink-0 zd:items-center zd:justify-center">
                   <Icon name={subtitleIcon} className="zd:w-full zd:h-full" />
                 </span>
               )}
-              <Text className="zd:text-body3 zd:text-greyScale/50 zd:truncate">
+              <Text className="zd:text-body3 zd:text-neutral-tertiary zd:truncate">
                 {subtitle}
               </Text>
             </div>
@@ -172,7 +172,7 @@ export function TokenListItem({
           'zd:transition-colors zd:rounded-xl',
           (rest as ButtonHTMLAttributes<HTMLButtonElement>).disabled
             ? 'zd:opacity-50 zd:cursor-not-allowed'
-            : 'zd:cursor-pointer zd:hover:bg-offWhite/40',
+            : 'zd:cursor-pointer zd:hover:bg-neutral-secondary',
         )}
         {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}
       >

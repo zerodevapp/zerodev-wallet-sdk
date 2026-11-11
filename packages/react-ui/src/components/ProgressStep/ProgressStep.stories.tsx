@@ -52,7 +52,7 @@ export const WithInfoAndTrailing: Story = {
     status: 'active',
     info: 'Your deposit is being routed to the destination chain.',
     right: (
-      <Text className="zd:text-body3 zd:text-greyScale/50">
+      <Text className="zd:text-body3 zd:text-neutral-tertiary">
         5 minutes remaining
       </Text>
     ),
@@ -68,7 +68,7 @@ export const Trail: Story = {
         label="Wait 30 minutes"
         status="active"
         right={
-          <Text className="zd:text-body3 zd:text-greyScale/50">
+          <Text className="zd:text-body3 zd:text-neutral-tertiary">
             5 minutes remaining
           </Text>
         }
