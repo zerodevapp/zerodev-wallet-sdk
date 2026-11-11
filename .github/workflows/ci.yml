@@ -254,7 +254,11 @@ jobs:
       - backend-e2e-test
       - e2e-test
       - audit
-    if: always()
+    if: >-
+      always() &&
+      (github.event_name == 'push'
+       || github.base_ref == 'main' || github.base_ref == 'develop'
+       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
     steps:
       - name: Verify every job succeeded
         env:
