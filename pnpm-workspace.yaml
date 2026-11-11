@@ -17,10 +17,13 @@ overrides:
   # move. Expect two "unmet peer zod" warnings under @reown/appkit-wallet on a full
   # re-resolution; they refer to that same ignored 3.22.4 copy.
   'zod@>=4 <4.6.6': '^4.6.6'
-  # node-forge 1.4.1 patches the PEM, TLS, PKCS#12, X.509 and ASN.1 advisories
-  # (GHSA-7wch-p9px-956x and others). @expo/cli and
-  # @expo/code-signing-certificates declare ^1.4.0 but the lockfile held 1.4.0.
-  'node-forge@<1.4.1': '^1.4.1'
+  # node-forge 1.4.3 patches the PEM, TLS, PKCS#12, X.509 and ASN.1 advisories
+  # (GHSA-7wch-p9px-956x and others) plus three TLS/ReDoS ones that followed:
+  # GHSA-w4xr-hqv8-ch44, GHSA-6cv4-p8m7-4r25, GHSA-j8rw-jp99-435v.
+  # @expo/cli and @expo/code-signing-certificates declare ^1.4.0, so the floor has
+  # to be rewritten here or the lockfile settles on whatever 1.4.x it resolved
+  # first — it held 1.4.2, which the previous `<1.4.1` bound no longer matched.
+  'node-forge@<1.4.3': '^1.4.3'
 
 # Security: Only install packages that are at least 24 hours old (1440 minutes)
 # This helps protect against typosquatting and malicious packages
