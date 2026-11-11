@@ -5,20 +5,32 @@ on:
     branches: [main, develop]
   pull_request:
     types: [opened, synchronize, reopened, labeled]
+  # Any branch, on demand, with no PR. The button is built from the DEFAULT
+  # branch's copy of this file, so it appears only once this is on main; it then
+  # runs the chosen branch's own copy.
+  workflow_dispatch:
 
 # RUN CONDITION
 # Every job below is gated by the same condition:
 #   - push to main or develop
 #   - pull request targeting main or develop
 #   - pull request labeled with 'run-ci'
+#   - manual dispatch on any branch
+#
+# The live suites carry it too, so a dispatch runs them rather than skipping.
+# Dropping dispatch from their guard but not from this condition would let
+# `ci-gate` report "All checks passed" with both live suites skipped — they are
+# the two entries in SKIPPABLE — and that check lands on the commit SHA, where
+# branch protection would read the repo's only required check as satisfied with
+# no live coverage.
 
 jobs:
   lint-and-format:
     name: Lint and Format
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push' || github.base_ref == 'main'
-      || github.base_ref == 'develop'
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
       || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
@@ -48,8 +60,8 @@ jobs:
     name: Type Check
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push' || github.base_ref == 'main'
-      || github.base_ref == 'develop'
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
       || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
@@ -77,8 +89,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push' || github.base_ref == 'main'
-      || github.base_ref == 'develop'
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
       || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
@@ -113,8 +125,8 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push' || github.base_ref == 'main'
-      || github.base_ref == 'develop'
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
       || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
@@ -152,11 +164,11 @@ jobs:
     #   - PRs from forks — fork `pull_request` runs get no repository secrets.
     #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
     if: >-
-      (github.event_name == 'push' || github.base_ref == 'main'
-       || github.base_ref == 'develop'
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+       || github.base_ref == 'main' || github.base_ref == 'develop'
        || contains(github.event.pull_request.labels.*.name, 'run-ci'))
       &&
-      (github.event_name == 'push' ||
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]'))
     needs: [build]
@@ -173,11 +185,11 @@ jobs:
     name: Browser E2E Tests
     # Same guard as above.
     if: >-
-      (github.event_name == 'push' || github.base_ref == 'main'
-       || github.base_ref == 'develop'
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+       || github.base_ref == 'main' || github.base_ref == 'develop'
        || contains(github.event.pull_request.labels.*.name, 'run-ci'))
       &&
-      (github.event_name == 'push' ||
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]'))
     needs: [build]
@@ -195,8 +207,8 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push' || github.base_ref == 'main'
-      || github.base_ref == 'develop'
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
       || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
@@ -221,8 +233,8 @@ jobs:
     name: Dependency Audit
     runs-on: ubuntu-latest
     if: >-
-      github.event_name == 'push' || github.base_ref == 'main'
-      || github.base_ref == 'develop'
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      || github.base_ref == 'main' || github.base_ref == 'develop'
       || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
@@ -253,8 +265,8 @@ jobs:
       - audit
     if: >-
       always() &&
-      (github.event_name == 'push' || github.base_ref == 'main'
-       || github.base_ref == 'develop'
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+       || github.base_ref == 'main' || github.base_ref == 'develop'
        || contains(github.event.pull_request.labels.*.name, 'run-ci'))
     steps:
       - name: Verify every job succeeded
