@@ -4,12 +4,22 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    types: [opened, synchronize, reopened, labeled]
+
+# RUN CONDITION
+# Every job below is gated by the same condition:
+#   - push to main or develop
+#   - pull request targeting main or develop
+#   - pull request labeled with 'run-ci'
 
 jobs:
   lint-and-format:
     name: Lint and Format
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' || github.base_ref == 'main'
+      || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,6 +47,10 @@ jobs:
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' || github.base_ref == 'main'
+      || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,6 +76,10 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' || github.base_ref == 'main'
+      || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -94,6 +112,10 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' || github.base_ref == 'main'
+      || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,9 +152,13 @@ jobs:
     #   - PRs from forks — fork `pull_request` runs get no repository secrets.
     #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
     if: >-
-      github.event_name == 'push' ||
+      (github.event_name == 'push' || github.base_ref == 'main'
+       || github.base_ref == 'develop'
+       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
+      &&
+      (github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
-       && github.actor != 'dependabot[bot]')
+       && github.actor != 'dependabot[bot]'))
     needs: [build]
     uses: ./.github/workflows/e2e-backend.yml
     with:
@@ -147,9 +173,13 @@ jobs:
     name: Browser E2E Tests
     # Same guard as above.
     if: >-
-      github.event_name == 'push' ||
+      (github.event_name == 'push' || github.base_ref == 'main'
+       || github.base_ref == 'develop'
+       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
+      &&
+      (github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
-       && github.actor != 'dependabot[bot]')
+       && github.actor != 'dependabot[bot]'))
     needs: [build]
     uses: ./.github/workflows/e2e-browser.yml
     with:
@@ -164,9 +194,10 @@ jobs:
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
-    # No `if:` guard and no `env:` secrets, deliberately: the integration layer
-    # is in-process and must never need a live service. If a test here ever
-    # needs a secret, it belongs in e2e/backend instead.
+    if: >-
+      github.event_name == 'push' || github.base_ref == 'main'
+      || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -189,6 +220,10 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' || github.base_ref == 'main'
+      || github.base_ref == 'develop'
+      || contains(github.event.pull_request.labels.*.name, 'run-ci')
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -216,7 +251,11 @@ jobs:
       - backend-e2e-test
       - e2e-test
       - audit
-    if: always()
+    if: >-
+      always() &&
+      (github.event_name == 'push' || github.base_ref == 'main'
+       || github.base_ref == 'develop'
+       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
     steps:
       - name: Verify every job succeeded
         env:
