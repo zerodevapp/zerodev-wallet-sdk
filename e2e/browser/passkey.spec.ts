@@ -41,6 +41,8 @@ async function registerAndEnterLab(page: Page): Promise<VirtualAuthenticator> {
 }
 
 test.describe('Passkey Flow', () => {
+  test.describe.configure({ lock: 'staging-auth' })
+
   let virtualAuth: VirtualAuthenticator
 
   test('registers a discoverable (resident) passkey', async ({ page }) => {

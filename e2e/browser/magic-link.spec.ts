@@ -12,6 +12,8 @@ import { createNewAccount } from '../helpers/temp-email.js'
 import { loginWithMagicLink } from '../helpers/ui-login.js'
 
 test.describe('Magic Link Flow', () => {
+  test.describe.configure({ lock: 'staging-auth' })
+
   test('should complete magic link login through the UI', async ({ page }) => {
     const emailAccount = await createNewAccount()
     await loginWithMagicLink(page, emailAccount.address, emailAccount.authToken)
