@@ -233,3 +233,41 @@ describe('reload after a Solana login and an explicit EVM connect through the sa
     expect(p2.shimKey()).toBeDefined()
   })
 })
+
+describe('a guard mounted again after an explicit EVM connect, in the same page load', () => {
+  it('keeps the connection: the sweep is judged once per page load', async () => {
+    const backing = new Map<string, string>()
+    const mm = fakeMetaMask()
+
+    const p1 = pageLoad(backing, mm.page())
+    await p1.hydrate()
+    await withoutEvmAdoption(p1.config, 'MetaMask', async () => {
+      mm.wallet.granted = true
+      await p1.announceAccounts()
+    })
+    await vi.advanceTimersByTimeAsync(2000)
+
+    // The dashboard's kit hook mounts the guard; the sweep is long over.
+    const stop1 = guardDormantEvmSide(p1.config, 'MetaMask', p1.atLoad)
+    await vi.advanceTimersByTimeAsync(1500)
+
+    // "Add EVM" with MetaMask: the kit's connect path.
+    const release = allowEvmConnection(p1.metamask)
+    await p1.config.storage?.removeItem(`${p1.metamask.id}.disconnected`)
+    await reconnect(p1.config, { connectors: [p1.metamask] })
+    release()
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(p1.config.state.connections.size).toBe(1)
+
+    // Navigation remounts the page, or another component mounts its own
+    // kit hook: a second guard on the same config.
+    stop1()
+    const stop2 = guardDormantEvmSide(p1.config, 'MetaMask', p1.atLoad)
+    await vi.advanceTimersByTimeAsync(3000)
+    stop2()
+
+    expect(p1.config.state.connections.size).toBe(1)
+    expect(p1.config.state.status).toBe('connected')
+    expect(p1.shimKey()).toBeUndefined()
+  })
+})

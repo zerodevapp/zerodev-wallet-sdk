@@ -15,6 +15,16 @@ const RECONNECT_START_MS = 1000
 const explicitEvmConnections = new Set<string>()
 
 /**
+ * Configs whose reload reconnect sweep a guard has judged this page load.
+ * The sweep happens once, so a guard mounted after it (a second kit hook
+ * in another component, a page component remounting on navigation) has
+ * nothing left to catch there, and must not judge the connections the host
+ * made since by the load-time record: those are explicit, and sweeping
+ * them away would disconnect the user for no reason.
+ */
+const sweptConfigs = new WeakSet<Config>()
+
+/**
  * Declare an explicit EVM connect through `connector`, so an adoption guard
  * running for the same wallet (a Solana connect in flight, or settled within
  * its grace period) does not mistake the connection for a self-connect and
@@ -284,13 +294,13 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
  * see `detachFromWagmiState`). A connection the host asks for meanwhile is
  * declared through `allowEvmConnection` and kept.
  *
- * The sweep is watched once; the muting and the shim are repeated for
- * connectors that arrive later (under `ssr` wagmi sets the EIP-6963
- * connectors up in its mount effect, after the guard mounts; a provider can
- * also announce itself late). Both leave a connected wallet alone, so a
- * connection the host made in between stays. Mount once per page: a remount
- * would judge the host's later connections by the load-time record and
- * sweep them away.
+ * The sweep is watched once per page load, whichever guard instance gets
+ * there first: the muting and the shim are repeated for connectors that
+ * arrive later (under `ssr` wagmi sets the EIP-6963 connectors up in its
+ * mount effect, after the guard mounts; a provider can also announce itself
+ * late), and a guard mounted after the sweep has been judged does only
+ * that. Both leave a connected wallet alone, so a connection the host made
+ * in between stays, and so does one made before a later mount.
  */
 export function guardDormantEvmSide(
   config: Config,
@@ -310,7 +320,9 @@ export function guardDormantEvmSide(
       muteDormantEvmSide(config, walletName)
       shimDormantEvmSide(config, walletName).catch(() => {})
     })
+    if (sweptConfigs.has(config)) return
     stopWatch = afterReconnectSettles(config, () => {
+      sweptConfigs.add(config)
       for (const [uid, connection] of config.state.connections) {
         if (explicitEvmConnections.has(uid)) continue
         if (!equalsIgnoreCase(connection.connector.name, walletName)) continue
