@@ -65,7 +65,7 @@ async function connectEvmWallet({ config }: AdapterContext, wallet: Connector) {
   if (config.state.current === wallet.uid) return
   // A Solana connect through the same wallet moments ago may still be
   // guarding against adoption; this connection is asked for.
-  const release = allowEvmConnection(wallet)
+  const release = allowEvmConnection(config, wallet)
   try {
     await config.storage?.removeItem(`${wallet.id}.disconnected`)
     if (config.state.connections.size === 0) {
@@ -103,16 +103,26 @@ export async function disconnectEvm(
     keepSolana && solanaConnection?.source === 'standard'
       ? solanaConnection.wallet.name
       : undefined
+  // Every connection is attempted even when one fails (a wallet that
+  // refuses, a relay that is down): stopping at the first would leave the
+  // later ones up after a disconnect the host asked for. The first failure
+  // is reported once the loop has run.
+  let failure: { error: unknown } | undefined
   for (const { connector } of [...config.state.connections.values()]) {
-    if (
-      solanaWalletName &&
-      equalsIgnoreCase(connector.name, solanaWalletName)
-    ) {
-      await detachEvmConnection(config, connector.uid)
-    } else {
-      await wagmiDisconnect(config, { connector })
+    try {
+      if (
+        solanaWalletName &&
+        equalsIgnoreCase(connector.name, solanaWalletName)
+      ) {
+        await detachEvmConnection(config, connector.uid)
+      } else {
+        await wagmiDisconnect(config, { connector })
+      }
+    } catch (error) {
+      failure ??= { error }
     }
   }
+  if (failure) throw failure.error
 }
 
 /** The EVM side as the host reads it. Runs on every render of the kit hook. */
