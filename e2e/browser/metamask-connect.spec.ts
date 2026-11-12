@@ -12,6 +12,7 @@ import {
   expectSignRunRejected,
   expectSignRunSucceeded,
 } from '../helpers/tx-runs.js'
+import { openSignIn } from '../helpers/ui-login.js'
 import { TEST_WALLET } from '../helpers/wallet-credentials.js'
 
 const LAB_TIMEOUT_MS = 90_000
@@ -23,10 +24,11 @@ const expectedAddress = () =>
 test.describe('Preset 2 — real MetaMask', () => {
   test.describe.configure({ timeout: 300_000 })
 
-  test('the pinned row is badged INSTALLED once the extension is present', async ({
+  test('the announced row is badged INSTALLED once the extension is present', async ({
     page,
   }) => {
     await page.goto('/?preset=preset-2')
+    await openSignIn(page)
     await expect(page.getByText('Continue to your wallet')).toBeVisible({
       timeout: LAB_TIMEOUT_MS,
     })
@@ -44,6 +46,7 @@ test.describe('Preset 2 — real MetaMask', () => {
     metamask,
   }) => {
     await page.goto('/?preset=preset-2')
+    await openSignIn(page)
     await expect(page.getByText('Continue to your wallet')).toBeVisible({
       timeout: LAB_TIMEOUT_MS,
     })
@@ -64,6 +67,7 @@ test.describe('Preset 2 — real MetaMask', () => {
     metamask,
   }) => {
     await page.goto('/?preset=preset-2')
+    await openSignIn(page)
     await expect(page.getByText('Continue to your wallet')).toBeVisible({
       timeout: LAB_TIMEOUT_MS,
     })
@@ -91,6 +95,7 @@ test.describe('Preset 2 — real MetaMask', () => {
     metamask,
   }) => {
     await page.goto('/?preset=preset-2')
+    await openSignIn(page)
     await expect(page.getByText('Continue to your wallet')).toBeVisible({
       timeout: LAB_TIMEOUT_MS,
     })
@@ -118,6 +123,7 @@ test.describe('Preset 2 — real MetaMask', () => {
     metamask,
   }) => {
     await page.goto('/?preset=preset-2')
+    await openSignIn(page)
     await expect(page.getByText('Continue to your wallet')).toBeVisible({
       timeout: LAB_TIMEOUT_MS,
     })

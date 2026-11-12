@@ -44,7 +44,12 @@ export function createWalletConfig(resolved: ResolvedWalletConfig) {
         ...(mode && { mode }),
       }),
       ...(WALLETCONNECT_PROJECT_ID
-        ? [zeroDevWalletConnect({ projectId: WALLETCONNECT_PROJECT_ID })]
+        ? [
+            zeroDevWalletConnect({
+              projectId: WALLETCONNECT_PROJECT_ID,
+              ...(resolved.solanaEnabled && { solana: true }),
+            }),
+          ]
         : []),
     ],
     ssr: true,

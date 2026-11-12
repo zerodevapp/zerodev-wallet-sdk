@@ -15,6 +15,7 @@ import { SignMessageCounterTest } from "./SignMessageCounterTest";
 import { SignMessagePresetTest } from "./SignMessagePresetTest";
 import { SignTypedDataInvalidTest } from "./SignTypedDataInvalidTest";
 import { SignTypedDataTest } from "./SignTypedDataTest";
+import { SolanaSigningTest } from "./SolanaSigningTest";
 import { WatchAssetTest } from "./WatchAssetTest";
 
 /**
@@ -30,6 +31,9 @@ const AREA_CASES: Record<string, React.ComponentType[]> = {
     SignMessagePresetTest,
     SignTypedDataTest,
     SignTypedDataInvalidTest,
+    // Beside the EVM cases on purpose: one screen is what makes "signing one
+    // namespace leaves the other alone" a thing you can watch rather than infer.
+    SolanaSigningTest,
   ],
   transactions: [SendEthTest, SendHighAmountTest, SendInvalidAddressTest],
   contracts: [

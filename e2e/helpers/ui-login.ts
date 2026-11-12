@@ -4,9 +4,13 @@
  */
 
 import { expect, type Page } from '@playwright/test'
+import type { Namespace } from './connector-bar.js'
 import {
+  BASE58_ADDRESS,
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
+  EVM_ADDRESS,
+  LAB_TIMEOUT_MS,
   OTP_CODE_LENGTH,
 } from './constants.js'
 import {
@@ -16,19 +20,115 @@ import {
 } from './otp-utils.js'
 import { searchForNewEmail } from './temp-email.js'
 
+/** Which connector-bar button opens the flow. */
+export type SignInNamespace = Namespace | 'all'
+
+/**
+ * Opens the lab on the external-wallet preset: installed wallets, the pinned
+ * rows, More wallets and WalletConnect.
+ *
+ * The URL writes through to storage, so the preset also holds for anything that
+ * navigates afterwards.
+ */
+export async function openWalletPreset(
+  page: Page,
+  options: {
+    /** Offers the Solana rows beside the EVM ones. */
+    solana?: boolean
+    /**
+     * Which namespaces the wallet lists offer. Omitted follows `solana`, which
+     * is the pairing a host would normally ship; naming them apart is how the
+     * half-configured surfaces are reached.
+     */
+    namespaces?: readonly Namespace[]
+    /** Row cap on the installed-wallets unit; omitted leaves its default. */
+    maxWallets?: number
+  } = {},
+): Promise<void> {
+  const params = new URLSearchParams({ preset: 'preset-2' })
+  if (options.solana) params.set('solana', 'true')
+  if (options.namespaces) params.set('ns', options.namespaces.join(','))
+  if (options.maxWallets !== undefined) {
+    params.set('maxWallets', String(options.maxWallets))
+  }
+  await page.goto(`/?${params}`)
+}
+
+/** Waits for the sign-up sheet, whose heading is the same on every preset. */
+export async function expectSignUpSheet(page: Page): Promise<void> {
+  await expect(page.getByText('Continue to your wallet')).toBeVisible({
+    timeout: LAB_TIMEOUT_MS,
+  })
+}
+
+/** The row title each namespace takes in a wallet's chain choice. */
+const CHAIN_ROW: Record<Namespace, string> = {
+  eip155: 'Ethereum',
+  solana: 'Solana',
+}
+
+/**
+ * Opens the sign-in sheet and picks `namespace` on a wallet serving both.
+ *
+ * A row serving two namespaces does not connect on click — it expands into a
+ * chain choice, because the kit cannot know which side the user meant.
+ */
+export async function openSignInAndPickChain(
+  page: Page,
+  walletName: string,
+  namespace: Namespace,
+): Promise<void> {
+  await openSignIn(page, namespace)
+  await expectSignUpSheet(page)
+
+  await page.getByRole('button', { name: new RegExp(`^${walletName}`) }).click()
+
+  const choice = page.getByTestId(`chain-choice-${walletName}`)
+  await expect(choice).toBeVisible({ timeout: LAB_TIMEOUT_MS })
+  await choice
+    .getByRole('button', { name: new RegExp(`^${CHAIN_ROW[namespace]}`) })
+    .click()
+}
+
+/**
+ * Opens the sign-in flow from the connector bar.
+ */
+export async function openSignIn(
+  page: Page,
+  namespace: SignInNamespace = 'eip155',
+): Promise<void> {
+  // Disabled while that namespace is already connected or restoring, so waiting
+  // on enabled also waits out a silent reconnect.
+  const button = page.getByTestId(`connector-connect-${namespace}`)
+  await expect(button).toBeEnabled({ timeout: 60_000 })
+  await button.click()
+}
+
 /**
  * Waits for the authenticated lab. The lab has no post-login route — its auth
- * gate swaps the login surface for the lab at the same URL once wagmi reports
+ * gate swaps the login surface for the lab at the same URL once the kit reports
  * connected, so there is no navigation to wait on.
+ *
+ * The address row is namespace-specific: a Solana-only session renders
+ * `wallet-address-solana` and no EVM address at all, so asserting the EVM one
+ * would wait out the timeout on a lab that is perfectly ready.
  */
-export async function expectLabReady(page: Page): Promise<void> {
+export async function expectLabReady(
+  page: Page,
+  namespace: Namespace = 'eip155',
+): Promise<void> {
   await expect(page.getByTestId('wallet-strip')).toBeVisible({
     timeout: 60_000,
   })
-  await expect(page.getByTestId('wallet-address')).toHaveText(
-    /^0x[0-9a-fA-F]{40}$/,
-    { timeout: 60_000 },
-  )
+
+  const [testId, address] =
+    namespace === 'solana'
+      ? (['wallet-address-solana', BASE58_ADDRESS] as const)
+      : (['wallet-address', EVM_ADDRESS] as const)
+
+  await expect(page.getByTestId(testId)).toHaveText(address, {
+    timeout: 60_000,
+  })
 }
 
 /**
@@ -42,7 +142,9 @@ export async function logoutAndExpectLoginSurface(page: Page): Promise<void> {
   await page.getByTestId('wallet-logout').click()
 
   await expect(page.getByTestId('wallet-strip')).toBeHidden({ timeout: 60_000 })
-  await expect(page.getByText('Sign in to open the QA Lab')).toBeVisible({
+  // The hint, not a sign-in surface: the connector bar survives the gate, so
+  // this is the only element that only renders while signed out and idle.
+  await expect(page.getByTestId('signed-out-hint')).toBeVisible({
     timeout: 60_000,
   })
 }
@@ -60,6 +162,7 @@ export async function loginWithOtp(
   authToken: string,
 ): Promise<void> {
   await page.goto('/?authFlavor=otp')
+  await openSignIn(page)
   await page.getByPlaceholder('Enter your email').fill(email)
   await page.getByPlaceholder('Enter your email').press('Enter')
   await expect(
@@ -98,6 +201,7 @@ export async function loginWithMagicLink(
   await page.request.get('/verify')
 
   await page.goto('/')
+  await openSignIn(page)
   await page.getByPlaceholder('Enter your email').fill(email)
   await page.getByPlaceholder('Enter your email').press('Enter')
   await expect(page.getByText(/check your email/i)).toBeVisible({

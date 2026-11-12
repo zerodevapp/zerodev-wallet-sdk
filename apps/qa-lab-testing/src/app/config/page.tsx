@@ -19,7 +19,11 @@ import {
   AUTH_UNITS,
   type AuthFlavorId,
   type AuthPresetId,
+  AUTH_NAMESPACE_IDS,
+  AUTH_NAMESPACES,
+  type AuthNamespace,
   DEFAULT_AUTH_PRESET,
+  resolveAuthUnits,
 } from "../lib/wallet-config";
 import { LAB_FEATURES, areaHref, featureHref } from "../lib/features";
 import { cn } from "../lib/utils";
@@ -60,6 +64,15 @@ export default function ConfigBuilderPage() {
   const [authFlavor, setAuthFlavor] = useState<AuthFlavorId>(
     current.authFlavor,
   );
+  const [solanaEnabled, setSolanaEnabled] = useState(current.solanaEnabled);
+  const [namespaceMode, setNamespaceMode] = useState<AuthNamespace | "all">(
+    current.namespaces.length === 1 ? current.namespaces[0]! : "all",
+  );
+  const namespaces: readonly AuthNamespace[] = !solanaEnabled
+    ? ["eip155"]
+    : namespaceMode === "all"
+      ? AUTH_NAMESPACE_IDS
+      : [namespaceMode];
   const [target, setTarget] = useState("/");
   const [copied, setCopied] = useState(false);
 
@@ -71,6 +84,8 @@ export default function ConfigBuilderPage() {
     ),
     preset,
     authFlavor,
+    solana: solanaEnabled,
+    namespaces,
   }).toString();
 
   const url = query ? `${target}?${query}` : target;
@@ -161,7 +176,8 @@ export default function ConfigBuilderPage() {
                         {AUTH_PRESETS[id].description}
                       </p>
                       <ol className="mt-1.5 flex flex-col gap-0.5">
-                        {AUTH_PRESETS[id].units.map((unit, index) => (
+                        {resolveAuthUnits(id, namespaces, solanaEnabled).map(
+                          (unit, index) => (
                           <li
                             key={unit}
                             data-testid={`config-preset-${id}-unit-${unit}`}
@@ -178,6 +194,85 @@ export default function ConfigBuilderPage() {
                   );
                 })}
               </div>
+
+              <label
+                data-testid="config-solana"
+                data-enabled={String(solanaEnabled)}
+                className={cn(
+                  "mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 transition-colors",
+                  "focus-within:ring-2 focus-within:ring-blue-500",
+                  solanaEnabled
+                    ? "border-[var(--ink)] bg-[var(--surface-warm)]"
+                    : "border-[var(--border-warm)] bg-white opacity-60 hover:border-[var(--ink)] hover:opacity-100",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={solanaEnabled}
+                  onChange={(event) => setSolanaEnabled(event.target.checked)}
+                  data-testid="config-solana-input"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer"
+                />
+                <span>
+                  <span className="block text-[11px] font-semibold text-[var(--ink)]">
+                    <code className="font-mono">{PARAM.solana}</code> · more
+                    than EVM
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-4 text-[var(--muted)]">
+                    Wires the Solana namespace and its WalletConnect door, then
+                    lets you pick which namespaces the surface offers. Off by
+                    default — EVM alone — because the restore and the door cost
+                    every page something the EVM-only specs have no use for.
+                  </span>
+                </span>
+              </label>
+
+              {solanaEnabled && (
+                <div
+                  role="radiogroup"
+                  aria-label="Namespaces offered"
+                  className="mt-2 flex flex-wrap gap-2"
+                  data-testid="config-namespaces"
+                  data-value={namespaces.join(",")}
+                  data-mode={namespaceMode}
+                >
+                  {[
+                    { value: "all" as const, label: "All" },
+                    ...AUTH_NAMESPACES.map((entry) => ({
+                      value: entry.id,
+                      label: `${entry.label} only`,
+                    })),
+                  ].map(({ value, label }) => {
+                    const selected = namespaceMode === value;
+                    return (
+                      <label
+                        key={value}
+                        data-testid={`config-namespace-${value}`}
+                        data-selected={String(selected)}
+                        className={cn(
+                          "flex-1 cursor-pointer rounded-lg border px-3 py-2 text-center transition-colors",
+                          "focus-within:ring-2 focus-within:ring-blue-500",
+                          selected
+                            ? "border-[var(--ink)] bg-[var(--surface-warm)]"
+                            : "border-[var(--border-warm)] bg-white opacity-60 hover:border-[var(--ink)] hover:opacity-100",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="namespace-mode"
+                          value={value}
+                          checked={selected}
+                          onChange={() => setNamespaceMode(value)}
+                          className="sr-only"
+                        />
+                        <span className="text-[11px] font-semibold text-[var(--ink)]">
+                          {label}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
 
               <p className="mt-2 text-[11px] leading-4 text-[var(--muted)]">
                 <span className="font-semibold">This one persists:</span>{" "}
