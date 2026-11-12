@@ -1,5 +1,12 @@
 # @zerodev/smart-routing-address-react-ui
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [472ecab]
+  - @zerodev/react-ui@0.0.10
+
 ## 0.0.7
 
 ### Patch Changes
