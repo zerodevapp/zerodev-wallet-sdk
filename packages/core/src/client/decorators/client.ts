@@ -20,12 +20,15 @@ import {
   type GetUserWalletReturnType,
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
+  type GetXLoginUrlParameters,
+  type GetXLoginUrlReturnType,
   getAuthenticators,
   getAuthProxyConfigId,
   getOAuthLoginUrl,
   getParentOrgId,
   getUserWallet,
   getWhoami,
+  getXLoginUrl,
   type LoginWithOTPParameters,
   type LoginWithOTPReturnType,
   type LogoutParameters,
@@ -178,6 +181,14 @@ export type ZeroDevWalletActions = {
   getOAuthLoginUrl: (
     params: GetOAuthLoginUrlParameters,
   ) => Promise<GetOAuthLoginUrlReturnType>
+
+  /**
+   * Fetches the X (Twitter) OAuth authorization URL from the backend.
+   * The caller must verify the URL's host and `nonce` before opening it.
+   */
+  getXLoginUrl: (
+    params: GetXLoginUrlParameters,
+  ) => Promise<GetXLoginUrlReturnType>
 }
 
 /**
@@ -225,5 +236,6 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     getAuthProxyConfigId: () => getAuthProxyConfigId(client),
     getParentOrgId: () => getParentOrgId(client),
     getOAuthLoginUrl: (params) => getOAuthLoginUrl(client, params),
+    getXLoginUrl: (params) => getXLoginUrl(client, params),
   }
 }

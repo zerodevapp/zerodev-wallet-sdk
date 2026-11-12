@@ -3,11 +3,16 @@ import {
   generateOAuthNonce,
   OAUTH_PROVIDERS,
   verifyGoogleLoginUrl,
-} from './verifyGoogleLoginUrl.js'
+  verifyOAuthLoginUrl,
+  verifyXLoginUrl,
+} from './verifyOAuthLoginUrl.js'
 
 describe('OAUTH_PROVIDERS', () => {
   it('has google provider', () => {
     expect(OAUTH_PROVIDERS.GOOGLE).toBe('google')
+  })
+  it('has x provider', () => {
+    expect(OAUTH_PROVIDERS.X).toBe('x')
   })
 })
 
@@ -96,5 +101,87 @@ describe('verifyGoogleLoginUrl', () => {
     expect(() => verifyGoogleLoginUrl('not a url', publicKey)).toThrow(
       /not a valid URL/,
     )
+  })
+})
+
+describe('verifyXLoginUrl', () => {
+  const pubKey = '03abcdef123'
+  const nonce = generateOAuthNonce(pubKey)
+
+  it('passes when host, path and nonce match', () => {
+    expect(() =>
+      verifyXLoginUrl(
+        `https://x.com/i/oauth2/authorize?client_id=abc&nonce=${nonce}`,
+        pubKey,
+      ),
+    ).not.toThrow()
+  })
+
+  it('throws on a malformed URL', () => {
+    expect(() => verifyXLoginUrl('not a url', pubKey)).toThrow(/valid URL/)
+  })
+
+  it('throws when nonce is missing', () => {
+    expect(() =>
+      verifyXLoginUrl('https://x.com/i/oauth2/authorize?client_id=abc', pubKey),
+    ).toThrow(/missing nonce/)
+  })
+})
+
+describe('verifyOAuthLoginUrl', () => {
+  const pubKey = '03abcdef123'
+  const nonce = generateOAuthNonce(pubKey)
+
+  it('delegates google to verifyGoogleLoginUrl', () => {
+    expect(() =>
+      verifyOAuthLoginUrl(
+        'google',
+        `https://accounts.google.com/o/oauth2/v2/auth?nonce=${nonce}`,
+        pubKey,
+      ),
+    ).not.toThrow()
+    expect(() =>
+      verifyOAuthLoginUrl(
+        'google',
+        `https://x.com/i/oauth2/authorize?nonce=${nonce}`,
+        pubKey,
+      ),
+    ).toThrow(/host mismatch/)
+  })
+
+  it('passes for x when host, path and nonce match', () => {
+    expect(() =>
+      verifyOAuthLoginUrl(
+        'x',
+        `https://x.com/i/oauth2/authorize?client_id=abc&nonce=${nonce}`,
+        pubKey,
+      ),
+    ).not.toThrow()
+  })
+
+  it('rejects a google host under provider x', () => {
+    expect(() =>
+      verifyOAuthLoginUrl(
+        'x',
+        `https://accounts.google.com/o/oauth2/v2/auth?nonce=${nonce}`,
+        pubKey,
+      ),
+    ).toThrow(/host mismatch/)
+  })
+
+  it('rejects an x host with the wrong path', () => {
+    expect(() =>
+      verifyOAuthLoginUrl('x', `https://x.com/login?nonce=${nonce}`, pubKey),
+    ).toThrow(/path mismatch/)
+  })
+
+  it('rejects a nonce mismatch for x', () => {
+    expect(() =>
+      verifyOAuthLoginUrl(
+        'x',
+        'https://x.com/i/oauth2/authorize?nonce=deadbeef',
+        pubKey,
+      ),
+    ).toThrow(/nonce does not match/)
   })
 })

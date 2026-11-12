@@ -38,6 +38,11 @@ export {
   getWhoami,
 } from './getWhoami.js'
 export {
+  type GetXLoginUrlParameters,
+  type GetXLoginUrlReturnType,
+  getXLoginUrl,
+} from './getXLoginUrl.js'
+export {
   type LoginWithOTPParameters,
   type LoginWithOTPReturnType,
   loginWithOTP,

@@ -37,6 +37,9 @@ vi.mock('./Passkey', () => ({
 vi.mock('./Google', () => ({
   SignUpGoogle: () => <div data-testid="unit-google" />,
 }))
+vi.mock('./X', () => ({
+  SignUpX: () => <div data-testid="unit-x" />,
+}))
 vi.mock('./Email', () => ({
   SignUpEmail: () => <div data-testid="unit-email" />,
 }))
@@ -82,11 +85,13 @@ describe('SignUp.Default', () => {
     const passkey = screen.getByTestId('unit-passkey')
     const divider = screen.getByText('or')
     const google = screen.getByTestId('unit-google')
+    const x = screen.getByTestId('unit-x')
     const email = screen.getByTestId('unit-email')
 
     expect(isBefore(passkey, divider)).toBe(true)
     expect(isBefore(divider, google)).toBe(true)
-    expect(isBefore(google, email)).toBe(true)
+    expect(isBefore(google, x)).toBe(true)
+    expect(isBefore(x, email)).toBe(true)
     // Wallet units are compose-only — the canonical page has none.
     expect(screen.queryByTestId('unit-more-wallets')).toBeNull()
   })
