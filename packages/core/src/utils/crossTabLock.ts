@@ -11,9 +11,18 @@
 // in-process queue is all we have.
 export const KEY_TRANSITION_LOCK = '@zerodev/key_transition'
 
+/**
+ * @internal Exported for `@zerodev/wallet-react`. Not re-entrant: SDK calls
+ * take this lock themselves, so making one while holding it deadlocks.
+ */
 export const withCrossTabLock = async <T>(
   task: () => Promise<T>,
+  // Shared for work that only reads the vault and session, e.g. a stamped
+  // request, which may run together but never during another tab's change.
+  { mode = 'exclusive' }: { mode?: LockMode } = {},
 ): Promise<T> => {
   const locks = typeof navigator === 'undefined' ? undefined : navigator.locks
-  return locks ? await locks.request(KEY_TRANSITION_LOCK, task) : task()
+  return locks
+    ? await locks.request(KEY_TRANSITION_LOCK, { mode }, task)
+    : task()
 }

@@ -445,11 +445,14 @@ describe('provider state safety', () => {
     provider.destroy()
   })
 
-  it('clears a session that expired while hidden without refreshing it', () => {
+  it('clears a session that expired while hidden without refreshing it', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(1_700_000_000_000)
     const store = createZeroDevWalletStore()
-    const wallet = { refreshSession: vi.fn() }
+    const wallet = {
+      refreshSession: vi.fn(),
+      getSession: vi.fn().mockResolvedValue(undefined),
+    }
     store.getState().setWallet(wallet as never)
     store.getState().setSession({
       id: 'expired-in-background',
@@ -474,12 +477,55 @@ describe('provider state safety', () => {
     vi.setSystemTime(Date.now() + 121_000)
     expect(document.visibilityState).toBe('visible')
     document.dispatchEvent(new Event('visibilitychange'))
+    // It first checks whether another tab stored a newer session.
+    await vi.advanceTimersByTimeAsync(0)
 
     expect(wallet.refreshSession).not.toHaveBeenCalled()
     expect(store.getState().session).toBeNull()
     expect(store.getState().eoaAccount).toBeNull()
     expect(store.getState().kernelAccounts.size).toBe(0)
     expect(store.getState().kernelClients.size).toBe(0)
+    provider.destroy()
+  })
+
+  it('adopts a newer session another tab stored while this one slept past expiry', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_700_000_000_000)
+    const store = createZeroDevWalletStore()
+    const session = {
+      id: 'expired-in-background',
+      userId: 'user-1',
+      organizationId: 'org-1',
+      stamperType: 'apiKey' as const,
+      token: 'jwt',
+      expiry: Date.now() + 120_000,
+      createdAt: Date.now(),
+    }
+    const refreshed = {
+      ...session,
+      id: 'refreshed-elsewhere',
+      expiry: Date.now() + 3_600_000,
+    }
+    const wallet = {
+      refreshSession: vi.fn(),
+      getSession: vi.fn().mockResolvedValue(refreshed),
+    }
+    store.getState().setWallet(wallet as never)
+    store.getState().setSession(session)
+    store.getState().setEoaAccount(EOA_ACCOUNT)
+
+    const provider = createProvider({
+      store,
+      config: { projectId: 'proj-test', chains: [sepolia] },
+      chains: [sepolia],
+    })
+    vi.setSystemTime(Date.now() + 121_000)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(wallet.refreshSession).not.toHaveBeenCalled()
+    expect(store.getState().session?.id).toBe('refreshed-elsewhere')
+    expect(store.getState().eoaAccount).toBe(EOA_ACCOUNT)
     provider.destroy()
   })
 
@@ -554,7 +600,10 @@ describe('provider state safety', () => {
     })
     await vi.waitFor(() => expect(wallet.logout).toHaveBeenCalledOnce())
 
-    expect(wallet.logout).toHaveBeenCalledWith()
+    // Only the rejected session: another tab may have signed in since.
+    expect(wallet.logout).toHaveBeenCalledWith({
+      sessionId: 'rejected-session',
+    })
     expect(store.getState().session).toBeNull()
     expect(store.getState().eoaAccount).toBeNull()
     provider.destroy()

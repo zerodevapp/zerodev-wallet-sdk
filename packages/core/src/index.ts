@@ -101,10 +101,11 @@ export type {
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 // Session types
 export type { StamperType, ZeroDevWalletSession } from './types/session.js'
+// Utils
+export { withCrossTabLock } from './utils/crossTabLock.js'
 export type { KeyFormat } from './utils/exportPrivateKey.js'
 export { exportPrivateKey } from './utils/exportPrivateKey.js'
 export { exportWallet } from './utils/exportWallet.js'
-// Utils
 export { normalizeTimestamp } from './utils/utils.js'
 // Core — bare specifier resolves web defaults (IndexedDB, WebAuthn, session
 // storage, hostname-derived rpId) before forwarding to the shared factory.
