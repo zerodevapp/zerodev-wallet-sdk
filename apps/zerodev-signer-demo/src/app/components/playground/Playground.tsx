@@ -120,7 +120,11 @@ export function Playground({
         )
         const free = PINNED_WALLETS.find((w) => !used.has(w.id))
         if (!free) return prev
-        return [...prev, { key, type: 'wallet', walletId: free.id }]
+        return [
+          ...prev,
+          // Offer the Solana side out of the box while the flag is on.
+          { key, type: 'wallet', walletId: free.id, solana: SOLANA_ENABLED },
+        ]
       }
       if (type === 'installedWallets') {
         return [
@@ -141,6 +145,14 @@ export function Playground({
   const setWalletId = (key: string, walletId: WalletId) => {
     onChange((prev) =>
       prev.map((i) => (i.key === key ? { ...i, walletId } : i)),
+    )
+  }
+
+  const setWalletSolana = (key: string, solana: boolean) => {
+    onChange((prev) =>
+      prev.map((i) =>
+        i.key === key && i.type === 'wallet' ? { ...i, solana } : i,
+      ),
     )
   }
 
@@ -427,6 +439,20 @@ export function Playground({
                                   </option>
                                 ))}
                               </select>
+                            )}
+                            {item.type === 'wallet' && SOLANA_ENABLED && (
+                              <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                                <input
+                                  type="checkbox"
+                                  checked={item.solana}
+                                  onChange={(e) =>
+                                    setWalletSolana(item.key, e.target.checked)
+                                  }
+                                  aria-label="Offer the Solana side"
+                                  className="h-3.5 w-3.5 accent-[var(--accent-warm)]"
+                                />
+                                Solana
+                              </label>
                             )}
                             {item.type === 'email' && (
                               <span className="flex gap-0.5 rounded-lg border border-[var(--border-warm)] bg-white p-0.5">

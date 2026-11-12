@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { errorMessage } from "./txRuns";
 import { hashMessage } from "viem";
 import { useAccount, usePublicClient, useSignMessage } from "wagmi";
 import { cn } from "../../lib/utils";
@@ -183,7 +184,10 @@ export function SignMessagePresetTest() {
       .catch((err) =>
         updateRun(id, {
           status: "error",
-          error: err instanceof Error ? err.message : "Signing failed",
+          // Same decomposition as the tx runs: viem's shortMessage alone
+          // collapses a throttled or rejected signer into "An unknown RPC
+          // error occurred", which says nothing about who refused.
+          error: errorMessage(err),
         }),
       );
   };
@@ -296,6 +300,7 @@ export function SignMessagePresetTest() {
               data-testid={`sign-run-${run.id}`}
               data-status={run.status}
               data-verify={run.verify}
+              data-error={run.error}
               className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
             >
               <div className="flex items-center gap-2.5">

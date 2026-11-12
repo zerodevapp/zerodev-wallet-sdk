@@ -50,11 +50,13 @@ export function useSolanaAutoReconnect(enabled = true): void {
   // state from the wallets instead).
   const [restoredEvm] = useState(() => store.getState().evmConnectionsAtLoad)
   // The EVM side a multichain wallet granted alongside the saved Solana
-  // session must not come back on its own. Mounted once: the guard follows
-  // connectors that arrive later by itself (under `ssr` wagmi sets the
-  // EIP-6963 connectors up in its mount effect, after this one), and a
-  // re-run would judge the host's later EVM connections by the load-time
-  // record. Only an installed wallet has an EVM side wagmi could adopt.
+  // session must not come back on its own. Mounted once per hook instance:
+  // the guard follows connectors that arrive later by itself (under `ssr`
+  // wagmi sets the EIP-6963 connectors up in its mount effect, after this
+  // one). Another instance, or a remount, is safe: the guard judges the
+  // reload sweep once per page load, so the host's later EVM connections
+  // are never measured against the load-time record. Only an installed
+  // wallet has an EVM side wagmi could adopt.
   useEffect(() => {
     if (!enabled) return
     const last = readLastSolanaWallet()

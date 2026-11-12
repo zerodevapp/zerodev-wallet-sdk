@@ -311,7 +311,7 @@ describe('withoutEvmAdoption', () => {
 
     // The host connects the EVM side on purpose right after: declared, so
     // the guard's grace sweep does not read it as an adoption.
-    const release = allowEvmConnection(phantom)
+    const release = allowEvmConnection(config, phantom)
     adopt(phantom)
     release()
     vi.advanceTimersByTime(2000)
@@ -330,7 +330,7 @@ describe('withoutEvmAdoption', () => {
 
     // The host's EVM connect lands and settles (its exemption ends) long
     // before the user answers the Solana prompt.
-    const release = allowEvmConnection(phantom)
+    const release = allowEvmConnection(config, phantom)
     adopt(phantom)
     release()
     vi.advanceTimersByTime(60_000)
@@ -585,7 +585,7 @@ describe('guardDormantEvmSide', () => {
 
     guardDormantEvmSide(config, 'MetaMask', restored())
     await flush()
-    const release = allowEvmConnection(metamask)
+    const release = allowEvmConnection(config, metamask)
     sweep([metamask])
     await flush()
     release()
@@ -619,7 +619,7 @@ describe('guardDormantEvmSide', () => {
     expect(config.state.connections.size).toBe(0)
 
     // The host connects the EVM side on purpose; the exemption ends with it.
-    const release = allowEvmConnection(metamask)
+    const release = allowEvmConnection(config, metamask)
     adopt(metamask)
     await config.storage?.removeItem(`${metamask.id}.disconnected`)
     release()
@@ -630,6 +630,52 @@ describe('guardDormantEvmSide', () => {
     expect([...config.state.connections.keys()]).toEqual([metamask.uid])
     expect(config.state.status).toBe('connected')
     expect(storage.has('io.metamask.disconnected')).toBe(false)
+  })
+
+  it('keeps an explicit EVM connection made before the first guard mounted', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask', 'io.metamask')
+    connectors.push(metamask)
+
+    // Solana, then EVM through the same wallet, with no guard on the page
+    // yet (a kit hook with `reconnectOnMount: false`, say).
+    await withoutEvmAdoption(config, 'MetaMask', async () => undefined)
+    const release = allowEvmConnection(config, metamask)
+    adopt(metamask)
+    release()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(config.state.connections.size).toBe(1)
+
+    // Navigation to a component with the default hook: the first guard,
+    // long after any sweep, with a load-time record that predates the
+    // connection.
+    guardDormantEvmSide(config, 'MetaMask', restored())
+    await vi.advanceTimersByTimeAsync(3000)
+    expect([...config.state.connections.keys()]).toEqual([metamask.uid])
+    expect(config.state.status).toBe('connected')
+  })
+
+  it('judges a connector afresh once its explicit connection is gone', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    const metamask = fakeConnector('MetaMask', 'io.metamask')
+    connectors.push(metamask)
+    const release = allowEvmConnection(config, metamask)
+    adopt(metamask)
+    release()
+
+    // The host disconnects it, through wagmi directly, say.
+    config.setState((x) => ({
+      ...x,
+      connections: new Map(),
+      current: null,
+      status: 'disconnected',
+    }))
+    // The wallet adopts the side on its own later; a guard mounted after
+    // that must not take the adoption for the host's earlier connection.
+    adopt(metamask)
+    guardDormantEvmSide(config, 'MetaMask', restored())
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(config.state.connections.size).toBe(0)
   })
 
   it('stops following connectors after its cleanup', async () => {

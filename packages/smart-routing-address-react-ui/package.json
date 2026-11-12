@@ -85,7 +85,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3",
     "viem": "2.55.5",
-    "vite": "^6.4.4",
+    "vite": "^6.4.5",
     "vitest": "^4.1.12"
   },
   "type": "module"

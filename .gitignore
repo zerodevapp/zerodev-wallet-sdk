@@ -42,3 +42,5 @@ storybook.requires.ts
 
 # Expo
 .expo
+
+e2e/.cache/

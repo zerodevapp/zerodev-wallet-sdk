@@ -228,7 +228,13 @@ function renderSignUpItem(item: PlaygroundItem) {
     case 'email':
       return <SignUp.Email key={item.key} />
     case 'wallet':
-      return <SignUp.Wallet key={item.key} walletId={item.walletId} />
+      return (
+        <SignUp.Wallet
+          key={item.key}
+          walletId={item.walletId}
+          {...(item.solana && { namespaces: ['eip155', 'solana'] as const })}
+        />
+      )
     case 'walletConnect':
       return <SignUp.WalletConnect key={item.key} />
     case 'solanaWalletConnect':

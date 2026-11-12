@@ -6,21 +6,26 @@ import { Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { Fragment, useEffect, useMemo } from 'react'
 import { useAccount, useConnect } from 'wagmi'
-import {
-  type AuthMethodId,
-  pickConfigParams,
-  resolveWalletConfig,
-} from '../lib/config-params'
+import { pickConfigParams, resolveWalletConfig } from '../lib/config-params'
+import { useAuthPreset } from '../lib/use-auth-preset'
+import { AUTH_PRESETS, type AuthUnitId } from '../lib/wallet-config'
 import { AppHeader } from './AppHeader'
 
-// The auth methods the URL selected, rendered as SignUp units in a fixed
-// order. Mirrors the resolved config the connector was built from.
-const UNIT_BY_METHOD: Record<AuthMethodId, () => React.ReactNode> = {
+/**
+ * Which units a preset renders, and in what order,
+ * lives in `wallet-config.ts` → `AUTH_PRESETS[...].units`, which stays free of
+ * JSX so server components can import it.
+ */
+const UNIT_BY_ID: Record<AuthUnitId, () => React.ReactNode> = {
   passkey: () => <SignUp.Passkey />,
   google: () => <SignUp.Google />,
   email: () => <SignUp.Email />,
+  divider: () => <SignUp.Divider />,
+  'wallet:metamask': () => <SignUp.Wallet walletId="metamask" />,
+  installedWallets: () => <SignUp.InstalledWallets />,
+  moreWallets: () => <SignUp.MoreWallets />,
+  walletConnect: () => <SignUp.WalletConnect />,
 }
-const METHOD_ORDER: AuthMethodId[] = ['passkey', 'google', 'email']
 
 /**
  * Login surface for the QA lab. Unlike the signer demo's landing page this
@@ -32,17 +37,18 @@ export function LoginScreen() {
   const { isConnected, status: accountStatus } = useAccount()
   const { step: authStep } = useAuth()
 
-  // Resolve the same URL params the connector was built from, so the rendered
-  // methods and email flow match the config under test (see Providers).
+  // Resolve the same URL params the connector was built from, so the email
+  // flow matches the config under test (see Providers).
   const searchParams = useSearchParams()
   const configKey = pickConfigParams(searchParams).toString()
   const resolved = useMemo(
     () => resolveWalletConfig(new URLSearchParams(configKey)),
     [configKey],
   )
-  const pickedMethods = METHOD_ORDER.filter((m) =>
-    resolved.authMethods.includes(m),
-  )
+
+  // The preset can come from localStorage, which neither the server nor the
+  // first client render can read, so `ready` gates the sign-in column below.
+  const { preset, ready: presetReady } = useAuthPreset()
 
   // Auth has succeeded (ConnectWallet unmounts once step hits `authenticated`) but
   // wagmi hasn't flipped `isConnected` yet. Cover that window with a loader so
@@ -55,8 +61,12 @@ export function LoginScreen() {
   // ConnectWallet renders nothing until it has a `step`, so any time we're not
   // connected and have no step yet — initial session probe, auto-connect in
   // flight, or landing back here right after logout — show the loader.
+  // `!presetReady` too: rendering one preset's units and swapping them a frame
+  // later is a hydration mismatch.
   const showLoading =
-    isSettling || (!isConnected && authStep === null && !showReconnect)
+    isSettling ||
+    !presetReady ||
+    (!isConnected && authStep === null && !showReconnect)
 
   const handleReconnect = () => {
     if (connectors[0]) connect({ connector: connectors[0] })
@@ -103,8 +113,8 @@ export function LoginScreen() {
               }
               renderSignUp={() => (
                 <SignUp emailAuthMethod={resolved.emailAuthMethod}>
-                  {pickedMethods.map((method) => (
-                    <Fragment key={method}>{UNIT_BY_METHOD[method]()}</Fragment>
+                  {AUTH_PRESETS[preset].units.map((id) => (
+                    <Fragment key={id}>{UNIT_BY_ID[id]()}</Fragment>
                   ))}
                 </SignUp>
               )}

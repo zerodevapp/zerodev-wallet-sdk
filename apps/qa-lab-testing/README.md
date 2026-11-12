@@ -43,85 +43,95 @@ path shared with every other spec.
 
 ## Configuring the wallet from the URL
 
-The wagmi setup — backend hosts, chains, transports, auth methods — is overridable via
-**query params**, on **every route**. No `.env` edit, no server restart.
-
-Nothing is persisted. There's no localStorage and no cookie: the URL is the whole state.
-A bad value can't stick around, and one test can't contaminate the next.
+Two things are overridable per URL, on **every route**: the sign-in preset and the email
+delivery flavor. Everything else moved to source or `.env`, because it was never varied
+per test and cost more to explain than it saved.
 
 ### Params
 
 | Param | Values | Example |
 | --- | --- | --- |
-| `kms` | http(s) URL | `?kms=https://kms-local.test` |
-| `aaHost` | http(s) URL | `?aaHost=https://aa-local.test` |
-| `chains` | csv of chain ids (see below) | `?chains=1,42161` |
+| `preset` | `preset-1`｜`preset-2` | `?preset=preset-2` |
+| `authFlavor` | `otp`｜`magicLink` | `?authFlavor=magicLink` |
 | `rpc.<chainId>` | http(s) URL | `?rpc.421614=https://my-rpc.test` |
-| `authMethods` | csv of `email`｜`google`｜`passkey` | `?authMethods=email,passkey` |
-| `emailAuth` | `otp`｜`magicLink` | `?emailAuth=magicLink` |
-
-Anything absent falls back to the values in `lib/wallet-config.ts` — i.e. exactly what
-the app runs with today. Combine freely:
 
 ```
-/tx-signing/signing?chains=421614&emailAuth=magicLink&authMethods=email,passkey
+/tx-signing/signing?preset=preset-1&authFlavor=magicLink
 ```
+
+### Sign-in presets
+
+| Preset | Renders | For |
+| --- | --- | --- |
+| `preset-1` (default) | passkey, Google, email | the embedded wallet |
+| `preset-2` | pinned MetaMask, divider, installed wallets, more wallets, WalletConnect | external wallets, in isolation |
+
+`preset-2` does not include embedded-wallet methods on purpose. It exists to spcifically tests external wallets flows.
+
+What preset loads:
+
+```
+?preset=<id>  ->  use it, and store it
+nothing       ->  use what is stored
+none          ->  preset-1
+```
+
+So `/?preset=preset-2` survives the reloads that follow it. The URL still wins and writes
+through, otherwise a stored preset could never be changed by URL again.
+
+This is safe here for one specific reason: **the preset never reaches the wagmi config.**
+It only picks which `SignUp.*` units render. Chains and hosts stayed out of storage
+because the server cannot read localStorage, so persisting anything the connector is built
+from would guarantee a hydration mismatch. An unrecognised stored value is discarded
+rather than trusted, and `/config` has a **Clear stored preset** button.
+
+WalletConnect registers whenever `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is set, regardless
+of the active preset — it has to, because the connector list is built during SSR. 
 
 ### Chains
 
-| Chain | id | Selected by default |
-| --- | --- | --- |
-| Arbitrum Sepolia | `421614` | yes |
-| Sepolia | `11155111` | yes |
-| Arbitrum One | `42161` | no |
-| Ethereum | `1` | no |
-| Anvil | `31337` | no |
+Fixed in `lib/wallet-config.ts` → `CHAINS`. `CHAINS[0]` is the chain the lab connects to.
 
-`?chains=` replaces the selection entirely — `?chains=31337` runs Anvil only. Nothing
-stops you picking a chain the ZeroDev project doesn't support; it fails at runtime rather
-than being rejected up front, because the SDK has no whitelist to check against.
+| Chain | id | |
+| --- | --- | --- |
+| Sepolia | `11155111` | **connects here on load** |
+| Arbitrum Sepolia | `421614` | |
+| Ethereum | `1` | |
+| Arbitrum One | `42161` | |
+| Anvil | `31337` | |
 
 ### Transports
 
-Resolved per selected chain, first match wins:
+Resolved per chain, first match wins:
 
 1. **`rpc.<chainId>` param** — hand-written, not exposed in the builder.
-2. **Env var** — only `NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL` and `NEXT_PUBLIC_SEPOLIA_RPC_URL` exist.
-3. **Default** — `https://staging-rpc.zerodev.app/api/v3/<PROJECT_ID>/chain/<CHAIN_ID>`,
-   built from `NEXT_PUBLIC_ZD_PROJECT_ID`. **Anvil instead gets
-   `http://localhost:18545`**, since it's a local node.
-4. **Chain default** — viem's public RPC, reached only when the project id is unset.
+2. **Default** — `https://staging-rpc.zerodev.app/api/v3/<PROJECT_ID>/chain/<CHAIN_ID>`,
+   built from the active flavor's project id. **Anvil instead gets `NEXT_PUBLIC_ANVIL_URL`,
+   defaulting to `http://localhost:18545`**, since it's a local node (not implemented yet).
+3. **Chain default** — viem's public RPC, reached only when the project id is unset.
 
-`/environment` shows which of these each chain landed on (`from URL`, `from env`,
-`zerodev staging`, `local node`, `chain default`), never the URL itself.
+`/environment` shows which of these each chain landed on (`from URL`, `zerodev staging`,
+`local node`, `chain default`), never the URL itself.
 
-**Invalid values never fail silently.** A bad URL, unknown chain id, or unknown auth
-method falls back to the default *and* raises a warning on `/environment`. Without that,
-a spec with a typo'd param would run against defaults while looking like it tested an
-override.
-
-Two guards, enforced in the parser and not just the form, because URLs get hand-edited:
-at least one chain (wagmi types it as a non-empty tuple) and at least one auth method
-(otherwise there's no way to sign in).
+**Invalid values never fail silently.** A bad `rpc.*` URL, an unknown preset, or a retired
+param falls back *and* raises a warning on `/environment`. Without that, a spec with a
+typo'd param would run against defaults while looking like it tested an override.
 
 ### Changing the defaults
 
-URL params only affect the tab you're in — they're per-session and per-test, and they
-never change what the app does by default. To change what everyone gets with a bare URL,
-edit the source of that default:
-
 | What | Where | Notes |
 | --- | --- | --- |
-| Chains selected by default | `src/app/lib/wallet-config.ts` → `SUPPORTED_CHAINS` | |
-| Which chains are *selectable* | `src/app/lib/wallet-config.ts` → `CHAIN_CATALOG` | add a `viem/chains` import; it appears in `/config` and becomes valid in `?chains=` automatically |
-| Auth methods | `src/app/lib/wallet-config.ts` → `DEFAULT_AUTH_METHODS` | only `email`｜`google`｜`passkey` exist |
-| Email auth method | `src/app/lib/wallet-config.ts` → `DEFAULT_EMAIL_AUTH_METHOD` | `otp`｜`magicLink` |
+| Chains, and which one is active | `src/app/lib/wallet-config.ts` → `CHAINS` | one list; the first entry is the active chain |
+| Sign-in presets | `src/app/lib/wallet-config.ts` → `AUTH_PRESETS` | `units` is the render order, listed verbatim on `/config` |
+| Adding a new unit type | `src/app/lib/wallet-config.ts` → `AUTH_UNITS` | then its JSX in `src/app/components/LoginScreen.tsx` → `UNIT_BY_ID`; missing it is a type error |
+| Default preset | `src/app/lib/wallet-config.ts` → `DEFAULT_AUTH_PRESET` | only applies when nothing is stored |
+| Email auth flavor | `src/app/lib/wallet-config.ts` → `DEFAULT_AUTH_FLAVOR` | `otp`｜`magicLink`; binds project id and email method together |
 | Default transport template | `src/app/lib/wallet-config.ts` → `ZERODEV_STAGING_RPC_BASE` | used for every chain except Anvil |
-| Anvil's RPC | `src/app/lib/wallet-config.ts` → `ANVIL_RPC_URL` | |
-| KMS proxy base URL | `.env` → `NEXT_PUBLIC_KMS_PROXY_BASE_URL` | |
-| AA host | `.env` → `NEXT_PUBLIC_ZERODEV_AA_HOST` | |
-| Project id | `.env` → `NEXT_PUBLIC_ZD_PROJECT_ID` / `NEXT_PUBLIC_ZD_OTP_PROJECT_ID` | also feeds the default transport URL |
-| Arb-Sepolia / Sepolia RPC | `.env` → `NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL`, `NEXT_PUBLIC_SEPOLIA_RPC_URL` | these win over the default template |
+| Anvil's RPC | `.env` → `NEXT_PUBLIC_ANVIL_URL` | falls back to `http://localhost:18545` |
+| KMS proxy base URL | `.env` → `NEXT_PUBLIC_KMS_PROXY_BASE_URL` | required; the connector asserts it |
+| AA host | `.env` → `NEXT_PUBLIC_ZERODEV_AA_HOST` | optional; unset leaves the SDK default |
+| Project ids | `.env` → `NEXT_PUBLIC_ZD_PROJECT_ID` / `NEXT_PUBLIC_ZD_OTP_PROJECT_ID` | also feed the default transport URL |
+| WalletConnect | `.env` → `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | unset → no WC connector, preset 2 can't pair |
 
 **`.env` changes need a dev-server restart** — Next inlines `NEXT_PUBLIC_*` at build time.
 Changes to `wallet-config.ts` hot-reload like any other source file.
