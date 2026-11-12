@@ -1,5 +1,11 @@
 # @zerodev/react-ui
 
+## 0.0.10
+
+### Patch Changes
+
+- 472ecab: feat: `solana` icon, used by the chain choice under a multichain wallet row in `@zerodev/wallet-react-ui`.
+
 ## 0.0.9
 
 ### Patch Changes
