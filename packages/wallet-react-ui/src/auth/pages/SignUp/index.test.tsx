@@ -17,6 +17,17 @@ vi.mock('../../hooks/useWalletConnectPairing', () => ({
     deepLinkFor: () => null,
   }),
 }))
+vi.mock('../../../solana/hooks/useSolanaAutoReconnect', () => ({
+  useSolanaAutoReconnect: () => {},
+}))
+vi.mock('../../hooks/useSolanaWalletConnectPairing', () => ({
+  useSolanaWalletConnectPairing: () => ({
+    uri: null,
+    error: null,
+    retry: () => {},
+    deepLinkFor: () => null,
+  }),
+}))
 
 // Units pull in wagmi/wallet-react hooks — replace them with markers so the
 // tests exercise only the page logic (composition, registry, guard).

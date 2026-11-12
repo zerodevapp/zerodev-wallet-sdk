@@ -2,7 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAuthenticators } from "@zerodev/wallet-react";
-import { TxHistory } from "@zerodev/wallet-react-ui";
+import {
+  ConnectWallet,
+  SignUp,
+  TxHistory,
+  useAuth,
+  isCancellationError,
+  type KitConnectRequest,
+  useZeroDevWalletKit,
+} from "@zerodev/wallet-react-ui";
 import {
   Check,
   Copy,
@@ -16,18 +24,21 @@ import {
   Send,
   Sparkles,
   TrendingUp,
+  Unplug,
   Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Address, formatEther, formatUnits, isAddress, parseAbi } from "viem";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { ChainSelector } from "../components/ChainSelector";
 import { AppHeader } from "../components/AppHeader";
 import { EarnTest } from "../components/earn/EarnTest";
 import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
+import { WalletPill } from "../components/WalletPill";
+import { SOLANA_ENABLED } from "../lib/flags";
 import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
@@ -116,19 +127,66 @@ export default function DashboardPage() {
   const [selectedAsset, setSelectedAsset] = useState<BatchAsset>("ETH");
   const [balance, setBalance] = useState<string>("0");
   const [usdcBalance, setUsdcBalance] = useState<string>("0");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"evm" | "solana" | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [gaslessTxCount, setGaslessTxCount] = useState(0);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
-  // Wagmi hooks
+  // Wagmi hooks: the EVM specifics the dashboard still reads directly
+  // (chain, balances, the connector behind the Earn tab).
   const { address, status, chain, connector } = useAccount();
   const earnEnabled = connector?.id === ZERODEV_CONNECTOR_ID;
   const visibleTabs = earnEnabled ? tabs : tabs.filter((tab) => tab.id !== "earn");
   const publicClient = usePublicClient({ chainId: chain?.id });
-  const { disconnectAsync: logout } = useDisconnect();
+  // Both namespaces behind one hook: account state per side, the installed
+  // wallets to offer, and a connect/disconnect that know the cross-namespace
+  // rules (a multichain wallet serving both sides, Solana-only connects).
+  // Solana is pre-release, so the flag keeps that side out entirely: no
+  // restore on reload, no wallets offered, and its connection ignored.
+  const kit = useZeroDevWalletKit({ reconnectOnMount: SOLANA_ENABLED });
+  const solanaConnected = SOLANA_ENABLED && kit.solana.isConnected;
+  const solanaWallets = SOLANA_ENABLED ? kit.solana.wallets : [];
+  const solanaWalletConnect = SOLANA_ENABLED && kit.solana.walletConnect;
+  const evmWallets = kit.eip155.wallets;
+  const { step: authStep } = useAuth();
+  // The "add the other side" rows: one wallet prompt at a time, and an
+  // error per side. A declined prompt or a closed sign-up is the user's
+  // choice, not an error to show.
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<{
+    network: "evm" | "solana";
+    message: string;
+  } | null>(null);
+  // Which side the sign-up overlay below is adding, if any. Opening the flow
+  // without a wallet (passkey, Google, email, or Solana over WalletConnect)
+  // renders `ConnectWallet` with that side's units; the connect promise
+  // follows the flow, so the overlay closes with it either way.
+  const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | null>(null);
+  const connectWallet = async (
+    params: KitConnectRequest,
+    key: string,
+    label: string,
+  ) => {
+    const network = params.namespace === "solana" ? "solana" : "evm";
+    setConnecting(key);
+    setConnectError(null);
+    if (!params.wallet) setConnectRequested(network);
+    try {
+      await kit.connect(params);
+    } catch (err) {
+      if (!isCancellationError(err)) {
+        setConnectError({
+          network,
+          message: (err instanceof Error && err.message) || `Couldn't connect to ${label}.`,
+        });
+      }
+    } finally {
+      setConnecting(null);
+      setConnectRequested(null);
+    }
+  };
   const { data: authenticatorData, isLoading: isAuthenticatorDataLoading } = useAuthenticators({})
   const authMethodLabel = formatAuthMethod(authenticatorData);
   const walletExplorerUrl =
@@ -200,22 +258,43 @@ export default function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [loadBalances]);
 
-  const handleCopy = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async (network: "evm" | "solana", value: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopied(network);
+    setTimeout(() => setCopied(null), 2000);
   };
 
+  // One Logout clears both namespaces.
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await logout();
+      await kit.disconnect();
+    } catch {
+      // A wallet that refuses to disconnect is still signed out locally.
     } finally {
       localStorage.setItem("zd:loggedOut", "true");
       window.location.assign("/");
     }
   };
+
+  // Disconnect one namespace, keeping the other (the kit handles a wallet
+  // that serves both sides). Dropping the last connected wallet is a
+  // deliberate logout, so flag it before the redirect effects below run:
+  // they would otherwise show the "session expired" notice.
+  const [disconnecting, setDisconnecting] = useState<"evm" | "solana" | null>(null);
+  const handleDisconnect = async (network: "evm" | "solana") => {
+    const isLast = network === "evm" ? !solanaConnected : !address;
+    if (isLast) localStorage.setItem("zd:loggedOut", "true");
+    setDisconnecting(network);
+    try {
+      await kit.disconnect({ namespace: network === "evm" ? "eip155" : "solana" });
+    } finally {
+      setDisconnecting(null);
+    }
+  };
+  // The embedded wallet (passkey, Google, email) is a session, not a wallet
+  // connection, so its control reads as a sign-out.
+  const evmIsEmbedded = connector?.id === "zerodev-wallet";
 
   // Redirect to login if disconnected (session expired)
   // Use a delay to avoid redirecting during initial reconnection
@@ -226,24 +305,195 @@ export default function DashboardPage() {
     }
   }, [status]);
   useEffect(() => {
-    if (status === 'disconnected' && hasConnected) {
+    if (status === 'disconnected' && hasConnected && !solanaConnected) {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
       router.replace(loggedOut ? "/" : "/?session_expired=true");
     }
-  }, [status, hasConnected, router]);
+  }, [status, hasConnected, solanaConnected, router]);
 
+  // On a reload wagmi settles to `disconnected` before the Solana slot has
+  // had a chance to restore silently (the wallet registers, then answers a
+  // silent connect), so hold the redirect while that restore is in flight
+  // and give it a wider window than wagmi's own reconnect needs.
+  const solanaRestoring = SOLANA_ENABLED && kit.solana.isReconnecting;
   useEffect(() => {
-    if (status !== 'disconnected' || isLoggingOut) return;
+    if (status !== 'disconnected' || isLoggingOut || solanaConnected || solanaRestoring) return;
 
     const timeout = window.setTimeout(() => {
       const loggedOut = localStorage.getItem("zd:loggedOut") === "true";
       window.location.replace(loggedOut ? "/" : "/?session_expired=true");
-    }, 750);
+    }, 2000);
 
     return () => window.clearTimeout(timeout);
-  }, [status, isLoggingOut]);
+  }, [status, isLoggingOut, solanaConnected, solanaRestoring]);
 
-  if (isLoggingOut || status === 'disconnected' || status === 'connecting' || status === 'reconnecting' || !address) {
+  // Shared by both dashboard states so an EVM-first and a Solana-first
+  // session look the same: one labelled address row per connected
+  // namespace, plus a small "add the other side" row while one is missing.
+  // One address per connected network. A multichain wallet (MetaMask,
+  // Phantom) can authorise the EVM and Solana sides in one prompt, so both
+  // can show here; a row is hidden while its slot is disconnected.
+  const walletAddresses = (
+    <div className="mt-4 flex flex-col items-center gap-2">
+      {[
+        {
+          network: "evm" as const,
+          label: chain?.name ?? "EVM",
+          value: address,
+          explorerUrl: walletExplorerUrl,
+          badgeClass: "border-blue-100 bg-blue-50 text-blue-700",
+          disconnectTitle: evmIsEmbedded ? "Sign out of EVM" : "Disconnect EVM wallet",
+        },
+        {
+          network: "solana" as const,
+          label: "Solana",
+          value: solanaConnected ? kit.solana.address : undefined,
+          explorerUrl: solanaConnected && kit.solana.address
+            ? `https://explorer.solana.com/address/${kit.solana.address}`
+            : undefined,
+          badgeClass: "border-[#cdeedb] bg-[#e9f7ef] text-[#1f7a4d]",
+          disconnectTitle: "Disconnect Solana wallet",
+        },
+      ]
+        .filter((row) => row.value)
+        .map((row) => (
+          <div
+            key={row.network}
+            data-testid={`${row.network}-address`}
+            className="flex min-w-0 max-w-full items-center justify-center gap-2"
+          >
+            <span
+              className={cn(
+                "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                row.badgeClass
+              )}
+            >
+              {row.label}
+            </span>
+            <p
+              className="min-w-0 truncate font-mono text-sm font-semibold text-[var(--ink)]"
+              title={row.value}
+            >
+              {row.value}
+            </p>
+            <button
+              onClick={() => row.value && handleCopy(row.network, row.value)}
+              className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
+              title={`Copy ${row.label} address`}
+            >
+              {copied === row.network ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
+            {row.explorerUrl && (
+              <a
+                href={row.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-[#423a32] transition-colors hover:text-[var(--ink)]"
+                title={`View ${row.label} address on explorer`}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => handleDisconnect(row.network)}
+              disabled={disconnecting !== null}
+              data-testid={`disconnect-${row.network}`}
+              className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-red-700 disabled:cursor-default disabled:opacity-60"
+              title={row.disconnectTitle}
+            >
+              {disconnecting === row.network ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unplug className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        ))}
+      {!solanaConnected && (solanaWallets.length > 0 || solanaWalletConnect) && (
+        <div
+          data-testid="connect-solana"
+          className="mt-1 flex flex-wrap items-center justify-center gap-2"
+        >
+          <span className="text-xs text-[var(--muted)]">Add a Solana wallet:</span>
+          {solanaWallets.map((wallet) => (
+            <WalletPill
+              key={wallet.name}
+              label={wallet.name}
+              icon={wallet.icon}
+              pending={connecting === `solana:${wallet.name}`}
+              disabled={connecting !== null}
+              title={`Connect ${wallet.name} on Solana`}
+              testId={`connect-solana-${wallet.name}`}
+              onClick={() =>
+                connectWallet({ namespace: "solana", wallet }, `solana:${wallet.name}`, wallet.name)
+              }
+            />
+          ))}
+          {solanaWalletConnect && (
+            <WalletPill
+              dashed
+              label="WalletConnect"
+              disabled={connecting !== null}
+              title="A Solana wallet on your phone, by QR code"
+              testId="connect-solana-walletconnect"
+              onClick={() => connectWallet({ namespace: "solana" }, "solana:sign-up", "WalletConnect")}
+            />
+          )}
+          {connectError?.network === "solana" && (
+            <span className="basis-full text-center text-xs text-red-600">{connectError.message}</span>
+          )}
+        </div>
+      )}
+      {!address && solanaConnected && (
+        <div
+          data-testid="connect-evm"
+          className="mt-1 flex flex-wrap items-center justify-center gap-2"
+        >
+          <span className="text-xs text-[var(--muted)]">Add an EVM wallet:</span>
+          {evmWallets.map((wallet) => (
+            <WalletPill
+              key={wallet.uid}
+              label={wallet.name}
+              icon={wallet.icon}
+              pending={connecting === `evm:${wallet.uid}`}
+              disabled={connecting !== null}
+              title={`Connect ${wallet.name} on EVM`}
+              testId={`connect-evm-${wallet.name}`}
+              onClick={() =>
+                connectWallet({ namespace: "eip155", wallet }, `evm:${wallet.uid}`, wallet.name)
+              }
+            />
+          ))}
+          <WalletPill
+            dashed
+            label={evmWallets.length > 0 ? "More options" : "Connect"}
+            disabled={connecting !== null}
+            title="Passkey, Google, email or another EVM wallet"
+            testId="connect-evm-button"
+            onClick={() => connectWallet({ namespace: "eip155" }, "evm:sign-up", "the sign-up flow")}
+          />
+          {connectError?.network === "evm" && (
+            <span className="basis-full text-center text-xs text-red-600">{connectError.message}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  // The EVM side is ready once wagmi reports an address; a connected Solana
+  // wallet keeps the dashboard open on its own, with the EVM-only parts
+  // (balances, chain selector, export keys, the tx demos) hidden until an
+  // EVM wallet is added. Both sides show their address rows below.
+  // The adapter, not `useAccount().status`: wagmi reports `connecting` while
+  // the sign-up sheet's WalletConnect pairing preloads, which would swap the
+  // dashboard for the loader the moment "Add a Solana wallet" opens the sheet.
+  const evmReady = kit.eip155.isConnected && !!address;
+  if (isLoggingOut || (!evmReady && !solanaConnected)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2">
@@ -264,6 +514,36 @@ export default function DashboardPage() {
           <TxHistory onClose={() => setShowHistory(false)} />
         </div>
       )}
+      {/* The terminal `authenticated` step renders nothing inside ConnectWallet
+          (passkey, Google or email from "More options"), so the overlay must
+          not outlive it, or it would sit over the dashboard. */}
+      {connectRequested &&
+        authStep !== null &&
+        authStep !== "authenticated" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <ConnectWallet
+            size="md"
+            onClose={() => setConnectRequested(null)}
+            renderSignUp={() =>
+              connectRequested === "evm" ? (
+                <SignUp>
+                  <SignUp.Passkey />
+                  <SignUp.Divider />
+                  <SignUp.Google />
+                  <SignUp.Email />
+                  <SignUp.Divider label="or an EVM wallet" />
+                  <SignUp.InstalledWallets />
+                  <SignUp.WalletConnect />
+                </SignUp>
+              ) : (
+                <SignUp>
+                  <SignUp.SolanaWalletConnect />
+                </SignUp>
+              )
+            }
+          />
+        </div>
+      )}
       <div className="min-h-screen">
         <AppHeader />
 
@@ -274,14 +554,22 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-[var(--ink)]" />
-                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">Your Smart Wallet</h1>
-                <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                  Created with {authMethodLabel}
-                </span>
+                <h1 className="font-[var(--font-dm-sans)] text-lg font-bold text-[var(--ink)]">
+                  {evmReady ? "Your Smart Wallet" : "Your Wallet"}
+                </h1>
+                {evmReady ? (
+                  <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                    Created with {authMethodLabel}
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-[#cdeedb] bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#1f7a4d]">
+                    Signed in with {kit.solana.walletInfo?.name ?? "a Solana wallet"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                <ChainSelector className="h-9 rounded-full px-3 text-xs" />
-                {HISTORY_ENABLED && (
+                {evmReady && <ChainSelector className="h-9 rounded-full px-3 text-xs" />}
+                {evmReady && HISTORY_ENABLED && (
                   <button
                     onClick={() => setShowHistory(true)}
                     className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
@@ -291,15 +579,18 @@ export default function DashboardPage() {
                     History
                   </button>
                 )}
+                {evmReady && (
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
+                    title="Export keys"
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Export keys
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowExportModal(true)}
-                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[#423a32] transition-colors hover:bg-[var(--surface-warm)]"
-                  title="Export keys"
-                >
-                  <Key className="h-3.5 w-3.5" />
-                  Export keys
-                </button>
-                <button
+                  data-testid="logout-button"
                   onClick={handleLogout}
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 cursor-pointer"
                   title="Logout"
@@ -310,6 +601,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {!evmReady && (
+              <p className="mt-3 text-center text-sm leading-6 text-[var(--muted)]">
+                Balances, gas sponsorship and batching need an EVM smart account.
+                Add an EVM wallet to unlock them; both stay connected side by side.
+              </p>
+            )}
+            {evmReady && (
             <div className="mt-5 border-t border-[var(--border-warm)] pt-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <div className="flex items-center justify-center gap-3">
@@ -355,37 +653,20 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            )}
 
-            <div className="mt-4 flex min-w-0 items-center justify-center gap-2">
-                  <p className="min-w-0 truncate text-center font-mono text-sm font-semibold text-[var(--ink)]">
-                    {address}
-                  </p>
-                  <button
-                    onClick={handleCopy}
-                    className="shrink-0 cursor-pointer text-[#423a32] transition-colors hover:text-[var(--ink)]"
-                    title="Copy address"
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                  {walletExplorerUrl && (
-                    <a
-                      href={walletExplorerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-[#423a32] transition-colors hover:text-[var(--ink)]"
-                      title="View wallet on explorer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
-            </div>
+            {walletAddresses}
           </div>
 
+          {/* Without an EVM account only the signing demo applies; the EVM
+              button inside it stays disabled until one is added. */}
+          {!evmReady && (
+            <div className="rounded-lg border border-[var(--border-warm)] bg-white p-4 sm:p-5 lg:p-6">
+              <SigningTest />
+            </div>
+          )}
           {/* Tabs */}
+          {evmReady && (
           <div className="overflow-hidden rounded-lg border border-[var(--border-warm)] bg-white">
             <div className="border-b border-[var(--border-warm)] bg-[var(--surface-warm)]">
               <nav className={cn("grid", earnEnabled ? "grid-cols-4" : "grid-cols-3")}>
@@ -435,6 +716,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     </>

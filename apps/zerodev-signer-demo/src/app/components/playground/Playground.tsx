@@ -30,6 +30,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { SOLANA_ENABLED } from '../../lib/flags'
 import {
   buildSnippet,
   PINNED_WALLETS,
@@ -56,6 +57,7 @@ const UNIT_ICON: Record<UnitType, LucideIcon> = {
   email: Mail,
   wallet: Wallet,
   walletConnect: QrCode,
+  solanaWalletConnect: QrCode,
   installedWallets: ScanSearch,
   moreWallets: WalletCards,
   divider: Minus,
@@ -118,12 +120,22 @@ export function Playground({
         )
         const free = PINNED_WALLETS.find((w) => !used.has(w.id))
         if (!free) return prev
-        return [...prev, { key, type: 'wallet', walletId: free.id }]
+        return [
+          ...prev,
+          // Offer the Solana side out of the box while the flag is on.
+          { key, type: 'wallet', walletId: free.id, solana: SOLANA_ENABLED },
+        ]
       }
       if (type === 'installedWallets') {
         return [
           ...prev,
-          { key, type: 'installedWallets', exclude: '', maxWallets: null },
+          {
+            key,
+            type: 'installedWallets',
+            exclude: '',
+            maxWallets: null,
+            solana: false,
+          },
         ]
       }
       return [...prev, { key, type }]
@@ -136,9 +148,17 @@ export function Playground({
     )
   }
 
+  const setWalletSolana = (key: string, solana: boolean) => {
+    onChange((prev) =>
+      prev.map((i) =>
+        i.key === key && i.type === 'wallet' ? { ...i, solana } : i,
+      ),
+    )
+  }
+
   const patchInstalled = (
     key: string,
-    patch: Partial<{ exclude: string; maxWallets: number | null }>,
+    patch: Partial<{ exclude: string; maxWallets: number | null; solana: boolean }>,
   ) => {
     onChange((prev) =>
       prev.map((i) =>
@@ -302,7 +322,11 @@ export function Playground({
                 Add units
               </p>
               <div className="mt-2.5 flex flex-wrap gap-2">
-                {UNIT_DEFS.map((def) => {
+                {UNIT_DEFS.filter(
+                  // Solana is pre-release: its WalletConnect door stays out
+                  // of the picker, like the Installed Wallets checkbox.
+                  (def) => SOLANA_ENABLED || def.type !== 'solanaWalletConnect',
+                ).map((def) => {
                   const used = items.some((i) => i.type === def.type)
                   const active = !def.multi && used
                   const disabled =
@@ -416,6 +440,20 @@ export function Playground({
                                 ))}
                               </select>
                             )}
+                            {item.type === 'wallet' && SOLANA_ENABLED && (
+                              <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                                <input
+                                  type="checkbox"
+                                  checked={item.solana}
+                                  onChange={(e) =>
+                                    setWalletSolana(item.key, e.target.checked)
+                                  }
+                                  aria-label="Offer the Solana side"
+                                  className="h-3.5 w-3.5 accent-[var(--accent-warm)]"
+                                />
+                                Solana
+                              </label>
+                            )}
                             {item.type === 'email' && (
                               <span className="flex gap-0.5 rounded-lg border border-[var(--border-warm)] bg-white p-0.5">
                                 <button
@@ -510,6 +548,22 @@ export function Playground({
                                   className="w-14 rounded-md border border-[var(--border-warm)] bg-white px-2 py-1 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent-warm)] focus:ring-2 focus:ring-[var(--accent-warm)]/20"
                                 />
                               </label>
+                              {SOLANA_ENABLED && (
+                                <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.solana}
+                                    onChange={(e) =>
+                                      patchInstalled(item.key, {
+                                        solana: e.target.checked,
+                                      })
+                                    }
+                                    aria-label="Include Solana wallets"
+                                    className="h-3.5 w-3.5 accent-[var(--accent-warm)]"
+                                  />
+                                  Solana
+                                </label>
+                              )}
                             </div>
                           )}
                         </li>

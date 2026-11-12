@@ -6,6 +6,7 @@ export type UnitType =
   | 'email'
   | 'wallet'
   | 'walletConnect'
+  | 'solanaWalletConnect'
   | 'installedWallets'
   | 'moreWallets'
   | 'divider'
@@ -16,7 +17,13 @@ export type PlaygroundItem =
       type: Exclude<UnitType, 'email' | 'wallet' | 'installedWallets'>
     }
   | { key: string; type: 'email'; method: EmailAuthMethod }
-  | { key: string; type: 'wallet'; walletId: WalletId }
+  | {
+      key: string
+      type: 'wallet'
+      walletId: WalletId
+      /** Also offer the wallet's Solana side (chain choice when installed for both). */
+      solana: boolean
+    }
   | {
       key: string
       type: 'installedWallets'
@@ -24,6 +31,8 @@ export type PlaygroundItem =
       exclude: string
       /** null = untouched → the component's own default (4). */
       maxWallets: number | null
+      /** Also list Solana (Wallet Standard) wallets, merged by name. */
+      solana: boolean
     }
 
 /** SignUp page-level knobs, separate from the unit list. */
@@ -43,6 +52,7 @@ export const UNIT_DEFS: { type: UnitType; label: string; multi: boolean }[] = [
   { type: 'email', label: 'Email', multi: false },
   { type: 'wallet', label: 'Pinned wallet', multi: true },
   { type: 'walletConnect', label: 'WalletConnect', multi: false },
+  { type: 'solanaWalletConnect', label: 'WalletConnect (Solana)', multi: false },
   { type: 'installedWallets', label: 'Installed wallets', multi: false },
   { type: 'moreWallets', label: 'More wallets', multi: false },
   { type: 'divider', label: 'Divider', multi: true },
@@ -103,13 +113,15 @@ const UNIT_TAG: Record<
   google: 'Google',
   email: 'Email',
   walletConnect: 'WalletConnect',
+  solanaWalletConnect: 'SolanaWalletConnect',
   moreWallets: 'MoreWallets',
   divider: 'Divider',
 }
 
 function unitLine(item: PlaygroundItem): string {
   if (item.type === 'wallet') {
-    return `<SignUp.Wallet walletId="${item.walletId}" />`
+    const namespaces = item.solana ? ` namespaces={['eip155', 'solana']}` : ''
+    return `<SignUp.Wallet walletId="${item.walletId}"${namespaces} />`
   }
   if (item.type === 'installedWallets') {
     const props: string[] = []
@@ -121,6 +133,9 @@ function unitLine(item: PlaygroundItem): string {
     }
     if (item.maxWallets !== null) {
       props.push(`maxWallets={${item.maxWallets}}`)
+    }
+    if (item.solana) {
+      props.push(`namespaces={['eip155', 'solana']}`)
     }
     return `<SignUp.InstalledWallets${props.length > 0 ? ` ${props.join(' ')}` : ''} />`
   }

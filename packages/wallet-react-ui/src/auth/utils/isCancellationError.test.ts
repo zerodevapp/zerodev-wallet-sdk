@@ -66,3 +66,20 @@ describe('isCancellationError', () => {
     expect(isCancellationError(undefined)).toBe(false)
   })
 })
+
+describe('WalletConnect rejections', () => {
+  it('treats a user rejection of a proposal as a cancellation', () => {
+    expect(isCancellationError({ code: 5000, message: 'User rejected.' })).toBe(
+      true,
+    )
+    expect(
+      isCancellationError({ code: 5002, message: 'User rejected methods.' }),
+    ).toBe(true)
+  })
+
+  it('keeps unsupported-namespace rejections as errors', () => {
+    expect(
+      isCancellationError({ code: 5100, message: 'Unsupported chains.' }),
+    ).toBe(false)
+  })
+})

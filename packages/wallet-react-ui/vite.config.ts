@@ -24,6 +24,8 @@ export default defineConfig({
         '@zerodev/wallet-react',
         '@wagmi/core',
         '@tanstack/react-query',
+        // WalletConnect's SDK is large and the host already ships it for wagmi.
+        /^@walletconnect\//,
         'viem',
         'wagmi',
         /^wagmi\//,
@@ -38,5 +40,12 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // `*.test-d.ts` files are type tests: tsc runs over them with the test
+    // tsconfig and a type error there fails the run, so a public signature
+    // that lets a call type-check and then throw is caught in CI.
+    typecheck: {
+      enabled: true,
+      tsconfig: './tsconfig.json',
+    },
   },
 })

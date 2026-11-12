@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { capitalizeFirst, shortenHex } from './common'
+import { capitalizeFirst, equalsIgnoreCase, shortenHex } from './common'
 
 describe('capitalizeFirst', () => {
   it('uppercases the first character', () => {
@@ -46,5 +46,17 @@ describe('shortenHex', () => {
     expect(result.startsWith('0xabc')).toBe(true)
     expect(result.endsWith('f01')).toBe(true)
     expect(result).toContain('...')
+  })
+})
+
+describe('equalsIgnoreCase', () => {
+  it('ignores case and surrounding whitespace', () => {
+    expect(equalsIgnoreCase('Phantom', ' phantom ')).toBe(true)
+    expect(equalsIgnoreCase('MetaMask', 'Metamask')).toBe(true)
+  })
+
+  it('still distinguishes different strings', () => {
+    expect(equalsIgnoreCase('Phantom', 'Phantom Wallet')).toBe(false)
+    expect(equalsIgnoreCase('', 'a')).toBe(false)
   })
 })
