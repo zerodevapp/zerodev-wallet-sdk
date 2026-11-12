@@ -12,7 +12,42 @@ const GRACE_MS = 1500
 const RECONNECT_START_MS = 1000
 
 /** Connector uids the host is connecting on purpose right now. */
-const explicitEvmConnections = new Set<string>()
+const pendingExplicitEvmConnections = new Set<string>()
+
+/**
+ * Connector uids the host connected on purpose this page load, per config,
+ * for as long as each connection lasts. A guard judges the connections it
+ * finds by the load-time record, which knows nothing of what the host did
+ * since; this does. An entry goes when its connection does, so a connector
+ * the wallet adopts on its own after a disconnect is judged afresh.
+ */
+const ownedExplicitEvmConnections = new WeakMap<Config, Set<string>>()
+
+function ownedExplicitEvmConnectionsOf(config: Config): Set<string> {
+  let owned = ownedExplicitEvmConnections.get(config)
+  if (!owned) {
+    const set = new Set<string>()
+    ownedExplicitEvmConnections.set(config, set)
+    // For the page's lifetime, like the config itself.
+    config.subscribe(
+      (s) => s.connections,
+      (connections) => {
+        for (const uid of set) if (!connections.has(uid)) set.delete(uid)
+      },
+    )
+    owned = set
+  }
+  return owned
+}
+
+/** Whether `uid` is a connection the host asked for: still connecting, or
+ * landed and up since. */
+function isExplicitEvmConnection(config: Config, uid: string): boolean {
+  return (
+    pendingExplicitEvmConnections.has(uid) ||
+    (ownedExplicitEvmConnections.get(config)?.has(uid) ?? false)
+  )
+}
 
 /**
  * Configs whose reload reconnect sweep a guard has judged this page load.
@@ -25,18 +60,25 @@ const explicitEvmConnections = new Set<string>()
 const sweptConfigs = new WeakSet<Config>()
 
 /**
- * Declare an explicit EVM connect through `connector`, so an adoption guard
- * running for the same wallet (a Solana connect in flight, or settled within
- * its grace period) does not mistake the connection for a self-connect and
- * detach it. Call `release()` once the connect has settled. A guard that is
- * watching when the connection lands records it as the host's for the rest
- * of its lifetime, and a guard that starts later sees it as pre-existing,
- * so the exemption need not outlive the connect.
+ * Declare an explicit EVM connect through `connector`, so no adoption guard
+ * for the same wallet mistakes the connection for a self-connect and
+ * detaches it: not one running now (a Solana connect in flight, or settled
+ * within its grace period), and not one mounted later on the page (a kit
+ * hook the host reaches by navigating after it connected, whose only other
+ * record is the load-time one). Call `release()` once the connect has
+ * settled; a connection that landed stays declared for as long as it is up.
  */
-export function allowEvmConnection(connector: { uid: string }): () => void {
-  explicitEvmConnections.add(connector.uid)
+export function allowEvmConnection(
+  config: Config,
+  connector: { uid: string },
+): () => void {
+  const { uid } = connector
+  pendingExplicitEvmConnections.add(uid)
   return () => {
-    explicitEvmConnections.delete(connector.uid)
+    pendingExplicitEvmConnections.delete(uid)
+    if (config.state.connections.has(uid)) {
+      ownedExplicitEvmConnectionsOf(config).add(uid)
+    }
   }
 }
 
@@ -291,8 +333,11 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
  * ahead of the sweep where the ordering allows; take the self-connect
  * listener off; and once the sweep has settled, detach what it adopted all
  * the same, at wagmi's state level (the wallet's permission is left alone,
- * see `detachFromWagmiState`). A connection the host asks for meanwhile is
- * declared through `allowEvmConnection` and kept.
+ * see `detachFromWagmiState`). A connection the host asks for, meanwhile or
+ * before the guard mounted, is declared through `allowEvmConnection` and
+ * kept; one the host made through wagmi directly is not, so a host should
+ * mount the kit hook before it connects EVM through a wallet that also
+ * serves Solana.
  *
  * The sweep is watched once per page load, whichever guard instance gets
  * there first: the muting and the shim are repeated for connectors that
@@ -324,7 +369,7 @@ export function guardDormantEvmSide(
     stopWatch = afterReconnectSettles(config, () => {
       sweptConfigs.add(config)
       for (const [uid, connection] of config.state.connections) {
-        if (explicitEvmConnections.has(uid)) continue
+        if (isExplicitEvmConnection(config, uid)) continue
         if (!equalsIgnoreCase(connection.connector.name, walletName)) continue
         // The state-level drop is synchronous; only the storage writes
         // after it can fail, and a failed shim costs nothing here.
@@ -392,7 +437,7 @@ export async function withoutEvmAdoption<T>(
     // this guard: the host's connect may settle (and its exemption end) while
     // the Solana prompt is still open, and the sweep after `run` must not
     // read the connection as an adoption then.
-    if (explicitEvmConnections.has(uid)) {
+    if (isExplicitEvmConnection(config, uid)) {
       before.add(uid)
       return
     }

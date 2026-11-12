@@ -816,6 +816,19 @@ describe('useZeroDevWalletKit', () => {
       expect(core.disconnect).toHaveBeenCalledTimes(2)
     })
 
+    it('finishes every EVM disconnect when one fails, then rethrows the first failure', async () => {
+      connectEvm(rabby)
+      connectEvm(metamask)
+      core.disconnect.mockRejectedValueOnce(new Error('wallet unreachable'))
+      const { result } = render()
+      await act(async () => {
+        await expect(
+          result.current.disconnect({ namespace: 'eip155' }),
+        ).rejects.toThrow('wallet unreachable')
+      })
+      expect(core.disconnect).toHaveBeenCalledTimes(2)
+    })
+
     it('disconnects both namespaces by default, without protecting either', async () => {
       const { wallet, disconnect } = solanaWallet('MetaMask')
       connectEvm(metamask)

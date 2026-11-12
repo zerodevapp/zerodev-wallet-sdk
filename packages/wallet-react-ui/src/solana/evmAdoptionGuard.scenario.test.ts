@@ -173,7 +173,7 @@ describe('reload after a Solana login and an explicit EVM connect through the sa
     expect(p1.config.state.connections.size).toBe(0)
 
     // "Add EVM" with MetaMask: the kit's connect path.
-    const release = allowEvmConnection(p1.metamask)
+    const release = allowEvmConnection(p1.config, p1.metamask)
     await p1.config.storage?.removeItem(`${p1.metamask.id}.disconnected`)
     const silent = await reconnect(p1.config, { connectors: [p1.metamask] })
     release()
@@ -252,7 +252,7 @@ describe('a guard mounted again after an explicit EVM connect, in the same page 
     await vi.advanceTimersByTimeAsync(1500)
 
     // "Add EVM" with MetaMask: the kit's connect path.
-    const release = allowEvmConnection(p1.metamask)
+    const release = allowEvmConnection(p1.config, p1.metamask)
     await p1.config.storage?.removeItem(`${p1.metamask.id}.disconnected`)
     await reconnect(p1.config, { connectors: [p1.metamask] })
     release()
@@ -269,5 +269,36 @@ describe('a guard mounted again after an explicit EVM connect, in the same page 
     expect(p1.config.state.connections.size).toBe(1)
     expect(p1.config.state.status).toBe('connected')
     expect(p1.shimKey()).toBeUndefined()
+  })
+})
+
+describe('the first guard mounts after an explicit EVM connect, in the same page load', () => {
+  it('keeps the connection: explicit ownership outlives the connect', async () => {
+    const backing = new Map<string, string>()
+    const mm = fakeMetaMask()
+
+    const p1 = pageLoad(backing, mm.page())
+    await p1.hydrate()
+    await withoutEvmAdoption(p1.config, 'MetaMask', async () => {
+      mm.wallet.granted = true
+      await p1.announceAccounts()
+    })
+    await vi.advanceTimersByTimeAsync(2000)
+
+    // "Add EVM" with MetaMask through the kit's connect path, before any
+    // guard has mounted (the host's hook had `reconnectOnMount: false`).
+    const release = allowEvmConnection(p1.config, p1.metamask)
+    await p1.config.storage?.removeItem(`${p1.metamask.id}.disconnected`)
+    await reconnect(p1.config, { connectors: [p1.metamask] })
+    release()
+    expect(p1.config.state.connections.size).toBe(1)
+
+    // Navigation mounts the first guard, with the load-time record.
+    const stop = guardDormantEvmSide(p1.config, 'MetaMask', p1.atLoad)
+    await vi.advanceTimersByTimeAsync(3000)
+    stop()
+
+    expect(p1.config.state.connections.size).toBe(1)
+    expect(p1.config.state.status).toBe('connected')
   })
 })

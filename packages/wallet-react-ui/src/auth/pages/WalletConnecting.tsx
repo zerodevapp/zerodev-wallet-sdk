@@ -151,7 +151,7 @@ export function WalletConnecting() {
     open.add(connector.uid)
     // Asked for by the user: a Solana connect through the same wallet
     // moments ago must not detach it as an adoption.
-    const releaseExplicit = allowEvmConnection(connector)
+    const releaseExplicit = allowEvmConnection(config, connector)
     connect(config, { connector }).then(
       () => {
         releaseExplicit()

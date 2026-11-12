@@ -27,14 +27,23 @@ import type {
  * before); Solana signing goes through `useSolanaWallet()`. Requires the
  * `zeroDevWallet` connector on the wagmi config.
  */
-export function useZeroDevWalletKit(
-  options?: ZeroDevWalletKitOptions,
-): ZeroDevWalletKit
+// The namespace overload comes first, and the all-namespaces one refuses a
+// `namespace` outright: overloads resolve in order and a variable (not a
+// fresh literal) gets no excess-property check, so with the order reversed
+// `{ namespace: 'solana' as const, ... }` held in a variable would type as
+// the full kit while the runtime returns one adapter. A variable whose
+// `namespace` widened to `string` matches neither overload and fails at the
+// call, where the fix (`as const`) is, instead of at runtime.
 export function useZeroDevWalletKit<NS extends KitNamespace>(
   options: ZeroDevWalletKitOptions & { namespace: NS },
 ): KitAdapter<NS>
 export function useZeroDevWalletKit(
-  options: ZeroDevWalletKitOptions & { namespace?: KitNamespace } = {},
+  options?: ZeroDevWalletKitOptions & { namespace?: undefined },
+): ZeroDevWalletKit
+export function useZeroDevWalletKit(
+  options: ZeroDevWalletKitOptions & {
+    namespace?: KitNamespace | undefined
+  } = {},
 ): ZeroDevWalletKit | KitAdapter<KitNamespace> {
   const { namespace, reconnectOnMount = true } = options
   const store = useKitStore()

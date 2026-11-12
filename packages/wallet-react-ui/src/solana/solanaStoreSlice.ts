@@ -100,9 +100,20 @@ function untilAborted<T>(
       return
     }
     signal.addEventListener('abort', abort, { once: true })
-    promise
-      .then(resolve, reject)
-      .finally(() => signal.removeEventListener('abort', abort))
+    // The listener goes before the wrapper settles, not in a `finally` after
+    // it: an abort landing in between would run `onAbort` for an attempt
+    // that has already won, and tear down the session it is committing.
+    const done = () => signal.removeEventListener('abort', abort)
+    promise.then(
+      (value) => {
+        done()
+        resolve(value)
+      },
+      (error) => {
+        done()
+        reject(error)
+      },
+    )
   })
 }
 

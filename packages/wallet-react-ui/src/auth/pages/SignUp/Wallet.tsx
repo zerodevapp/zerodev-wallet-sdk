@@ -24,14 +24,16 @@ import { useSolanaConnect } from './useSolanaConnect'
  * With `namespaces` including `'solana'`, the wallet's Wallet Standard
  * registration counts too: a wallet installed for both EVM and Solana
  * (MetaMask, Phantom) asks which chain to connect, and one installed for
- * Solana only connects that side directly. */
+ * Solana only connects that side directly. Without `'eip155'` in the list
+ * the row offers Solana alone: no chain choice, and no EVM fallback. */
 export function SignUpWallet({
   walletId,
   namespaces = ['eip155'],
 }: {
   walletId: WalletId
   /** Which chain families the row connects (default `['eip155']`, EVM
-   * only). Add `'solana'` to offer the wallet's Solana side as well. */
+   * only). Add `'solana'` to offer the wallet's Solana side as well, or
+   * pass `['solana']` for that side alone. */
   namespaces?: readonly InstalledWalletNamespace[]
 }) {
   const wallet = WALLET_GUIDE.find((w) => w.id === walletId)
@@ -46,9 +48,30 @@ export function SignUpWallet({
   useLayoutEffect(() => registerWallet(wallet.id), [registerWallet, wallet.id])
 
   if (namespaces.includes('solana')) {
-    return <SignUpWalletMultichain wallet={wallet} />
+    return (
+      <SignUpWalletMultichain
+        wallet={wallet}
+        withEvm={namespaces.includes('eip155')}
+      />
+    )
   }
   return <SignUpWalletEvm wallet={wallet} />
+}
+
+/** The row for a wallet that is not here: a link to the vendor's download
+ * page. */
+function WalletDownloadRow({ wallet }: { wallet: WalletGuideEntry }) {
+  return (
+    <ListItem
+      title={wallet.name}
+      icon={<img src={wallet.icon} alt="" className="zd:w-6 zd:h-6" />}
+      trailing={<ListItemChevron />}
+      asChild
+    >
+      {/* biome-ignore lint/a11y/useAnchorContent: the row layout (incl. the title text) is injected into the anchor via Slot */}
+      <a href={wallet.downloadUrl} target="_blank" rel="noopener noreferrer" />
+    </ListItem>
+  )
 }
 
 /** The EVM-only row: a claiming wagmi connector, the pairing sheet, or the
@@ -90,18 +113,7 @@ function SignUpWalletEvm({ wallet }: { wallet: WalletGuideEntry }) {
   // wallet.
   const claimed = announced ?? connectors.find((c) => matchesWallet(c, wallet))
 
-  if (!claimed) {
-    return (
-      <ListItem {...shared} asChild>
-        {/* biome-ignore lint/a11y/useAnchorContent: the row layout (incl. the title text) is injected into the anchor via Slot */}
-        <a
-          href={wallet.downloadUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        />
-      </ListItem>
-    )
-  }
+  if (!claimed) return <WalletDownloadRow wallet={wallet} />
 
   // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const handleClick = () => {
@@ -127,11 +139,20 @@ function SignUpWalletEvm({ wallet }: { wallet: WalletGuideEntry }) {
 /**
  * The row with a Solana namespace. The wallet's Wallet Standard registration
  * is matched by the guide name (MetaMask registers as "MetaMask", Phantom as
- * "Phantom"). Without one the row is the EVM row; with one and an announced
- * EVM provider it opens the chain choice; with one alone it connects Solana
- * directly — an installed wallet beats a pairing handoff, as on the EVM side.
+ * "Phantom"). Without one the row is the EVM row, or the download link when
+ * the host left EVM out (`withEvm`); with one and an announced EVM provider
+ * it opens the chain choice; with one alone it connects Solana directly — an
+ * installed wallet beats a pairing handoff, as on the EVM side.
  */
-function SignUpWalletMultichain({ wallet }: { wallet: WalletGuideEntry }) {
+function SignUpWalletMultichain({
+  wallet,
+  withEvm,
+}: {
+  wallet: WalletGuideEntry
+  /** Whether `'eip155'` is among the row's namespaces: the EVM side joins
+   * the chain choice, and stands in when there is no Solana registration. */
+  withEvm: boolean
+}) {
   const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement } = useSignUpContext()
   const connectors = useConnectors()
@@ -147,11 +168,20 @@ function SignUpWalletMultichain({ wallet }: { wallet: WalletGuideEntry }) {
   const solana = solanaWallets.find((w) =>
     equalsIgnoreCase(w.name, wallet.name),
   )
-  if (!solana) return <SignUpWalletEvm wallet={wallet} />
+  if (!solana) {
+    return withEvm ? (
+      <SignUpWalletEvm wallet={wallet} />
+    ) : (
+      <WalletDownloadRow wallet={wallet} />
+    )
+  }
 
   // Only an announced EVM provider joins the Solana side in the choice: a
-  // configured SDK connector or the pairing sheet is not "installed".
-  const announced = connectors.find((c) => announcesWallet(c, wallet))
+  // configured SDK connector or the pairing sheet is not "installed". A
+  // host that left EVM out of the namespaces gets no EVM side at all.
+  const announced = withEvm
+    ? connectors.find((c) => announcesWallet(c, wallet))
+    : undefined
   const isEvmConnected =
     !!announced && connections.some((c) => c.connector.uid === announced.uid)
   const isSolanaConnected = connectedSolanaName === solana.name

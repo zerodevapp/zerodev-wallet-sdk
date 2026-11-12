@@ -292,3 +292,42 @@ describe('SignUp.Wallet with namespaces eip155 + solana', () => {
     expect(screen.getAllByText('MetaMask').length).toBe(1)
   })
 })
+
+describe('SignUp.Wallet with namespaces solana only', () => {
+  it('connects Solana directly on a wallet installed on both sides, with no Ethereum choice', async () => {
+    connectors = [announced('io.metamask', 'MetaMask')]
+    const metamask = solanaWallet('MetaMask')
+    solanaWallets = [metamask.wallet]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" namespaces={['solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+    expect(screen.queryByText('EVM')).toBeNull()
+
+    // The host left EVM out, so the announced provider is not offered.
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(screen.queryByTestId('chain-choice-MetaMask')).toBeNull()
+    await waitFor(() => expect(goToStep).toHaveBeenCalledWith(null))
+    expect(metamask.connect).toHaveBeenCalledTimes(1)
+    expect(startWalletConnection).not.toHaveBeenCalled()
+  })
+
+  it('offers the download page, not the EVM row, when the wallet has no Solana registration', () => {
+    connectors = [announced('io.metamask', 'MetaMask'), walletConnect()]
+    solanaWallets = []
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" namespaces={['solana']} />
+      </SignUp>,
+    )
+    // Neither the EVM connect nor the EVM pairing sheet: a link, as for a
+    // wallet that is not installed.
+    expect(
+      screen.getByText('MetaMask').closest('a')?.getAttribute('href'),
+    ).toBe('https://metamask.io/download')
+    expect(screen.getByText('MetaMask').closest('button')).toBeNull()
+    expect(screen.queryByText('INSTALLED')).toBeNull()
+  })
+})

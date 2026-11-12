@@ -369,6 +369,34 @@ describe('solana store slice', () => {
     expect(window.localStorage.getItem('zerodev:solana:lastWallet')).toBeNull()
   })
 
+  it('keeps a connection the wallet answered just before the signal aborted', async () => {
+    const store = createStore()
+    const phantom = fakeWallet('Phantom', [account()], { withDisconnect: true })
+    let answer!: () => void
+    phantom.connect.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve({ accounts: [account()] })
+        }),
+    )
+    const controller = new AbortController()
+    const pending = store
+      .getState()
+      .solana.connect(phantom.wallet, { signal: controller.signal })
+
+    // The wallet answers; the abort lands one microtask later, after the
+    // attempt has won and before its connect settles.
+    answer()
+    await Promise.resolve()
+    controller.abort()
+
+    await expect(pending).resolves.toMatchObject({ address: SOL_ADDRESS })
+    await flush()
+    expect(phantom.disconnect).not.toHaveBeenCalled()
+    expect(store.getState().solana.status).toBe('connected')
+    expect(store.getState().solana.connection?.address).toBe(SOL_ADDRESS)
+  })
+
   it('keeps the previous connection when an aborted attempt ends', async () => {
     const store = createStore()
     const phantom = fakeWallet('Phantom', [account()])
