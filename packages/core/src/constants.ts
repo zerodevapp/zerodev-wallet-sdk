@@ -6,6 +6,10 @@ export const DEFAULT_IFRAME_ELEMENT_ID = 'turnkey-default-iframe-element-id'
 export const DEFAULT_ORGANIZATION_ID = '65028f18-01c6-4ed4-beff-2ed1be5d6bad'
 export const KMS_SERVER_URL = 'https://kms.zerodev.app'
 
+export const TURNKEY_STAMP_HEADER = 'X-Stamp'
+export const AGENT_STAMP_HEADER = 'X-Agent-Stamp'
+export const TURNKEY_API_KEY_SCHEME = 'SIGNATURE_SCHEME_TK_API_P256'
+
 // Pinned ECDSA P-256 public key (uncompressed, 65 bytes hex) of Turnkey's
 // TLS Fetcher Sign enclave. Used to verify the signature on the OTP encryption
 // target bundle returned by /auth/init/otp before HPKE-encrypting the OTP
