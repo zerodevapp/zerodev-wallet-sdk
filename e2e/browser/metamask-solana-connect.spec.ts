@@ -116,6 +116,51 @@ test.describe('Solana through MetaMask', () => {
     await expectDisconnected(page, 'eip155')
   })
 
+  test('an explicit EVM connection survives a back navigation', async ({
+    page,
+    metamask,
+  }) => {
+    await openWalletPreset(page, { solana: true })
+    await connectThroughMetaMask(page, metamask, 'solana')
+    await connectThroughMetaMask(page, metamask, 'eip155')
+
+    const solanaAddress = await addressOf(page, 'solana')
+    const evmAddress = await addressOf(page, 'eip155')
+
+    // Stamped so the assertions below can prove the round trip stayed inside
+    // one page load. A reload is the one shape that cannot reproduce this:
+    // it hands the guard a fresh load-time record, and the sweep then has
+    // nothing to measure the EVM connection against.
+    await page.evaluate(() => {
+      ;(window as unknown as { __labDocument?: string }).__labDocument = 'first'
+    })
+
+    await page.getByTestId('header-config-link').click()
+    await expect(page).toHaveURL(/\/config/)
+    await page.goBack()
+    await expect(connector(page, 'eip155')).toBeVisible({
+      timeout: LAB_TIMEOUT_MS,
+    })
+
+    const sameDocument = await page.evaluate(
+      () =>
+        (window as unknown as { __labDocument?: string }).__labDocument ===
+        'first',
+    )
+    expect(
+      sameDocument,
+      'the back navigation loaded a new document, so the remounted guard got ' +
+        'a fresh load-time record and this case cannot reproduce',
+    ).toBe(true)
+
+    await page.waitForTimeout(3000)
+
+    await expectConnected(page, 'eip155')
+    expect(await addressOf(page, 'eip155')).toBe(evmAddress)
+    await expectConnected(page, 'solana')
+    expect(await addressOf(page, 'solana')).toBe(solanaAddress)
+  })
+
   test('a closed Solana pairing sheet leaves the next wallet connectable', async ({
     page,
     metamask,
