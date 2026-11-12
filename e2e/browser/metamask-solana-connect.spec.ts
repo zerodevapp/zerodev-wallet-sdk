@@ -22,6 +22,12 @@ import {
   openWalletPreset,
 } from '../helpers/ui-login.js'
 
+/**
+ * The WalletConnect relay round-trip that fills the pairing QR. Longer than
+ * `LAB_TIMEOUT_MS` because it leaves the machine.
+ */
+const PAIRING_TIMEOUT_MS = 60_000
+
 test.describe('Solana through MetaMask', () => {
   test.describe.configure({ timeout: 300_000 })
 
@@ -108,6 +114,67 @@ test.describe('Solana through MetaMask', () => {
       { timeout: LAB_TIMEOUT_MS },
     )
     await expectDisconnected(page, 'eip155')
+  })
+
+  test('a closed Solana pairing sheet leaves the next wallet connectable', async ({
+    page,
+    metamask,
+  }) => {
+    await openWalletPreset(page, { solana: true })
+    await openSignIn(page, 'solana')
+    await expectSignUpSheet(page)
+
+    const solana = connector(page, 'solana')
+
+    const solanaDoor = page
+      .getByRole('button', { name: /^WalletConnect/ })
+      .filter({ hasText: 'SOLANA' })
+    await expect(
+      solanaDoor,
+      'the Solana WalletConnect door is missing — is ' +
+        'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID set on the lab build step?',
+    ).toHaveCount(1)
+    await solanaDoor.click()
+
+    const sheet = page.getByRole('dialog', { name: 'WalletConnect' })
+    await expect(sheet).toBeVisible()
+
+    await expect(sheet.getByRole('img', { name: /^QR code for / })).toBeVisible(
+      { timeout: PAIRING_TIMEOUT_MS },
+    )
+    await expect(solana).toHaveAttribute('data-status', 'connecting')
+
+    await sheet.getByRole('button', { name: 'Close' }).click()
+    await expect(sheet).toBeHidden()
+
+    await expect(solana).toHaveAttribute('data-status', 'disconnected', {
+      timeout: LAB_TIMEOUT_MS,
+    })
+
+    await expectSignUpSheet(page)
+
+    const metamaskRow = page.getByRole('button', { name: /^MetaMask/ })
+    await metamaskRow.click()
+    const choice = page.getByTestId('chain-choice-MetaMask')
+    await expect(choice).toBeVisible({ timeout: LAB_TIMEOUT_MS })
+    await choice.getByRole('button', { name: /^Solana/ }).click()
+
+    await expect(metamaskRow).toContainText('CONNECTING', {
+      timeout: LAB_TIMEOUT_MS,
+    })
+
+    await metamask.approveConnection()
+
+    await expect(solana).toHaveAttribute('data-status', 'connected', {
+      timeout: LAB_TIMEOUT_MS,
+    })
+    await expect(solana).toHaveAttribute('data-address', BASE58_ADDRESS)
+    await expect(solana).toHaveAttribute('data-wallet', 'MetaMask')
+
+    await expect(solana).toHaveAttribute(
+      'data-wallet-source',
+      'wallet-standard',
+    )
   })
 
   test('closing the sheet reports a dismissal, not a failure', async ({
