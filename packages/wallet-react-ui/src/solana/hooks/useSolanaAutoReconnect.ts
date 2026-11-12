@@ -1,5 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useConfig } from 'wagmi'
 import { useKitStore } from '../../shared/hooks/useKitStore'
+import { guardDormantEvmSide } from '../evmAdoptionGuard'
 import {
   readLastSolanaWallet,
   type SolanaRestoreOutcome,
@@ -40,6 +42,27 @@ export function useSolanaAutoReconnect(enabled = true): void {
     wallet: walletConnect,
     error: walletConnectError,
   } = useSolanaWalletConnect(wantsWalletConnect)
+  const config = useConfig()
+  // The EVM connections wagmi had persisted when the page loaded: the ones
+  // the host held on purpose. The kit connector takes that record inside
+  // wagmi's config creation, the only point where it can still be read
+  // (wagmi overwrites it right after, and its reload reconnect rebuilds the
+  // state from the wallets instead).
+  const [restoredEvm] = useState(() => store.getState().evmConnectionsAtLoad)
+  // The EVM side a multichain wallet granted alongside the saved Solana
+  // session must not come back on its own. Mounted once per hook instance:
+  // the guard follows connectors that arrive later by itself (under `ssr`
+  // wagmi sets the EIP-6963 connectors up in its mount effect, after this
+  // one). Another instance, or a remount, is safe: the guard judges the
+  // reload sweep once per page load, so the host's later EVM connections
+  // are never measured against the load-time record. Only an installed
+  // wallet has an EVM side wagmi could adopt.
+  useEffect(() => {
+    if (!enabled) return
+    const last = readLastSolanaWallet()
+    if (last?.source !== 'standard') return
+    return guardDormantEvmSide(config, last.name, restoredEvm)
+  }, [enabled, config, restoredEvm])
   useEffect(() => {
     if (!enabled) return
     const { solana } = store.getState()

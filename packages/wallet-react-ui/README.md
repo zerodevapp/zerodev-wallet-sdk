@@ -164,6 +164,9 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   configured SDK connector) and is a link to the vendor's download page
   otherwise. With WalletConnect configured, the row instead opens the pairing
   sheet — phone pairing on one tab, the browser connect/download on the other.
+  `namespaces={['eip155', 'solana']}` offers the wallet's Solana side too: a
+  wallet installed for both (MetaMask, Phantom) asks which chain to connect,
+  and one installed for Solana only connects that side directly.
 - `SignUp.InstalledWallets` auto-discovers installed wallets: one row with an
   INSTALLED badge per announced (EIP-6963) browser extension, and nothing when
   none are installed. With WalletConnect configured, rows of known wallets
@@ -203,6 +206,7 @@ zeroDevWalletConnect({ projectId, solana: true })
 
 // sign-up units
 <SignUp>
+  <SignUp.Wallet walletId="metamask" namespaces={['eip155', 'solana']} />
   <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
   <SignUp.SolanaWalletConnect />
 </SignUp>

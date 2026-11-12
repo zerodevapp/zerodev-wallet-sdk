@@ -76,6 +76,36 @@ function toConnection(
   }
 }
 
+const abortError = () =>
+  new DOMException('Solana connect aborted', 'AbortError')
+
+/**
+ * `promise`, or a rejection with `AbortError` the moment `signal` aborts,
+ * whichever comes first. `onAbort` runs when the abort wins, so the caller
+ * can take charge of the promise it is no longer waiting for.
+ */
+function untilAborted<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined,
+  onAbort: () => void,
+): Promise<T> {
+  if (!signal) return promise
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      onAbort()
+      reject(abortError())
+    }
+    if (signal.aborted) {
+      abort()
+      return
+    }
+    signal.addEventListener('abort', abort, { once: true })
+    promise
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener('abort', abort))
+  })
+}
+
 /** What `restore` did. Only `nothing-saved` and `attempted` end the restore;
  * `wallet-absent` leaves it open for the caller, because a Wallet Standard
  * wallet may still announce itself (late registration, SSR hydration from
@@ -106,9 +136,11 @@ export interface SolanaStoreSlice {
      * Connect a Wallet Standard wallet. Prompts the wallet unless `silent`
      * is set, in which case the wallet returns only already-authorised
      * accounts (used to restore after a reload). Replaces any existing
-     * Solana connection. An aborted `signal` turns a late answer from the
-     * wallet into a rejection (`AbortError`) instead of a connection: the
-     * session the wallet made is ended and nothing is committed or stored.
+     * Solana connection. An aborted `signal` ends the attempt at once with
+     * a rejection (`AbortError`), without waiting for the wallet: the
+     * status settles, and the answer the wallet gives later is treated as
+     * stale, so the session it made is ended and nothing is committed or
+     * stored.
      */
     connect: (
       wallet: SolanaStandardWallet,
@@ -205,23 +237,38 @@ export const createSolanaStoreSlice: StateCreator<
             status: options?.silent ? 'reconnecting' : 'connecting',
           },
         }))
+        // A stale answer may have made a session on the wallet's side, so
+        // end it, unless a newer attempt on the same wallet now owns that
+        // session (the wallet's disconnect is wallet-wide and would take
+        // the newer session down with it); a connection nobody asked for
+        // must not land.
+        const endStaleSession = async () => {
+          const ownedByNewer = mine !== attempt && attemptWallet === wallet
+          if (ownedByNewer) return
+          await wallet.features['standard:disconnect']
+            ?.disconnect()
+            .catch(() => {})
+        }
+        const answer = wallet.features['standard:connect'].connect(
+          options?.silent ? { silent: true } : undefined,
+        )
         try {
-          const { accounts } = await wallet.features[
-            'standard:connect'
-          ].connect(options?.silent ? { silent: true } : undefined)
-          if (mine !== attempt || options?.signal?.aborted) {
-            // Stale: the caller left (a closed pairing sheet), the user
-            // logged out, or a newer connect started while the wallet was
-            // answering. Its answer may have made a session on the wallet's
-            // side, so end it, unless a newer attempt on the same wallet now
-            // owns that session; a connection nobody asked for must not land.
-            const ownedByNewer = mine !== attempt && attemptWallet === wallet
-            if (!ownedByNewer) {
-              await wallet.features['standard:disconnect']
-                ?.disconnect()
-                .catch(() => {})
-            }
-            throw new DOMException('Solana connect aborted', 'AbortError')
+          const { accounts } = await untilAborted(
+            answer,
+            options?.signal,
+            () => {
+              // The caller left (a closed pairing sheet) while the wallet was
+              // still answering, which a WalletConnect proposal does only when
+              // it expires, minutes later. The attempt ends now, and the
+              // wallet's answer, whenever it comes, goes the stale way.
+              answer.then(endStaleSession, () => {})
+            },
+          )
+          if (mine !== attempt) {
+            // Stale: the user logged out, or a newer connect started while
+            // the wallet was answering.
+            await endStaleSession()
+            throw abortError()
           }
           const account = pickSolanaAccount(accounts)
           if (!account) {
@@ -237,9 +284,9 @@ export const createSolanaStoreSlice: StateCreator<
           }))
           return connection
         } catch (error) {
-          // Keep a previous connection if the new attempt failed, otherwise
-          // fall back to disconnected. A stale attempt leaves the status to
-          // whatever superseded it.
+          // Keep a previous connection if the new attempt failed or was
+          // aborted, otherwise fall back to disconnected. A stale attempt
+          // leaves the status to whatever superseded it.
           if (mine === attempt) {
             set((state) => ({
               solana: {
