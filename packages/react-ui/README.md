@@ -101,48 +101,60 @@ dark × branded or plain. There is no generator. The file has three parts:
 
 ### Theming
 
-A theme is a point on that grid plus optional token overrides. `Screen`
-takes it as `theme`: a preset name or an object.
+The theme is two attributes on `<html>` (or any ancestor) plus the `--zd-*`
+custom properties. Only the ZeroDev stylesheet reads them, so they change
+the wallet UI and nothing else. There is no `theme` prop and no React API.
 
-```tsx
-<Screen theme="plain-light">…</Screen>
+- `data-zd-mode`: `light`, `dark`, or `system` (follows
+  `prefers-color-scheme`).
+- `data-zd-brand`: `branded` keeps the ZeroDev look; `plain` folds the
+  brand onto neutrals.
 
-<Screen
-  theme={{
-    ...themes.plainLight,
-    tokens: { 'bg-neutral-primary': '#0b1020' },
-  }}
->
-  …
-</Screen>
+**One fixed look**
+
+```html
+<html data-zd-mode="light" data-zd-brand="plain">
 ```
 
-- `mode`: `light`, `dark`, or `system` (follows `prefers-color-scheme`).
-- `brand`: `branded` keeps the ZeroDev look; `plain` folds the brand onto
-  neutrals.
-- `tokens`: per-token overrides, keyed by token name (`'bg-neutral-primary'`),
-  typed from the vocabulary in `src/theme/tokens.ts`.
+**Follow the host app's dark mode**, where it already sets its own:
 
-Under the hood `Screen` writes `data-zd-mode` and `data-zd-brand` on its
-root and the token overrides as inline custom properties; `tokens.css`
-carries a block per brand keyed on `data-zd-brand` and sets `color-scheme`
-per `data-zd-mode`, in `:where()` so any host rule beats it. No React is
-needed to theme: set the two attributes on any ancestor (`<html>`
-included), or override the `--zd-*` properties from a stylesheet or inline
-on a wrapper. Custom properties inherit, so the nearest ancestor that sets
-one wins, and two frames on one page keep their own themes.
+```ts
+document.documentElement.classList.toggle('dark', dark) // the host's own
+document.documentElement.dataset.zdMode = dark ? 'dark' : 'light'
+```
 
-Tooltips and dropdowns portal into a container the frame owns on
-`document.body`, outside any host wrapper, themed the same way as the
-frame: its attributes and `tokens`, or, for a frame without a `theme`, the
-attributes of the nearest themed ancestor, kept in sync when a host changes
-them. Properties a stylesheet scopes to that ancestor stay behind, so set
-host overrides on `:root` or pass them as `tokens`.
+```tsx
+<ThemeProvider attribute={['class', 'data-zd-mode']} /> // next-themes
+```
 
-The stylesheet carries the variants `SHIPPED_THEME_VARIANTS` lists;
-`isThemeAvailable` tells. Three are carried today. `branded-dark` is held
-until the card's art has a dark design, so that preset (and branded
-`system` under a dark scheme) keeps the light values.
+or `data-zd-mode="system"` in the HTML, and the OS decides.
+
+**A toggle for the wallet UI only**
+
+```tsx
+useEffect(() => {
+  document.documentElement.dataset.zdMode = dark ? 'dark' : 'light'
+}, [dark])
+```
+
+**Override tokens** from the host stylesheet, no build step:
+
+```css
+:root { --zd-text-brand-primary: #7c5cff; }
+html[data-zd-mode="dark"] { --zd-bg-neutral-primary: #000; }
+```
+
+`tokens.css` carries a block per brand keyed on `data-zd-brand` and sets
+`color-scheme` per `data-zd-mode`, in `:where()` so any host rule beats it.
+Custom properties inherit, so the nearest ancestor that sets one wins.
+Tooltips and dropdowns portal into a shared root under `document.body`,
+which inherits from `<html>` like everything else; a theme set on a wrapper
+below `<html>` reaches the frame but not its popovers, so set it on `<html>`.
+
+Three variants are carried today: branded light, plain light and plain
+dark. Branded dark is held until the card's art has a dark design, so that
+combination (and branded `system` under a dark scheme) keeps the light
+values.
 
 The brand axis also decides the decorative layers: `branded` keeps the
 gradient border ring, the card glow and the sheet gradient; `plain`
@@ -161,10 +173,9 @@ ship it too.
 
 #### Changing the tokens
 
-Everything lives in `src/theme/tokens.css`; `src/theme/tokens.ts` names the
-words a token name is made of, for the `tokens` override type. After any
-change, run `pnpm test -- src/theme` and `pnpm build:css`, then commit;
-nothing is generated.
+Everything lives in `src/theme/tokens.css`. After any change, run
+`pnpm test -- src/theme` and `pnpm build:css`, then commit; nothing is
+generated.
 
 - **Change a value.** Edit the hex in the brand block(s). Values are
   lowercase `#rrggbb` or `#rrggbbaa`, copied from the Figma variable.
@@ -175,17 +186,15 @@ nothing is generated.
   names whatever is missing.
 - **Add a token with a new word** (for example `bg-info-muted`). As above,
   then add the word to the matching brace group of the `@source inline`
-  line (the test names the utility until it is safelisted) and to the
-  matching list in `tokens.ts` (`muted` goes in `TOKEN_STEPS`) so the
-  override type knows it. Keep to words that are not Tailwind size or
+  line (the test names the utility until it is safelisted). Keep to words
+  that are not Tailwind size or
   palette names (`sm`, `red`, `white`): the brace groups are multiplied
   out, and such a word could make a stray built-in utility ship.
 - **Add a role.** Choose the Tailwind namespace that paints it for the alias
   (`--background-color-*`, `--text-color-*`, `--border-color-*`; icons use
   `--text-color-icon-*` because icons draw with `currentColor`), add it to
-  `TOKEN_ROLES` in `tokens.ts`, to `NAMESPACE` and `UTILITY` in
-  `tokens.test.ts`, and to the first brace group of the `@source inline`
-  line.
+  `NAMESPACE` and `UTILITY` in `tokens.test.ts`, and to the first brace
+  group of the `@source inline` line.
 - **Rename or remove a token.** Edit or delete its alias and value lines.
   Search the packages for the old class before removing: nothing else
   records usages.
@@ -195,8 +204,8 @@ nothing is generated.
 - **Add a theme variant.** Add a block keyed on both attributes after the
   brand blocks, as the plain dark one, with its `color-scheme` and every
   token, plus the `system` twin under `prefers-color-scheme: dark`; list
-  the variant in `SHIPPED_THEME_VARIANTS` and give the test its
-  declarations. Keep the `@theme` block `inline`, or Tailwind puts the
+  the variant in `SHIPPED_THEME_VARIANTS` in `tokens.test.ts` and give the
+  test its declarations. Keep the `@theme` block `inline`, or Tailwind puts the
   alias on `:root` and the brand blocks stop reaching the utilities.
 
 ## Development

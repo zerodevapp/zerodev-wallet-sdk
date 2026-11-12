@@ -189,26 +189,19 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 
 ### Theming
 
-Pass a `theme` to `ConnectWallet` (and `TxHistory`): a preset name, or mode,
-brand and token overrides.
+The card reads its theme from two attributes on `<html>` (or any ancestor)
+and the `--zd-*` custom properties; there is no prop.
 
-```tsx
-<ConnectWallet theme="plain-light" />
-
-<ConnectWallet
-  theme={{
-    mode: 'system', // 'light' | 'dark' | 'system'
-    brand: 'plain', // 'branded' | 'plain'
-    tokens: { 'bg-neutral-primary': '#0b1020' },
-  }}
-/>
+```html
+<html data-zd-mode="dark" data-zd-brand="plain">
 ```
 
-The presets are exported as `themes`. Without a `theme`, the card follows
-any theme an ancestor sets through the `data-zd-mode` / `data-zd-brand`
-attributes, else the default (branded light). See
-[`@zerodev/react-ui`](../react-ui/README.md#theming) for the mechanism and
-the token names.
+```css
+:root { --zd-text-brand-primary: #7c5cff; }
+```
+
+See [`@zerodev/react-ui`](../react-ui/README.md#theming) for the modes,
+brands, how to follow the host app's dark mode, and the token names.
 
 ## API
 
@@ -216,7 +209,7 @@ the token names.
 | --- | --- |
 | `zeroDevWallet` | wagmi connector with kit-specific auth extensions. |
 | `zeroDevWalletConnect` | WalletConnect connector preconfigured for the kit (`showQrModal: false`). |
-| `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `theme`, `onClose`. |
+| `<ConnectWallet />` | Renders the current auth step (sign-in, OTP, verifying, etc.). Props: `logo`, `renderSignUp`, `size`, `onClose`. |
 | `<SignUp />` | Compound sign-up page: `SignUp.Default` plus the composable units (`Passkey`, `Google`, `Email`, `Wallet`, `WalletConnect`, `InstalledWallets`, `MoreWallets`, `Divider`). |
 | `useAuth` | Read / drive the auth flow state. |
 

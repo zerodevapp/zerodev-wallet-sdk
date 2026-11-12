@@ -1,7 +1,7 @@
 'use client'
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
-import {ConnectWallet, SignUp, type ThemeName, useAuth} from '@zerodev/wallet-react-ui'
+import {ConnectWallet, SignUp, useAuth} from '@zerodev/wallet-react-ui'
 import {KeyRound, Layers, Loader2, Moon, Sparkles, Sun} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useCallback, useEffect, useRef, useState} from 'react'
@@ -38,12 +38,10 @@ export default function LandingPage() {
   )
 }
 
-// The shipped presets; branded dark is held until its art has a dark design.
-const THEME_NAMES: readonly ThemeName[] = [
-  'branded-light',
-  'plain-light',
-  'plain-dark',
-]
+// The shipped presets, `<brand>-<mode>`; branded dark is held until its art
+// has a dark design.
+const THEME_NAMES = ['branded-light', 'plain-light', 'plain-dark'] as const
+type ThemeName = (typeof THEME_NAMES)[number]
 
 function LandingPageInner() {
   const router = useRouter()
@@ -55,6 +53,12 @@ function LandingPageInner() {
   )
   const toggleTheme = () =>
     setTheme((current) => (current === 'plain-dark' ? 'branded-light' : 'plain-dark'))
+  // The kit reads its theme from these two attributes on <html>.
+  useEffect(() => {
+    const [brand, mode] = theme.split('-')
+    document.documentElement.dataset.zdBrand = brand
+    document.documentElement.dataset.zdMode = mode
+  }, [theme])
 
   const [items, setItems] = useState<PlaygroundItem[]>(DEFAULT_ITEMS)
   const [settings, setSettings] = useState<PlaygroundSettings>(DEFAULT_SETTINGS)
@@ -211,7 +215,6 @@ function LandingPageInner() {
               // to <SignUp.Default />.
               <ConnectWallet
                 size="md"
-                theme={theme}
                 logo={<ZeroDevLogo variant="lockup" tone="auto" className="zd:h-8 zd:w-auto" />}
                 renderSignUp={
                   items.length === 0

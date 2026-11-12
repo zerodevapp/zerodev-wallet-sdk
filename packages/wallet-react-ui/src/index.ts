@@ -3,14 +3,6 @@
  * React UI components and enhanced connector for ZeroDev Wallet SDK
  */
 
-// Theme (the kit's surfaces take a `theme`; the types and presets come from react-ui)
-export {
-  type Theme,
-  type ThemeInput,
-  type ThemeName,
-  type ThemeTokenOverrides,
-  themes,
-} from '@zerodev/react-ui'
 // Auth
 export { ConnectWallet } from './auth'
 export { useAuth } from './auth/hooks/useAuth'

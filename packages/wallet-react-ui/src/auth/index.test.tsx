@@ -93,23 +93,6 @@ describe('ConnectWallet', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('passes the theme to the frame', () => {
-    mockStep = 'sign-up'
-    const { container } = render(
-      <ConnectWallet theme={{ mode: 'system', brand: 'plain' }} />,
-    )
-    const root = container.firstChild as HTMLElement
-    expect(root.getAttribute('data-zd-mode')).toBe('system')
-    expect(root.getAttribute('data-zd-brand')).toBe('plain')
-  })
-
-  it('writes no theme attributes when none is given', () => {
-    mockStep = 'sign-up'
-    const { container } = render(<ConnectWallet />)
-    const root = container.firstChild as HTMLElement
-    expect(root.hasAttribute('data-zd-mode')).toBe(false)
-  })
-
   it('renders sign-up page', () => {
     mockStep = 'sign-up'
     render(<ConnectWallet />)

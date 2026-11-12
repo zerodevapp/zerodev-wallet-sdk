@@ -22,63 +22,12 @@ function PortalProbe({
   return null
 }
 
-/** Mounts a Screen and resolves with the portal container it hands out. */
-function renderWithPortal(ui: (probe: React.ReactNode) => React.ReactElement) {
-  let container: HTMLElement | undefined
-  const probe = (
-    <PortalProbe
-      onContainer={(c) => {
-        container = c
-      }}
-    />
-  )
-  const result = render(ui(probe))
-  const portalRoot = () => document.getElementById('zd-portal-root')
-  return {
-    ...result,
-    portalRoot,
-    /** The frame's own container, once it exists. */
-    container: () =>
-      waitFor(() => {
-        if (!container || container === portalRoot()) throw new Error('pending')
-        return container
-      }),
-  }
-}
-
 describe('Screen', () => {
-  describe('theme', () => {
-    it('writes no theme attributes when none is given', () => {
-      const { container } = render(<Screen>x</Screen>)
-      const root = container.firstChild as HTMLElement
-      expect(root.hasAttribute('data-zd-mode')).toBe(false)
-      expect(root.hasAttribute('data-zd-brand')).toBe(false)
-    })
-
-    it('writes the preset attributes and token overrides on the root', () => {
-      const { container } = render(
-        <Screen
-          theme={{
-            mode: 'system',
-            brand: 'plain',
-            tokens: { 'bg-neutral-primary': '#0b1020' },
-          }}
-        >
-          x
-        </Screen>,
-      )
-      const root = container.firstChild as HTMLElement
-      expect(root.getAttribute('data-zd-mode')).toBe('system')
-      expect(root.getAttribute('data-zd-brand')).toBe('plain')
-      expect(root.style.getPropertyValue('--zd-bg-neutral-primary')).toBe(
-        '#0b1020',
-      )
-    })
-
+  describe('portals', () => {
     it('carries both the brand art and the plain layers for the stylesheet to pick', () => {
       // Which one shows is decided by the `zd:plain:` variant on
       // data-zd-brand, so the DOM holds both whatever the theme.
-      const { container } = render(<Screen theme="plain-dark">x</Screen>)
+      const { container } = render(<Screen>x</Screen>)
       const art = container.querySelectorAll('.zd\\:plain\\:hidden')
       expect(art.length).toBe(2)
       const layers = container.querySelectorAll('.zd\\:plain\\:block')
@@ -87,90 +36,20 @@ describe('Screen', () => {
       expect(layers[1]?.className).toContain('zd:bg-neutral-primary')
     })
 
-    it('accepts a preset name', () => {
-      const { container } = render(<Screen theme="plain-light">x</Screen>)
-      const root = container.firstChild as HTMLElement
-      expect(root.getAttribute('data-zd-mode')).toBe('light')
-      expect(root.getAttribute('data-zd-brand')).toBe('plain')
-    })
-
-    it('gives its subtree a portal container under the portal root, themed like the frame, gone on unmount', async () => {
-      const { container, portalRoot, unmount } = renderWithPortal((probe) => (
-        <Screen
-          theme={{
-            mode: 'light',
-            brand: 'plain',
-            tokens: { 'bg-neutral-primary': '#0b1020' },
-          }}
-        >
-          {probe}
-        </Screen>
-      ))
-      const el = await container()
-      expect(el.parentElement).toBe(portalRoot())
-      expect(el.getAttribute('data-zd-mode')).toBe('light')
-      expect(el.getAttribute('data-zd-brand')).toBe('plain')
-      expect(el.style.getPropertyValue('--zd-bg-neutral-primary')).toBe(
-        '#0b1020',
+    it('hands its subtree the shared portal root under document.body', async () => {
+      let container: HTMLElement | undefined
+      render(
+        <Screen>
+          <PortalProbe
+            onContainer={(c) => {
+              container = c
+            }}
+          />
+        </Screen>,
       )
-      unmount()
-      expect(el.isConnected).toBe(false)
-      // The shared root itself never carries a theme.
-      expect(portalRoot()?.hasAttribute('data-zd-brand')).toBe(false)
-    })
-
-    it("without a theme, mirrors the nearest ancestor's attributes onto its container and follows changes", async () => {
-      const { container } = renderWithPortal((probe) => (
-        <div data-testid="host" data-zd-mode="light" data-zd-brand="plain">
-          <Screen>{probe}</Screen>
-        </div>
-      ))
-      const el = await container()
-      await waitFor(() => expect(el.getAttribute('data-zd-mode')).toBe('light'))
-      expect(el.getAttribute('data-zd-brand')).toBe('plain')
-
-      const host = document.querySelector('[data-testid="host"]') as HTMLElement
-      host.setAttribute('data-zd-brand', 'branded')
-      await waitFor(() =>
-        expect(el.getAttribute('data-zd-brand')).toBe('branded'),
-      )
-      host.removeAttribute('data-zd-mode')
-      host.removeAttribute('data-zd-brand')
-      await waitFor(() => expect(el.hasAttribute('data-zd-brand')).toBe(false))
-    })
-
-    it('two frames keep their own containers; unmounting one leaves the other themed', async () => {
-      const first = renderWithPortal((probe) => (
-        <Screen theme="plain-light">{probe}</Screen>
-      ))
-      const second = renderWithPortal((probe) => (
-        <Screen
-          theme={{
-            mode: 'light',
-            brand: 'branded',
-            tokens: { 'bg-neutral-primary': '#abcdef' },
-          }}
-        >
-          {probe}
-        </Screen>
-      ))
-      const a = await first.container()
-      const b = await second.container()
-      expect(a).not.toBe(b)
-      expect(a.getAttribute('data-zd-brand')).toBe('plain')
-      expect(a.style.getPropertyValue('--zd-bg-neutral-primary')).toBe('')
-      expect(b.getAttribute('data-zd-brand')).toBe('branded')
-      expect(b.style.getPropertyValue('--zd-bg-neutral-primary')).toBe(
-        '#abcdef',
-      )
-
-      first.unmount()
-      expect(a.isConnected).toBe(false)
-      expect(b.isConnected).toBe(true)
-      expect(b.getAttribute('data-zd-brand')).toBe('branded')
-      expect(b.style.getPropertyValue('--zd-bg-neutral-primary')).toBe(
-        '#abcdef',
-      )
+      await waitFor(() => expect(container).toBeDefined())
+      expect(container?.id).toBe('zd-portal-root')
+      expect(container?.parentElement).toBe(document.body)
     })
   })
 
