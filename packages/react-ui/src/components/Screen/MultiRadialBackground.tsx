@@ -190,7 +190,8 @@ export function CardGlow() {
 // The dark card. The design keeps the gradient ring and sets the card on it
 // as 80% ink with a 30px backdrop blur (the neutral-primary token of the
 // dark branded variant), so the ring's orange and blue show through as the
-// card's glow. The blurred "Amorphic" raster the design lays over the lower
+// card's glow. The blur is Screen's, on the clipped card element; this
+// layer only tints. The blurred "Amorphic" raster the design lays over the lower
 // card at 20% opacity reads as a soft off-white haze rising from the bottom
 // edge (about 18% at the edge, gone by a third of the height, measured on
 // the design's render); it is drawn as one radial gradient, as CardGlow
@@ -224,7 +225,7 @@ export function DarkCardBase() {
     <>
       <div
         aria-hidden
-        className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:pointer-events-none"
+        className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:pointer-events-none"
       />
       <div className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:pointer-events-none zd:overflow-hidden">
         <svg
