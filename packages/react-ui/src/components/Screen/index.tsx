@@ -45,8 +45,8 @@ export function Screen({
   size?: 'sm' | 'md' | 'lg' | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
-  /** Pinned bottom band — mirrors `topNav`. Same edge-to-edge, blurred
-   * background treatment; scrolled content passes behind it. */
+  /** Pinned bottom band — mirrors `topNav`: edge-to-edge, transparent;
+   * scrolled content stops at its top edge. */
   footer?: ReactNode
   overlay?: ReactNode
 }) {
@@ -79,11 +79,21 @@ export function Screen({
       style={style}
     >
       {/* Gradient border layer — fills the frame; the card on top has a 6px
-        margin so this shows as the border ring. */}
-      <WrapperBorder />
+        margin so this shows as the border ring. Brand art: hidden under
+        the plain brand. */}
+      <div className="zd:contents zd:plain:hidden">
+        <WrapperBorder />
+      </div>
+      {/* The plain band in its place: the frame-ring token, shown through
+        the same 6px margin. */}
+      <div
+        aria-hidden
+        className="zd:hidden zd:plain:block zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-frame-ring zd:pointer-events-none"
+      />
       {/* Inner card sits on top with a 6px margin, exposing the border ring.
         Its own gradient (base + CardGlow) fills the card so the colour stays
-        vivid and distinct from the border. */}
+        vivid and distinct from the border. Under the plain brand the ring
+        becomes a flat band and the glow a flat frosted surface. */}
       <div
         ref={setOverlayContainer}
         className={cn(
@@ -101,8 +111,16 @@ export function Screen({
         // children bleeding past the radius). Must match rounded-4xl (32px).
         style={{ clipPath: 'inset(0 round 32px)' }}
       >
-        <MultiRadialBackground />
-        <CardGlow />
+        <div className="zd:contents zd:plain:hidden">
+          <MultiRadialBackground />
+          <CardGlow />
+        </div>
+        {/* The plain surface: the neutral background token, frosted — the
+          design's "blur effect" card. */}
+        <div
+          aria-hidden
+          className="zd:hidden zd:plain:block zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:pointer-events-none"
+        />
         <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}
           <div
@@ -124,7 +142,7 @@ export function Screen({
             <div
               // Flex sibling so scrolled content stops at the footer's top
               // edge; internal px-4 keeps the content at the 16px inset.
-              className="zd:flex zd:shrink-0 zd:items-center zd:justify-center zd:px-4 zd:pb-4 zd:backdrop-blur-[15px]"
+              className="zd:flex zd:shrink-0 zd:items-center zd:justify-center zd:px-4 zd:pb-4"
               style={{
                 height: `calc(${FOOTER_HEIGHT / 4} * var(--zd-spacing))`,
               }}

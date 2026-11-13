@@ -1,7 +1,6 @@
 import { Button, Text } from '@zerodev/react-ui'
 import { type ReactNode, useCallback, useState } from 'react'
 import { SignUpFooter } from '../../../shared/components/SignUpFooter'
-import { BlobAnimation } from '../../components/BlobAnimation'
 import { WalletSheet } from '../../components/WalletSheet'
 import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
 import type { EmailAuthMethod } from '../../types'
@@ -130,13 +129,10 @@ function SignUpRoot({
       >
         <div className="zd:flex-1 zd:flex zd:flex-col zd:justify-center">
           <div className="zd:px-4 zd:flex zd:flex-col zd:items-center">
-            <div className="zd:w-full zd:px-16 zd:py-4">
-              <BlobAnimation className="zd:w-full zd:pointer-events-none zd:select-none" />
-            </div>
             <Text className="zd:text-h2 zd:text-center">
               Continue to your wallet
             </Text>
-            <Text className="zd:mt-2 zd:text-center zd:text-neutral-tertiary">
+            <Text className="zd:mt-2 zd:text-center zd:text-neutral-secondary">
               Choose a sign-in method to proceed
             </Text>
           </div>

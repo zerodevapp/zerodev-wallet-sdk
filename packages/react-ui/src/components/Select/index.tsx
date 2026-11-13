@@ -107,15 +107,20 @@ export function SelectContent({
           ...style,
         }}
       >
-        <Wrapper
-          // Opaque: a dropdown over content must not let it bleed through.
-          variant="solid"
-          className="zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden"
-        >
-          <SelectPrimitive.Viewport className="zd:overflow-y-auto zd:max-h-80">
-            {children}
-          </SelectPrimitive.Viewport>
-        </Wrapper>
+        {/* The card base under the tile tint, as the bottom sheet has: the
+          panel renders under document.body, over whatever the host page
+          paints there, and the tint alone is near-transparent in dark. */}
+        <div className="zd:rounded-2xl zd:overflow-hidden zd:bg-neutral-primary zd:backdrop-blur-[30px]">
+          <Wrapper
+            // Opaque: a dropdown over content must not let it bleed through.
+            variant="solid"
+            className="zd:flex zd:flex-col zd:rounded-2xl zd:overflow-hidden"
+          >
+            <SelectPrimitive.Viewport className="zd:overflow-y-auto zd:max-h-80">
+              {children}
+            </SelectPrimitive.Viewport>
+          </Wrapper>
+        </div>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
   )
