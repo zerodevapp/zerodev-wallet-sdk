@@ -39,13 +39,13 @@ describe('TokenListItem', () => {
   it('applies positive color by default for positive change', () => {
     render(<TokenListItem symbol="ETH" change="+13.31%" />)
     const change = screen.getByText('+13.31%')
-    expect(change.className).toContain('text-positive')
+    expect(change.className).toContain('text-success-primary')
   })
 
   it('applies negative color for change starting with -', () => {
     render(<TokenListItem symbol="ETH" change="-2.15%" />)
     const change = screen.getByText('-2.15%')
-    expect(change.className).toContain('text-negative')
+    expect(change.className).toContain('text-error-primary')
   })
 
   it('renders the skeleton when loading', () => {

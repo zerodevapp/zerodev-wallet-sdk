@@ -30,9 +30,11 @@ describe('InfoCard', () => {
       const { container } = render(
         <InfoCard title="My Title" imageSource="https://example.com/x.png" />,
       )
-      // Contained variant renders the PairMark tile — translucent white/60
-      // backdrop-blurred wrapper with a circular token disc inside.
-      expect(container.querySelector('.zd\\:bg-white\\/60')).not.toBeNull()
+      // Contained variant renders the PairMark tile — an isolated,
+      // backdrop-blurred bright-secondary wrapper with a circular token disc.
+      const tile = container.querySelector('.zd\\:isolate')
+      expect(tile).not.toBeNull()
+      expect(tile?.className).toContain('zd:bg-bright-secondary')
       const img = container.querySelector('img') as HTMLImageElement
       expect(img.src).toBe('https://example.com/x.png')
       expect(img.className).toContain('size-full')
@@ -46,7 +48,7 @@ describe('InfoCard', () => {
           imageStyle="filled"
         />,
       )
-      expect(container.querySelector('.zd\\:bg-white\\/60')).toBeNull()
+      expect(container.querySelector('.zd\\:isolate')).toBeNull()
       const img = container.querySelector('img') as HTMLImageElement
       expect(img.className).toContain('size-full')
     })
