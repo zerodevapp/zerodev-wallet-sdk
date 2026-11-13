@@ -404,6 +404,9 @@ function PillSwitch({
       disabled={disabled}
       onClick={onToggle}
       onPointerMove={(e) => {
+        // Over the tooltip itself the side stays: the label is hoverable
+        // (so it can be read under a magnifier) without gliding away.
+        if (tipRef.current?.contains(e.target as Node)) return
         const r = e.currentTarget.getBoundingClientRect()
         setPointerSide(e.clientX - r.left < r.width / 2 ? 'off' : 'on')
       }}
@@ -460,15 +463,20 @@ function PillSwitch({
         ref={tipRef}
         role="tooltip"
         aria-hidden={!visible}
+        // Reading the label must not flip the switch.
+        onClick={(e) => e.stopPropagation()}
         className={cn(
-          'pointer-events-none absolute bottom-full z-10 mb-3 -translate-x-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-[0_4px_12px_rgba(0,0,0,0.18)] duration-250 ease-[cubic-bezier(.2,.8,.2,1)]',
+          'absolute bottom-full z-10 mb-3 -translate-x-1/2 cursor-default whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-[0_4px_12px_rgba(0,0,0,0.18)] duration-250 ease-[cubic-bezier(.2,.8,.2,1)]',
           'after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-[5px] after:border-transparent',
+          // An invisible bridge over the gap to the track, so the pointer can
+          // travel from the switch onto the label without leaving the pill.
+          "before:absolute before:inset-x-0 before:top-full before:h-3 before:content-['']",
           side === 'off' ? 'left-[17px]' : 'left-[51px]',
           // The position glides only while the tooltip shows; hidden, it
           // snaps, so the next show starts in place.
           visible
-            ? 'translate-y-0 opacity-100 transition-[left,opacity,transform]'
-            : 'translate-y-1 opacity-0 transition-[opacity,transform]',
+            ? 'pointer-events-auto translate-y-0 opacity-100 transition-[left,opacity,transform]'
+            : 'pointer-events-none translate-y-1 opacity-0 transition-[opacity,transform]',
           // A page element, so it keeps the page's ink in both modes.
           'bg-[var(--ink)] text-white after:border-t-[var(--ink)]',
         )}
