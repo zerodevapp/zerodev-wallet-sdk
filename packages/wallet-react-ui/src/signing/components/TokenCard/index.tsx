@@ -23,7 +23,7 @@ export function TokenCard({
   return (
     <div className="zd:w-full zd:p-2 zd:flex zd:flex-row zd:justify-between zd:items-center">
       <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
-        <div className="zd:bg-offWhite zd:rounded-xl zd:w-8 zd:h-8 zd:flex zd:items-center zd:justify-center zd:shrink-0">
+        <div className="zd:bg-neutral-primary zd:rounded-xl zd:w-8 zd:h-8 zd:flex zd:items-center zd:justify-center zd:shrink-0">
           {imageSource && (
             <img src={imageSource} alt="" className="zd:w-[18px] zd:h-[18px]" />
           )}
@@ -32,7 +32,7 @@ export function TokenCard({
           <Text className="zd:text-body1">{symbol}</Text>
           <div className="zd:flex zd:flex-row zd:gap-1 zd:items-center">
             <Icon name={network as IconName} className="zd:h-3 zd:w-3" />
-            <Text className="zd:text-body3 zd:text-greyScale/50">
+            <Text className="zd:text-body3 zd:text-neutral-tertiary">
               {capitalizeFirst(network)}
             </Text>
           </div>
@@ -40,7 +40,7 @@ export function TokenCard({
       </div>
       <Text>
         {pooledAmount}{' '}
-        <Text as="span" className="zd:text-greyScale/50">
+        <Text as="span" className="zd:text-neutral-tertiary">
           / {availableAmount} {symbol}
         </Text>
       </Text>
