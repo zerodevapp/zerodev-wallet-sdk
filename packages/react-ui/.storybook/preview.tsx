@@ -2,10 +2,13 @@ import type { Decorator, Preview } from '@storybook/react-vite'
 import { useEffect } from 'react'
 import '../src/styles.css'
 
+const DEFAULT_THEME = 'branded-light'
+
 /** The preset, `<brand>-<mode>`, written on <html> as a host would, so the
  * stories and what they portal out share it. A story that needs a fixed
- * theme names it in `parameters.theme`; the toolbar decides otherwise. */
-function useHtmlTheme(preset: string) {
+ * theme names it in `parameters.theme`; the toolbar decides otherwise, and
+ * the default covers a global that has not been set. */
+function useHtmlTheme(preset: string = DEFAULT_THEME) {
   const [brand, mode] = preset.split('-')
   useEffect(() => {
     document.documentElement.dataset.zdMode = mode
@@ -14,7 +17,9 @@ function useHtmlTheme(preset: string) {
 }
 
 const withCenteredContainer: Decorator = (Story, context) => {
-  useHtmlTheme((context.parameters.theme ?? context.globals.theme) as string)
+  useHtmlTheme(
+    (context.parameters.theme ?? context.globals.theme) as string | undefined,
+  )
   return (
     // Stories render outside a Screen, so this container carries the zd-scope
     // class the scoped reset applies to.
@@ -30,11 +35,11 @@ const withCenteredContainer: Decorator = (Story, context) => {
 }
 
 const preview: Preview = {
+  initialGlobals: { theme: DEFAULT_THEME },
   globalTypes: {
     theme: {
       name: 'Theme',
       description: 'Theme preset (mode × brand)',
-      defaultValue: 'branded-light',
       toolbar: {
         icon: 'paintbrush',
         items: [

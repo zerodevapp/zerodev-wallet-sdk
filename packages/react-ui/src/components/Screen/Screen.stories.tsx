@@ -62,11 +62,14 @@ function OpenTooltip({
 
 const TOKENS = ['USDC', 'WETH', 'USDT'] as const
 
-/** A select held open, the other popover that portals out of the content. */
+/** A select that opens with the story, the other popover that portals out
+ * of the content. `defaultOpen`, not `open`: the select is modal while
+ * open, so a held-open one would keep the host's own controls (the toggle
+ * in ThemeToggledAtRuntime) from being clicked, and Escape must close it. */
 function OpenSelect() {
   const [value, setValue] = useState<string>('USDC')
   return (
-    <Select value={value} onValueChange={setValue} open>
+    <Select value={value} onValueChange={setValue} defaultOpen>
       <SelectTrigger asChild>
         <Pill label={value} />
       </SelectTrigger>
