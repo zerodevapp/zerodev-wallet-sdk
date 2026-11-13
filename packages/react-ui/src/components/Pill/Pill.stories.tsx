@@ -28,7 +28,10 @@ export const Interactive: Story = {
     label: 'USDC',
     onClick: () => {},
     trailingIcon: (
-      <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+      <Icon
+        name="chevronDown"
+        className="zd:size-4 zd:text-icon-neutral-primary"
+      />
     ),
   },
 }
@@ -39,7 +42,10 @@ export const InteractiveChain: Story = {
     label: 'Base',
     onClick: () => {},
     trailingIcon: (
-      <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+      <Icon
+        name="chevronDown"
+        className="zd:size-4 zd:text-icon-neutral-primary"
+      />
     ),
   },
 }
@@ -69,7 +75,10 @@ export const WithLogoImage: Story = {
       'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
     onClick: () => {},
     trailingIcon: (
-      <Icon name="chevronDown" className="zd:size-4 zd:text-greyScale" />
+      <Icon
+        name="chevronDown"
+        className="zd:size-4 zd:text-icon-neutral-primary"
+      />
     ),
   },
 }
