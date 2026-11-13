@@ -8,6 +8,7 @@ overrides:
   viem@^2.47.18: 2.55.5
   zod@>=4 <4.6.6: ^4.6.6
   node-forge@<1.4.3: ^1.4.3
+  hono@<4.13.16: ^4.13.16
 
 importers:
 
@@ -6858,8 +6859,8 @@ packages:
   hermes-parser@0.36.0:
     resolution: {integrity: sha512-GdpwMmH5x6IpC1cijvcvYnlPB60Mh6kTSF/NFdYV/j56gYdi+0RIakYs+eqOV+bbO0SW7mgVVGSsTJxyPQfo3w==}
 
-  hono@4.13.14:
-    resolution: {integrity: sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==}
+  hono@4.13.16:
+    resolution: {integrity: sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@7.0.2:
@@ -18285,7 +18286,7 @@ snapshots:
     dependencies:
       hermes-estree: 0.36.0
 
-  hono@4.13.14:
+  hono@4.13.16:
     optional: true
 
   hosted-git-info@7.0.2:
@@ -20088,7 +20089,7 @@ snapshots:
   porto@0.2.35(@tanstack/react-query@5.101.2(react@19.2.3))(@types/react@19.2.17)(@wagmi/core@3.6.0(@tanstack/query-core@5.101.2)(@types/react@19.2.17)(react@19.2.3)(typescript@5.9.3)(use-sync-external-store@1.7.0(react@19.2.3))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6)))(expo-web-browser@56.0.5(expo@56.0.15)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10)))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.9.3)(use-sync-external-store@1.7.0(react@19.2.3))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))(wagmi@3.7.0):
     dependencies:
       '@wagmi/core': 3.6.0(@tanstack/query-core@5.101.2)(@types/react@19.2.17)(react@19.2.3)(typescript@5.9.3)(use-sync-external-store@1.7.0(react@19.2.3))(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))
-      hono: 4.13.14
+      hono: 4.13.16
       idb-keyval: 6.3.0
       mipd: 0.0.7(typescript@5.9.3)
       ox: 0.9.17(typescript@5.9.3)(zod@4.6.6)

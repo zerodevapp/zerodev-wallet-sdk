@@ -23,6 +23,11 @@ overrides:
   # PKCS#12, X.509 and ASN.1 ones 1.4.1 did (GHSA-7wch-p9px-956x and others).
   # @expo/cli and @expo/code-signing-certificates declare ^1.4.0.
   'node-forge@<1.4.3': '^1.4.3'
+  # hono 4.13.16 patches the mount() middleware bypass, the RegExpRouter
+  # wildcard skip, the csrf() text/ping gap and the multipart validator skip
+  # (GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-46wx-v44x-9hh2,
+  # GHSA-4h7h-rv7c-7m2v). porto (via @wagmi/connectors) resolves it below that.
+  'hono@<4.13.16': '^4.13.16'
 
 # Security: Only install packages that are at least 24 hours old (1440 minutes)
 # This helps protect against typosquatting and malicious packages
