@@ -18,6 +18,7 @@ vi.mock('wagmi', () => ({
   useConfig: h.useConfig,
 }))
 
+import { DataApiError } from '../errors.js'
 import {
   transactionHistoryQueryKey,
   useTransactionHistory,
@@ -27,13 +28,25 @@ const baseUrl = 'https://data.example'
 const connector = { id: 'zerodev-wallet' }
 const config = { connectors: [connector] }
 
-function wrapper() {
-  const client = new QueryClient({
+function wrapper(
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
-  })
+  }),
+) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>
   }
+}
+
+function renderedStaleTime(query?: { staleTime: number }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  renderHook(() => useTransactionHistory({ baseUrl, query }), {
+    wrapper: wrapper(client),
+  })
+  const [cached] = client.getQueryCache().getAll()
+  return cached?.options.staleTime
 }
 
 describe('useTransactionHistory', () => {
@@ -152,6 +165,81 @@ describe('useTransactionHistory', () => {
 
     expect(result.current.fetchStatus).toBe('idle')
     expect(h.getTransactionHistory).not.toHaveBeenCalled()
+  })
+
+  it('defaults staleTime to 30s', () => {
+    expect(renderedStaleTime()).toBe(30_000)
+  })
+
+  it("keeps the caller's staleTime", () => {
+    expect(renderedStaleTime({ staleTime: 5_000 })).toBe(5_000)
+  })
+
+  it('does not refetch a fresh feed on remount', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const first = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true))
+    first.unmount()
+
+    const second = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true))
+
+    expect(h.getTransactionHistory).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not retry a spent monthly budget on remount, focus or reconnect', async () => {
+    const quota = new DataApiError({
+      status: 429,
+      body: { error: 'throttled', reason: 'quota_exhausted' },
+      url: `${baseUrl}/v1/me/transaction-history`,
+      retryAfterMs: 3_600_000,
+    })
+    h.getTransactionHistory.mockRejectedValue(quota)
+    const client = new QueryClient()
+    const first = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(first.result.current.isError).toBe(true))
+    first.unmount()
+
+    const second = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(second.result.current.isError).toBe(true))
+    const [cached] = client.getQueryCache().getAll()
+    const options = cached?.options as {
+      refetchOnWindowFocus: (query: unknown) => boolean
+      refetchOnReconnect: (query: unknown) => boolean
+    }
+
+    expect(h.getTransactionHistory).toHaveBeenCalledTimes(1)
+    expect(options.refetchOnWindowFocus(cached)).toBe(false)
+    expect(options.refetchOnReconnect(cached)).toBe(false)
+  })
+
+  it('still refetches on focus after any other error', async () => {
+    h.getTransactionHistory.mockRejectedValue(
+      new DataApiError({ status: 500, body: null, url: 'x' }),
+    )
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const { result } = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    const [cached] = client.getQueryCache().getAll()
+    const options = cached?.options as {
+      refetchOnWindowFocus: (query: unknown) => boolean
+    }
+
+    expect(options.refetchOnWindowFocus(cached)).toBe(true)
   })
 
   it('keys the feed by URL, wallet, environment, and chainIds but not cursor', () => {
