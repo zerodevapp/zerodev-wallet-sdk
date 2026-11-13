@@ -23,7 +23,7 @@ export function TxDetailsItem({ title, index, data }: TxDetailsItemProps) {
     >
       <Wrapper className="zd:w-full zd:h-[68px] zd:rounded-xl zd:p-4 zd:flex zd:flex-row zd:justify-between zd:items-center">
         <div className="zd:flex zd:flex-row zd:gap-2 zd:items-center">
-          <div className="zd:w-11 zd:h-11 zd:bg-white zd:flex zd:items-center zd:justify-center zd:rounded-xl">
+          <div className="zd:w-11 zd:h-11 zd:bg-bright-primary zd:flex zd:items-center zd:justify-center zd:rounded-xl">
             <Text className="zd:text-body1">{index}</Text>
           </div>
           <Text className="zd:text-body1">{title}</Text>

@@ -79,7 +79,7 @@ export function OtpInput() {
           </Text>
           <Text className="zd:text-center">
             Enter the code from the email we sent to{' '}
-            <Text className="zd:text-solarOrange">{email}</Text>
+            <Text className="zd:text-brand-primary">{email}</Text>
           </Text>
         </div>
 
