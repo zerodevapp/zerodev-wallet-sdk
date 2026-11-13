@@ -335,9 +335,13 @@
   --zd-color-scheme: light;
 }
 
-/* The scheme lands on the kit's surfaces only, never on the host page. */
+/* The scheme lands on the kit's surfaces only, never on the host page. The
+   foreground too: text that sets no colour of its own (a sheet's actions, a
+   dropdown's items) reads in the neutral token instead of inheriting the
+   host page's colour, which a dark theme on a light page would get wrong. */
 :where(.zd-scope) {
   color-scheme: var(--zd-color-scheme, light);
+  color: var(--zd-text-neutral-primary);
 }
 
 /* Plain dark. */
