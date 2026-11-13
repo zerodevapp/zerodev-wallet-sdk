@@ -4,9 +4,16 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8')
+const THEME_BRANDS = ['branded', 'plain'] as const
+/** The variants the stylesheet carries values for; branded dark is held
+ * until the card's art has a dark design. */
+const SHIPPED_THEME_VARIANTS = [
+  { mode: 'light', brand: 'branded' },
+  { mode: 'light', brand: 'plain' },
+  { mode: 'dark', brand: 'plain' },
+] as const
 
-const BRANDS = ['branded', 'plain']
+const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8')
 /** Tailwind namespace per role, as the @theme inline aliases use them. */
 const NAMESPACE: Record<string, string> = {
   bg: 'background-color',
@@ -63,6 +70,9 @@ const names = [...aliases.keys()]
 const role = (name: string) => name.slice(0, name.indexOf('-'))
 const branded = declarations(block(':where(:root)'))
 const plain = declarations(block(':where([data-zd-brand="plain"])'))
+const plainDark = declarations(
+  block(':where([data-zd-mode="dark"][data-zd-brand="plain"])'),
+)
 
 describe('theme/tokens.css', () => {
   it('aliases each token under the namespace of its role', () => {
@@ -74,16 +84,16 @@ describe('theme/tokens.css', () => {
     }
   })
 
-  it('states a lowercase hex value for every token in every brand', () => {
-    for (const brand of BRANDS) {
-      const values = brand === 'branded' ? branded : plain
-      expect([...values.keys()].sort(), brand).toEqual([...names].sort())
+  it('states a lowercase hex value for every token in every shipped variant', () => {
+    const blocks = { branded, plain, plainDark }
+    for (const [name, values] of Object.entries(blocks)) {
+      expect([...values.keys()].sort(), name).toEqual([...names].sort())
       for (const value of values.values()) expect(value).toMatch(HEX)
     }
   })
 
-  it('carries a block per brand and sets the scheme per mode', () => {
-    for (const brand of BRANDS)
+  it('carries a block per shipped variant with its colour scheme, and `system` follows the dark one under a dark scheme', () => {
+    for (const brand of THEME_BRANDS)
       expect(css).toContain(`:where([data-zd-brand="${brand}"])`)
     expect(block(':where([data-zd-mode="light"])')).toContain(
       '--zd-color-scheme: light;',
@@ -92,6 +102,21 @@ describe('theme/tokens.css', () => {
     expect(block(':where(.zd-scope)')).toContain(
       'color-scheme: var(--zd-color-scheme, light);',
     )
+    for (const { mode, brand } of SHIPPED_THEME_VARIANTS) {
+      if (mode === 'light') continue
+      expect(
+        block(`:where([data-zd-mode="${mode}"][data-zd-brand="${brand}"])`),
+      ).toContain(`--zd-color-scheme: ${mode};`)
+      const system = css.slice(
+        css.indexOf('@media (prefers-color-scheme: dark)'),
+      )
+      expect(system).toContain(
+        `:where([data-zd-mode="system"][data-zd-brand="${brand}"]) {\n    --zd-color-scheme: dark;`,
+      )
+      expect(declarations(system.replace(/^ {2}/gm, ''))).toEqual(plainDark)
+    }
+    // Branded dark is held: no block, so it keeps the light values.
+    expect(css).not.toContain('[data-zd-mode="dark"][data-zd-brand="branded"]')
   })
 
   it('safelists every token utility, so the compiled stylesheet ships them all', () => {

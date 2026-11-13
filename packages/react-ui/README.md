@@ -93,8 +93,10 @@ dark × branded or plain. There is no generator. The file has three parts:
    (`zd:hover:bg-error-bold`) work as for any colour. Each utility reads the
    `--zd-<token>` custom property directly.
 2. The values: one `:where()` block per brand (`:root` carries branded, the
-   default), and a `color-scheme` rule per mode. A host restyles the UI by
-   overriding the `--zd-*` properties, from a stylesheet or inline.
+   default), a `color-scheme` rule for the light modes, and a block per
+   shipped dark variant (plus its `system` twin under
+   `prefers-color-scheme: dark`). A host restyles the UI by overriding the
+   `--zd-*` properties, from a stylesheet or inline.
 3. One `@source inline` line that safelists every token utility.
 
 ### Theming
@@ -156,8 +158,21 @@ and dropdowns portal into a shared root under `document.body`, which
 inherits from `<html>` like everything else; a theme set on a wrapper below
 `<html>` reaches the frame but not its popovers, so set it on `<html>`.
 
-The two light variants are carried today; a dark mode paints the light
-values and keeps the light scheme until the dark values ship.
+Three variants are carried today: branded light, plain light and plain
+dark. Branded dark is held until the card's art has a dark design, so that
+combination (and branded `system` under a dark scheme) keeps the light
+values.
+
+The brand axis also decides the decorative layers: `branded` keeps the
+gradient border ring, the card glow and the sheet gradient; `plain`
+replaces them with a flat band around a frosted card and gives every
+surface a 1px border. The switch is a Tailwind variant, `zd:plain:`,
+declared in `tokens.css` as "inside a `data-zd-brand="plain"` subtree";
+the components write `zd:plain:hidden` on the art and `zd:plain:block` on
+the flat layers, so a reader sees in the JSX what the plain brand changes.
+The variant matches any `plain` ancestor, while the colour tokens follow the
+nearest one, so a branded frame inside a plain subtree is not supported:
+theme the page, not a wrapper.
 
 The compiled stylesheet ships every token utility, used by a component or
 not, so an app without a Tailwind build can still write
@@ -197,8 +212,8 @@ generated.
   the first brace group of the `@source inline` line as `{,hover:}`; it
   then applies to every token.
 - **Add a theme variant.** Add a block keyed on both attributes after the
-  brand blocks, with its `--zd-color-scheme` and every token, plus the
-  `system` twin under `prefers-color-scheme: dark`; list
+  brand blocks, as the plain dark one, with its `color-scheme` and every
+  token, plus the `system` twin under `prefers-color-scheme: dark`; list
   the variant in `SHIPPED_THEME_VARIANTS` in `tokens.test.ts` and give the
   test its declarations. Keep the `@theme` block `inline`, or Tailwind puts the
   alias on `:root` and the brand blocks stop reaching the utilities.

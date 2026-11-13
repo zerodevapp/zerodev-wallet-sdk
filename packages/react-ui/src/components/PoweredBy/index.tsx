@@ -17,7 +17,7 @@ export function PoweredBy({
         className,
       )}
     >
-      <Text>Powered by</Text>
+      <Text className="zd:text-neutral-secondary">Powered by</Text>
       <ZeroDevLogo
         variant="lockup"
         tone="auto"

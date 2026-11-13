@@ -52,10 +52,6 @@ vi.mock('../../hooks/useAuth', () => ({
   }),
 }))
 
-vi.mock('../../components/BlobAnimation', () => ({
-  BlobAnimation: () => null,
-}))
-
 describe('SignUpEmail terms gate', () => {
   it('blocks the send until terms are accepted', () => {
     render(
