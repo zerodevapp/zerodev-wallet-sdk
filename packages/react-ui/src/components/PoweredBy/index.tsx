@@ -20,7 +20,7 @@ export function PoweredBy({
       <Text>Powered by</Text>
       <ZeroDevLogo
         variant="lockup"
-        tone="black"
+        tone="auto"
         className="zd:h-4.5 zd:w-auto"
         style={style}
       />

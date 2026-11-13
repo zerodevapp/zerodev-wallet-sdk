@@ -16,14 +16,16 @@ export function getZdPortalRoot(): HTMLElement {
   return root
 }
 
-/** Default `container` for Radix portals. The element resolves in an effect,
- * so SSR and the first client render return undefined and Radix falls back
- * to document.body. That window is harmless. Tooltips and dropdowns only
- * open after mount, and by then the root exists. */
+/** Default `container` for Radix portals: the shared root. It is a child of
+ * document.body, so it inherits the theme (`data-zd-*` and `--zd-*`) from
+ * `<html>`, and no host transform or overflow can clip what lands in it.
+ * The root resolves in an effect, so SSR and the first client render return
+ * undefined and Radix falls back to document.body. That window is harmless.
+ * Tooltips and dropdowns only open after mount, and by then the root exists. */
 export function useZdPortalContainer(): HTMLElement | undefined {
-  const [container, setContainer] = useState<HTMLElement>()
+  const [root, setRoot] = useState<HTMLElement>()
   useEffect(() => {
-    setContainer(getZdPortalRoot())
+    setRoot(getZdPortalRoot())
   }, [])
-  return container
+  return root
 }
