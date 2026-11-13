@@ -2,7 +2,7 @@
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
 import {ConnectWallet, SignUp, useAuth, useZeroDevWalletKit} from '@zerodev/wallet-react-ui'
-import {KeyRound, Layers, Loader2, Moon, Sparkles, Sun} from 'lucide-react'
+import {CircleDashed, KeyRound, Layers, Loader2, Moon, Sparkles, Sun} from 'lucide-react'
 import {useRouter, useSearchParams} from 'next/navigation'
 import {Suspense, useCallback, useEffect, useRef, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
@@ -40,19 +40,25 @@ export default function LandingPage() {
 
 // The shipped presets, `<brand>-<mode>`; branded dark is held until its art
 // has a dark design.
-const THEME_NAMES = ['branded-light', 'plain-light', 'plain-dark'] as const
-type ThemeName = (typeof THEME_NAMES)[number]
+type ThemeMode = 'light' | 'dark'
+type ThemeBrand = 'branded' | 'plain'
+type ThemeName = `${ThemeBrand}-${ThemeMode}`
+const THEME_NAMES: readonly ThemeName[] = ['branded-light', 'plain-light', 'plain-dark']
 
 function LandingPageInner() {
   const router = useRouter()
-  // `?theme=plain-dark` picks the starting preset; the toggle under the card
-  // flips between branded light (the kit's default) and plain dark.
+  // `?theme=plain-light` picks the starting preset; the switches above the
+  // card move along the two axes of the grid, mode and brand. Branded dark
+  // is held, so dark always means plain, and the brand switch rests while
+  // the mode is dark.
   const themeParam = useSearchParams().get('theme')
   const [theme, setTheme] = useState<ThemeName>(
     () => THEME_NAMES.find((name) => name === themeParam) ?? 'branded-light',
   )
-  const toggleTheme = () =>
-    setTheme((current) => (current === 'plain-dark' ? 'branded-light' : 'plain-dark'))
+  const [brand, mode] = theme.split('-') as [ThemeBrand, ThemeMode]
+  const setMode = (next: ThemeMode) =>
+    setTheme(`${next === 'dark' ? 'plain' : brand}-${next}`)
+  const setBrand = (next: ThemeBrand) => setTheme(`${next}-${mode}`)
   // The kit reads its theme from these two attributes on <html>.
   useEffect(() => {
     const [brand, mode] = theme.split('-')
@@ -204,7 +210,29 @@ function LandingPageInner() {
         </section>
 
         <div className="mx-auto flex w-full flex-col items-center lg:mx-0">
-          <ThemeSwitch dark={theme === 'plain-dark'} onToggle={toggleTheme} />
+          <div className="mb-4 flex items-center gap-2">
+            <PillSwitch
+              checked={mode === 'dark'}
+              onToggle={() => setMode(mode === 'dark' ? 'light' : 'dark')}
+              label="Dark mode"
+              offTitle="Light mode"
+              onTitle="Dark mode"
+              dark={mode === 'dark'}
+              offIcon={Sun}
+              onIcon={Moon}
+            />
+            <PillSwitch
+              checked={brand === 'plain'}
+              onToggle={() => setBrand(brand === 'plain' ? 'branded' : 'plain')}
+              label="Non-branded"
+              offTitle="Branded"
+              onTitle="Non-branded"
+              dark={mode === 'dark'}
+              disabled={mode === 'dark'}
+              offIcon={Sparkles}
+              onIcon={CircleDashed}
+            />
+          </div>
           <div
             ref={cardSlotRef}
             className="flex w-full max-w-[360px] flex-col items-center justify-center"
@@ -315,45 +343,97 @@ function renderSignUpItem(item: PlaygroundItem) {
 }
 
 /**
- * Sliding pill switch between the two demo themes. The knob carries the
+ * Sliding pill switch for one axis of the theme grid. The knob carries the
  * active icon and slides to its side of the track; the other icon stays
- * ghosted behind it so both options read at a glance.
+ * ghosted behind it so both options read at a glance. `dark` dresses the
+ * track for the dark mode, whichever axis it switches. One tooltip above
+ * the track names the option under the pointer and glides between the two
+ * halves as the pointer crosses; keyboard focus names the active one.
  */
-function ThemeSwitch({
-  dark,
+function PillSwitch({
+  checked,
   onToggle,
+  label,
+  offTitle,
+  onTitle,
+  dark,
+  disabled = false,
+  offIcon: OffIcon,
+  onIcon: OnIcon,
 }: {
-  dark: boolean
+  checked: boolean
   onToggle: () => void
+  label: string
+  offTitle: string
+  onTitle: string
+  dark: boolean
+  disabled?: boolean
+  offIcon: typeof Sun
+  onIcon: typeof Sun
 }) {
+  // The half under the pointer, or the active half under keyboard focus;
+  // null hides the tooltip. `side` keeps the last half so the label stays
+  // put while the tooltip fades out.
+  const [pointerSide, setPointerSide] = useState<'off' | 'on' | null>(null)
+  const [focusVisible, setFocusVisible] = useState(false)
+  const shownSide = pointerSide ?? (focusVisible ? (checked ? 'on' : 'off') : null)
+  const [side, setSide] = useState<'off' | 'on'>(checked ? 'on' : 'off')
+  if (shownSide && shownSide !== side) setSide(shownSide)
+  const shown = shownSide !== null
+  // Showing takes two commits: the position lands while the tooltip is
+  // still hidden, that style is flushed, and only then does it fade in. A
+  // transition runs from the last committed style, so the label appears
+  // where it belongs instead of sliding over from where it last was.
+  const tipRef = useRef<HTMLSpanElement>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    if (!shown) {
+      setVisible(false)
+      return
+    }
+    void tipRef.current?.offsetLeft
+    setVisible(true)
+  }, [shown])
+
   return (
     <button
       type="button"
       role="switch"
-      aria-checked={dark}
-      aria-label="Dark theme"
-      title={dark ? 'Theme: non-branded dark' : 'Theme: branded light'}
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
       onClick={onToggle}
+      onPointerMove={(e) => {
+        // Over the tooltip itself the side stays: the label is hoverable
+        // (so it can be read under a magnifier) without gliding away.
+        if (tipRef.current?.contains(e.target as Node)) return
+        const r = e.currentTarget.getBoundingClientRect()
+        setPointerSide(e.clientX - r.left < r.width / 2 ? 'off' : 'on')
+      }}
+      onPointerLeave={() => setPointerSide(null)}
+      onFocus={(e) => setFocusVisible(e.currentTarget.matches(':focus-visible'))}
+      onBlur={() => setFocusVisible(false)}
       className={cn(
-        'relative mb-4 h-9 w-[68px] shrink-0 cursor-pointer rounded-full border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-warm)]',
+        'relative h-9 w-[68px] shrink-0 rounded-full border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-warm)]',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
         dark
           ? 'border-[#2a2420] bg-[#19110b]'
           : 'border-[var(--border-warm)] bg-[var(--surface-warm)]',
       )}
     >
       {/* Ghosted icons on the track, one per side. */}
-      <Sun
+      <OffIcon
         aria-hidden
         className={cn(
           'absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-opacity duration-300',
-          dark ? 'text-[#f7f5f0] opacity-40' : 'opacity-0',
+          checked ? (dark ? 'text-[#f7f5f0] opacity-40' : 'text-[var(--muted)] opacity-50') : 'opacity-0',
         )}
       />
-      <Moon
+      <OnIcon
         aria-hidden
         className={cn(
           'absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-opacity duration-300',
-          dark ? 'opacity-0' : 'text-[var(--muted)] opacity-50',
+          checked ? 'opacity-0' : dark ? 'text-[#f7f5f0] opacity-40' : 'text-[var(--muted)] opacity-50',
         )}
       />
       {/* The knob, carrying the active icon. */}
@@ -361,14 +441,47 @@ function ThemeSwitch({
         aria-hidden
         className={cn(
           'absolute top-[3px] left-[3px] grid h-7 w-7 place-items-center rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[transform,background-color] duration-300 ease-[cubic-bezier(.2,.8,.2,1)]',
-          dark ? 'translate-x-[34px] bg-[#f7f5f0]' : 'translate-x-0 bg-white',
+          checked ? 'translate-x-[34px]' : 'translate-x-0',
+          dark ? 'bg-[#f7f5f0]' : 'bg-white',
         )}
       >
-        {dark ? (
-          <Moon className="h-4 w-4 text-[#19110b]" strokeWidth={2.25} />
+        {checked ? (
+          <OnIcon
+            className={cn('h-4 w-4', dark ? 'text-[#19110b]' : 'text-[var(--accent-warm)]')}
+            strokeWidth={2.25}
+          />
         ) : (
-          <Sun className="h-4 w-4 text-[var(--accent-warm)]" strokeWidth={2.25} />
+          <OffIcon
+            className={cn('h-4 w-4', dark ? 'text-[#19110b]' : 'text-[var(--accent-warm)]')}
+            strokeWidth={2.25}
+          />
         )}
+      </span>
+      {/* The tooltip, centred over the named half. Its left edge glides
+        between the halves; opacity and a short rise handle show and hide. */}
+      <span
+        ref={tipRef}
+        role="tooltip"
+        aria-hidden={!visible}
+        // Reading the label must not flip the switch.
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          'absolute bottom-full z-10 mb-3 -translate-x-1/2 cursor-default whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-[0_4px_12px_rgba(0,0,0,0.18)] duration-250 ease-[cubic-bezier(.2,.8,.2,1)]',
+          'after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-[5px] after:border-transparent',
+          // An invisible bridge over the gap to the track, so the pointer can
+          // travel from the switch onto the label without leaving the pill.
+          "before:absolute before:inset-x-0 before:top-full before:h-3 before:content-['']",
+          side === 'off' ? 'left-[17px]' : 'left-[51px]',
+          // The position glides only while the tooltip shows; hidden, it
+          // snaps, so the next show starts in place.
+          visible
+            ? 'pointer-events-auto translate-y-0 opacity-100 transition-[left,opacity,transform]'
+            : 'pointer-events-none translate-y-1 opacity-0 transition-[opacity,transform]',
+          // A page element, so it keeps the page's ink in both modes.
+          'bg-[var(--ink)] text-white after:border-t-[var(--ink)]',
+        )}
+      >
+        {side === 'off' ? offTitle : onTitle}
       </span>
     </button>
   )
