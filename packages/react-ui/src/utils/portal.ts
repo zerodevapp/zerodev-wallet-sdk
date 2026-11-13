@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 
 const PORTAL_ROOT_ID = 'zd-portal-root'
 
@@ -16,14 +16,28 @@ export function getZdPortalRoot(): HTMLElement {
   return root
 }
 
-/** Default `container` for Radix portals. The element resolves in an effect,
- * so SSR and the first client render return undefined and Radix falls back
- * to document.body. That window is harmless. Tooltips and dropdowns only
- * open after mount, and by then the root exists. */
-export function useZdPortalContainer(): HTMLElement | undefined {
-  const [container, setContainer] = useState<HTMLElement>()
+/** The portal root, once it exists; `undefined` during SSR and the first
+ * client render. */
+export function useZdPortalRoot(): HTMLElement | undefined {
+  const [root, setRoot] = useState<HTMLElement>()
   useEffect(() => {
-    setContainer(getZdPortalRoot())
+    setRoot(getZdPortalRoot())
   }, [])
-  return container
+  return root
+}
+
+/** The portal container a `Screen` gives its subtree: a child of the portal
+ * root that carries that frame's theme, so what portals out of the frame is
+ * themed like the frame. `null` outside a Screen. */
+export const PortalContainerContext = createContext<HTMLElement | null>(null)
+
+/** Default `container` for Radix portals: the enclosing Screen's container,
+ * else the shared root. Both resolve in an effect, so SSR and the first
+ * client render return undefined and Radix falls back to document.body.
+ * That window is harmless. Tooltips and dropdowns only open after mount,
+ * and by then the container exists. */
+export function useZdPortalContainer(): HTMLElement | undefined {
+  const scoped = useContext(PortalContainerContext)
+  const root = useZdPortalRoot()
+  return scoped ?? root
 }

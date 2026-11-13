@@ -16,7 +16,7 @@ const meta = {
     },
     tone: {
       control: 'select',
-      options: ['black', 'offwhite', 'color', 'orange'],
+      options: ['black', 'offwhite', 'color', 'orange', 'auto'],
     },
     className: { control: 'text' },
   },
