@@ -53,6 +53,11 @@ export default defineConfig({
       testMatch: /metamask.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
+    {
+      name: 'chromium-zerion',
+      testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
+    },
   ],
   // Spread rather than `webServer: CI ? undefined : {...}` — with
   // exactOptionalPropertyTypes, assigning undefined to an optional prop fails.
