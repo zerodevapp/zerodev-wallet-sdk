@@ -38,26 +38,27 @@ export default function LandingPage() {
   )
 }
 
-// The shipped presets, `<brand>-<mode>`; branded dark is held until its art
-// has a dark design.
+// The four presets, `<brand>-<mode>`.
 type ThemeMode = 'light' | 'dark'
 type ThemeBrand = 'branded' | 'plain'
 type ThemeName = `${ThemeBrand}-${ThemeMode}`
-const THEME_NAMES: readonly ThemeName[] = ['branded-light', 'plain-light', 'plain-dark']
+const THEME_NAMES: readonly ThemeName[] = [
+  'branded-light',
+  'plain-light',
+  'branded-dark',
+  'plain-dark',
+]
 
 function LandingPageInner() {
   const router = useRouter()
   // `?theme=plain-light` picks the starting preset; the switches above the
-  // card move along the two axes of the grid, mode and brand. Branded dark
-  // is held, so dark always means plain, and the brand switch rests while
-  // the mode is dark.
+  // card move along the two axes of the grid, mode and brand.
   const themeParam = useSearchParams().get('theme')
   const [theme, setTheme] = useState<ThemeName>(
     () => THEME_NAMES.find((name) => name === themeParam) ?? 'branded-light',
   )
   const [brand, mode] = theme.split('-') as [ThemeBrand, ThemeMode]
-  const setMode = (next: ThemeMode) =>
-    setTheme(`${next === 'dark' ? 'plain' : brand}-${next}`)
+  const setMode = (next: ThemeMode) => setTheme(`${brand}-${next}`)
   const setBrand = (next: ThemeBrand) => setTheme(`${next}-${mode}`)
   // The kit reads its theme from these two attributes on <html>.
   useEffect(() => {
@@ -228,7 +229,6 @@ function LandingPageInner() {
               offTitle="Branded"
               onTitle="Non-branded"
               dark={mode === 'dark'}
-              disabled={mode === 'dark'}
               offIcon={Sparkles}
               onIcon={CircleDashed}
             />
@@ -357,7 +357,6 @@ function PillSwitch({
   offTitle,
   onTitle,
   dark,
-  disabled = false,
   offIcon: OffIcon,
   onIcon: OnIcon,
 }: {
@@ -367,7 +366,6 @@ function PillSwitch({
   offTitle: string
   onTitle: string
   dark: boolean
-  disabled?: boolean
   offIcon: typeof Sun
   onIcon: typeof Sun
 }) {
@@ -401,7 +399,6 @@ function PillSwitch({
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      disabled={disabled}
       onClick={onToggle}
       onPointerMove={(e) => {
         // Over the tooltip itself the side stays: the label is hoverable
@@ -414,8 +411,7 @@ function PillSwitch({
       onFocus={(e) => setFocusVisible(e.currentTarget.matches(':focus-visible'))}
       onBlur={() => setFocusVisible(false)}
       className={cn(
-        'relative h-9 w-[68px] shrink-0 rounded-full border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-warm)]',
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+        'relative h-9 w-[68px] shrink-0 cursor-pointer rounded-full border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-warm)]',
         dark
           ? 'border-[#2a2420] bg-[#19110b]'
           : 'border-[var(--border-warm)] bg-[var(--surface-warm)]',

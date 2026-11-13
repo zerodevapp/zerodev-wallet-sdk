@@ -5,13 +5,22 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const THEME_BRANDS = ['branded', 'plain'] as const
-/** The variants the stylesheet carries values for; branded dark is held
- * until the card's art has a dark design. */
+/** The variants the stylesheet carries values for: every cell of the grid. */
 const SHIPPED_THEME_VARIANTS = [
   { mode: 'light', brand: 'branded' },
   { mode: 'light', brand: 'plain' },
+  { mode: 'dark', brand: 'branded' },
   { mode: 'dark', brand: 'plain' },
 ] as const
+
+/** The selector a dark block (or its `system` twin) is keyed on: the plain
+ * brand names itself, the branded one is the default and keys on the mode
+ * alone, so a host that writes only `data-zd-mode` gets it. */
+function darkSelector(mode: 'dark' | 'system', brand: 'branded' | 'plain') {
+  return brand === 'plain'
+    ? `:where([data-zd-mode="${mode}"][data-zd-brand="plain"])`
+    : `:where([data-zd-mode="${mode}"]:not([data-zd-brand="plain"]))`
+}
 
 const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8')
 /** Tailwind namespace per role, as the @theme inline aliases use them. */
@@ -30,12 +39,13 @@ const UTILITY: Record<string, string> = {
 }
 const HEX = /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/
 
-/** A top-level block's body by a prefix of its selector text. */
-function block(selectorStart: string): string {
+/** A top-level block's body by a prefix of its selector text; `nested` for
+ * a block inside the media query, which closes on an indented brace. */
+function block(selectorStart: string, nested = false): string {
   const start = css.indexOf(selectorStart)
   expect(start, `block ${selectorStart}`).toBeGreaterThanOrEqual(0)
   const open = css.indexOf('{', start)
-  return css.slice(open + 1, css.indexOf('\n}', open))
+  return css.slice(open + 1, css.indexOf(nested ? '\n  }' : '\n}', open))
 }
 
 /** `--zd-<token>: <value>` pairs declared in a block body. */
@@ -70,9 +80,8 @@ const names = [...aliases.keys()]
 const role = (name: string) => name.slice(0, name.indexOf('-'))
 const branded = declarations(block(':where(:root)'))
 const plain = declarations(block(':where([data-zd-brand="plain"])'))
-const plainDark = declarations(
-  block(':where([data-zd-mode="dark"][data-zd-brand="plain"])'),
-)
+const plainDark = declarations(block(darkSelector('dark', 'plain')))
+const brandedDark = declarations(block(darkSelector('dark', 'branded')))
 
 describe('theme/tokens.css', () => {
   it('aliases each token under the namespace of its role', () => {
@@ -85,7 +94,7 @@ describe('theme/tokens.css', () => {
   })
 
   it('states a lowercase hex value for every token in every shipped variant', () => {
-    const blocks = { branded, plain, plainDark }
+    const blocks = { branded, plain, brandedDark, plainDark }
     for (const [name, values] of Object.entries(blocks)) {
       expect([...values.keys()].sort(), name).toEqual([...names].sort())
       for (const value of values.values()) expect(value).toMatch(HEX)
@@ -102,21 +111,20 @@ describe('theme/tokens.css', () => {
     expect(block(':where(.zd-scope)')).toContain(
       'color-scheme: var(--zd-color-scheme, light);',
     )
+    // The last one: the `zd:dark:` variant carries a media rule of its own.
+    const media = css.lastIndexOf('@media (prefers-color-scheme: dark)')
     for (const { mode, brand } of SHIPPED_THEME_VARIANTS) {
       if (mode === 'light') continue
-      expect(
-        block(`:where([data-zd-mode="${mode}"][data-zd-brand="${brand}"])`),
-      ).toContain(`--zd-color-scheme: ${mode};`)
-      const system = css.slice(
-        css.indexOf('@media (prefers-color-scheme: dark)'),
+      const dark = block(darkSelector('dark', brand))
+      expect(dark).toContain('--zd-color-scheme: dark;')
+      expect(css.indexOf(darkSelector('dark', brand))).toBeLessThan(media)
+      expect(css.indexOf(darkSelector('system', brand))).toBeGreaterThan(media)
+      const system = block(darkSelector('system', brand), true)
+      expect(system).toContain('--zd-color-scheme: dark;')
+      expect(declarations(system.replace(/^ {2}/gm, ''))).toEqual(
+        declarations(dark),
       )
-      expect(system).toContain(
-        `:where([data-zd-mode="system"][data-zd-brand="${brand}"]) {\n    --zd-color-scheme: dark;`,
-      )
-      expect(declarations(system.replace(/^ {2}/gm, ''))).toEqual(plainDark)
     }
-    // Branded dark is held: no block, so it keeps the light values.
-    expect(css).not.toContain('[data-zd-mode="dark"][data-zd-brand="branded"]')
   })
 
   it('safelists every token utility, so the compiled stylesheet ships them all', () => {
