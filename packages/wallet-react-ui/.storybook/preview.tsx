@@ -1,9 +1,21 @@
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { Screen } from '@zerodev/react-ui'
+import { useEffect } from 'react'
 import '../src/styles.css'
+
+/** The toolbar value is a preset name, `<brand>-<mode>`, written on <html>
+ * as a host would, so the stories and what they portal out share it. */
+function useToolbarTheme(preset: string) {
+  const [brand, mode] = preset.split('-')
+  useEffect(() => {
+    document.documentElement.dataset.zdMode = mode
+    document.documentElement.dataset.zdBrand = brand
+  }, [brand, mode])
+}
 
 const withScreen: Decorator = (Story, context) => {
   const screen = context.globals.screen as 'on' | 'off'
+  useToolbarTheme(context.globals.theme as string)
   // Screen-off stories render outside a Screen, so this wrapper carries the
   // zd-scope class the scoped reset applies to.
   if (screen !== 'on')
@@ -31,6 +43,20 @@ const withScreen: Decorator = (Story, context) => {
 
 const preview: Preview = {
   globalTypes: {
+    theme: {
+      name: 'Theme',
+      description: 'Theme preset (mode × brand)',
+      defaultValue: 'branded-light',
+      toolbar: {
+        icon: 'paintbrush',
+        items: [
+          { value: 'branded-light', title: 'Branded light' },
+          { value: 'plain-light', title: 'Plain light' },
+          { value: 'branded-dark', title: 'Branded dark' },
+          { value: 'plain-dark', title: 'Plain dark' },
+        ],
+      },
+    },
     screen: {
       name: 'Screen',
       description: 'Render the story inside the ConnectWallet card chrome',
