@@ -24,6 +24,34 @@ describe('cn', () => {
   it('merges custom font-size tokens from the extended config', () => {
     expect(cn('zd:text-body2', 'zd:text-body1')).toBe('zd:text-body1')
   })
+
+  it('lets a later semantic colour token displace an earlier one of the same role', () => {
+    expect(cn('zd:bg-neutral-primary', 'zd:bg-brand-primary')).toBe(
+      'zd:bg-brand-primary',
+    )
+    expect(cn('zd:border-neutral-primary', 'zd:border-error-inverse')).toBe(
+      'zd:border-error-inverse',
+    )
+  })
+
+  it('files icon tokens with text colours, since both set `color`', () => {
+    // Icon's default is zd:text-icon-neutral-primary; a caller's token must win.
+    expect(
+      cn('zd:text-icon-neutral-primary', 'zd:text-icon-brand-primary'),
+    ).toBe('zd:text-icon-brand-primary')
+    expect(cn('zd:text-icon-neutral-primary', 'zd:text-brand-primary')).toBe(
+      'zd:text-brand-primary',
+    )
+    expect(cn('zd:text-greyScale', 'zd:text-icon-brand-primary')).toBe(
+      'zd:text-icon-brand-primary',
+    )
+  })
+
+  it('keeps a font-size utility next to a text colour token', () => {
+    expect(cn('zd:text-body3', 'zd:text-neutral-secondary')).toBe(
+      'zd:text-body3 zd:text-neutral-secondary',
+    )
+  })
 })
 
 describe('camelCaseToTitle', () => {

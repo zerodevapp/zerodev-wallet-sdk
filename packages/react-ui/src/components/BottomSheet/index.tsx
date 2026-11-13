@@ -43,7 +43,7 @@ export function BottomSheetContent({
       <Dialog.Content
         className={cn(
           'zd:absolute zd:bottom-0 zd:left-0 zd:right-0 zd:z-20',
-          'zd:bg-white zd:rounded-[32px] zd:overflow-hidden',
+          'zd:bg-bright-primary zd:rounded-[32px] zd:overflow-hidden',
           'zd:outline-none',
           'zd:data-[state=open]:animate-sheet-in',
           'zd:data-[state=closed]:animate-sheet-out',

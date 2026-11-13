@@ -14,7 +14,10 @@ export function Callout({ title, description }: CalloutProps) {
       variant="solid"
     >
       <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
-        <Icon name="info" className="zd:h-3.5 zd:w-3.5 zd:text-solarOrange" />
+        <Icon
+          name="info"
+          className="zd:h-3.5 zd:w-3.5 zd:text-icon-brand-primary"
+        />
         <Text className="zd:text-body1">{title}</Text>
       </div>
       <Text className="zd:text-body3 zd:break-all">{description}</Text>

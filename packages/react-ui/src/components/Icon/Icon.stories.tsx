@@ -26,7 +26,7 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {
   args: {
     name: 'check',
-    className: 'zd:w-6 zd:h-6 zd:text-greyScale',
+    className: 'zd:w-6 zd:h-6 zd:text-icon-neutral-primary',
   },
 }
 
@@ -52,7 +52,10 @@ export const AllIcons: Story = {
             padding: 12,
           }}
         >
-          <Icon name={name} className="zd:w-6 zd:h-6 zd:text-greyScale" />
+          <Icon
+            name={name}
+            className="zd:w-6 zd:h-6 zd:text-icon-neutral-primary"
+          />
           <span style={{ color: '#999', fontSize: 10, textAlign: 'center' }}>
             {name.replace(/Icon$/, '')}
           </span>

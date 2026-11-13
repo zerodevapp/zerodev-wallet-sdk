@@ -44,7 +44,7 @@ export const AsLabel: Story = {
 export const CustomColor: Story = {
   args: {
     children: 'Orange text',
-    className: 'zd:text-orange',
+    className: 'zd:text-brand-primary',
   },
 }
 

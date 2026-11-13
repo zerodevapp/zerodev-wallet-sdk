@@ -49,37 +49,40 @@ describe('Button', () => {
   })
 
   describe('action variants', () => {
-    it('applies the dark primary fill by default', () => {
+    it('applies the inverse (dark) fill by default', () => {
       const { container } = render(<Button text="Primary" />)
       const surface = container.firstChild as HTMLElement
-      expect(surface.style.backgroundColor).toBe('rgba(19, 14, 11, 0.9)')
+      expect(surface.className).toContain('zd:bg-inverse-secondary')
     })
 
-    it('applies the dark primary fill when action="primary"', () => {
+    it('applies the inverse fill when action="primary"', () => {
       const { container } = render(<Button text="Primary" action="primary" />)
       const surface = container.firstChild as HTMLElement
-      expect(surface.style.backgroundColor).toBe('rgba(19, 14, 11, 0.9)')
+      expect(surface.className).toContain('zd:bg-inverse-secondary')
+      // The inverse fill displaces the Wrapper's own surface class.
+      expect(surface.className).not.toContain('zd:bg-bright-secondary')
     })
 
-    it('uses the frosted white surface when action="secondary"', () => {
+    it('uses the frosted bright surface when action="secondary"', () => {
       const { container } = render(
         <Button text="Secondary" action="secondary" />,
       )
-      // secondary keeps the Wrapper's white@0.5 surface (no dark override)
+      // secondary keeps the Wrapper's bright-secondary surface
       const surface = container.firstChild as HTMLElement
-      expect(surface.style.backgroundColor).toBe('rgba(255, 255, 255, 0.5)')
+      expect(surface.className).toContain('zd:bg-bright-secondary')
+      expect(surface.className).not.toContain('zd:bg-inverse-secondary')
     })
 
     it('applies correct text classes for primary action', () => {
       render(<Button text="Primary" action="primary" />)
       const textSpan = screen.getByText('Primary')
-      expect(textSpan.className).toContain('text-white')
+      expect(textSpan.className).toContain('text-inverse-primary')
     })
 
     it('applies correct text classes for secondary action', () => {
       render(<Button text="Secondary" action="secondary" />)
       const textSpan = screen.getByText('Secondary')
-      expect(textSpan.className).toContain('text-greyScale')
+      expect(textSpan.className).toContain('text-neutral-primary')
     })
   })
 
@@ -186,16 +189,18 @@ describe('Button', () => {
       expect(screen.queryByTestId(/^icon-/)).toBeNull()
     })
 
-    it('applies text color classes to the icon', () => {
+    it('applies the inverse icon colour for primary', () => {
       render(<Button text="Send" iconName="rocket" action="primary" />)
       const icon = screen.getByTestId('icon-rocket')
-      expect(icon.getAttribute('class')).toContain('text-white')
+      expect(icon.getAttribute('class')).toContain('icon-inverse-primary')
+      // The variant colour displaces Icon's own default.
+      expect(icon.getAttribute('class')).not.toContain('icon-neutral-primary')
     })
 
-    it('applies secondary text color classes to the icon', () => {
+    it('applies the neutral icon colour for secondary', () => {
       render(<Button text="Send" iconName="rocket" action="secondary" />)
       const icon = screen.getByTestId('icon-rocket')
-      expect(icon.getAttribute('class')).toContain('text-greyScale')
+      expect(icon.getAttribute('class')).toContain('icon-neutral-primary')
     })
   })
 })

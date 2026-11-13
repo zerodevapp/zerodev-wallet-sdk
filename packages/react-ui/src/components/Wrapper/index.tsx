@@ -9,15 +9,12 @@ export interface WrapperProps extends HTMLAttributes<HTMLDivElement> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-function getBackgroundAlpha(variant: WrapperVariant): number {
-  switch (variant) {
-    case 'ghost':
-      return 0.2
-    case 'soft':
-      return 0.5
-    case 'solid':
-      return 0.8
-  }
+/** The frosted surface per variant: the design system's bright-neutral
+ * backgrounds, from a 20% white tint (ghost) to solid white (solid). */
+const backgroundClasses: Record<WrapperVariant, string> = {
+  ghost: 'zd:bg-bright-tertiary',
+  soft: 'zd:bg-bright-secondary',
+  solid: 'zd:bg-bright-primary',
 }
 
 export function Wrapper({
@@ -27,18 +24,15 @@ export function Wrapper({
   ref,
   ...rest
 }: PropsWithChildren<WrapperProps>) {
-  const backgroundAlpha = getBackgroundAlpha(variant)
-  const backgroundColor = `rgba(255, 255, 255, ${backgroundAlpha})`
-
   return (
     <div
       ref={ref}
       className={cn(
-        'zd:overflow-hidden zd:border-offWhite zd:border-[0.3px] zd:backdrop-blur-[15px]',
+        'zd:overflow-hidden zd:border-neutral-primary zd:border-[0.3px] zd:backdrop-blur-[15px]',
+        backgroundClasses[variant],
         className,
       )}
       {...rest}
-      style={{ backgroundColor, ...rest.style }}
     >
       {children}
     </div>

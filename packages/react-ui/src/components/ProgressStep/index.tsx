@@ -46,7 +46,7 @@ export function ProgressStep({
           <div
             className={cn(
               'zd:mt-1 zd:h-4 zd:w-px',
-              done ? 'zd:bg-solarOrange' : 'zd:bg-greyScale/20',
+              done ? 'zd:bg-brand-primary' : 'zd:bg-inverse-hover',
             )}
           />
         )}
@@ -56,13 +56,13 @@ export function ProgressStep({
           className={cn(
             'zd:whitespace-nowrap',
             failed
-              ? 'zd:text-negative'
+              ? 'zd:text-error-primary'
               : // Mute the label until the step is done so a final row with
                 // an inert open circle doesn't read at full intensity while
                 // earlier steps are still in flight.
                 done
-                ? 'zd:text-greyScale'
-                : 'zd:text-greyScale/50',
+                ? 'zd:text-neutral-primary'
+                : 'zd:text-neutral-tertiary',
           )}
         >
           {label}
@@ -76,7 +76,7 @@ export function ProgressStep({
             >
               <Icon
                 name="infoOutline"
-                className="zd:w-3.5 zd:h-3.5 zd:text-greyScale/50"
+                className="zd:w-3.5 zd:h-3.5 zd:text-neutral-tertiary"
                 aria-hidden
               />
             </button>
@@ -94,7 +94,7 @@ function StatusMark({ status }: { status: ProgressStepStatus }) {
       return (
         <Icon
           name="warning"
-          className="zd:size-4.5 zd:text-negative"
+          className="zd:size-4.5 zd:text-icon-error-primary"
           aria-hidden
         />
       )
@@ -104,7 +104,7 @@ function StatusMark({ status }: { status: ProgressStepStatus }) {
         // 30%-opacity disc + solid check, both tinted via currentColor.
         <Icon
           name="done"
-          className="zd:size-4.5 zd:text-solarOrange"
+          className="zd:size-4.5 zd:text-icon-brand-primary"
           aria-hidden
         />
       )
@@ -112,14 +112,14 @@ function StatusMark({ status }: { status: ProgressStepStatus }) {
       return (
         <Icon
           name="loading"
-          className="zd:size-4.5 zd:animate-spin zd:text-solarOrange"
+          className="zd:size-4.5 zd:animate-spin zd:text-icon-brand-primary"
           aria-hidden
           data-testid="progress-step-spinner"
         />
       )
     default:
       return (
-        <span className="zd:inline-block zd:size-4.5 zd:rounded-full zd:border zd:border-greyScale/30" />
+        <span className="zd:inline-block zd:size-4.5 zd:rounded-full zd:border zd:border-inverse-secondary" />
       )
   }
 }
