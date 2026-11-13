@@ -3,9 +3,9 @@ import { cn, Icon, type IconName, Text } from '@zerodev/react-ui'
 export type TxHistoryStatus = 'Pending' | 'Success' | 'Failed'
 
 const STATUS_COLOR: Record<TxHistoryStatus, string> = {
-  Pending: 'zd:text-solarOrange',
-  Success: 'zd:text-positive',
-  Failed: 'zd:text-negative',
+  Pending: 'zd:text-brand-primary',
+  Success: 'zd:text-success-primary',
+  Failed: 'zd:text-error-primary',
 }
 
 export interface TxHistoryItemProps {
@@ -44,7 +44,7 @@ export function TxHistoryItem({
         className,
       )}
     >
-      <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-white">
+      <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-bright-primary">
         <Icon name={icon} className="zd:size-5" />
       </div>
 
@@ -93,7 +93,7 @@ function ChainTag({ name, iconUrl }: { name: string; iconUrl?: string }) {
   return (
     <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-[5px]">
       {iconUrl && (
-        <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-white">
+        <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-bright-primary">
           <img
             src={iconUrl}
             alt=""

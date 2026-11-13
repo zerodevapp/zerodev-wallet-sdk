@@ -44,7 +44,7 @@ function SkeletonBar({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse',
+        'zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse',
         className,
       )}
     />
@@ -58,7 +58,7 @@ export function TxGasFeesSkeleton() {
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
           <Icon
             name="lightingFill"
-            className="zd:h-4 zd:w-4 zd:text-solarOrange"
+            className="zd:h-4 zd:w-4 zd:text-icon-brand-primary"
           />
           <Text className="zd:text-xl">Estimated Gas Fees</Text>
         </div>
@@ -100,7 +100,7 @@ export function TxGasFees({
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
           <Icon
             name="lightingFill"
-            className="zd:h-4 zd:w-4 zd:text-solarOrange"
+            className="zd:h-4 zd:w-4 zd:text-icon-brand-primary"
           />
           <Text className="zd:text-xl">Estimated Gas Fees</Text>
         </div>
@@ -116,13 +116,13 @@ export function TxGasFees({
           leading={
             <Icon
               name="warning"
-              className="zd:h-3 zd:w-3 zd:text-solarOrange"
+              className="zd:h-3 zd:w-3 zd:text-icon-brand-primary"
             />
           }
           trailing={
             <Icon
               name="gasStation"
-              className="zd:w-4 zd:h-4 zd:text-solarOrange"
+              className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
             />
           }
         />
@@ -133,7 +133,7 @@ export function TxGasFees({
             trailing={
               <Icon
                 name="settings"
-                className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
               />
             }
           />
@@ -147,14 +147,14 @@ export function TxGasFees({
             icon={
               <ListItemIcon
                 name={getTierIcon(item.tier)}
-                className="zd:text-solarOrange"
+                className="zd:text-icon-brand-primary"
               />
             }
             trailing={
               <div className="zd:flex zd:flex-col zd:pr-1">
                 <Text className="zd:text-body1">{item.fee}</Text>
                 {item.feeUsd && (
-                  <Text className="zd:text-body3 zd:text-greyScale/50 zd:self-end">
+                  <Text className="zd:text-body3 zd:text-neutral-tertiary zd:self-end">
                     {item.feeUsd}
                   </Text>
                 )}

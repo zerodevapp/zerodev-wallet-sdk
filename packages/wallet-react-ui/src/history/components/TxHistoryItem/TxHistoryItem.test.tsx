@@ -75,9 +75,9 @@ describe('TxHistoryItem', () => {
 
   describe('status color', () => {
     it.each([
-      ['Pending', 'zd:text-solarOrange'],
-      ['Success', 'zd:text-positive'],
-      ['Failed', 'zd:text-negative'],
+      ['Pending', 'zd:text-brand-primary'],
+      ['Success', 'zd:text-success-primary'],
+      ['Failed', 'zd:text-error-primary'],
     ] as const)('%s uses %s', (status, className) => {
       render(<TxHistoryItem {...baseProps} status={status} />)
       const el = screen.getByText(status)
