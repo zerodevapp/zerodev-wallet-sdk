@@ -38,9 +38,6 @@ vi.mock('./Passkey', () => ({ SignUpPasskey: () => null }))
 vi.mock('./Google', () => ({ SignUpGoogle: () => null }))
 vi.mock('./Email', () => ({ SignUpEmail: () => null }))
 vi.mock('./MoreWallets', () => ({ SignUpMoreWallets: () => null }))
-vi.mock('../../components/BlobAnimation', () => ({
-  BlobAnimation: () => null,
-}))
 vi.mock('../../../shared/components/SignUpFooter', () => ({
   SignUpFooter: ({
     setAgreedToTerms,

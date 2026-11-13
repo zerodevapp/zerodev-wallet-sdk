@@ -43,21 +43,32 @@ export function BottomSheetContent({
       <Dialog.Content
         className={cn(
           'zd:absolute zd:bottom-0 zd:left-0 zd:right-0 zd:z-20',
-          'zd:bg-bright-primary zd:rounded-[32px] zd:overflow-hidden',
+          // The card base masks what the sheet covers in every theme (the
+          // bright tint below is near-transparent in dark); the blur matches
+          // the plain card surface.
+          'zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:rounded-[32px] zd:overflow-hidden',
           'zd:outline-none',
           'zd:data-[state=open]:animate-sheet-in',
           'zd:data-[state=closed]:animate-sheet-out',
           className,
         )}
       >
+        {/* The sheet's own tint: white in light, a slight lift in dark. */}
         <div
           aria-hidden
-          className="zd:absolute zd:inset-0 zd:z-0 zd:pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 78% 65% at 5% 105%, rgba(69,171,251,0.35) 0%, rgba(69,171,251,0) 72%), radial-gradient(ellipse 82% 65% at 100% 105%, rgba(250,200,172,0.65) 0%, rgba(250,200,172,0) 72%), radial-gradient(ellipse 58% 52% at 100% 100%, rgba(242,123,62,0.35) 0%, rgba(242,123,62,0) 72%)',
-          }}
+          className="zd:absolute zd:inset-0 zd:z-0 zd:bg-bright-primary zd:pointer-events-none"
         />
+        {/* Brand art: hidden under the plain brand. */}
+        <div className="zd:contents zd:plain:hidden">
+          <div
+            aria-hidden
+            className="zd:absolute zd:inset-0 zd:z-0 zd:pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse 78% 65% at 5% 105%, rgba(69,171,251,0.35) 0%, rgba(69,171,251,0) 72%), radial-gradient(ellipse 82% 65% at 100% 105%, rgba(250,200,172,0.65) 0%, rgba(250,200,172,0) 72%), radial-gradient(ellipse 58% 52% at 100% 100%, rgba(242,123,62,0.35) 0%, rgba(242,123,62,0) 72%)',
+            }}
+          />
+        </div>
         <div className="zd:relative zd:z-10">{children}</div>
       </Dialog.Content>
     </Dialog.Portal>

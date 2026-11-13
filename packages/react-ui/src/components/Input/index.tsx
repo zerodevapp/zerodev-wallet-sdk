@@ -54,7 +54,7 @@ function InputIcon({
 // width on mobile browsers (Chrome on Android most visibly), which would
 // squash the leading icon and the trailing chevron-button child.
 const baseInputClass =
-  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-body1 zd:text-neutral-primary zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-neutral-tertiary zd:caret-(--zd-text-neutral-primary)'
+  'zd:flex-1 zd:min-w-0 zd:px-0 zd:text-body1 zd:text-neutral-primary zd:font-medium zd:outline-none zd:bg-transparent zd:min-h-11 zd:placeholder:text-neutral-secondary zd:caret-(--zd-text-neutral-primary)'
 
 export function Input({
   variant = 'default',
