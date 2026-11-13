@@ -9,6 +9,7 @@ import { cn } from '../../utils/common'
 import { TOP_NAV_HEIGHT } from '../TopNav'
 import {
   CardGlow,
+  DarkCardBase,
   MultiRadialBackground,
   WrapperBorder,
 } from './MultiRadialBackground'
@@ -112,8 +113,15 @@ export function Screen({
         style={{ clipPath: 'inset(0 round 32px)' }}
       >
         <div className="zd:contents zd:plain:hidden">
-          <MultiRadialBackground />
-          <CardGlow />
+          {/* A drawing per mode, picked by the `zd:dark:` variant; the
+            ring above is the same in both. */}
+          <div className="zd:contents zd:dark:hidden">
+            <MultiRadialBackground />
+            <CardGlow />
+          </div>
+          <div className="zd:hidden zd:dark:contents">
+            <DarkCardBase />
+          </div>
         </div>
         {/* The plain surface: the neutral background token, frosted — the
           design's "blur effect" card. */}
