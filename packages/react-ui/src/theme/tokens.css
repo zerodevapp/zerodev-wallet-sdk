@@ -23,9 +23,12 @@
       root under document.body inherits both from <html>, so tooltips and
       dropdowns follow the page theme.
 
-      Mode sets color-scheme only. The dark values arrive with the dark
-      theme; until then every mode paints the light values and keeps the
-      light scheme, so form controls match.
+      Mode sets the colour scheme, through --zd-color-scheme, which only
+      the kit's own surfaces (.zd-scope: Screen's frame and the portal root)
+      turn into `color-scheme`, so a host that themes the wallet dark on
+      <html> keeps its own scrollbars, form controls and canvas. The dark
+      values arrive with the dark theme; until then every mode paints the
+      light values and keeps the light scheme, so form controls match.
 
    3. The safelist. Tailwind only emits a utility some scanned source uses,
       and the published stylesheets must carry every token utility for hosts
@@ -329,12 +332,17 @@
    over its own canvas, so the card looks the same on a light host page. */
 :where([data-zd-mode="light"]),
 :where([data-zd-mode="system"]) {
-  color-scheme: light;
+  --zd-color-scheme: light;
+}
+
+/* The scheme lands on the kit's surfaces only, never on the host page. */
+:where(.zd-scope) {
+  color-scheme: var(--zd-color-scheme, light);
 }
 
 /* Plain dark. */
 :where([data-zd-mode="dark"][data-zd-brand="plain"]) {
-  color-scheme: dark;
+  --zd-color-scheme: dark;
   --zd-bg-neutral-primary: #15110e;
   --zd-bg-neutral-secondary: #f7f5f00d;
   --zd-bg-neutral-tertiary: #f7f5f00d;
@@ -416,7 +424,7 @@
 
 @media (prefers-color-scheme: dark) {
   :where([data-zd-mode="system"][data-zd-brand="plain"]) {
-    color-scheme: dark;
+    --zd-color-scheme: dark;
     --zd-bg-neutral-primary: #15110e;
     --zd-bg-neutral-secondary: #f7f5f00d;
     --zd-bg-neutral-tertiary: #f7f5f00d;

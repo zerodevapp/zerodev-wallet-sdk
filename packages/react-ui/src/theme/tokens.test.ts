@@ -39,12 +39,13 @@ function block(selectorStart: string): string {
 }
 
 /** `--zd-<token>: <value>` pairs declared in a block body. */
+/** The token declarations of a block. `--zd-color-scheme` carries the mode's
+ * colour scheme to the kit's surfaces and is not a token, so it is left out. */
 function declarations(body: string): Map<string, string> {
   return new Map(
-    [...body.matchAll(/^\s+--zd-([a-z-]+): (.+);$/gm)].map(([, n, v]) => [
-      n,
-      v,
-    ]),
+    [...body.matchAll(/^\s+--zd-([a-z-]+): (.+);$/gm)]
+      .filter(([, n]) => n !== 'color-scheme')
+      .map(([, n, v]) => [n, v]),
   )
 }
 
@@ -95,18 +96,22 @@ describe('theme/tokens.css', () => {
     for (const brand of THEME_BRANDS)
       expect(css).toContain(`:where([data-zd-brand="${brand}"])`)
     expect(block(':where([data-zd-mode="light"])')).toContain(
-      'color-scheme: light;',
+      '--zd-color-scheme: light;',
+    )
+    // The scheme itself lands on the kit's surfaces, not on the host page.
+    expect(block(':where(.zd-scope)')).toContain(
+      'color-scheme: var(--zd-color-scheme, light);',
     )
     for (const { mode, brand } of SHIPPED_THEME_VARIANTS) {
       if (mode === 'light') continue
       expect(
         block(`:where([data-zd-mode="${mode}"][data-zd-brand="${brand}"])`),
-      ).toContain(`color-scheme: ${mode};`)
+      ).toContain(`--zd-color-scheme: ${mode};`)
       const system = css.slice(
         css.indexOf('@media (prefers-color-scheme: dark)'),
       )
       expect(system).toContain(
-        `:where([data-zd-mode="system"][data-zd-brand="${brand}"]) {\n    color-scheme: dark;`,
+        `:where([data-zd-mode="system"][data-zd-brand="${brand}"]) {\n    --zd-color-scheme: dark;`,
       )
       expect(declarations(system.replace(/^ {2}/gm, ''))).toEqual(plainDark)
     }

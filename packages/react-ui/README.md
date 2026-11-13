@@ -129,6 +129,10 @@ document.documentElement.dataset.zdMode = dark ? 'dark' : 'light'
 
 or `data-zd-mode="system"` in the HTML, and the OS decides.
 
+Write the attributes into the server-rendered `<html>` (next-themes injects
+a script that does this before the first paint). An effect alone paints the
+default theme first and flips after hydration.
+
 **A toggle for the wallet UI only**
 
 ```tsx
@@ -145,11 +149,14 @@ html[data-zd-mode="dark"] { --zd-bg-neutral-primary: #000; }
 ```
 
 `tokens.css` carries a block per brand keyed on `data-zd-brand` and sets
-`color-scheme` per `data-zd-mode`, in `:where()` so any host rule beats it.
-Custom properties inherit, so the nearest ancestor that sets one wins.
-Tooltips and dropdowns portal into a shared root under `document.body`,
-which inherits from `<html>` like everything else; a theme set on a wrapper
-below `<html>` reaches the frame but not its popovers, so set it on `<html>`.
+the colour scheme per `data-zd-mode`, in `:where()` so any host rule beats
+it. The scheme applies to the kit's own surfaces only, so a dark wallet on
+a light page leaves the page's scrollbars and form controls alone. Custom
+properties inherit, so the nearest ancestor that sets one wins. Put both
+attributes on the same element: the dark blocks key on the pair. Tooltips
+and dropdowns portal into a shared root under `document.body`, which
+inherits from `<html>` like everything else; a theme set on a wrapper below
+`<html>` reaches the frame but not its popovers, so set it on `<html>`.
 
 Three variants are carried today: branded light, plain light and plain
 dark. Branded dark is held until the card's art has a dark design, so that
@@ -163,6 +170,9 @@ surface a 1px border. The switch is a Tailwind variant, `zd:plain:`,
 declared in `tokens.css` as "inside a `data-zd-brand="plain"` subtree";
 the components write `zd:plain:hidden` on the art and `zd:plain:block` on
 the flat layers, so a reader sees in the JSX what the plain brand changes.
+The variant matches any `plain` ancestor, while the colour tokens follow the
+nearest one, so a branded frame inside a plain subtree is not supported:
+theme the page, not a wrapper.
 
 The compiled stylesheet ships every token utility, used by a component or
 not, so an app without a Tailwind build can still write
