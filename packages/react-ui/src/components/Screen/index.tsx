@@ -9,6 +9,7 @@ import { cn } from '../../utils/common'
 import { TOP_NAV_HEIGHT } from '../TopNav'
 import {
   CardGlow,
+  DarkCardBase,
   MultiRadialBackground,
   WrapperBorder,
 } from './MultiRadialBackground'
@@ -104,6 +105,12 @@ export function Screen({
           // Horizontal padding lives on the scroll container so TopNav and
           // footer can span edge-to-edge without escape offsets.
           'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:overflow-hidden zd:rounded-4xl zd:relative',
+          // The translucent cards (plain, and branded dark) frost the ring
+          // they sit on. The blur lives here, on the clipped element: its
+          // clip-path makes it a backdrop root, so a blur on a descendant
+          // would see only the card's own layers and leave the ring behind
+          // it sharp. Branded light paints an opaque base, so it needs none.
+          'zd:plain:backdrop-blur-[30px] zd:dark:backdrop-blur-[30px]',
           contentClassName,
         )}
         // clip-path clips backdrop-filter to the rounded corners; plain
@@ -112,14 +119,21 @@ export function Screen({
         style={{ clipPath: 'inset(0 round 32px)' }}
       >
         <div className="zd:contents zd:plain:hidden">
-          <MultiRadialBackground />
-          <CardGlow />
+          {/* A drawing per mode, picked by the `zd:dark:` variant; the
+            ring above is the same in both. */}
+          <div className="zd:contents zd:dark:hidden">
+            <MultiRadialBackground />
+            <CardGlow />
+          </div>
+          <div className="zd:hidden zd:dark:contents">
+            <DarkCardBase />
+          </div>
         </div>
-        {/* The plain surface: the neutral background token, frosted — the
-          design's "blur effect" card. */}
+        {/* The plain surface: the neutral background token over the card's
+          blur — the design's "blur effect" card. */}
         <div
           aria-hidden
-          className="zd:hidden zd:plain:block zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:backdrop-blur-[30px] zd:pointer-events-none"
+          className="zd:hidden zd:plain:block zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:pointer-events-none"
         />
         <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}

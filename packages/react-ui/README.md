@@ -158,10 +158,10 @@ and dropdowns portal into a shared root under `document.body`, which
 inherits from `<html>` like everything else; a theme set on a wrapper below
 `<html>` reaches the frame but not its popovers, so set it on `<html>`.
 
-Three variants are carried today: branded light, plain light and plain
-dark. Branded dark is held until the card's art has a dark design, so that
-combination (and branded `system` under a dark scheme) keeps the light
-values.
+All four variants are carried: branded light, plain light, branded dark and
+plain dark. The branded dark block keys on the mode alone, so a host that
+sets only `data-zd-mode` gets it; `data-zd-brand="plain"` on the same
+element picks the plain one.
 
 The brand axis also decides the decorative layers: `branded` keeps the
 gradient border ring, the card glow and the sheet gradient; `plain`
@@ -170,6 +170,9 @@ surface a 1px border. The switch is a Tailwind variant, `zd:plain:`,
 declared in `tokens.css` as "inside a `data-zd-brand="plain"` subtree";
 the components write `zd:plain:hidden` on the art and `zd:plain:block` on
 the flat layers, so a reader sees in the JSX what the plain brand changes.
+The mode has a variant too, `zd:dark:`, declared the same way (and
+following the OS scheme under `system`); the branded card has a drawing per
+mode and picks it with `zd:dark:hidden` / `zd:dark:contents`.
 The variant matches any `plain` ancestor, while the colour tokens follow the
 nearest one, so a branded frame inside a plain subtree is not supported:
 theme the page, not a wrapper.
