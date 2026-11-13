@@ -79,11 +79,11 @@ export function Screen({
       style={style}
     >
       {/* Gradient border layer — fills the frame; the card on top has a 6px
-          margin so this shows as the border ring. */}
+        margin so this shows as the border ring. */}
       <WrapperBorder />
       {/* Inner card sits on top with a 6px margin, exposing the border ring.
-          Its own gradient (base + CardGlow) fills the card so the colour stays
-          vivid and distinct from the border. */}
+        Its own gradient (base + CardGlow) fills the card so the colour stays
+        vivid and distinct from the border. */}
       <div
         ref={setOverlayContainer}
         className={cn(
@@ -135,10 +135,10 @@ export function Screen({
         </div>
       </div>
       {/* Overlay is a sibling of the inner card, not a child — so it escapes
-          the card's clip-path + horizontal padding, and its own absolute
-          `inset-0` fills the outer 400×810 frame. That lets the backdrop dim
-          the TopNav band too and lets a bottom sheet anchor to the outer
-          frame's bottom, not the padded inner card. */}
+        the card's clip-path + horizontal padding, and its own absolute
+        `inset-0` fills the outer 400×810 frame. That lets the backdrop dim
+        the TopNav band too and lets a bottom sheet anchor to the outer
+        frame's bottom, not the padded inner card. */}
       {overlay}
     </div>
   )

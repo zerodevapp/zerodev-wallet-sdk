@@ -81,18 +81,83 @@ purpose) to pick up the same tokens.
 
 ### Semantic colour tokens
 
-`src/theme/tokens.css` declares every themed colour in a Tailwind `@theme`
-block, one variable per token, mirroring the "ZeroDev Design System" Figma
-collection (light/dark × branded/plain; only the branded light default is
-stated today). Tailwind's colour namespaces turn each variable into a
-utility, so a component writes `zd:bg-neutral-primary`,
-`zd:text-neutral-secondary`, `zd:text-icon-brand-primary` or
-`zd:border-neutral-primary` and never a value. Opacity modifiers
-(`zd:bg-neutral-primary/50`) and variants (`zd:hover:bg-error-bold`) work as
-for any colour. The variables land on `:root` as
-`--zd-background-color-<token>`, `--zd-text-color-<token>` and
-`--zd-border-color-<token>`; a host restyles the UI by overriding them from
-its own stylesheet.
+`src/theme/tokens.css` is the single source of truth for every themed colour,
+mirroring the "ZeroDev Design System" Figma collection: a 2×2 grid, light or
+dark × branded or plain. There is no generator. The file has three parts:
+
+1. A `@theme inline` block aliasing each token to a Tailwind colour
+   namespace, so Tailwind turns it into a utility: `zd:bg-neutral-primary`,
+   `zd:text-neutral-secondary`, `zd:text-icon-brand-primary`,
+   `zd:border-neutral-primary`. A component writes those and never a value.
+   Opacity modifiers (`zd:bg-neutral-primary/50`) and variants
+   (`zd:hover:bg-error-bold`) work as for any colour. Each utility reads the
+   `--zd-<token>` custom property directly.
+2. The values: one `:where()` block per brand (`:root` carries branded, the
+   default), and a `color-scheme` rule per mode. A host restyles the UI by
+   overriding the `--zd-*` properties, from a stylesheet or inline.
+3. One `@source inline` line that safelists every token utility.
+
+### Theming
+
+The theme is two attributes on `<html>` (or any ancestor) plus the `--zd-*`
+custom properties. Only the ZeroDev stylesheet reads them, so they change
+the wallet UI and nothing else. There is no `theme` prop and no React API.
+
+- `data-zd-mode`: `light`, `dark`, or `system` (follows
+  `prefers-color-scheme`).
+- `data-zd-brand`: `branded` keeps the ZeroDev look; `plain` folds the
+  brand onto neutrals.
+
+**One fixed look**
+
+```html
+<html data-zd-mode="light" data-zd-brand="plain">
+```
+
+**Follow the host app's dark mode**, where it already sets its own:
+
+```ts
+document.documentElement.classList.toggle('dark', dark) // the host's own
+document.documentElement.dataset.zdMode = dark ? 'dark' : 'light'
+```
+
+```tsx
+<ThemeProvider attribute={['class', 'data-zd-mode']} /> // next-themes
+```
+
+or `data-zd-mode="system"` in the HTML, and the OS decides.
+
+Write the attributes into the server-rendered `<html>` (next-themes injects
+a script that does this before the first paint). An effect alone paints the
+default theme first and flips after hydration.
+
+**A toggle for the wallet UI only**
+
+```tsx
+useEffect(() => {
+  document.documentElement.dataset.zdMode = dark ? 'dark' : 'light'
+}, [dark])
+```
+
+**Override tokens** from the host stylesheet, no build step:
+
+```css
+:root { --zd-text-brand-primary: #7c5cff; }
+html[data-zd-mode="dark"] { --zd-bg-neutral-primary: #000; }
+```
+
+`tokens.css` carries a block per brand keyed on `data-zd-brand` and sets
+the colour scheme per `data-zd-mode`, in `:where()` so any host rule beats
+it. The scheme applies to the kit's own surfaces only, so a dark wallet on
+a light page leaves the page's scrollbars and form controls alone. Custom
+properties inherit, so the nearest ancestor that sets one wins. Put both
+attributes on the same element: the dark blocks key on the pair. Tooltips
+and dropdowns portal into a shared root under `document.body`, which
+inherits from `<html>` like everything else; a theme set on a wrapper below
+`<html>` reaches the frame but not its popovers, so set it on `<html>`.
+
+The two light variants are carried today; a dark mode paints the light
+values and keeps the light scheme until the dark values ship.
 
 The compiled stylesheet ships every token utility, used by a component or
 not, so an app without a Tailwind build can still write
@@ -104,42 +169,39 @@ ship it too.
 #### Changing the tokens
 
 Everything lives in `src/theme/tokens.css`. After any change, run
-`pnpm test -- src/theme` and `pnpm build:css`, then commit; there is no
-generator and nothing else to regenerate.
+`pnpm test -- src/theme` and `pnpm build:css`, then commit; nothing is
+generated.
 
-- **Change a value.** Edit the hex in the `@theme` block. Values are
+- **Change a value.** Edit the hex in the brand block(s). Values are
   lowercase `#rrggbb` or `#rrggbbaa`, copied from the Figma variable.
 - **Add a token whose words already exist** (for example
-  `bg-info-tertiary`). Add one line to the `@theme` block under the right
-  namespace: `--background-color-info-tertiary: #...;`. Done; the
-  `@source inline` line already covers it.
-- **Add a token with a new word** (for example `bg-info-muted`). Add the
-  `@theme` line, then add the word to the matching brace group of the
-  `@source inline` line (`muted` goes in the third group). The test fails
-  and names the class until you do. Keep to words that are not Tailwind
-  size or palette names (`sm`, `red`, `white`): the brace groups are
-  multiplied out, and such a word could make a stray built-in utility ship.
-- **Add a role.** Choose the Tailwind namespace that paints it
+  `bg-info-tertiary`). Add its alias to the `@theme inline` block under the
+  right namespace (`--background-color-info-tertiary:
+  var(--zd-bg-info-tertiary);`) and its value to every brand block. The test
+  names whatever is missing.
+- **Add a token with a new word** (for example `bg-info-muted`). As above,
+  then add the word to the matching brace group of the `@source inline`
+  line (the test names the utility until it is safelisted). Keep to words
+  that are not Tailwind size or
+  palette names (`sm`, `red`, `white`): the brace groups are multiplied
+  out, and such a word could make a stray built-in utility ship.
+- **Add a role.** Choose the Tailwind namespace that paints it for the alias
   (`--background-color-*`, `--text-color-*`, `--border-color-*`; icons use
-  `--text-color-icon-*` because icons draw with `currentColor`), add its
-  utility prefix to the first brace group, and add the namespace to the
-  regexes in `tokens.test.ts` and `Tokens.stories.tsx`.
-- **Rename or remove a token.** Edit or delete the `@theme` line. Search the
-  packages for the old class before removing: nothing else records usages.
+  `--text-color-icon-*` because icons draw with `currentColor`), add it to
+  `NAMESPACE` and `UTILITY` in `tokens.test.ts`, and to the first brace
+  group of the `@source inline` line.
+- **Rename or remove a token.** Edit or delete its alias and value lines.
+  Search the packages for the old class before removing: nothing else
+  records usages.
 - **Ship a variant without a host build** (for example `hover:`). Add it to
-  the first brace group as `{,hover:}`; it then applies to every token.
-- **Add a theme variant** (dark, plain). Below the `@theme` block, add a rule
-  that overrides the same variables on a scope, using their prefixed names:
-
-  ```css
-  .zd-scope[data-zd-theme="dark"] {
-    --zd-background-color-neutral-primary: #130e0bcc;
-    --zd-text-color-neutral-primary: #f7f5f0;
-  }
-  ```
-
-  Keep the `@theme` block plain (not `@theme inline`), or the utilities
-  inline the default value and the override has no effect.
+  the first brace group of the `@source inline` line as `{,hover:}`; it
+  then applies to every token.
+- **Add a theme variant.** Add a block keyed on both attributes after the
+  brand blocks, with its `--zd-color-scheme` and every token, plus the
+  `system` twin under `prefers-color-scheme: dark`; list
+  the variant in `SHIPPED_THEME_VARIANTS` in `tokens.test.ts` and give the
+  test its declarations. Keep the `@theme` block `inline`, or Tailwind puts the
+  alias on `:root` and the brand blocks stop reaching the utilities.
 
 ## Development
 

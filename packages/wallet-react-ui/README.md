@@ -192,6 +192,22 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
   `useZeroDevWalletKit().isConnected` instead: a Solana sign-in never flips
   `useAccount()`.
 
+### Theming
+
+The card reads its theme from two attributes on `<html>` (or any ancestor)
+and the `--zd-*` custom properties; there is no prop.
+
+```html
+<html data-zd-mode="dark" data-zd-brand="plain">
+```
+
+```css
+:root { --zd-text-brand-primary: #7c5cff; }
+```
+
+See [`@zerodev/react-ui`](../react-ui/README.md#theming) for the modes,
+brands, how to follow the host app's dark mode, and the token names.
+
 ## Solana external wallets
 
 The kit connects external Solana wallets beside the EVM side: installed
