@@ -251,9 +251,11 @@
   --zd-bg-surface-bright-primary: #ffffff;
   --zd-bg-surface-bright-secondary: #ffffff80;
   --zd-bg-surface-bright-tertiary: #ffffff33;
-  /* The 6px band around the card under the plain brand; the branded art
-     covers it. */
-  --zd-bg-frame-ring: #f7f5f0;
+  /* The 6px band around the card: "Background / Non-branded Background" in
+     the wallet screens, 50% off-white over the design's near-black canvas,
+     which renders as this grey; opaque here like the dark band, so the
+     frosted card on it reads the same on any host page. */
+  --zd-bg-frame-ring: #82817f;
   --zd-bg-success-subtle: #2283001a;
   --zd-bg-success-bold: #228300;
   --zd-bg-warning-subtle: #f27b3e1a;
