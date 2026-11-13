@@ -207,7 +207,7 @@ function LandingPageInner() {
           <ThemeSwitch dark={theme === 'plain-dark'} onToggle={toggleTheme} />
           <div
             ref={cardSlotRef}
-            className="flex w-[360px] flex-col items-center justify-center"
+            className="flex w-full max-w-[360px] flex-col items-center justify-center"
             style={holdSlot ? {height: cardHeight ?? 729} : undefined}
           >
           {showReconnect ? (
