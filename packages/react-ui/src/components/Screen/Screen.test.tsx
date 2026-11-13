@@ -75,6 +75,18 @@ describe('Screen', () => {
       )
     })
 
+    it('carries both the brand art and the plain layers for the stylesheet to pick', () => {
+      // Which one shows is decided by the `zd:plain:` variant on
+      // data-zd-brand, so the DOM holds both whatever the theme.
+      const { container } = render(<Screen theme="plain-dark">x</Screen>)
+      const art = container.querySelectorAll('.zd\\:plain\\:hidden')
+      expect(art.length).toBe(2)
+      const layers = container.querySelectorAll('.zd\\:plain\\:block')
+      expect(layers.length).toBe(2)
+      expect(layers[0]?.className).toContain('zd:bg-frame-ring')
+      expect(layers[1]?.className).toContain('zd:bg-neutral-primary')
+    })
+
     it('accepts a preset name', () => {
       const { container } = render(<Screen theme="plain-light">x</Screen>)
       const root = container.firstChild as HTMLElement

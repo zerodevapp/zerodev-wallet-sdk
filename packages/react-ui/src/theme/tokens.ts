@@ -21,6 +21,7 @@ export const TOKEN_GROUPS = [
   'brand',
   'surface',
   'surface-bright',
+  'frame',
   'success',
   'warning',
   'error',
@@ -35,6 +36,7 @@ export const TOKEN_STEPS = [
   'inverse',
   'subtle',
   'bold',
+  'ring',
 ] as const
 
 export type TokenRole = (typeof TOKEN_ROLES)[number]
@@ -51,11 +53,14 @@ export function themeTokenVar(name: ThemeTokenName): `--zd-${ThemeTokenName}` {
 /**
  * The variants `tokens.css` carries values for. A preset for any other
  * variant paints the default values. Extend this when a variant's values
- * land in the stylesheet.
+ * land in the stylesheet. Branded dark is held back: the branded art
+ * (Screen's card base and glow) has no dark design yet, so shipping the
+ * dark colours alone would set off-white text on a light card.
  */
 export const SHIPPED_THEME_VARIANTS = [
   { mode: 'light', brand: 'branded' },
   { mode: 'light', brand: 'plain' },
+  { mode: 'dark', brand: 'plain' },
 ] as const satisfies readonly { mode: ThemeMode; brand: ThemeBrand }[]
 
 export function isThemeVariantShipped(
