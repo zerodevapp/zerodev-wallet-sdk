@@ -108,7 +108,9 @@ function SignUpRoot({
         <div className="zd:flex zd:items-center zd:justify-center zd:h-full zd:min-h-100">
           <div className="zd:flex zd:flex-col zd:gap-4 zd:max-w-md">
             <Text className="zd:text-h2 zd:text-center">Error occurred</Text>
-            <Text className="zd:text-center zd:text-red-500">{error}</Text>
+            <Text className="zd:text-center zd:text-error-primary">
+              {error}
+            </Text>
             <Button
               action="primary"
               text="Try again"
@@ -134,7 +136,7 @@ function SignUpRoot({
             <Text className="zd:text-h2 zd:text-center">
               Continue to your wallet
             </Text>
-            <Text className="zd:mt-2 zd:text-center zd:text-greyScale/50">
+            <Text className="zd:mt-2 zd:text-center zd:text-neutral-tertiary">
               Choose a sign-in method to proceed
             </Text>
           </div>
@@ -174,9 +176,9 @@ function SignUpRoot({
 function SignUpDivider({ label = 'or' }: { label?: string }) {
   return (
     <div className="zd:-mx-4 zd:my-2 zd:flex zd:items-center zd:gap-3">
-      <div className="zd:h-px zd:flex-1 zd:bg-greyScale/30" />
+      <div className="zd:flex-1 zd:border-t zd:border-inverse-secondary" />
       <Text className="zd:text-body3">{label}</Text>
-      <div className="zd:h-px zd:flex-1 zd:bg-greyScale/30" />
+      <div className="zd:flex-1 zd:border-t zd:border-inverse-secondary" />
     </div>
   )
 }

@@ -116,7 +116,7 @@ export function Erc20Transfer({
                   trailing={
                     <Icon
                       name="gasStation"
-                      className="zd:w-4 zd:h-4 zd:text-solarOrange"
+                      className="zd:w-4 zd:h-4 zd:text-icon-brand-primary"
                     />
                   }
                 />

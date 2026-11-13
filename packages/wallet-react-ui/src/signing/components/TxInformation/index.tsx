@@ -14,7 +14,7 @@ export function TxInformation({ network }: TxInformationProps) {
             <Text>Network</Text>
             <div className="zd:flex zd:flex-row zd:gap-2 zd:items-center">
               <Text className="zd:text-body1">{capitalizeFirst(network)}</Text>
-              <div className="zd:h-[18px] zd:w-[18px] zd:bg-white zd:flex zd:items-center zd:justify-center zd:rounded-full">
+              <div className="zd:h-[18px] zd:w-[18px] zd:bg-bright-primary zd:flex zd:items-center zd:justify-center zd:rounded-full">
                 <Icon
                   name={network as IconName}
                   className="zd:h-[18px] zd:w-[18px]"

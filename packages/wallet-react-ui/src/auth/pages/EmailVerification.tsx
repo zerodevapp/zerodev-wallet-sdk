@@ -46,7 +46,7 @@ export function EmailVerification() {
           title={'Check your email!\n An Email is On Its Way'}
         >
           We've sent a magic link to{' '}
-          <Text as="span" className="zd:text-solarOrange">
+          <Text as="span" className="zd:text-brand-primary">
             {email}
           </Text>
           {'\n'}Please open the email and click the link to log in.

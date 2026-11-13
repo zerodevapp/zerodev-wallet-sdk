@@ -23,12 +23,14 @@ export function SignTypedData({
     return (
       <SigningLayout onConfirm={confirm} onReject={reject}>
         <div className="zd:flex zd:flex-col zd:gap-3">
-          <h3 className="zd:text-lg zd:font-semibold zd:text-gray-900">
+          <h3 className="zd:text-lg zd:font-semibold zd:text-neutral-primary">
             Sign Typed Data
           </h3>
-          <div className="zd:rounded-lg zd:bg-gray-50 zd:p-4 zd:border zd:border-gray-100">
-            <p className="zd:text-xs zd:text-gray-500 zd:mb-1">Raw data:</p>
-            <pre className="zd:text-sm zd:text-gray-900 zd:whitespace-pre-wrap zd:break-all">
+          <div className="zd:rounded-lg zd:bg-bright-secondary zd:p-4 zd:border zd:border-neutral-secondary">
+            <p className="zd:text-xs zd:text-neutral-secondary zd:mb-1">
+              Raw data:
+            </p>
+            <pre className="zd:text-sm zd:text-neutral-primary zd:whitespace-pre-wrap zd:break-all">
               {typedData}
             </pre>
           </div>
