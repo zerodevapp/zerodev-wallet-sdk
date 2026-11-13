@@ -1,4 +1,4 @@
-import { Screen, type ThemeInput, TopNav } from '@zerodev/react-ui'
+import { Screen, TopNav } from '@zerodev/react-ui'
 import { useState } from 'react'
 import type { TxHistoryEntry } from '../types'
 import { History } from './History'
@@ -20,8 +20,6 @@ export interface TxHistoryProps {
   onSelectEntry?: ((entry: TxHistoryEntry) => void) | undefined
   className?: string | undefined
   size?: 'sm' | 'md' | 'lg' | undefined
-  /** See `ConnectWallet`'s `theme`. */
-  theme?: ThemeInput | undefined
 }
 
 /**
@@ -38,7 +36,6 @@ export function TxHistory({
   onSelectEntry,
   className,
   size,
-  theme,
 }: TxHistoryProps) {
   // Single step today, so the setter is unused; destructure it back in when
   // the first sub-page (transaction details) lands.
@@ -62,7 +59,6 @@ export function TxHistory({
     <Screen
       {...(className && { className })}
       {...(size && { size })}
-      {...(theme !== undefined && { theme })}
       topNav={
         <TopNav title={TITLE_BY_STEP[step]} onRightButtonClick={onClose} />
       }

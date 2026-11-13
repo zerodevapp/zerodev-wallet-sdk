@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
-import type { ThemeTokenOverrides } from '../../theme/theme'
 import { Button } from '../Button'
 import { Pill } from '../Pill'
 import {
@@ -31,16 +30,13 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 /** Overrides no stock theme uses, so a popover painted with them can only
- * have got them through the frame's theme. */
-const PURPLE_TOKENS = {
-  'bg-inverse-primary': '#7c3aed',
-  'text-inverse-primary': '#ffffff',
-  'border-neutral-primary': '#7c3aed',
-  'bg-bright-primary': '#ede9fe',
-} satisfies ThemeTokenOverrides
-const PURPLE_OVERRIDES = Object.fromEntries(
-  Object.entries(PURPLE_TOKENS).map(([k, v]) => [`--zd-${k}`, v]),
-)
+ * have got them from the host's stylesheet. */
+const PURPLE_CSS = `:root {
+  --zd-bg-inverse-primary: #7c3aed;
+  --zd-text-inverse-primary: #ffffff;
+  --zd-border-neutral-primary: #7c3aed;
+  --zd-bg-bright-primary: #ede9fe;
+}`
 
 /** A tooltip held open, so the story shows where it lands and what paints it. */
 function OpenTooltip({
@@ -101,7 +97,7 @@ function Content({ edge = false }: { edge?: boolean }) {
 }
 
 /** The toolbar theme reaches the frame and its popovers through the
- * decorator's attributes alone. */
+ * attributes on <html> alone. */
 export const Default: Story = {
   args: { children: null },
   render: () => (
@@ -111,57 +107,20 @@ export const Default: Story = {
   ),
 }
 
-/** The `theme` prop: a preset plus token overrides, written on the frame
- * and on its portal container. The tooltip and the select panel paint in
- * the override purple. */
-export const ThemedByProp: Story = {
+/** Theming without React: the host sets the two attributes on <html> (here
+ * the preview decorator writes `plain-light` for this story) and overrides
+ * tokens from its stylesheet (a style tag). Popovers render under
+ * document.body, so they inherit the same. */
+export const ThemedOnHtml: Story = {
   args: { children: null },
-  render: () => (
-    <Screen
-      theme={{ mode: 'light', brand: 'plain', tokens: PURPLE_TOKENS }}
-      topNav={<TopNav title="theme prop" />}
-    >
-      <Content />
-    </Screen>
-  ),
-}
-
-/** The same without React: a host wraps the frame with the attributes, and
- * overrides tokens from `:root` (here: a style tag). The frame's portal
- * container mirrors the wrapper's attributes, so popovers follow. */
-export const ThemedByWrapper: Story = {
-  args: { children: null },
+  parameters: { theme: 'plain-light' },
   render: () => (
     <>
-      <style>{`:root { ${Object.entries(PURPLE_OVERRIDES)
-        .map(([k, v]) => `${k}: ${v};`)
-        .join(' ')} }`}</style>
-      <div data-zd-mode="light" data-zd-brand="plain">
-        <Screen topNav={<TopNav title="Plain + :root overrides" />}>
-          <Content />
-        </Screen>
-      </div>
+      <style>{PURPLE_CSS}</style>
+      <Screen topNav={<TopNav title="Plain + :root overrides" />}>
+        <Content />
+      </Screen>
     </>
-  ),
-}
-
-/** Two frames with different themes on one page. Each popover follows its
- * own frame's container; nothing is shared. */
-export const TwoFramesDifferentThemes: Story = {
-  args: { children: null },
-  render: () => (
-    <div className="zd:flex zd:gap-6">
-      <Screen size="sm" topNav={<TopNav title="Branded" />}>
-        <Content />
-      </Screen>
-      <Screen
-        size="sm"
-        theme={{ brand: 'plain', tokens: PURPLE_TOKENS }}
-        topNav={<TopNav title="Plain + overrides" />}
-      >
-        <Content />
-      </Screen>
-    </div>
   ),
 }
 
@@ -197,25 +156,28 @@ export const InsideTransformedHost: Story = {
   ),
 }
 
-/** The host flips the theme at runtime by rewriting the attribute on its
- * wrapper. The frame's container mirrors the change, so open popovers
- * follow. */
+/** The host flips the theme at runtime by rewriting the attribute on
+ * <html>. Open popovers follow, as they inherit from it. */
 export const ThemeToggledAtRuntime: Story = {
   args: { children: null },
   render: () => {
     function Host() {
-      const [plain, setPlain] = useState(false)
+      const [plain, setPlain] = useState(
+        () => document.documentElement.dataset.zdBrand === 'plain',
+      )
+      const toggle = () => {
+        document.documentElement.dataset.zdBrand = plain ? 'branded' : 'plain'
+        setPlain(!plain)
+      }
       return (
         <div className="zd:flex zd:flex-col zd:gap-4 zd:items-start">
           <Button
             text={plain ? 'Switch to branded' : 'Switch to plain'}
-            onClick={() => setPlain((p) => !p)}
+            onClick={toggle}
           />
-          <div data-zd-brand={plain ? 'plain' : 'branded'}>
-            <Screen topNav={<TopNav title={plain ? 'Plain' : 'Branded'} />}>
-              <Content />
-            </Screen>
-          </div>
+          <Screen topNav={<TopNav title={plain ? 'Plain' : 'Branded'} />}>
+            <Content />
+          </Screen>
         </div>
       )
     }

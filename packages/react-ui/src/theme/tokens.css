@@ -13,13 +13,15 @@
       modifiers and variants work as for any colour.
 
    2. The values, one block per brand, in :where() so they carry no
-      specificity: a host rule on the same element wins, and inline overrides
-      (Screen's `tokens`) win over everything. :root carries the default,
-      branded, so a page with no attribute anywhere gets today's look; the
+      specificity: a host rule on the same element wins, and an inline
+      override wins over everything. :root carries the default, branded, so
+      a page with no attribute anywhere gets today's look; the
       [data-zd-brand] blocks follow it, so the attributes work on <html> too,
       and a frame nested in a differently-branded page keeps its own values.
-      Screen writes data-zd-mode and data-zd-brand from its `theme` prop; a
-      host may set them on any ancestor.
+      A host sets data-zd-mode and data-zd-brand on <html> (or any ancestor)
+      and overrides --zd-* properties from its own stylesheet. The portal
+      root under document.body inherits both from <html>, so tooltips and
+      dropdowns follow the page theme.
 
       Mode sets color-scheme only. The dark values arrive with the dark
       theme; until then every mode paints the light values and keeps the
@@ -34,7 +36,7 @@
       such a word could ship a stray built-in utility. Add a variant to the
       first brace group, e.g. "{,hover:}", to ship it too. tokens.test.ts
       checks that every token has an alias, a branded and a plain value, and
-      a place in the safelist, and that the safelist matches theme/tokens.ts.
+      a place in the safelist.
 
    Unlayered like the rest of the stylesheet (see styles.css). */
 

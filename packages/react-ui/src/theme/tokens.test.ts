@@ -3,7 +3,15 @@
  */
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { SHIPPED_THEME_VARIANTS, THEME_BRANDS } from './tokens'
+
+const THEME_BRANDS = ['branded', 'plain'] as const
+/** The variants the stylesheet carries values for; branded dark is held
+ * until the card's art has a dark design. */
+const SHIPPED_THEME_VARIANTS = [
+  { mode: 'light', brand: 'branded' },
+  { mode: 'light', brand: 'plain' },
+  { mode: 'dark', brand: 'plain' },
+] as const
 
 const css = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8')
 /** Tailwind namespace per role, as the @theme inline aliases use them. */
