@@ -26,10 +26,10 @@ export function AllocationModule({
   const checkboxId = useId()
 
   return (
-    <div className="zd:w-full zd:flex zd:flex-col zd:p-2 zd:pb-3 zd:gap-2 zd:border-b zd:border-offWhite/50">
+    <div className="zd:w-full zd:flex zd:flex-col zd:p-2 zd:pb-3 zd:gap-2 zd:border-b zd:border-neutral-secondary">
       <div className="zd:flex zd:flex-row zd:items-center zd:justify-between">
         <div className="zd:flex zd:flex-row zd:items-center zd:gap-2">
-          <div className="zd:bg-offWhite zd:rounded-xl zd:w-11 zd:h-11 zd:flex zd:items-center zd:justify-center zd:shrink-0">
+          <div className="zd:bg-neutral-primary zd:rounded-xl zd:w-11 zd:h-11 zd:flex zd:items-center zd:justify-center zd:shrink-0">
             {imageSource && (
               <img src={imageSource} alt="" className="zd:w-6 zd:h-6" />
             )}
@@ -38,7 +38,7 @@ export function AllocationModule({
             <Text className="zd:text-body1">{symbol}</Text>
             <div className="zd:flex zd:flex-row zd:gap-1 zd:items-center">
               <Icon name={network as IconName} className="zd:h-3 zd:w-3" />
-              <Text className="zd:text-body3 zd:text-greyScale/50">
+              <Text className="zd:text-body3 zd:text-neutral-tertiary">
                 {capitalizeFirst(network)}
               </Text>
             </div>

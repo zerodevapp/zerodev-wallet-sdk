@@ -21,7 +21,7 @@ export function SignUpFooter({
         <div
           className={`zd:flex zd:flex-row zd:items-center zd:gap-2 zd:rounded-md zd:p-2 zd:transition-colors ${
             highlight
-              ? 'zd:border zd:border-negative'
+              ? 'zd:border zd:border-error-inverse'
               : 'zd:border zd:border-transparent'
           }`}
         >
