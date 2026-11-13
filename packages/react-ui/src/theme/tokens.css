@@ -1,0 +1,113 @@
+/* Semantic colour tokens, mirrored from the "ZeroDev Design System" Figma
+   variable collection (light/dark × branded/plain). Only light/branded, the
+   current look, is stated here; it is the default every host gets.
+
+   Tailwind's colour namespaces turn each variable into a utility:
+     --background-color-<name>  ->  zd:bg-<name>
+     --text-color-<name>        ->  zd:text-<name>
+     --text-color-icon-<name>   ->  zd:text-icon-<name>   (icons draw with currentColor)
+     --border-color-<name>      ->  zd:border-<name>
+   The variables land on :root as --zd-<namespace>-<name>; a host restyles the
+   UI by overriding them from its own stylesheet. Values carry their own alpha
+   as in Figma, so no opacity modifier is needed, though one works.
+
+   Plain @theme, not @theme inline, so each utility reads var(...) and a later
+   variant block (e.g. .zd-scope[data-zd-theme="dark"]) can override the
+   variables on a subtree. */
+@theme {
+  /* bg */
+  --background-color-neutral-primary: #f7f5f0cc;
+  --background-color-neutral-secondary: #f7f5f066;
+  --background-color-neutral-tertiary: #ffffff33;
+  --background-color-neutral-disabled: #ffffff0d;
+  --background-color-bright-primary: #ffffff;
+  --background-color-bright-secondary: #ffffff80;
+  --background-color-bright-tertiary: #ffffff33;
+  --background-color-inverse-primary: #130e0b;
+  --background-color-inverse-secondary: #130e0be5;
+  --background-color-inverse-tertiary: #130e0b80;
+  --background-color-inverse-hover: #130e0b1a;
+  --background-color-brand-primary: #e76000;
+  --background-color-brand-secondary: #fac8ab;
+  --background-color-brand-tertiary: #f27b3e1a;
+  --background-color-surface-primary: #f7f5f0cc;
+  --background-color-surface-secondary: #f7f5f066;
+  --background-color-surface-tertiary: #f7f5f033;
+  --background-color-surface-bright-primary: #ffffff;
+  --background-color-surface-bright-secondary: #ffffff80;
+  --background-color-surface-bright-tertiary: #ffffff33;
+  --background-color-success-subtle: #2283001a;
+  --background-color-success-bold: #228300;
+  --background-color-warning-subtle: #f27b3e1a;
+  --background-color-warning-bold: #e76000;
+  --background-color-error-subtle: #ff42211a;
+  --background-color-error-bold: #ff4221;
+  --background-color-info-subtle: #45abfb1a;
+  --background-color-info-bold: #45abfb;
+
+  /* text */
+  --text-color-neutral-primary: #130e0b;
+  --text-color-neutral-secondary: #130e0bcc;
+  --text-color-neutral-tertiary: #130e0b80;
+  --text-color-neutral-disabled: #130e0b4d;
+  --text-color-inverse-primary: #f7f5f0;
+  --text-color-inverse-secondary: #f7f5f0;
+  --text-color-inverse-tertiary: #f7f5f0cc;
+  --text-color-brand-primary: #e76000;
+  --text-color-brand-inverse: #f7f5f0;
+  --text-color-success-primary: #228300;
+  --text-color-success-inverse: #f7f5f0;
+  --text-color-warning-primary: #e76000;
+  --text-color-warning-inverse: #f7f5f0;
+  --text-color-error-primary: #ff4221;
+  --text-color-error-inverse: #f7f5f0;
+  --text-color-info-primary: #130e0b;
+  --text-color-info-inverse: #130e0b;
+
+  /* icon */
+  --text-color-icon-neutral-primary: #130e0b;
+  --text-color-icon-neutral-secondary: #130e0b;
+  --text-color-icon-neutral-tertiary: #130e0bb2;
+  --text-color-icon-neutral-disabled: #130e0b4d;
+  --text-color-icon-inverse-primary: #f7f5f0;
+  --text-color-icon-inverse-secondary: #f7f5f0;
+  --text-color-icon-inverse-tertiary: #f7f5f0cc;
+  --text-color-icon-brand-primary: #e76000;
+  --text-color-icon-brand-inverse: #f7f5f0;
+  --text-color-icon-success-primary: #228300;
+  --text-color-icon-success-inverse: #f7f5f0;
+  --text-color-icon-warning-primary: #e76000;
+  --text-color-icon-warning-inverse: #f7f5f0;
+  --text-color-icon-error-primary: #ff4221;
+  --text-color-icon-error-inverse: #f7f5f0;
+  --text-color-icon-info-primary: #130e0b;
+  --text-color-icon-info-inverse: #130e0b;
+
+  /* border */
+  --border-color-neutral-primary: #f7f5f0;
+  --border-color-neutral-secondary: #f7f5f066;
+  --border-color-inverse-primary: #130e0b;
+  --border-color-inverse-secondary: #130e0b4d;
+  --border-color-brand-primary: #f27b3e1a;
+  --border-color-brand-inverse: #e76000;
+  --border-color-success-primary: #2283001a;
+  --border-color-success-inverse: #228300;
+  --border-color-warning-primary: #f27b3e1a;
+  --border-color-warning-inverse: #e76000;
+  --border-color-error-primary: #ff42211a;
+  --border-color-error-inverse: #ff4221;
+  --border-color-info-primary: #45abfb1a;
+  --border-color-info-inverse: #45abfb;
+}
+
+/* Tailwind only emits a utility that some scanned source uses, and the
+   published stylesheets must carry every token utility for hosts without a
+   Tailwind build. The line below names every combination of role, group and
+   step; a combination with no variable above (zd:bg-success-primary, say)
+   resolves to nothing and is dropped, so only real tokens ship. Add a word
+   here when a token introduces one; tokens.test.ts fails otherwise. Avoid
+   words that are Tailwind size or palette names (sm, red, white): the
+   groups are multiplied out, and such a word could ship a stray built-in
+   utility. Add a variant to the first brace group, e.g. "{,hover:}", to
+   ship it too. The README's "Changing the tokens" section has the steps. */
+@source inline("zd:{bg,text,text-icon,border}-{neutral,bright,inverse,brand,surface,surface-bright,success,warning,error,info}-{primary,secondary,tertiary,disabled,hover,inverse,subtle,bold}");
