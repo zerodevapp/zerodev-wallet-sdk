@@ -169,7 +169,7 @@ function SheetBody({
               )}
             </div>
             {!wallet && hint && (
-              <Text className="zd:text-center zd:text-body3 zd:text-greyScale/60">
+              <Text className="zd:text-center zd:text-body3 zd:text-neutral-secondary">
                 {hint}
               </Text>
             )}
