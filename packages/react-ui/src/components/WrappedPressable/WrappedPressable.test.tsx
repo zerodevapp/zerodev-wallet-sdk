@@ -46,15 +46,16 @@ describe('WrappedPressable', () => {
       const button = screen.getByRole('button')
       const wrapper = button.parentElement as HTMLElement
 
-      // default = ghost (alpha 0.2)
-      expect(wrapper.style.backgroundColor).toBe('rgba(255, 255, 255, 0.2)')
+      // default = ghost (bright-tertiary)
+      expect(wrapper.className).toContain('zd:bg-bright-tertiary')
 
       fireEvent.mouseEnter(button)
-      // hovered = soft (alpha 0.5)
-      expect(wrapper.style.backgroundColor).toBe('rgba(255, 255, 255, 0.5)')
+      // hovered = soft (bright-secondary)
+      expect(wrapper.className).toContain('zd:bg-bright-secondary')
+      expect(wrapper.className).not.toContain('zd:bg-bright-tertiary')
 
       fireEvent.mouseLeave(button)
-      expect(wrapper.style.backgroundColor).toBe('rgba(255, 255, 255, 0.2)')
+      expect(wrapper.className).toContain('zd:bg-bright-tertiary')
     })
 
     it('forwards onMouseEnter and onMouseLeave', () => {

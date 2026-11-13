@@ -15,19 +15,19 @@ export function Switch({ value, onValueChange }: SwitchProps) {
         role="switch"
         aria-checked={value ?? false}
         onClick={onValueChange}
-        className="zd:flex zd:items-center zd:justify-center zd:flex-row zd:gap-1.5 zd:w-full zd:h-full zd:rounded-lg zd:bg-white/70 zd:cursor-pointer"
+        className="zd:flex zd:items-center zd:justify-center zd:flex-row zd:gap-1.5 zd:w-full zd:h-full zd:rounded-lg zd:bg-bright-secondary zd:cursor-pointer"
       >
         {value && (
-          <Text className="zd:text-body3 zd:text-greyScale/90">On</Text>
+          <Text className="zd:text-body3 zd:text-neutral-primary">On</Text>
         )}
         <div
           className={cn(
             'zd:w-3.5 zd:h-3.5 zd:rounded-full zd:shadow-sm',
-            value ? 'zd:bg-solarOrange' : 'zd:bg-greyScale/30',
+            value ? 'zd:bg-brand-primary' : 'zd:bg-inverse-tertiary',
           )}
         />
         {!value && (
-          <Text className="zd:text-body3 zd:text-greyScale/50">Off</Text>
+          <Text className="zd:text-body3 zd:text-neutral-tertiary">Off</Text>
         )}
       </button>
     </Wrapper>

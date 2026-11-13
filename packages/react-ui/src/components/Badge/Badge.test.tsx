@@ -32,7 +32,7 @@ describe('Badge', () => {
     it('renders with primary variant by default', () => {
       const { container } = render(<Badge text="Default" />)
       const badge = container.firstChild as HTMLElement
-      expect(badge.className).toContain('bg-white/40')
+      expect(badge.className).toContain('bg-bright-secondary')
     })
 
     it('renders with secondary variant', () => {
@@ -40,7 +40,7 @@ describe('Badge', () => {
         <Badge text="Secondary" variant="secondary" />,
       )
       const badge = container.firstChild as HTMLElement
-      expect(badge.className).toContain('bg-orange/10')
+      expect(badge.className).toContain('bg-warning-subtle')
     })
   })
 
@@ -76,7 +76,7 @@ describe('Badge', () => {
       const icon = screen.getByTestId('icon-check')
       expect(icon.className).toContain('w-3')
       expect(icon.className).toContain('h-3')
-      expect(icon.className).toContain('text-solarOrange')
+      expect(icon.className).toContain('icon-brand-primary')
     })
 
     it('applies correct classes to trailing icon', () => {
@@ -102,7 +102,7 @@ describe('Badge', () => {
     it('applies primary variant styles', () => {
       const { container } = render(<Badge text="Primary" variant="primary" />)
       const badge = container.firstChild as HTMLElement
-      expect(badge.className).toContain('bg-white/40')
+      expect(badge.className).toContain('bg-bright-secondary')
     })
 
     it('applies secondary variant styles', () => {
@@ -110,7 +110,7 @@ describe('Badge', () => {
         <Badge text="Secondary" variant="secondary" />,
       )
       const badge = container.firstChild as HTMLElement
-      expect(badge.className).toContain('bg-orange/10')
+      expect(badge.className).toContain('bg-warning-subtle')
     })
   })
 })
