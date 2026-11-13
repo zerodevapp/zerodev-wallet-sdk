@@ -1,5 +1,5 @@
 import { Button, Text, Wrapper } from '@zerodev/react-ui'
-import { DataApiError } from '@zerodev/wallet-data'
+import { DataApiError, isQuotaExhaustedError } from '@zerodev/wallet-data'
 import { Fragment } from 'react'
 import {
   TxHistoryItem,
@@ -98,17 +98,24 @@ const ERROR_COPY: Partial<Record<number, string>> = {
   401: 'Your session expired. Sign in again.',
   429: 'Too many requests. Try again in a moment.',
 }
+const QUOTA_EXHAUSTED_COPY =
+  'Transaction history is unavailable until next month: the monthly limit was reached.'
 const GENERIC_ERROR_COPY = "Couldn't load transactions. Try again."
 
 function errorMessage(error: Error): string {
+  if (isQuotaExhaustedError(error)) return QUOTA_EXHAUSTED_COPY
   return (
     (error instanceof DataApiError && ERROR_COPY[error.status]) ||
     GENERIC_ERROR_COPY
   )
 }
 
-/** A retry cannot fix an expired session; the host has to sign in again. */
+/**
+ * A retry cannot fix an expired session or a spent monthly budget; the host has
+ * to sign in again, or wait for the next UTC month.
+ */
 function canRetry(error: Error): boolean {
+  if (isQuotaExhaustedError(error)) return false
   return !(error instanceof DataApiError && error.status === 401)
 }
 

@@ -62,6 +62,20 @@ describe('History', () => {
     ).toBeDefined()
   })
 
+  it('tells the user the monthly limit was reached without a retry button', () => {
+    const error = new DataApiError({
+      status: 429,
+      body: { error: 'throttled', reason: 'quota_exhausted' },
+      url: 'x',
+      retryAfterMs: 3_600_000,
+    })
+    render(<History feed={{ status: 'error', error, retry: () => {} }} />)
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Transaction history is unavailable until next month',
+    )
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+
   it('never shows the raw message for other Data API errors', () => {
     const error = new DataApiError({ status: 500, body: null, url: 'x' })
     render(<History feed={{ status: 'error', error, retry: () => {} }} />)
