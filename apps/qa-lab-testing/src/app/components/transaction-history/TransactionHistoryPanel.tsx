@@ -126,7 +126,7 @@ function ConfiguredTransactionHistoryPanel({
                 ))}
               </div>
 
-              <div className="inline-flex rounded-lg border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
+              <div className="inline-flex flex-wrap rounded-lg border border-[var(--border-warm)] bg-[var(--surface-warm)] p-1">
                 {DATA_API_CHAIN_IDS.map((chainId) => {
                   const selected = selectedChainIds.has(chainId);
 
