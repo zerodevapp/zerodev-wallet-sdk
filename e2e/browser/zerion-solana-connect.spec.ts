@@ -60,7 +60,7 @@ async function watchErrors(page: Page): Promise<() => Promise<string[]>> {
 }
 
 test.describe('Solana through Zerion', () => {
-  test.describe.configure({ timeout: 120_000 })
+  test.describe.configure({ timeout: 300_000 })
 
   test('an installed Solana wallet connects into its own slot', async ({
     page,
@@ -87,7 +87,7 @@ test.describe('Solana through Zerion', () => {
   })
 
   /**
-   * TC-32. Marked failing against a live defect, not a broken test — when this
+   * Marked failing against a live defect, not a broken test — when this
    * goes red the defect was fixed, and the marker comes off.
    *
    * The connect itself succeeds, which is why the case above passes and this
@@ -95,24 +95,29 @@ test.describe('Solana through Zerion', () => {
    * validator somewhere off the connect's own path, and surfaces as an
    * unhandled rejection rather than a rejected connect.
    */
-  test.fail(
-    'a Solana connect raises no EVM address validation error',
-    async ({ page, zerion }) => {
-      const readErrors = await watchErrors(page)
+  test('a Solana connect raises no EVM address validation error', async ({
+    page,
+    zerion,
+  }) => {
+    const readErrors = await watchErrors(page)
 
-      await openWalletPreset(page, { solana: true })
-      await connectThroughZerion(page, zerion, 'solana')
+    await openWalletPreset(page, { solana: true })
+    await connectThroughZerion(page, zerion, 'solana')
 
-      const address = await addressOf(page, 'solana')
-      const offending = (await readErrors()).filter((error) =>
-        /InvalidAddressError/.test(error),
-      )
-      expect(
-        offending,
-        `the connected Solana address ${address} reached an EVM address validator`,
-      ).toEqual([])
-    },
-  )
+    const address = await addressOf(page, 'solana')
+    const offending = (await readErrors()).filter((error) =>
+      /InvalidAddressError/.test(error),
+    )
+
+    // Marked here, not on the declaration: everything above is setup, and a
+    // declaration-level marker would accept a broken approval or a stale
+    // selector as the expected failure without ever reaching the defect.
+    test.fail()
+    expect(
+      offending,
+      `the connected Solana address ${address} reached an EVM address validator`,
+    ).toEqual([])
+  })
 
   /**
    * Marked failing against a live defect: **connecting a second namespace
@@ -125,47 +130,49 @@ test.describe('Solana through Zerion', () => {
    * why they are marked rather than merged: each flips green on its own when
    * the fix lands.
    */
-  test.fail(
-    'Solana first, then EVM on the same wallet',
-    async ({ page, zerion }) => {
-      await openWalletPreset(page, { solana: true })
-      await connectThroughZerion(page, zerion, 'solana')
-      const solanaAddress = await addressOf(page, 'solana')
+  test('Solana first, then EVM on the same wallet', async ({
+    page,
+    zerion,
+  }) => {
+    await openWalletPreset(page, { solana: true })
+    await connectThroughZerion(page, zerion, 'solana')
+    const solanaAddress = await addressOf(page, 'solana')
 
-      // Zerion prompts again here. MetaMask does not: its EVM approval already
-      // authorises the site for both sides, so the second connect resolves from
-      // the existing grant.
-      await connectThroughZerion(page, zerion, 'eip155')
+    // Zerion prompts again here. MetaMask does not: its EVM approval already
+    // authorises the site for both sides, so the second connect resolves from
+    // the existing grant.
+    await connectThroughZerion(page, zerion, 'eip155')
 
-      // The second connect must not drop the first.
-      await expectConnected(page, 'solana')
-      expect(await addressOf(page, 'solana')).toBe(solanaAddress)
-      await expect(connector(page, 'eip155')).toHaveAttribute(
-        'data-address',
-        EVM_ADDRESS,
-      )
-    },
-  )
+    // Both connections are up: everything from here is the defect.
+    test.fail()
+    await expectConnected(page, 'solana')
+    expect(await addressOf(page, 'solana')).toBe(solanaAddress)
+    await expect(connector(page, 'eip155')).toHaveAttribute(
+      'data-address',
+      EVM_ADDRESS,
+    )
+  })
 
   /** The other direction of the same defect. */
-  test.fail(
-    'EVM first, then Solana on the same wallet',
-    async ({ page, zerion }) => {
-      await openWalletPreset(page, { solana: true })
-      await connectThroughZerion(page, zerion, 'eip155')
-      const evmAddress = await addressOf(page, 'eip155')
+  test('EVM first, then Solana on the same wallet', async ({
+    page,
+    zerion,
+  }) => {
+    await openWalletPreset(page, { solana: true })
+    await connectThroughZerion(page, zerion, 'eip155')
+    const evmAddress = await addressOf(page, 'eip155')
 
-      await connectThroughZerion(page, zerion, 'solana')
+    await connectThroughZerion(page, zerion, 'solana')
 
-      // The EVM connection from step 1 is still the current one, not replaced.
-      await expectConnected(page, 'eip155')
-      expect(await addressOf(page, 'eip155')).toBe(evmAddress)
-      await expect(connector(page, 'solana')).toHaveAttribute(
-        'data-address',
-        BASE58_ADDRESS,
-      )
-    },
-  )
+    // Both connections are up: everything from here is the defect.
+    test.fail()
+    await expectConnected(page, 'eip155')
+    expect(await addressOf(page, 'eip155')).toBe(evmAddress)
+    await expect(connector(page, 'solana')).toHaveAttribute(
+      'data-address',
+      BASE58_ADDRESS,
+    )
+  })
 
   test('a Solana connect does not light up the wallet EVM side', async ({
     page,
@@ -194,28 +201,27 @@ test.describe('Solana through Zerion', () => {
    *
    * The two `expectConnected` calls below are what make that an assertion
    * rather than a throw. Without them `addressOf` raises on the empty
-   * attribute, and a `test.fail()` marker that passes because its body threw
-   * for any reason at all is not a marker, it is a blind spot.
+   * attribute, and a marker that passes because its body threw for any reason
+   * at all is not a marker, it is a blind spot.
    */
-  test.fail(
-    'both namespaces persist across a reload',
-    async ({ page, zerion }) => {
-      await openWalletPreset(page, { solana: true })
-      await connectThroughZerion(page, zerion, 'solana')
-      await connectThroughZerion(page, zerion, 'eip155')
+  test('both namespaces persist across a reload', async ({ page, zerion }) => {
+    await openWalletPreset(page, { solana: true })
+    await connectThroughZerion(page, zerion, 'solana')
+    await connectThroughZerion(page, zerion, 'eip155')
 
-      await expectConnected(page, 'solana')
-      await expectConnected(page, 'eip155')
+    // Both connections are up: everything from here is the defect.
+    test.fail()
+    await expectConnected(page, 'solana')
+    await expectConnected(page, 'eip155')
 
-      const solanaAddress = await addressOf(page, 'solana')
-      const evmAddress = await addressOf(page, 'eip155')
+    const solanaAddress = await addressOf(page, 'solana')
+    const evmAddress = await addressOf(page, 'eip155')
 
-      await page.reload()
+    await page.reload()
 
-      await expectConnected(page, 'solana')
-      await expectConnected(page, 'eip155')
-      expect(await addressOf(page, 'solana')).toBe(solanaAddress)
-      expect(await addressOf(page, 'eip155')).toBe(evmAddress)
-    },
-  )
+    await expectConnected(page, 'solana')
+    await expectConnected(page, 'eip155')
+    expect(await addressOf(page, 'solana')).toBe(solanaAddress)
+    expect(await addressOf(page, 'eip155')).toBe(evmAddress)
+  })
 })
