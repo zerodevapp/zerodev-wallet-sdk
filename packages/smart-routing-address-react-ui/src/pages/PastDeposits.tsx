@@ -107,7 +107,7 @@ export function PastDeposits({ onSelectDeposit }: PastDepositsProps) {
         aria-label="Past deposits"
         className={cn(
           'zd:relative zd:flex zd:w-full zd:flex-1 zd:min-h-0 zd:flex-col zd:overflow-hidden zd:rounded-2xl zd:p-2',
-          'zd:border-offWhite zd:border-[0.3px] zd:bg-white/20',
+          'zd:border-neutral-primary zd:border-[0.3px] zd:bg-bright-tertiary',
           'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
         )}
       >
@@ -118,20 +118,20 @@ export function PastDeposits({ onSelectDeposit }: PastDepositsProps) {
           >
             <Icon
               name="loading"
-              className="zd:size-5 zd:animate-spin zd:text-orange"
+              className="zd:size-5 zd:animate-spin zd:text-icon-brand-primary"
               aria-hidden
             />
           </output>
         ) : deposits.length === 0 ? (
           <div className="zd:flex zd:flex-1 zd:items-center zd:justify-center zd:py-8">
-            <Text className="zd:text-greyScale/50">No deposits yet</Text>
+            <Text className="zd:text-neutral-tertiary">No deposits yet</Text>
           </div>
         ) : (
           <div className="zd:flex zd:flex-1 zd:flex-col zd:gap-1 zd:overflow-y-auto">
             {groups.map((group) => (
               <section key={group.label} className="zd:flex zd:flex-col">
                 <div className="zd:px-2 zd:py-2">
-                  <Text className="zd:text-body3 zd:text-greyScale">
+                  <Text className="zd:text-body3 zd:text-neutral-primary">
                     {group.label}
                   </Text>
                 </div>
@@ -225,7 +225,7 @@ export function PastDeposits({ onSelectDeposit }: PastDepositsProps) {
                           <button
                             type="button"
                             onClick={() => onSelectDeposit(deposit)}
-                            className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:text-left zd:hover:bg-white/30"
+                            className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:text-left zd:hover:bg-bright-secondary"
                           >
                             {row}
                           </button>

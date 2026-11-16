@@ -162,7 +162,7 @@ describe('DataRow', () => {
     )
     // Card treatment: warning-tinted background on the root
     const root = container.firstChild as HTMLElement
-    expect(root.className).toContain('zd:bg-warning-subtle')
+    expect(root.className).toContain('zd:bg-brand-tertiary')
     // Text stays default ink (design review: no orange label/value)
     expect(screen.getByText('Minimum deposit').className).not.toContain(
       'brand-primary',
