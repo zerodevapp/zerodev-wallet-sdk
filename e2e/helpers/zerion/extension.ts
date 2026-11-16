@@ -78,21 +78,25 @@ async function download(url: string, to: string): Promise<void> {
  * A mismatch indicates the downloaded zip does not match the expected digest.
  * Most likely a corrupted download.
  */
-function verifyDigest(zipPath: string): void {
+function verifyDigest(zipPath: string, downloaded: boolean): void {
   const actual = createHash('sha256')
     .update(readFileSync(zipPath))
     .digest('hex')
   if (actual === ZERION_ZIP_SHA256) return
 
-  // Delete it. Leaving a bad zip cached turns one bad download into a
-  // permanently red suite that a re-run cannot clear.
-  rmSync(zipPath, { force: true })
+  if (downloaded) rmSync(zipPath, { force: true })
+
   throw new Error(
     `Zerion ${ZERION_VERSION} digest mismatch\n` +
       `  expected ${ZERION_ZIP_SHA256}\n` +
       `  actual   ${actual}\n` +
       'The release asset is immutable, so this is a bad download or a ' +
-      'half-updated wallet-versions.ts. The file has been deleted; re-run.',
+      'half-updated wallet-versions.ts.\n' +
+      (downloaded
+        ? 'The downloaded file has been deleted; re-run.'
+        : `Left ${zipPath} alone because ZERION_ZIP_PATH points at it. ` +
+          'Update the pin in wallet-versions.ts, or point it at the zip ' +
+          'matching the pin.'),
   )
 }
 
@@ -174,7 +178,7 @@ export async function ensureZerionExtension(): Promise<string> {
     )
   }
 
-  verifyDigest(zipPath)
+  verifyDigest(zipPath, override === undefined)
   await unpack(zipPath)
 
   writeFileSync(
