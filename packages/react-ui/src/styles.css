@@ -14,6 +14,9 @@
 @import "./reset.css";
 @import "tailwindcss/utilities.css" prefix(zd);
 @config "../tailwind.config.ts";
+/* Semantic colour tokens: a @theme block Tailwind turns into custom
+   properties and one utility per token; see that file. */
+@import "./theme/tokens.css";
 
 /* Density base. --zd-density is a unitless multiplier (1 = default) that the
    spacing base and the font tokens (see tailwind.config.ts) derive from, so the
