@@ -34,10 +34,10 @@ export interface TxnItemProps {
 }
 
 const STATUS_COLOR: Record<TxnStatus, string> = {
-  Routing: 'zd:text-solarOrange',
-  Detected: 'zd:text-greyScale/50',
-  Delivered: 'zd:text-positive',
-  Failed: 'zd:text-negative',
+  Routing: 'zd:text-brand-primary',
+  Detected: 'zd:text-neutral-tertiary',
+  Delivered: 'zd:text-success-primary',
+  Failed: 'zd:text-error-primary',
 }
 
 export function TxnItem({
@@ -128,7 +128,9 @@ export function TxnItem({
             {status}
           </Text>
         </span>
-        <Text className="zd:text-body3 zd:text-greyScale/50">{timestamp}</Text>
+        <Text className="zd:text-body3 zd:text-neutral-tertiary">
+          {timestamp}
+        </Text>
       </div>
     </div>
   )
@@ -145,7 +147,7 @@ function TokenMark({
 }) {
   return (
     <div className="zd:relative zd:size-11 zd:shrink-0 zd:rounded-xl zd:backdrop-blur-[15px]">
-      <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:overflow-hidden zd:rounded-full zd:border zd:border-offWhite zd:bg-greyScale/10 zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]">
+      <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:overflow-hidden zd:rounded-full zd:border zd:border-neutral-primary zd:bg-inverse-hover zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]">
         {tokenIconUrl && (
           <img
             src={tokenIconUrl}
@@ -155,7 +157,7 @@ function TokenMark({
         )}
       </div>
       {badgeIconUrl && (
-        <div className="zd:absolute zd:right-1 zd:bottom-1 zd:size-3 zd:overflow-hidden zd:rounded-full zd:border zd:border-offWhite/40 zd:bg-white">
+        <div className="zd:absolute zd:right-1 zd:bottom-1 zd:size-3 zd:overflow-hidden zd:rounded-full zd:border zd:border-neutral-secondary zd:bg-bright-primary">
           <img
             src={badgeIconUrl}
             alt=""
@@ -172,7 +174,7 @@ function RouteArrow() {
   return (
     <Icon
       name="chevronRight"
-      className="zd:size-2.5 zd:shrink-0 zd:text-greyScale"
+      className="zd:size-2.5 zd:shrink-0 zd:text-icon-neutral-primary"
       aria-hidden
     />
   )
@@ -182,7 +184,7 @@ function ChainTag({ name, iconUrl }: { name: string; iconUrl?: string }) {
   return (
     <span className="zd:flex zd:min-w-0 zd:items-center zd:gap-1">
       {iconUrl && (
-        <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:border zd:border-offWhite/40 zd:bg-white">
+        <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:border zd:border-neutral-secondary zd:bg-bright-primary">
           <img
             src={iconUrl}
             alt=""
@@ -191,7 +193,7 @@ function ChainTag({ name, iconUrl }: { name: string; iconUrl?: string }) {
           />
         </span>
       )}
-      <Text className="zd:truncate zd:text-body3 zd:text-greyScale/80">
+      <Text className="zd:truncate zd:text-body3 zd:text-neutral-secondary">
         {name}
       </Text>
     </span>
@@ -212,7 +214,7 @@ function AddressLine({ address, href }: { address: string; href?: string }) {
   )
 
   const className =
-    'zd:flex zd:min-w-0 zd:items-center zd:gap-1 zd:text-body3 zd:text-greyScale/80'
+    'zd:flex zd:min-w-0 zd:items-center zd:gap-1 zd:text-body3 zd:text-neutral-secondary'
 
   if (href) {
     return (
@@ -221,7 +223,7 @@ function AddressLine({ address, href }: { address: string; href?: string }) {
         target="_blank"
         rel="noreferrer noopener"
         aria-label={`View ${address} on block explorer`}
-        className={cn(className, 'zd:hover:text-greyScale')}
+        className={cn(className, 'zd:hover:text-neutral-primary')}
       >
         {inner}
       </a>

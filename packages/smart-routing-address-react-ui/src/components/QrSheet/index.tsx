@@ -44,14 +44,14 @@ export function QrSheet({ open, onOpenChange, address, onCopy }: QrSheetProps) {
           {/* The white bg + `p-5` (20px) padding around the QR doubles as
               the required 4-module quiet zone — QrCode itself no longer
               reserves one internally so the code fills its declared size. */}
-          <div className="zd:relative zd:bg-white zd:w-[240px] zd:h-[240px] zd:p-5 zd:flex zd:items-center zd:justify-center">
+          <div className="zd:relative zd:bg-bright-primary zd:w-[240px] zd:h-[240px] zd:p-5 zd:flex zd:items-center zd:justify-center">
             <QrCode value={address} size={200} eyeRadius={2} />
             {/* Corner brackets — viewfinder-style framing. Color/thickness
                 match the Figma's `rgba(19,14,11,0.1)` 1px outline. */}
-            <div className="zd:absolute zd:top-0 zd:left-0 zd:w-5 zd:h-5 zd:border-t zd:border-l zd:border-greyScale/10 zd:rounded-tl-lg zd:pointer-events-none" />
-            <div className="zd:absolute zd:top-0 zd:right-0 zd:w-5 zd:h-5 zd:border-t zd:border-r zd:border-greyScale/10 zd:rounded-tr-lg zd:pointer-events-none" />
-            <div className="zd:absolute zd:bottom-0 zd:left-0 zd:w-5 zd:h-5 zd:border-b zd:border-l zd:border-greyScale/10 zd:rounded-bl-lg zd:pointer-events-none" />
-            <div className="zd:absolute zd:bottom-0 zd:right-0 zd:w-5 zd:h-5 zd:border-b zd:border-r zd:border-greyScale/10 zd:rounded-br-lg zd:pointer-events-none" />
+            <div className="zd:absolute zd:top-0 zd:left-0 zd:w-5 zd:h-5 zd:border-t zd:border-l zd:border-inverse-secondary zd:rounded-tl-lg zd:pointer-events-none" />
+            <div className="zd:absolute zd:top-0 zd:right-0 zd:w-5 zd:h-5 zd:border-t zd:border-r zd:border-inverse-secondary zd:rounded-tr-lg zd:pointer-events-none" />
+            <div className="zd:absolute zd:bottom-0 zd:left-0 zd:w-5 zd:h-5 zd:border-b zd:border-l zd:border-inverse-secondary zd:rounded-bl-lg zd:pointer-events-none" />
+            <div className="zd:absolute zd:bottom-0 zd:right-0 zd:w-5 zd:h-5 zd:border-b zd:border-r zd:border-inverse-secondary zd:rounded-br-lg zd:pointer-events-none" />
           </div>
 
           <Text className="zd:text-body2 zd:text-center zd:break-all zd:max-w-[230px]">

@@ -333,7 +333,7 @@ export function Deposit({
                               {...(logo && { imageSource: logo })}
                             />
                             {i === 0 && (
-                              <span className="zd:absolute zd:top-1/2 zd:right-3 zd:-translate-y-1/2 zd:inline-flex zd:items-center zd:rounded-full zd:bg-positive/15 zd:px-2 zd:py-1 zd:text-body3 zd:text-positive zd:pointer-events-none">
+                              <span className="zd:absolute zd:top-1/2 zd:right-3 zd:-translate-y-1/2 zd:inline-flex zd:items-center zd:rounded-full zd:bg-success-subtle zd:px-2 zd:py-1 zd:text-body3 zd:text-success-primary zd:pointer-events-none">
                                 Recommended
                               </span>
                             )}
@@ -433,7 +433,7 @@ export function Deposit({
                     ) : (
                       // Match Min deposit's skeleton so both loading
                       // affordances share one visual language.
-                      <div className="zd:h-3.5 zd:w-20 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse" />
+                      <div className="zd:h-3.5 zd:w-20 zd:rounded-md zd:bg-inverse-hover zd:animate-skel-pulse" />
                     )
                   }
                   info
@@ -503,7 +503,7 @@ export function Deposit({
                     <output
                       aria-busy="true"
                       aria-label="Loading minimum deposit"
-                      className="zd:block zd:h-3.5 zd:w-20 zd:rounded-md zd:bg-greyScale/15 zd:animate-skel-pulse"
+                      className="zd:block zd:h-3.5 zd:w-20 zd:rounded-md zd:bg-inverse-hover zd:animate-skel-pulse"
                     />
                   )
                 }
@@ -588,17 +588,18 @@ function CopyAddressButton({ address }: { address: string }) {
       onClick={handleCopy}
       className={cn(
         'zd:relative zd:flex zd:h-12 zd:w-full zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:gap-2',
-        'zd:rounded-[14px] zd:backdrop-blur-[15px] zd:transition-colors zd:hover:bg-greyScale',
+        // The inverse-primary surface the design binds (Background/Neutral
+        // Inverse/Primary): ink in light, off-white in dark.
+        'zd:rounded-[14px] zd:bg-inverse-primary zd:backdrop-blur-[15px] zd:transition-colors zd:hover:bg-inverse-secondary',
         'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
       )}
-      style={{ backgroundColor: 'rgba(19, 14, 11, 0.9)' }}
     >
-      <Text className="zd:text-body1 zd:text-offWhite">
+      <Text className="zd:text-body1 zd:text-inverse-primary">
         {copied ? 'Copied!' : 'Copy Address'}
       </Text>
       <Icon
         name="copy"
-        className="zd:size-4 zd:shrink-0 zd:text-offWhite"
+        className="zd:size-4 zd:shrink-0 zd:text-icon-inverse-primary"
         aria-hidden
       />
     </button>
@@ -617,7 +618,7 @@ function PastDepositsRow({ count }: { count: number }) {
       <div className="zd:flex zd:min-w-0 zd:flex-1 zd:items-center zd:gap-2">
         <Icon
           name="clockFill"
-          className="zd:size-4 zd:shrink-0 zd:text-solarOrange"
+          className="zd:size-4 zd:shrink-0 zd:text-icon-brand-primary"
           aria-hidden
         />
         <Text className="zd:flex-1 zd:text-left zd:text-h3">
@@ -626,7 +627,7 @@ function PastDepositsRow({ count }: { count: number }) {
       </div>
       <Icon
         name="chevronRight"
-        className="zd:size-4.5 zd:shrink-0 zd:text-greyScale"
+        className="zd:size-4.5 zd:shrink-0 zd:text-icon-neutral-primary"
         aria-hidden
       />
     </div>

@@ -28,13 +28,13 @@ export function LiveValue({ loading, flashKey, children }: LiveValueProps) {
   if (loading) {
     return (
       <span
-        className="zd:inline-flex zd:items-center zd:justify-center zd:text-orange"
+        className="zd:inline-flex zd:items-center zd:justify-center zd:text-icon-brand-primary"
         role="img"
         aria-label="Updating estimate"
       >
         <Icon
           name="loading"
-          className="zd:w-3.5 zd:h-3.5 zd:animate-spin zd:text-orange"
+          className="zd:w-3.5 zd:h-3.5 zd:animate-spin zd:text-icon-brand-primary"
           aria-hidden
         />
       </span>
@@ -73,17 +73,17 @@ export function FeeSummary({ breakdown }: { breakdown: FeeBreakdown }) {
   return (
     <span className="zd:inline-flex zd:items-center zd:gap-1 zd:leading-none">
       {pct && (
-        <b className="zd:text-body2 zd:font-bold zd:text-greyScale zd:leading-none">
+        <b className="zd:text-body2 zd:font-bold zd:text-neutral-primary zd:leading-none">
           {pct}
         </b>
       )}
       {pct && usd && (
-        <span className="zd:text-body2 zd:text-greyScale/50 zd:leading-none">
+        <span className="zd:text-body2 zd:text-neutral-tertiary zd:leading-none">
           +
         </span>
       )}
       {usd && (
-        <span className="zd:text-body2 zd:font-medium zd:text-greyScale/70 zd:leading-none">
+        <span className="zd:text-body2 zd:font-medium zd:text-neutral-secondary zd:leading-none">
           {usd}
         </span>
       )}
@@ -115,7 +115,7 @@ export function ProviderValue({ provider }: { provider: string }) {
   }
   return (
     <a
-      className="zd:inline-flex zd:items-center zd:gap-1 zd:text-greyScale zd:hover:underline"
+      className="zd:inline-flex zd:items-center zd:gap-1 zd:text-neutral-primary zd:hover:underline"
       href={url}
       target="_blank"
       rel="noreferrer"
@@ -142,7 +142,7 @@ function InfoMark({ info }: { info: string }) {
       >
         <Icon
           name="infoOutline"
-          className="zd:w-3.5 zd:h-3.5 zd:text-greyScale/50"
+          className="zd:w-3.5 zd:h-3.5 zd:text-icon-neutral-tertiary"
           aria-hidden
         />
       </button>
@@ -187,7 +187,9 @@ function BreakdownRow({
         className,
       )}
     >
-      <Text className="zd:whitespace-nowrap zd:text-greyScale/60">{label}</Text>
+      <Text className="zd:whitespace-nowrap zd:text-neutral-tertiary">
+        {label}
+      </Text>
       {info && <InfoMark info={info} />}
       <div className="zd:min-w-0 zd:flex-1" />
       {children}
@@ -253,7 +255,7 @@ export function FeeDisclosureButton({
         // animates instead of swapping glyphs.
         name="chevronDown"
         className={cn(
-          'zd:w-3.5 zd:h-3.5 zd:shrink-0 zd:text-greyScale zd:transition-transform zd:duration-200',
+          'zd:w-3.5 zd:h-3.5 zd:shrink-0 zd:text-icon-neutral-primary zd:transition-transform zd:duration-200',
           open && 'zd:rotate-180',
         )}
         aria-hidden

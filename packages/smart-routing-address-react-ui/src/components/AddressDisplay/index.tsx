@@ -48,11 +48,11 @@ export function AddressDisplayUI({
   return (
     <Wrapper
       variant="ghost"
-      // Figma's 40% offWhite surface — none of Wrapper's white-only variants
-      // hit this tint, so override the backgroundColor. Inline style wins
-      // over Wrapper's own style prop.
-      style={{ backgroundColor: 'rgba(247, 245, 240, 0.4)' }}
       className={cn(
+        // Figma's 40% offWhite surface: the neutral-secondary token, which
+        // none of Wrapper's bright variants hit. Listed first so Wrapper's
+        // own tint loses the merge.
+        'zd:bg-neutral-secondary',
         // Figma: rounded-[14px], pl-16 pr-8 py-8, gap-12 items-center.
         // Height pinned to 68px so the loading and ready variants swap without
         // the layout jumping.
@@ -72,10 +72,13 @@ export function AddressDisplayUI({
         type="button"
         onClick={onQrClick}
         aria-label="Show QR code"
-        className="zd:flex zd:w-13 zd:h-13 zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:rounded-2xl zd:bg-white"
+        className="zd:flex zd:w-13 zd:h-13 zd:shrink-0 zd:cursor-pointer zd:items-center zd:justify-center zd:rounded-2xl zd:bg-bright-primary"
         data-testid="address-display-qr-button"
       >
-        <Icon name="qrCode" className="zd:w-5 zd:h-5 zd:text-greyScale" />
+        <Icon
+          name="qrCode"
+          className="zd:w-5 zd:h-5 zd:text-icon-neutral-primary"
+        />
       </button>
     </Wrapper>
   )
