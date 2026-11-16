@@ -18,7 +18,11 @@ import * as path from 'node:path'
 import { type BrowserContext, chromium, type Page } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
 import { TEST_WALLET } from '../wallet-credentials.js'
-import { ensureZerionExtension, PROFILE_SNAPSHOT_DIR } from './extension.js'
+import {
+  EXTENSION_DIR,
+  ensureZerionExtension,
+  PROFILE_SNAPSHOT_DIR,
+} from './extension.js'
 import { onboardWithRecoveryPhrase } from './onboard.js'
 import { unlockIfLocked } from './unlock.js'
 
@@ -131,9 +135,15 @@ const credentialsFingerprint = (): string =>
     .update(`${TEST_WALLET.secretRecoveryPhrase}\n${TEST_WALLET.password}`)
     .digest('hex')
 
+/**
+ * Where the extension was unpacked when the snapshot was built.
+ */
+const extensionPath = (): string => path.resolve(EXTENSION_DIR)
+
 const readProfileStamp = (): {
   account: string
   credentials?: string
+  extensionPath?: string
 } | null => {
   if (!existsSync(PROFILE_STAMP_FILE)) return null
   try {
@@ -160,7 +170,11 @@ export async function ensureOnboardedProfile(
   const fingerprint = credentialsFingerprint()
 
   if (existsSync(PROFILE_SNAPSHOT_DIR)) {
-    if (readProfileStamp()?.credentials === fingerprint) {
+    const stamp = readProfileStamp()
+    if (
+      stamp?.credentials === fingerprint &&
+      stamp.extensionPath === extensionPath()
+    ) {
       return PROFILE_SNAPSHOT_DIR
     }
     rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
@@ -175,12 +189,17 @@ export async function ensureOnboardedProfile(
       headless,
     })
 
-    const page = await openOnboardingTab(context, extensionId)
-    await onboardWithRecoveryPhrase(page, credentials)
-
-    // Closing also flushes. Snapshotting a live profile captures a half-written
-    // leveldb, so the copy only happens once the browser is gone.
-    await context.close()
+    try {
+      const page = await openOnboardingTab(context, extensionId)
+      await onboardWithRecoveryPhrase(page, credentials)
+    } finally {
+      // Closing also flushes. Snapshotting a live profile captures a
+      // half-written leveldb, so the copy only happens once the browser is
+      // gone. On a failed onboard this still has to run, or the outer
+      // `finally` deletes `scratch` out from under a live Chromium that then
+      // survives to worker shutdown.
+      await context.close()
+    }
 
     // Build beside the destination and promote only after it has been proven,
     // so an interrupted or bad run cannot leave something later runs trust.
@@ -194,7 +213,11 @@ export async function ensureOnboardedProfile(
     cpSync(staging, PROFILE_SNAPSHOT_DIR, { recursive: true })
     writeFileSync(
       PROFILE_STAMP_FILE,
-      JSON.stringify({ account, credentials: fingerprint }),
+      JSON.stringify({
+        account,
+        credentials: fingerprint,
+        extensionPath: extensionPath(),
+      }),
     )
 
     return PROFILE_SNAPSHOT_DIR
