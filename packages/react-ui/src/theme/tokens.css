@@ -26,9 +26,9 @@
       Mode sets the colour scheme, through --zd-color-scheme, which only
       the kit's own surfaces (.zd-scope: Screen's frame and the portal root)
       turn into `color-scheme`, so a host that themes the wallet dark on
-      <html> keeps its own scrollbars, form controls and canvas. The dark
-      values arrive with the dark theme; until then every mode paints the
-      light values and keeps the light scheme, so form controls match.
+      <html> keeps its own scrollbars, form controls and canvas. Every cell
+      of the grid ships: the dark blocks come last and win at equal (zero)
+      specificity.
 
    3. The safelist. Tailwind only emits a utility some scanned source uses,
       and the published stylesheets must carry every token utility for hosts
@@ -228,6 +228,21 @@
    means branded. */
 @custom-variant plain (&:where([data-zd-brand="plain"], [data-zd-brand="plain"] *));
 
+/* The mode as a variant, for art that has a drawing per mode (the card's
+   base and glow). It replaces Tailwind's own `dark:`, which reads only the
+   OS scheme, with the attributes: inside a data-zd-mode="dark" subtree, or
+   a "system" one while the OS scheme is dark. */
+@custom-variant dark {
+  &:where([data-zd-mode="dark"], [data-zd-mode="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-zd-mode="system"], [data-zd-mode="system"] *) {
+      @slot;
+    }
+  }
+}
+
 /* Plain: the brand folded onto neutrals. */
 :where([data-zd-brand="plain"]) {
   /* bg */
@@ -320,18 +335,20 @@
   --zd-border-info-inverse: #45abfb;
 }
 
-/* Mode. `light` and `system` take the light values above. Dark values ship
-   for the plain brand: one block for `dark`, and the same under
-   `prefers-color-scheme: dark` for `system`. The two blocks are deliberately
+/* Mode. `light` and `system` take the light values above. The dark values
+   come in a block per brand for `dark`, and the same again under
+   `prefers-color-scheme: dark` for `system`. Each pair is deliberately
    identical (tokens.test.ts checks they stay so): a media condition cannot
    join a selector list, and light-dark() would fold each pair onto one line
    but needs Chrome 123 / Safari 17.5, above the floor Tailwind sets; once
-   the floor moves, replace both blocks with light-dark() values in the
-   brand block. Branded dark is held until the card's art has a dark design:
-   that preset keeps the light values and no dark scheme. The dark block
-   comes after the brand blocks so it wins at equal (zero) specificity. The
-   card and band values are opaque where the design binds a translucent ink
-   over its own canvas, so the card looks the same on a light host page. */
+   the floor moves, replace the pairs with light-dark() values in the brand
+   blocks. The branded blocks key on the mode with the brand defaulting
+   (`:not(plain)`), so a host that writes only data-zd-mode, as next-themes
+   does, gets branded dark. The dark blocks come after the brand blocks so
+   they win at equal (zero) specificity. The plain card and band values are
+   opaque where the design binds a translucent ink over its own canvas, so
+   the card looks the same on a light host page; the branded card stays
+   translucent, it sits on the ring. */
 :where([data-zd-mode="light"]),
 :where([data-zd-mode="system"]) {
   --zd-color-scheme: light;
@@ -428,6 +445,88 @@
   --zd-border-info-inverse: #7cc4ff;
 }
 
+/* Branded dark. */
+:where([data-zd-mode="dark"]:not([data-zd-brand="plain"])) {
+  --zd-color-scheme: dark;
+  --zd-bg-neutral-primary: #130e0bcc;
+  --zd-bg-neutral-secondary: #f7f5f00d;
+  --zd-bg-neutral-tertiary: #f7f5f01a;
+  --zd-bg-neutral-disabled: #ffffff0d;
+  --zd-bg-bright-primary: #f7f5f01a;
+  --zd-bg-bright-secondary: #f7f5f00d;
+  --zd-bg-bright-tertiary: #f7f5f008;
+  --zd-bg-inverse-primary: #f7f5f0;
+  --zd-bg-inverse-secondary: #f7f5f0cc;
+  --zd-bg-inverse-tertiary: #f7f5f080;
+  --zd-bg-inverse-hover: #f7f5f01a;
+  --zd-bg-brand-primary: #e76000;
+  --zd-bg-brand-secondary: #4a2714;
+  --zd-bg-brand-tertiary: #e7600033;
+  --zd-bg-surface-primary: #130e0be5;
+  --zd-bg-surface-secondary: #f7f5f00d;
+  --zd-bg-surface-tertiary: #f7f5f01a;
+  --zd-bg-surface-bright-primary: #f7f5f01a;
+  --zd-bg-surface-bright-secondary: #f7f5f00d;
+  --zd-bg-surface-bright-tertiary: #f7f5f008;
+  --zd-bg-frame-ring: #252525;
+  --zd-bg-success-subtle: #22830033;
+  --zd-bg-success-bold: #228300;
+  --zd-bg-warning-subtle: #e7600033;
+  --zd-bg-warning-bold: #e76000;
+  --zd-bg-error-subtle: #ff422133;
+  --zd-bg-error-bold: #ff4221;
+  --zd-bg-info-subtle: #45abfb33;
+  --zd-bg-info-bold: #45abfb;
+  --zd-text-neutral-primary: #f7f5f0;
+  --zd-text-neutral-secondary: #f7f5f0cc;
+  --zd-text-neutral-tertiary: #f7f5f080;
+  --zd-text-neutral-disabled: #f7f5f033;
+  --zd-text-inverse-primary: #130e0b;
+  --zd-text-inverse-secondary: #130e0bcc;
+  --zd-text-inverse-tertiary: #130e0bb2;
+  --zd-text-brand-primary: #ff8a3d;
+  --zd-text-brand-inverse: #ffffff;
+  --zd-text-success-primary: #5fd13a;
+  --zd-text-success-inverse: #f7f5f0;
+  --zd-text-warning-primary: #ff8a3d;
+  --zd-text-warning-inverse: #ffffff;
+  --zd-text-error-primary: #ff6a4d;
+  --zd-text-error-inverse: #130e0b;
+  --zd-text-info-primary: #7cc4ff;
+  --zd-text-info-inverse: #130e0b;
+  --zd-icon-neutral-primary: #f7f5f0;
+  --zd-icon-neutral-secondary: #f7f5f0cc;
+  --zd-icon-neutral-tertiary: #f7f5f080;
+  --zd-icon-neutral-disabled: #f7f5f033;
+  --zd-icon-inverse-primary: #130e0b;
+  --zd-icon-inverse-secondary: #130e0bcc;
+  --zd-icon-inverse-tertiary: #130e0bb2;
+  --zd-icon-brand-primary: #ff8a3d;
+  --zd-icon-brand-inverse: #ffffff;
+  --zd-icon-success-primary: #5fd13a;
+  --zd-icon-success-inverse: #f7f5f0;
+  --zd-icon-warning-primary: #ff8a3d;
+  --zd-icon-warning-inverse: #ffffff;
+  --zd-icon-error-primary: #ff6a4d;
+  --zd-icon-error-inverse: #130e0b;
+  --zd-icon-info-primary: #7cc4ff;
+  --zd-icon-info-inverse: #130e0b;
+  --zd-border-neutral-primary: #f7f5f01a;
+  --zd-border-neutral-secondary: #f7f5f00d;
+  --zd-border-inverse-primary: #f7f5f0;
+  --zd-border-inverse-secondary: #f7f5f066;
+  --zd-border-brand-primary: #e7600033;
+  --zd-border-brand-inverse: #ff8a3d;
+  --zd-border-success-primary: #22830033;
+  --zd-border-success-inverse: #5fd13a;
+  --zd-border-warning-primary: #e7600033;
+  --zd-border-warning-inverse: #ff8a3d;
+  --zd-border-error-primary: #ff422133;
+  --zd-border-error-inverse: #ff6a4d;
+  --zd-border-info-primary: #45abfb33;
+  --zd-border-info-inverse: #7cc4ff;
+}
+
 @media (prefers-color-scheme: dark) {
   :where([data-zd-mode="system"][data-zd-brand="plain"]) {
     --zd-color-scheme: dark;
@@ -500,6 +599,87 @@
     --zd-border-inverse-secondary: #f7f5f066;
     --zd-border-brand-primary: #f7f5f01a;
     --zd-border-brand-inverse: #f7f5f0;
+    --zd-border-success-primary: #22830033;
+    --zd-border-success-inverse: #5fd13a;
+    --zd-border-warning-primary: #e7600033;
+    --zd-border-warning-inverse: #ff8a3d;
+    --zd-border-error-primary: #ff422133;
+    --zd-border-error-inverse: #ff6a4d;
+    --zd-border-info-primary: #45abfb33;
+    --zd-border-info-inverse: #7cc4ff;
+  }
+
+  :where([data-zd-mode="system"]:not([data-zd-brand="plain"])) {
+    --zd-color-scheme: dark;
+    --zd-bg-neutral-primary: #130e0bcc;
+    --zd-bg-neutral-secondary: #f7f5f00d;
+    --zd-bg-neutral-tertiary: #f7f5f01a;
+    --zd-bg-neutral-disabled: #ffffff0d;
+    --zd-bg-bright-primary: #f7f5f01a;
+    --zd-bg-bright-secondary: #f7f5f00d;
+    --zd-bg-bright-tertiary: #f7f5f008;
+    --zd-bg-inverse-primary: #f7f5f0;
+    --zd-bg-inverse-secondary: #f7f5f0cc;
+    --zd-bg-inverse-tertiary: #f7f5f080;
+    --zd-bg-inverse-hover: #f7f5f01a;
+    --zd-bg-brand-primary: #e76000;
+    --zd-bg-brand-secondary: #4a2714;
+    --zd-bg-brand-tertiary: #e7600033;
+    --zd-bg-surface-primary: #130e0be5;
+    --zd-bg-surface-secondary: #f7f5f00d;
+    --zd-bg-surface-tertiary: #f7f5f01a;
+    --zd-bg-surface-bright-primary: #f7f5f01a;
+    --zd-bg-surface-bright-secondary: #f7f5f00d;
+    --zd-bg-surface-bright-tertiary: #f7f5f008;
+    --zd-bg-frame-ring: #252525;
+    --zd-bg-success-subtle: #22830033;
+    --zd-bg-success-bold: #228300;
+    --zd-bg-warning-subtle: #e7600033;
+    --zd-bg-warning-bold: #e76000;
+    --zd-bg-error-subtle: #ff422133;
+    --zd-bg-error-bold: #ff4221;
+    --zd-bg-info-subtle: #45abfb33;
+    --zd-bg-info-bold: #45abfb;
+    --zd-text-neutral-primary: #f7f5f0;
+    --zd-text-neutral-secondary: #f7f5f0cc;
+    --zd-text-neutral-tertiary: #f7f5f080;
+    --zd-text-neutral-disabled: #f7f5f033;
+    --zd-text-inverse-primary: #130e0b;
+    --zd-text-inverse-secondary: #130e0bcc;
+    --zd-text-inverse-tertiary: #130e0bb2;
+    --zd-text-brand-primary: #ff8a3d;
+    --zd-text-brand-inverse: #ffffff;
+    --zd-text-success-primary: #5fd13a;
+    --zd-text-success-inverse: #f7f5f0;
+    --zd-text-warning-primary: #ff8a3d;
+    --zd-text-warning-inverse: #ffffff;
+    --zd-text-error-primary: #ff6a4d;
+    --zd-text-error-inverse: #130e0b;
+    --zd-text-info-primary: #7cc4ff;
+    --zd-text-info-inverse: #130e0b;
+    --zd-icon-neutral-primary: #f7f5f0;
+    --zd-icon-neutral-secondary: #f7f5f0cc;
+    --zd-icon-neutral-tertiary: #f7f5f080;
+    --zd-icon-neutral-disabled: #f7f5f033;
+    --zd-icon-inverse-primary: #130e0b;
+    --zd-icon-inverse-secondary: #130e0bcc;
+    --zd-icon-inverse-tertiary: #130e0bb2;
+    --zd-icon-brand-primary: #ff8a3d;
+    --zd-icon-brand-inverse: #ffffff;
+    --zd-icon-success-primary: #5fd13a;
+    --zd-icon-success-inverse: #f7f5f0;
+    --zd-icon-warning-primary: #ff8a3d;
+    --zd-icon-warning-inverse: #ffffff;
+    --zd-icon-error-primary: #ff6a4d;
+    --zd-icon-error-inverse: #130e0b;
+    --zd-icon-info-primary: #7cc4ff;
+    --zd-icon-info-inverse: #130e0b;
+    --zd-border-neutral-primary: #f7f5f01a;
+    --zd-border-neutral-secondary: #f7f5f00d;
+    --zd-border-inverse-primary: #f7f5f0;
+    --zd-border-inverse-secondary: #f7f5f066;
+    --zd-border-brand-primary: #e7600033;
+    --zd-border-brand-inverse: #ff8a3d;
     --zd-border-success-primary: #22830033;
     --zd-border-success-inverse: #5fd13a;
     --zd-border-warning-primary: #e7600033;

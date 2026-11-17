@@ -31,6 +31,14 @@ describe('Screen', () => {
       const art = container.querySelectorAll('.zd\\:plain\\:hidden')
       expect(art.length).toBe(2)
       const layers = container.querySelectorAll('.zd\\:plain\\:block')
+      // The card's branded art holds a drawing per mode, picked by the
+      // `zd:dark:` variant; the dark one is the frosted ink card on the ring.
+      expect(container.querySelector('.zd\\:dark\\:hidden')).not.toBeNull()
+      expect(
+        container.querySelector(
+          '.zd\\:dark\\:contents .zd\\:bg-neutral-primary',
+        ),
+      ).not.toBeNull()
       expect(layers.length).toBe(2)
       expect(layers[0]?.className).toContain('zd:bg-frame-ring')
       expect(layers[1]?.className).toContain('zd:bg-neutral-primary')
@@ -160,10 +168,11 @@ describe('Screen', () => {
           <div>Content</div>
         </Screen>,
       )
-      // WrapperBorder (6 token layers) + CardGlow color stack (6) = 12 radial
-      // gradients. (MultiRadialBackground's base is a flat rect, no gradient.)
+      // WrapperBorder (6 token layers) + CardGlow colour stack (6) +
+      // DarkCardBase (2: the haze and its warm side) = 14 radial gradients.
+      // (MultiRadialBackground's base is a flat rect, no gradient.)
       const gradients = container.querySelectorAll('radialGradient')
-      expect(gradients.length).toBe(12)
+      expect(gradients.length).toBe(14)
     })
   })
 })
