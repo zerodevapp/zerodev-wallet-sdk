@@ -68,11 +68,8 @@ export default function ConfigBuilderPage() {
   const [namespaceMode, setNamespaceMode] = useState<AuthNamespace | "all">(
     current.namespaces.length === 1 ? current.namespaces[0]! : "all",
   );
-  const namespaces: readonly AuthNamespace[] = !solanaEnabled
-    ? ["eip155"]
-    : namespaceMode === "all"
-      ? AUTH_NAMESPACE_IDS
-      : [namespaceMode];
+  const namespaces: readonly AuthNamespace[] =
+    namespaceMode === "all" ? AUTH_NAMESPACE_IDS : [namespaceMode];
   const [target, setTarget] = useState("/");
   const [copied, setCopied] = useState(false);
 
@@ -86,6 +83,7 @@ export default function ConfigBuilderPage() {
     authFlavor,
     solana: solanaEnabled,
     namespaces,
+    maxWallets: current.maxWallets,
   }).toString();
 
   const url = query ? `${target}?${query}` : target;
@@ -209,7 +207,11 @@ export default function ConfigBuilderPage() {
                 <input
                   type="checkbox"
                   checked={solanaEnabled}
-                  onChange={(event) => setSolanaEnabled(event.target.checked)}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setSolanaEnabled(enabled);
+                    setNamespaceMode(enabled ? "all" : "eip155");
+                  }}
                   data-testid="config-solana-input"
                   className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer"
                 />

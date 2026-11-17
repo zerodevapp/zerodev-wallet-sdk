@@ -368,6 +368,7 @@ export function serializeOverrides(overrides: {
   authFlavor?: AuthFlavorId;
   solana?: boolean;
   namespaces?: readonly AuthNamespace[];
+  maxWallets?: number | undefined;
 }): URLSearchParams {
   const params = new URLSearchParams();
 
@@ -398,6 +399,12 @@ export function serializeOverrides(overrides: {
   }
   if (overrides.authFlavor && overrides.authFlavor !== DEFAULT_AUTH_FLAVOR) {
     params.set(PARAM.authFlavor, overrides.authFlavor);
+  }
+  // Carried rather than edited, like `rpc.<chainId>`: the builder offers no
+  // control for it, so the only thing it can get wrong is dropping a cap
+  // someone set, which silently changes how many installed rows a spec sees.
+  if (overrides.maxWallets !== undefined) {
+    params.set(PARAM.maxWallets, String(overrides.maxWallets));
   }
 
   return params;
