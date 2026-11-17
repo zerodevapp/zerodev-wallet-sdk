@@ -13,10 +13,12 @@
 @import "tailwindcss/theme.css" prefix(zd);
 @import "./reset.css";
 @import "tailwindcss/utilities.css" prefix(zd);
-@config "../tailwind.config.ts";
 /* Semantic colour tokens: a @theme block Tailwind turns into custom
    properties and one utility per token; see that file. */
+/* Imported before @config: Vite inlines @import rules before Tailwind runs and,
+   per the CSS spec, drops one that follows any other statement. */
 @import "./theme/tokens.css";
+@config "../tailwind.config.ts";
 
 /* Density base. --zd-density is a unitless multiplier (1 = default) that the
    spacing base and the font tokens (see tailwind.config.ts) derive from, so the

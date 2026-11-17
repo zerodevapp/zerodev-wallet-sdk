@@ -1,13 +1,46 @@
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, waitFor } from '@testing-library/react'
+import { useEffect } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { useZdPortalContainer } from '../../utils/portal'
 import { Screen } from './index'
 
 afterEach(() => {
   cleanup()
 })
 
+/** Reports the portal container a component inside the frame would use. */
+function PortalProbe({
+  onContainer,
+}: {
+  onContainer: (container: HTMLElement | undefined) => void
+}) {
+  const container = useZdPortalContainer()
+  useEffect(() => {
+    onContainer(container)
+  }, [container, onContainer])
+  return null
+}
+
 describe('Screen', () => {
+  describe('portals', () => {
+    it('hands its subtree the shared portal root under document.body', async () => {
+      let container: HTMLElement | undefined
+      render(
+        <Screen>
+          <PortalProbe
+            onContainer={(c) => {
+              container = c
+            }}
+          />
+        </Screen>,
+      )
+      await waitFor(() => expect(container).toBeDefined())
+      expect(container?.id).toBe('zd-portal-root')
+      expect(container?.parentElement).toBe(document.body)
+    })
+  })
+
   describe('rendering', () => {
     it('renders children', () => {
       const { container } = render(
