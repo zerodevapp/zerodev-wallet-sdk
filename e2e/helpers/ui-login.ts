@@ -80,7 +80,20 @@ export async function openSignInAndPickChain(
 ): Promise<void> {
   await openSignIn(page, namespace)
   await expectSignUpSheet(page)
+  await pickChain(page, walletName, namespace)
+}
 
+/**
+ * Picks `namespace` on a wallet's row in an already-open sheet.
+ *
+ * Split out of `openSignInAndPickChain` so a caller that has to do something
+ * between opening the sheet and clicking the row still shares this half.
+ */
+export async function pickChain(
+  page: Page,
+  walletName: string,
+  namespace: Namespace,
+): Promise<void> {
   await page.getByRole('button', { name: new RegExp(`^${walletName}`) }).click()
 
   const choice = page.getByTestId(`chain-choice-${walletName}`)

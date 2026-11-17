@@ -12,10 +12,13 @@ import {
   launchWithZerion,
   unlockIfLocked,
 } from '../helpers/zerion/session.js'
+import { Zerion } from '../helpers/zerion/zerion.js'
 
 interface ZerionFixtures {
   context: BrowserContext
   extensionId: string
+  /** Drives the extension side of a connect or signature request. */
+  zerion: Zerion
   /** The wallet's own UI, unlocked and on the home route. */
   walletPage: Page
 }
@@ -60,6 +63,14 @@ export const test = base.extend<ZerionFixtures, ZerionWorkerFixtures>({
     if (!id)
       throw new Error(`could not read an extension id from ${worker.url()}`)
     await use(id)
+  },
+
+  zerion: async ({ context, extensionId }, use) => {
+    const zerion = new Zerion(context, extensionId, TEST_WALLET.password)
+    // Unlocking the wallet here ensures that any subsequent requests will be
+    // presented against an unlocked wallet, avoiding the issue described above.
+    await zerion.unlock()
+    await use(zerion)
   },
 
   walletPage: async ({ context, extensionId }, use) => {
