@@ -21,7 +21,7 @@ function CharBox({ char, isFocused }: CharBoxProps) {
       data-active={isFocused || undefined}
       className={cn(
         'zd:h-16 zd:w-14 zd:rounded-lg zd:flex zd:items-center zd:justify-center',
-        isFocused && 'zd:border-[1.5px] zd:border-greyScale',
+        isFocused && 'zd:border-[1.5px] zd:border-inverse-primary',
       )}
     >
       <Text className="zd:text-h2">{char}</Text>
