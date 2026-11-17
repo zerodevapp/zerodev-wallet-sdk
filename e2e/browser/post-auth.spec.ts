@@ -40,6 +40,8 @@ async function signMessage(page: Page) {
 }
 
 test.describe('Post-Auth Operations', () => {
+  test.describe.configure({ lock: 'staging-auth' })
+
   test('should sign a message after login', async ({ authedPage: page }) => {
     await signMessage(page)
   })

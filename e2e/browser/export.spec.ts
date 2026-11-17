@@ -37,6 +37,8 @@ async function openExportModal(page: Page): Promise<void> {
 }
 
 test.describe('Wallet Export', () => {
+  test.describe.configure({ lock: 'staging-auth' })
+
   test('should export the seed phrase', async ({ authedPage: page }) => {
     await openExportModal(page)
     await page.getByRole('button', { name: /Seed Phrase/i }).click()

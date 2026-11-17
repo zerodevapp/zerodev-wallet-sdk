@@ -47,6 +47,14 @@ jobs:
   browser-e2e:
     name: ${{ inputs.job_name || 'Browser E2E Tests' }}
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      # Without this a container gets Docker's 64MB /dev/shm against a host runner's
+      # ~8GB, and Chromium aborts navigations once it runs out.
+      options: --ipc=host
+    defaults:
+      run:
+        shell: bash
     # Serializes runs against the same KMS. The fallback repeats the staging URL
     # instead of a short label, so a blank input and an explicit staging URL land
     # in one group. `env` is not available in `concurrency`, hence the repeat.
@@ -66,9 +74,11 @@ jobs:
 
       - name: Show target
         run: |
+          set -euo pipefail
           echo "- KMS: $KMS_URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- AA host: $AA_HOST" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tests: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          sha=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
+          echo "- Tests: $sha" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -82,23 +92,69 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check the image matches the lockfile
+        id: image-check
+        run: |
+          set -euo pipefail
+          version=$(pnpm exec playwright --version | awk '{print $2}')
+          if [ -z "$version" ]; then
+            echo "::error::could not read the Playwright version"
+            exit 1
+          fi
+
+          # Capture, then assert a row parsed, then iterate. A command that fails inside
+          # a `for $(...)` word list trips neither `set -e` nor pipefail: the loop runs
+          # zero times and the guard passes, which is worse than having no guard.
+          dry_run=$(pnpm exec playwright install --dry-run chromium)
+          paths=$(printf '%s\n' "$dry_run" | awk '/Install location:/{print $3}')
+          count=$(printf '%s\n' "$paths" | grep -c . || true)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::parsed no install locations from 'playwright install --dry-run'; its output format has changed and this guard needs updating"
+            printf '%s\n' "$dry_run"
+            exit 1
+          fi
+
+          missing=0
+          while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            if [ -d "$path" ]; then
+              echo "ok: $path"
+            else
+              echo "missing: $path"
+              missing=1
+            fi
+          done <<< "$paths"
+
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::@playwright/test is ${version}, but the container image does not carry all of its browser builds. Bump the container tag in this workflow to v${version}-noble."
+            exit 1
+          fi
+          echo "Playwright ${version}: all ${count} browser paths present."
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Install unzip
+        run: |
+          set -euo pipefail
+          # The image ships tar and gzip but no unzip, and the MetaMask fixture unpacks
+          # a .zip
+          apt-get update -qq
+          apt-get install -y --no-install-recommends unzip
+          command -v unzip
+
       - name: Build demo SDK dependencies
         run: pnpm build:e2e
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
 
       - name: Cache browser e2e fixtures
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: e2e/.cache
-          key: e2e-fixtures-${{ runner.os }}-${{ hashFiles('e2e/helpers/wallet-versions.ts') }}
+          key: e2e-fixtures-${{ runner.os }}-pw${{ steps.image-check.outputs.version }}-${{ hashFiles('e2e/helpers/wallet-versions.ts') }}
 
       - name: Build and start QA lab
         working-directory: apps/qa-lab-testing
         run: |
           pnpm build
-          pnpm start &
+          pnpm start > "$GITHUB_WORKSPACE/qa-lab.log" 2>&1 &
         env:
           # Both ids are inlined so a URL param can select the flavor per test,
           # instead of building the app twice as the signer demo does.
@@ -137,4 +193,13 @@ jobs:
         with:
           name: playwright-report-${{ github.job }}
           path: playwright-report/
+          retention-days: 14
+
+      - name: Upload QA lab logs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: qa-lab-log-${{ github.job }}
+          path: qa-lab.log
+          if-no-files-found: warn
           retention-days: 14
