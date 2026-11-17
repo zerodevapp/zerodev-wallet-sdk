@@ -628,8 +628,8 @@ importers:
         specifier: workspace:*
         version: link:../react-ui
       '@zerodev/smart-routing-address':
-        specifier: ^1.0.2
-        version: 1.0.2(typescript@5.9.3)(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))
+        specifier: ^1.0.3
+        version: 1.0.3(typescript@5.9.3)(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))
       uqr:
         specifier: ^0.1.2
         version: 0.1.3
@@ -5335,8 +5335,8 @@ packages:
     peerDependencies:
       viem: 2.55.5
 
-  '@zerodev/smart-routing-address@1.0.2':
-    resolution: {integrity: sha512-Dj7tw5tbclxhl1VCcO4KZJvXYszNJQtcfcicT4I7gkb2VjlZMMb0S4YH+DLVGSSxNIAT4Ox9syAGa0YRqTKCSA==}
+  '@zerodev/smart-routing-address@1.0.3':
+    resolution: {integrity: sha512-VOnrNZBElSgFymcHi1IAUvnv87k2p9oxXSMO+ckCoIFwU6eJH/RDc51ji2UaxEpCCC6MTSsBBYfGQ7kHKRRR7A==}
     peerDependencies:
       typescript: ^5.0.0
       viem: 2.55.5
@@ -16163,7 +16163,7 @@ snapshots:
       semver: 7.8.5
       viem: 2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6)
 
-  '@zerodev/smart-routing-address@1.0.2(typescript@5.9.3)(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))':
+  '@zerodev/smart-routing-address@1.0.3(typescript@5.9.3)(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))':
     dependencies:
       semver: 7.8.5
       typescript: 5.9.3
