@@ -85,7 +85,7 @@ export function TransactionDetails({
           <DataRow
             label="Token"
             value={
-              <span className="zd:text-body3 zd:text-greyScale">
+              <span className="zd:text-body3 zd:text-neutral-primary">
                 {shortenHex(unnamedToken.address)}
               </span>
             }
@@ -140,7 +140,7 @@ function heroProps(side: SideText): Hero {
       ? { tokenLogoUrl: side.imageUri }
       : {
           tokenFallback: (
-            <Text className="zd:text-body1 zd:text-greyScale">
+            <Text className="zd:text-body1 zd:text-neutral-primary">
               {side.fallback}
             </Text>
           ),
@@ -229,14 +229,14 @@ function ChainValue({
 function HashLink({ hash, href }: { hash: string; href: string | undefined }) {
   const label = shortenHex(hash)
   const className =
-    'zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-greyScale'
+    'zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-neutral-primary'
   if (!href) return <span className={className}>{label}</span>
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className={cn(className, 'zd:hover:text-solarOrange')}
+      className={cn(className, 'zd:hover:text-brand-primary')}
     >
       {label}
       <Icon name="export" className="zd:size-3" aria-hidden />
