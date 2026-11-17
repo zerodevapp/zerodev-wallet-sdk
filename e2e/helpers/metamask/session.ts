@@ -21,6 +21,7 @@ import { mnemonicToAccount } from 'viem/accounts'
 import { TEST_WALLET } from '../wallet-credentials.js'
 import { ensureMetaMaskExtension, PROFILE_SNAPSHOT_DIR } from './extension.js'
 import { onboardWithRecoveryPhrase } from './onboard.js'
+import { expectSolanaAccountReady } from './solana-ready.js'
 import { unlockIfLocked } from './unlock.js'
 
 export { unlockIfLocked }
@@ -175,6 +176,11 @@ export async function ensureOnboardedProfile(
     const page = await context.newPage()
     await page.goto(extensionUrl(extensionId, '#onboarding/welcome'))
     await onboardWithRecoveryPhrase(page, credentials)
+
+    // Before the snapshot is taken, or every test copies a wallet whose Solana
+    // support never arrived and every Solana connect approves EVM only.
+    await page.goto(extensionUrl(extensionId))
+    await expectSolanaAccountReady(page)
 
     const persisted = await waitForPersistedOnboarding(scratch, extensionId)
 
