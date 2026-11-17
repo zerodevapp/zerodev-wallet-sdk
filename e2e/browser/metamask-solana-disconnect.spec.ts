@@ -83,7 +83,13 @@ test.describe('Per-namespace disconnect through MetaMask', () => {
 
   test('disconnecting both leaves nothing to restore', async ({ page }) => {
     const dialog = await openDisconnectDialog(page)
+
+    const navigated = page.waitForEvent('framenavigated', {
+      predicate: (frame) => frame === page.mainFrame(),
+    })
     await dialog.getByTestId('disconnect-all').click()
+    await navigated
+    await page.waitForLoadState('load')
 
     // Disconnect-all reloads onto the active config rather than a bare "/", so
     // Solana is still offered on the page that comes back.
