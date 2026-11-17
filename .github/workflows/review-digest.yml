@@ -1,0 +1,49 @@
+# Weekly digest of ai-first merges (playbook, Step 4 · The loop).
+# Sampling with hindsight instead of rubber-stamping in real time: one issue
+# per week listing every PR that merged on the ai-first tier, for a human
+# spot-audit over coffee. Anything that smells wrong gets a follow-up — and
+# an escaped defect moves its path pattern up a tier in labeler.yml.
+name: review-digest
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and post digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          since=$(date -u -d '7 days ago' +%Y-%m-%d)
+          rows=$(gh pr list --repo "$REPO" --state merged \
+            --label "review:ai-first" --search "merged:>=$since" \
+            --json number,title,author,url,labels \
+            --jq '.[] | select([.labels[].name] | index("review:human") | not)
+                  | "- [#\(.number)](\(.url)) \(.title) — @\(.author.login)"')
+          if [ -z "$rows" ]; then
+            echo "No ai-first merges since $since — no digest."
+            exit 0
+          fi
+          count=$(echo "$rows" | wc -l | tr -d ' ')
+          {
+            echo "PRs merged on the **ai-first tier** (agent review + green CI, no human gate) since $since:"
+            echo
+            echo "$rows"
+            echo
+            echo "Spot-audit guide: pick 1–2, read the attention map and verification"
+            echo "evidence, not every line. If a defect escaped, the fix PR must also"
+            echo "move that path up a tier in \`.github/labeler.yml\` (playbook rule 7)."
+          } > body.md
+          gh issue create --repo "$REPO" \
+            --title "Review digest: $count ai-first merge(s), week of $since" \
+            --label "review:ai-first" \
+            --body-file body.md

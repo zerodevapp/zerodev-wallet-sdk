@@ -1,0 +1,22 @@
+# Review-routing path rules (playbook, Part 2 · Layer 1).
+# review:human wins on conflict — enforced by the gate, not by this file.
+review:human:
+  - changed-files:
+      - any-glob-to-any-file:
+          # deps, peers, versioning
+          - "packages/*/package.json"
+          - "pnpm-lock.yaml"
+          - ".changeset/**"
+          # public API surface
+          - "packages/*/src/index.ts"
+          # auth / signing / keys
+          - "packages/core/src/**"
+          - "packages/*/src/connector.ts"
+
+review:ai-first:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.test.*"
+          - "apps/**"
+          - "**/*.md"
+          - "**/*.stories.tsx"
