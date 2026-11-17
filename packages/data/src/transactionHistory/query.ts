@@ -10,8 +10,9 @@ const MAX_RETRY_DELAY_MS = 30_000
 
 /**
  * The Data API refused the request because the monthly lookup budget is spent.
- * Retry-After points to the next UTC month, so neither a retry nor a "try
- * again" button can succeed before then.
+ * The budget resets at the start of the next UTC month, so neither a retry nor
+ * a "try again" button can succeed before then. Retry-After is capped at an
+ * hour and does not say when.
  */
 export function isQuotaExhaustedError(error: unknown): error is DataApiError {
   return (
@@ -34,7 +35,7 @@ export function isQuotaExhaustedError(error: unknown): error is DataApiError {
  *   connect an account, repair a URL, or reconcile an incompatible response.
  * - 400/401: no retry; the request or authorization must change first.
  * - 429 with body reason `quota_exhausted`: no retry; the monthly lookup
- *   budget is spent and Retry-After points to the next UTC month.
+ *   budget is spent until the next UTC month, whatever Retry-After says.
  * - 429 or 503: one retry only when Retry-After tells us when it can succeed
  *   and that is at most 30 s away. A longer wait is not shortened, because a
  *   retry before the server's time gets another 429 and, for an upstream
