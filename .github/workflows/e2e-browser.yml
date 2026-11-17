@@ -123,8 +123,20 @@ jobs:
           echo "QA lab failed to start"
           exit 1
 
+      # TEMPORARY — REVERT BEFORE MERGE.
+      # Narrowed to the two onboarding harnesses plus the MetaMask spec that
+      # fails intermittently, so a round trip costs minutes instead of an hour.
+      # Both wallets on purpose: a green run writes the fixture cache, and one
+      # built from a single wallet would be a permanent hit that never saves
+      # the other's profile.
       - name: Run E2E tests
-        run: pnpm exec playwright test --config e2e/playwright.config.ts
+        run: >-
+          pnpm exec playwright test --config e2e/playwright.config.ts
+          --repeat-each=3
+          e2e/browser/zerion-wallet.spec.ts
+          e2e/browser/metamask-harness.spec.ts
+          e2e/browser/metamask-connect.spec.ts:44
+          e2e/browser/metamask-solana-disconnect.spec.ts
         env:
           LAB_APP_URL: http://localhost:3000
           MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
