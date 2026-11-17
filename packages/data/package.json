@@ -84,8 +84,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@zerodev/data-api-contract": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@4b754bc",
-    "@zerodev/data-api-stamp": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@4b754bc"
+    "@zerodev/data-api-contract": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958",
+    "@zerodev/data-api-stamp": "https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0",

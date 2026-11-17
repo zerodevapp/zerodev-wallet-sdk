@@ -316,6 +316,9 @@ importers:
       '@zerodev/wallet-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@zerodev/wallet-data':
+        specifier: workspace:*
+        version: link:../../packages/data
       '@zerodev/wallet-react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -352,6 +355,9 @@ importers:
       wagmi:
         specifier: ^3.0.0
         version: 3.7.0(@coinbase/wallet-sdk@4.3.6(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(typescript@5.9.3)(use-sync-external-store@1.7.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.6.6))(@safe-global/safe-apps-provider@0.18.6(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))(@safe-global/safe-apps-sdk@9.1.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.3))(@types/react@19.2.17)(@walletconnect/ethereum-provider@2.23.2(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.2.3)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))(porto@0.2.35)(react@19.2.3)(typescript@5.9.3)(viem@2.55.5(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.6))
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.6
       zustand:
         specifier: ^5.0.3
         version: 5.0.14(@types/react@19.2.17)(react@19.2.3)(use-sync-external-store@1.7.0(react@19.2.3))
@@ -448,11 +454,11 @@ importers:
   packages/data:
     dependencies:
       '@zerodev/data-api-contract':
-        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501
-        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501(zod@4.6.6)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958(zod@4.6.6)
       '@zerodev/data-api-stamp':
-        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501
-        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501(zod@4.6.6)
+        specifier: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958
+        version: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958(zod@4.6.6)
       '@zerodev/wallet-core':
         specifier: workspace:*
         version: link:../core
@@ -813,6 +819,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.7.0
         version: 4.7.0(vite@6.4.5(@types/node@26.1.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.48.0)(yaml@2.9.0))
+      '@zerodev/wallet-data':
+        specifier: workspace:*
+        version: link:../data
       postcss:
         specifier: ^8.5.28
         version: 8.5.28
@@ -834,6 +843,9 @@ importers:
       vite:
         specifier: ^6.4.5
         version: 6.4.5(@types/node@26.1.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.48.0)(yaml@2.9.0)
+      zod:
+        specifier: ^4.6.6
+        version: 4.6.6
 
 packages:
 
@@ -5342,15 +5354,15 @@ packages:
     resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
     engines: {node: '>=14.6'}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501':
-    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501}
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
       zod: ^4.6.6
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501':
-    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501}
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958':
+    resolution: {tarball: https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958}
     version: 0.1.0
     engines: {node: '>=20.19.0'}
     peerDependencies:
@@ -16181,11 +16193,11 @@ snapshots:
 
   '@xmldom/xmldom@0.9.12': {}
 
-  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@e8cc501(zod@4.6.6)':
+  '@zerodev/data-api-contract@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-contract@649c958(zod@4.6.6)':
     dependencies:
       zod: 4.6.6
 
-  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@e8cc501(zod@4.6.6)':
+  '@zerodev/data-api-stamp@https://pkg.pr.new/zerodevapp/zerodev-data-api/@zerodev/data-api-stamp@649c958(zod@4.6.6)':
     dependencies:
       '@noble/curves': 2.2.0
       json-canonicalize: 2.0.0
