@@ -68,7 +68,7 @@ function Row({
     <button
       type="button"
       onClick={() => onSelect(entry)}
-      className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:text-left zd:hover:bg-white/30"
+      className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:text-left zd:hover:bg-neutral-secondary"
     >
       {item}
     </button>
@@ -89,7 +89,7 @@ function Skeletons() {
 function EmptyState() {
   return (
     <div className="zd:flex zd:flex-1 zd:items-center zd:justify-center zd:py-8">
-      <Text className="zd:text-greyScale/50">No transactions yet</Text>
+      <Text className="zd:text-neutral-tertiary">No transactions yet</Text>
     </div>
   )
 }
@@ -118,7 +118,7 @@ function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
       role="alert"
       className="zd:flex zd:flex-1 zd:flex-col zd:items-center zd:justify-center zd:gap-3 zd:py-8"
     >
-      <Text className="zd:text-center zd:text-greyScale/50">
+      <Text className="zd:text-center zd:text-neutral-tertiary">
         {errorMessage(error)}
       </Text>
       {canRetry(error) && (
@@ -143,7 +143,7 @@ function LoadMore({
   return (
     <div className="zd:flex zd:flex-col zd:items-center zd:gap-2 zd:py-2">
       {error && (
-        <Text role="alert" className="zd:text-center zd:text-greyScale/50">
+        <Text role="alert" className="zd:text-center zd:text-neutral-tertiary">
           {errorMessage(error)}
         </Text>
       )}

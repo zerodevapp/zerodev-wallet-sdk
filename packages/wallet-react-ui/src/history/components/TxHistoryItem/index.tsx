@@ -3,10 +3,10 @@ import { useState } from 'react'
 import type { TxHistoryStatus } from '../../types'
 
 export const TX_HISTORY_STATUS_COLOR: Record<TxHistoryStatus, string> = {
-  Pending: 'zd:text-solarOrange',
-  Success: 'zd:text-positive',
-  Failed: 'zd:text-negative',
-  Unknown: 'zd:text-greyScale/50',
+  Pending: 'zd:text-brand-primary',
+  Success: 'zd:text-success-primary',
+  Failed: 'zd:text-error-primary',
+  Unknown: 'zd:text-neutral-tertiary',
 }
 
 export interface TxHistoryItemProps {
@@ -57,7 +57,7 @@ export function TxHistoryItem({
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
           <div className="zd:flex zd:min-w-0 zd:items-center zd:gap-[5px]">
             {chain.iconUri && (
-              <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-white">
+              <span className="zd:size-3 zd:shrink-0 zd:overflow-hidden zd:rounded-full zd:bg-bright-primary">
                 <img
                   src={chain.iconUri}
                   alt=""
@@ -93,7 +93,7 @@ function Tile({
   const [failed, setFailed] = useState(false)
   const image = imageUri && !failed ? imageUri : undefined
   return (
-    <div className="zd:relative zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-white">
+    <div className="zd:relative zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-bright-primary">
       {image ? (
         <>
           <img
@@ -103,7 +103,7 @@ function Tile({
             onError={() => setFailed(true)}
             className="zd:size-8 zd:rounded-full zd:object-cover"
           />
-          <span className="zd:absolute zd:-right-1 zd:-bottom-1 zd:flex zd:size-5 zd:items-center zd:justify-center zd:rounded-full zd:bg-white zd:shadow-sm">
+          <span className="zd:absolute zd:-right-1 zd:-bottom-1 zd:flex zd:size-5 zd:items-center zd:justify-center zd:rounded-full zd:bg-bright-primary zd:shadow-sm">
             <Icon name={icon} className="zd:size-3" />
           </span>
         </>
@@ -157,15 +157,15 @@ export function TxHistoryItemSkeleton({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="zd:size-11 zd:shrink-0 zd:rounded-xl zd:bg-greyScale/15 zd:animate-skel-pulse" />
+      <div className="zd:size-11 zd:shrink-0 zd:rounded-xl zd:bg-inverse-hover zd:animate-skel-pulse" />
       <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
-          <div className="zd:h-3 zd:w-28 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
-          <div className="zd:h-3 zd:w-16 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-28 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-16 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
         </div>
         <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
-          <div className="zd:h-3 zd:w-20 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
-          <div className="zd:h-3 zd:w-12 zd:rounded-lg zd:bg-greyScale/15 zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-20 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
+          <div className="zd:h-3 zd:w-12 zd:rounded-lg zd:bg-inverse-hover zd:animate-skel-pulse" />
         </div>
       </div>
     </div>

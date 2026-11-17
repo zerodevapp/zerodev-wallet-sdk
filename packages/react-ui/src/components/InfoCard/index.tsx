@@ -46,7 +46,9 @@ export function InfoCard({
         <div className="zd:flex zd:min-w-0 zd:flex-col">
           <Text className="zd:truncate zd:text-body1">{title}</Text>
           {subtitle && (
-            <Text className="zd:truncate zd:text-greyScale/50">{subtitle}</Text>
+            <Text className="zd:truncate zd:text-neutral-tertiary">
+              {subtitle}
+            </Text>
           )}
         </div>
       </div>
@@ -69,12 +71,12 @@ function IconWithBadge({
       {imageStyle === 'contained' ? (
         <div
           className={cn(
-            'zd:size-full zd:rounded-xl zd:isolate zd:bg-white/60 zd:backdrop-blur-[30px]',
+            'zd:size-full zd:rounded-xl zd:isolate zd:bg-bright-secondary zd:backdrop-blur-[30px]',
             'zd:shadow-[inset_0_3px_4px_0_rgba(0,0,0,0.02),inset_0_-4px_4px_0_rgba(255,255,255,0.1)]',
           )}
         >
           {imageSource && (
-            <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:overflow-hidden zd:rounded-full zd:bg-greyScale/10">
+            <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:overflow-hidden zd:rounded-full zd:bg-inverse-hover">
               <img
                 src={imageSource}
                 alt=""
@@ -93,7 +95,7 @@ function IconWithBadge({
         )
       )}
       {chainIconUrl && (
-        <div className="zd:absolute zd:right-1 zd:bottom-1 zd:h-3 zd:w-3 zd:overflow-hidden zd:rounded-full zd:bg-white zd:p-px">
+        <div className="zd:absolute zd:right-1 zd:bottom-1 zd:h-3 zd:w-3 zd:overflow-hidden zd:rounded-full zd:bg-bright-primary zd:p-px">
           <img
             src={chainIconUrl}
             alt=""
