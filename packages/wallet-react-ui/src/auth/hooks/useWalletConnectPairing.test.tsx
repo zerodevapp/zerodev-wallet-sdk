@@ -370,3 +370,5 @@ describe('useWalletConnectPairing', () => {
     expect(result.current.deepLinkFor(metamask)).toBeNull()
   })
 })
+
+// review-demo: touch
