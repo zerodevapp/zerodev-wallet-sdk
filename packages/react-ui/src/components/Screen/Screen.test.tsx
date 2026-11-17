@@ -24,6 +24,18 @@ function PortalProbe({
 
 describe('Screen', () => {
   describe('portals', () => {
+    it('carries both the brand art and the plain layers for the stylesheet to pick', () => {
+      // Which one shows is decided by the `zd:plain:` variant on
+      // data-zd-brand, so the DOM holds both whatever the theme.
+      const { container } = render(<Screen>x</Screen>)
+      const art = container.querySelectorAll('.zd\\:plain\\:hidden')
+      expect(art.length).toBe(2)
+      const layers = container.querySelectorAll('.zd\\:plain\\:block')
+      expect(layers.length).toBe(2)
+      expect(layers[0]?.className).toContain('zd:bg-frame-ring')
+      expect(layers[1]?.className).toContain('zd:bg-neutral-primary')
+    })
+
     it('hands its subtree the shared portal root under document.body', async () => {
       let container: HTMLElement | undefined
       render(
