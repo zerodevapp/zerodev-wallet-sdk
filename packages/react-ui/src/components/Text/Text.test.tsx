@@ -49,7 +49,7 @@ describe('Text', () => {
     it('applies default text color', () => {
       render(<Text>Styled</Text>)
       const el = screen.getByText('Styled')
-      expect(el.className).toContain('text-greyScale')
+      expect(el.className).toContain('text-neutral-primary')
     })
 
     it('applies custom font family via font-sans class', () => {

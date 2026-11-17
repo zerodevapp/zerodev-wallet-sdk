@@ -56,16 +56,16 @@ describe('Switch', () => {
   })
 
   describe('thumb color', () => {
-    it('uses the solarOrange hex color when value is true', () => {
+    it('uses the brand colour when value is true', () => {
       const { container } = render(<Switch value={true} />)
       const thumb = container.querySelector('.zd\\:rounded-full')
-      expect(thumb?.className).toContain('bg-solarOrange')
+      expect(thumb?.className).toContain('bg-brand-primary')
     })
 
-    it('uses greyScale/30 when value is false', () => {
+    it('uses the inverse-tertiary tint when value is false', () => {
       const { container } = render(<Switch value={false} />)
       const thumb = container.querySelector('.zd\\:rounded-full')
-      expect(thumb?.className).toContain('bg-greyScale/30')
+      expect(thumb?.className).toContain('bg-inverse-tertiary')
     })
   })
 

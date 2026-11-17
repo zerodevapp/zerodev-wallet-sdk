@@ -43,7 +43,7 @@ function TokenSwatches() {
               <div key={tail} className="zd:flex zd:items-center zd:gap-2">
                 {/* A checker behind the swatch makes alpha visible. */}
                 <div
-                  className="zd:h-8 zd:w-8 zd:shrink-0 zd:rounded-lg zd:border zd:border-greyScale/30"
+                  className="zd:h-8 zd:w-8 zd:shrink-0 zd:rounded-lg zd:border zd:border-inverse-secondary"
                   style={{
                     backgroundImage:
                       'linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%)',

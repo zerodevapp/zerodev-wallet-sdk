@@ -50,19 +50,15 @@ export function Pill({
     <Wrapper
       ref={ref}
       variant="solid"
-      // Override Wrapper's variant-based bg color for the display variant —
-      // Figma spec is exactly rgba(255,255,255,0.05), which none of the
-      // Wrapper variants match. Inline style beats Wrapper's own style.
-      style={
-        disabled ? { backgroundColor: 'rgba(255, 255, 255, 0.05)' } : undefined
-      }
       className={cn(
         // Sizing/padding matches Figma: outer pl-1 pr-2 py-1, rounded-2xl.
         // Height is content-driven — 44px logo + 4px vertical padding = 52px.
         'zd:relative zd:flex zd:w-full zd:items-center zd:justify-between zd:overflow-hidden zd:rounded-2xl zd:pl-1 zd:pr-2 zd:py-1',
         // Universal inner shadow from the Figma design token.
         'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
-        !disabled && 'zd:cursor-pointer',
+        // The display (disabled) pill takes the Figma disabled surface in
+        // place of Wrapper's solid one.
+        disabled ? 'zd:bg-neutral-disabled' : 'zd:cursor-pointer',
         className,
       )}
       {...rest}
@@ -88,11 +84,11 @@ export function Pill({
               // Only round + clip when we're showing the letter fallback disc.
               // Real logo SVGs bring their own shape (round, diamond, etc.) —
               // clipping them to a circle chops off tips like Polygon's.
-              // The neutral greyScale/10 fallback disc reads as a design-
+              // The neutral inverse-hover fallback disc reads as a design-
               // system placeholder rather than a token-specific color; real
               // tokens/chains ship via `logoUri`.
               !logoUri &&
-                'zd:overflow-hidden zd:rounded-full zd:bg-greyScale/10',
+                'zd:overflow-hidden zd:rounded-full zd:bg-inverse-hover',
             )}
           >
             {logoUri ? (
@@ -103,7 +99,7 @@ export function Pill({
                 data-testid="token-chain-pill-logo"
               />
             ) : logoInitial ? (
-              <span className="zd:text-body2 zd:font-medium zd:text-greyScale">
+              <span className="zd:text-body2 zd:font-medium zd:text-neutral-primary">
                 {logoInitial}
               </span>
             ) : null}
@@ -140,14 +136,12 @@ export function PillSkeleton({
       role="status"
       aria-busy="true"
       aria-label="Loading"
-      style={
-        disabled ? { backgroundColor: 'rgba(255, 255, 255, 0.05)' } : undefined
-      }
       className={cn(
         // Match Pill's outer chrome so the placeholder occupies the same
         // footprint (52px tall = 44px logo well + 4px vertical padding).
         'zd:relative zd:flex zd:w-full zd:items-center zd:overflow-hidden zd:rounded-2xl zd:pl-1 zd:pr-2 zd:py-1',
         'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
+        disabled && 'zd:bg-neutral-disabled',
         className,
       )}
     >
@@ -160,9 +154,9 @@ export function PillSkeleton({
       >
         {/* Logo well mirrors Pill's 44×44 → inner 34×34 (size-8.5). */}
         <div className="zd:relative zd:size-11 zd:shrink-0">
-          <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:rounded-full zd:bg-greyScale/15" />
+          <div className="zd:absolute zd:top-1/2 zd:left-1/2 zd:size-8.5 zd:-translate-x-1/2 zd:-translate-y-1/2 zd:rounded-full zd:bg-inverse-hover" />
         </div>
-        <div className="zd:h-3.5 zd:w-14 zd:rounded-md zd:bg-greyScale/15" />
+        <div className="zd:h-3.5 zd:w-14 zd:rounded-md zd:bg-inverse-hover" />
       </div>
     </Wrapper>
   )

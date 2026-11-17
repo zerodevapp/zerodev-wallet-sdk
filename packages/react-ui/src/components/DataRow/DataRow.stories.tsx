@@ -61,7 +61,7 @@ export const WithTrailingIcon: Story = {
     trailing: (
       <Icon
         name="chevronDown"
-        className="zd:w-3.5 zd:h-3.5 zd:text-greyScale"
+        className="zd:w-3.5 zd:h-3.5 zd:text-icon-neutral-primary"
       />
     ),
   },
@@ -73,7 +73,10 @@ export const WithLeadingIcon: Story = {
     label: 'Fee',
     value: '0.0012 ETH',
     leading: (
-      <Icon name="warning" className="zd:w-3 zd:h-3 zd:text-solarOrange" />
+      <Icon
+        name="warning"
+        className="zd:w-3 zd:h-3 zd:text-icon-brand-primary"
+      />
     ),
   },
 }
@@ -84,12 +87,15 @@ export const WithLeadingAndTrailingIcons: Story = {
     label: 'Fee',
     value: '0.0012 ETH ($3.50)',
     leading: (
-      <Icon name="warning" className="zd:w-3 zd:h-3 zd:text-solarOrange" />
+      <Icon
+        name="warning"
+        className="zd:w-3 zd:h-3 zd:text-icon-brand-primary"
+      />
     ),
     trailing: (
       <Icon
         name="gasStation"
-        className="zd:w-3.5 zd:h-3.5 zd:text-solarOrange"
+        className="zd:w-3.5 zd:h-3.5 zd:text-icon-brand-primary"
       />
     ),
   },
@@ -99,7 +105,7 @@ export const WithLeadingAndTrailingIcons: Story = {
 export const WithCustomValue: Story = {
   args: {
     label: 'Status',
-    value: <Text className="zd:text-solarOrange">Pending</Text>,
+    value: <Text className="zd:text-brand-primary">Pending</Text>,
   },
 }
 
