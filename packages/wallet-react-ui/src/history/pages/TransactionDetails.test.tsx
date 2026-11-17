@@ -97,7 +97,11 @@ describe('TransactionDetails', () => {
   it('headlines an asset-less transaction with its operation in the hero', () => {
     const { container } = render(<TransactionDetails transaction={deployTx} />)
     expect(screen.getAllByText('Deployed contract')).toHaveLength(1)
-    expect(container.querySelector('.zd\\:pt-7 svg')).not.toBeNull()
+    // The root vitest config has no svgr, so Icon renders a non-<svg> element
+    // there; assert the fallback slot is filled instead of its tag.
+    expect(
+      container.querySelector('.zd\\:pt-7 .zd\\:inset-0')?.childElementCount,
+    ).toBe(1)
   })
 
   it('shows initials in the tile and the address in the table for a bare token', () => {
