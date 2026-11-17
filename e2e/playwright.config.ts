@@ -39,7 +39,10 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /(otp|metamask.*)\.spec\.ts/,
+      testIgnore: [
+        /(otp|metamask.*)\.spec\.ts/,
+        /[\\/]zerion[^\\/]*\.spec\.ts$/,
+      ],
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
     {
@@ -51,6 +54,11 @@ export default defineConfig({
     {
       name: 'chromium-metamask',
       testMatch: /metamask.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
+    },
+    {
+      name: 'chromium-zerion',
+      testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
   ],
