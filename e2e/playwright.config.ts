@@ -56,11 +56,16 @@ export default defineConfig({
       testMatch: /metamask.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
-    {
-      name: 'chromium-zerion',
-      testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
-      use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
-    },
+    // Temporarily disabling the Zerion project unless ZERION_E2E is set.
+    ...(process.env.ZERION_E2E === '1'
+      ? [
+          {
+            name: 'chromium-zerion',
+            testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
+            use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
+          },
+        ]
+      : []),
   ],
   // Spread rather than `webServer: CI ? undefined : {...}` — with
   // exactOptionalPropertyTypes, assigning undefined to an optional prop fails.

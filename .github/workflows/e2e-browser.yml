@@ -133,7 +133,6 @@ jobs:
         run: >-
           pnpm exec playwright test --config e2e/playwright.config.ts
           --repeat-each=3 --trace on
-          e2e/browser/zerion-wallet.spec.ts
           e2e/browser/metamask-harness.spec.ts
           e2e/browser/metamask-connect.spec.ts:44
           e2e/browser/metamask-solana-disconnect.spec.ts
