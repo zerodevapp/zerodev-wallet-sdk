@@ -17,6 +17,8 @@ import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { type BrowserContext, chromium, type Page } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
+import { zerionCheckActivity } from '../../mocks/definitions/zerion/checkActivity.js'
+import { routeMocks } from '../../mocks/routeMocks.js'
 import { TEST_WALLET } from '../wallet-credentials.js'
 import {
   EXTENSION_DIR,
@@ -191,7 +193,14 @@ export async function ensureOnboardedProfile(
 
     try {
       const page = await openOnboardingTab(context, extensionId)
+      const mocked = await routeMocks(page, zerionCheckActivity)
       await onboardWithRecoveryPhrase(page, credentials)
+      if (mocked.hits() === 0) {
+        throw new Error(
+          'onboarding completed without the check-activity mock serving, so ' +
+            'it reached the real Zerion API — the mock no longer matches.',
+        )
+      }
     } finally {
       // Closing also flushes. Snapshotting a live profile captures a
       // half-written leveldb, so the copy only happens once the browser is
