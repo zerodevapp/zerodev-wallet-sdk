@@ -10,6 +10,7 @@ const DAY = 24 * HOUR
 function entry(id: string, timestamp: number): TxHistoryEntry {
   return {
     id,
+    txHash: id,
     icon: 'lighting',
     title: `Entry ${id}`,
     value: '1 ETH',

@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { useTransactionHistory } from '@zerodev/wallet-data'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { DataApiError, useTransactionHistory } from '@zerodev/wallet-data'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sendTx, swapTx } from '../fixtures'
 import { TxHistory } from '.'
@@ -25,12 +25,14 @@ interface QueryStub {
 const refetch = vi.fn()
 const fetchNextPage = vi.fn()
 const refresh = vi.fn()
+const waitForTransaction = vi.fn<HistoryQuery['waitForTransaction']>()
 
 function mockQuery(query: QueryStub) {
   vi.mocked(useTransactionHistory).mockReturnValue({
     refetch,
     fetchNextPage,
     refresh,
+    waitForTransaction,
     hasNextPage: false,
     isFetchingNextPage: false,
     isFetchNextPageError: false,
@@ -55,6 +57,7 @@ const dataApi = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  waitForTransaction.mockReturnValue(new Promise(() => {}))
 })
 
 afterEach(cleanup)
@@ -195,5 +198,107 @@ describe('TxHistory', () => {
     expect(screen.getByText('History')).toBeDefined()
     fireEvent.click(screen.getByRole('button'))
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  describe('pendingTxHash', () => {
+    const PENDING =
+      '0x8f3a000000000000000000000000000000000000000000000000000000c41d'
+
+    function renderPending(txHash: string | undefined) {
+      return render(
+        <TxHistory
+          dataApi={dataApi}
+          onClose={() => {}}
+          {...(txHash && { pendingTxHash: txHash })}
+        />,
+      )
+    }
+
+    it('shows a placeholder and waits while the list lacks the hash', () => {
+      mockQuery(successQuery())
+      renderPending(PENDING)
+      expect(screen.getByRole('status').textContent).toContain(
+        'Waiting for transaction',
+      )
+      expect(screen.getByRole('status').textContent).toContain('0x8f3a...c41d')
+      expect(waitForTransaction).toHaveBeenCalledWith(PENDING, {
+        signal: expect.any(AbortSignal),
+      })
+    })
+
+    it('says it is not in history yet once the wait gives up', async () => {
+      waitForTransaction.mockResolvedValue(false)
+      mockQuery(successQuery())
+      renderPending(PENDING)
+      await act(async () => {})
+      expect(screen.getByRole('status').textContent).toContain(
+        'Not in history yet',
+      )
+    })
+
+    it('drops the placeholder and tints the row once the list has the hash', () => {
+      mockQuery(successQuery())
+      renderPending(sendTx.txHash.toUpperCase())
+      expect(screen.queryByTestId('tx-history-pending')).toBeNull()
+      const row = screen.getByText('Sent USDC').closest('.zd\\:p-2')
+      expect(row?.className).toContain('zd:bg-brand-primary/10')
+    })
+
+    it('shows the placeholder instead of the empty state', () => {
+      mockQuery(
+        successQuery({ data: { pages: [{ items: [] }], pageParams: [null] } }),
+      )
+      renderPending(PENDING)
+      expect(screen.getByTestId('tx-history-pending')).toBeDefined()
+      expect(screen.queryByText('No transactions yet')).toBeNull()
+    })
+
+    it('drops the placeholder once the monthly budget is spent', () => {
+      mockQuery(
+        successQuery({
+          status: 'error',
+          isRefetchError: true,
+          error: new DataApiError({
+            status: 429,
+            body: { error: 'throttled', reason: 'quota_exhausted' },
+            url: 'x',
+            retryAfterMs: 3_600_000,
+          }),
+        }),
+      )
+      renderPending(PENDING)
+      expect(screen.queryByTestId('tx-history-pending')).toBeNull()
+    })
+
+    it('waits once per hash and aborts the old wait when the hash changes', () => {
+      mockQuery(successQuery())
+      const { rerender } = renderPending(PENDING)
+      rerender(
+        <TxHistory
+          dataApi={dataApi}
+          onClose={() => {}}
+          pendingTxHash={PENDING}
+        />,
+      )
+      expect(waitForTransaction).toHaveBeenCalledOnce()
+      const first = waitForTransaction.mock.calls[0]?.[1]?.signal
+
+      rerender(
+        <TxHistory
+          dataApi={dataApi}
+          onClose={() => {}}
+          pendingTxHash={sendTx.txHash}
+        />,
+      )
+      expect(first?.aborted).toBe(true)
+      expect(waitForTransaction).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not wait without a hash', () => {
+      mockQuery(successQuery())
+      renderPending(undefined)
+      expect(waitForTransaction).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('tx-history-pending')).toBeNull()
+    })
   })
 })

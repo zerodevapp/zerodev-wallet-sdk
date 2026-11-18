@@ -128,7 +128,7 @@ export function useTransactionHistory<
   }, [result.refetch])
 
   const waitForTransaction = useCallback(
-    async (txHash: string) => {
+    async (txHash: string, options?: { signal?: AbortSignal }) => {
       const hash = txHash.toLowerCase()
       const cached = queryClient.getQueryData<QueryData>(latestQueryKey.current)
       if (hasTransaction(cached, hash)) return true
@@ -136,7 +136,7 @@ export function useTransactionHistory<
       // A child's mount effect runs before this hook's, so it can call in
       // before the effect above has created the controller.
       lifetime.current ??= new AbortController()
-      const { signal } = lifetime.current
+      const signal = eitherSignal(lifetime.current.signal, options?.signal)
       for (const delay of WAIT_FOR_TRANSACTION_DELAYS_MS) {
         await sleep(delay, signal)
         if (signal.aborted) return false
@@ -161,6 +161,18 @@ function hasTransaction(data: QueryData | undefined, hash: string): boolean {
       page.items.some((item) => item.txHash.toLowerCase() === hash),
     ) ?? false
   )
+}
+
+/** The package also ships a React Native build, so this avoids relying on
+ * `AbortSignal.any`. */
+function eitherSignal(a: AbortSignal, b: AbortSignal | undefined): AbortSignal {
+  if (!b) return a
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  if (a.aborted || b.aborted) abort()
+  a.addEventListener('abort', abort, { once: true })
+  b.addEventListener('abort', abort, { once: true })
+  return controller.signal
 }
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -208,8 +220,11 @@ export declare namespace useTransactionHistory {
     /**
      * Resolve `true` once `txHash` is in a loaded page. Checks the loaded pages
      * first, then refreshes at most 6 times over about 51 s. Resolves `false`
-     * on timeout, unmount, or a spent monthly budget.
+     * on timeout, unmount, an aborted `signal`, or a spent monthly budget.
      */
-    waitForTransaction: (txHash: string) => Promise<boolean>
+    waitForTransaction: (
+      txHash: string,
+      options?: { signal?: AbortSignal },
+    ) => Promise<boolean>
   }
 }

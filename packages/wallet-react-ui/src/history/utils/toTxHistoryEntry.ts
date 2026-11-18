@@ -278,6 +278,7 @@ export function toTxHistoryEntry(
     if (item.timestamp === undefined) return undefined
     return {
       id: item.txHash,
+      txHash: item.txHash,
       icon: 'question',
       title: 'Unknown transaction',
       chain: item.chain ?? { name: 'Unknown network' },
@@ -290,6 +291,7 @@ export function toTxHistoryEntry(
   const described = headline && describeSide(headline, item.operation)
   return {
     id: item.id,
+    txHash: item.txHash,
     icon:
       headline?.kind === 'nft' ? 'imageFill' : OPERATION[item.operation].icon,
     title: title(item, sides),

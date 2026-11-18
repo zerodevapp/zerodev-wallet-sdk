@@ -24,6 +24,9 @@ const BORROWED_OPERATIONS: readonly TransactionHistoryOperation[] = [
 const HOURS_5 = 5 * 60 * 60;
 export const FIXTURE_PAGE_SIZE = 12;
 const LOAD_DELAY_MS = 800;
+/** Stand-ins for the real backoff, which finds a hash within 2–51 s. */
+const FIND_DELAY_MS = 3_000;
+const GIVE_UP_DELAY_MS = 6_000;
 
 /**
  * Every published golden as a row, plus the three borrowed operations.
@@ -64,12 +67,18 @@ export function buildFixtureRows(nowSeconds: number): TxHistoryEntry[] {
  * A ready feed over the fixture rows that pages like the real one: Load more
  * shows its loading state for a moment, then reveals the next page, or the
  * inline error when `failNextPage` is set. Refresh spins for the same moment
- * and stamps a new `updatedAt`.
+ * and stamps a new `updatedAt`. A `pendingTxHash` polls for a few seconds,
+ * then shows up as a new sent row at the top, or gives up when `findPending`
+ * is off.
  */
 export function useFixtureFeed({
   failNextPage,
+  pendingTxHash,
+  findPending,
 }: {
   failNextPage: boolean;
+  pendingTxHash: string | undefined;
+  findPending: boolean;
 }): HistoryFeed {
   const rows = useMemo(() => buildFixtureRows(Math.floor(Date.now() / 1000)), []);
   const [pages, setPages] = useState(1);
@@ -88,6 +97,24 @@ export function useFixtureFeed({
       clearTimeout(refreshTimer.current);
     },
     [],
+  );
+
+  const [settled, setSettled] = useState<{ txHash: string; found: boolean }>();
+  useEffect(() => {
+    if (!pendingTxHash) return;
+    const settle = setTimeout(
+      () => setSettled({ txHash: pendingTxHash, found: findPending }),
+      findPending ? FIND_DELAY_MS : GIVE_UP_DELAY_MS,
+    );
+    return () => clearTimeout(settle);
+  }, [pendingTxHash, findPending]);
+  const outcome = settled?.txHash === pendingTxHash ? settled : undefined;
+  const sentRow = useMemo(
+    () =>
+      pendingTxHash && outcome?.found
+        ? asSentRow(rows, pendingTxHash)
+        : undefined,
+    [rows, pendingTxHash, outcome?.found],
   );
 
   const loadMore = useCallback(() => {
@@ -114,9 +141,10 @@ export function useFixtureFeed({
   }, [refreshing]);
 
   const shown = pages * FIXTURE_PAGE_SIZE;
+  const page = rows.slice(0, shown);
   return {
     status: "ready",
-    entries: rows.slice(0, shown),
+    entries: sentRow ? [sentRow, ...page] : page,
     hasMore: shown < rows.length,
     loadingMore,
     loadMore,
@@ -124,5 +152,28 @@ export function useFixtureFeed({
     refreshing,
     refresh,
     updatedAt,
+    ...(pendingTxHash && {
+      pendingTransaction: {
+        txHash: pendingTxHash,
+        state: sentRow ? "found" : outcome ? "stopped" : "polling",
+      },
+    }),
+  };
+}
+
+/** A fixture send row re-stamped as the pending transaction, sent now. */
+function asSentRow(rows: TxHistoryEntry[], txHash: string): TxHistoryEntry {
+  const template =
+    rows.find((row) => row.transaction?.operation === "send") ?? rows[0];
+  if (!template) throw new Error("No fixture rows");
+  return {
+    ...template,
+    id: `pending-${txHash}`,
+    txHash,
+    timestampMs: Date.now(),
+    status: "Success",
+    ...(template.transaction && {
+      transaction: { ...template.transaction, txHash },
+    }),
   };
 }

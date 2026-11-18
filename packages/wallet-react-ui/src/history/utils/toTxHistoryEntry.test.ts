@@ -227,6 +227,7 @@ describe('toTxHistoryEntry', () => {
     const entry = toTxHistoryEntry(unparsedWithTimestamp)
     expect(entry).toEqual({
       id: unparsedWithTimestamp.txHash,
+      txHash: unparsedWithTimestamp.txHash,
       icon: 'question',
       title: 'Unknown transaction',
       chain: unparsedWithTimestamp.chain,

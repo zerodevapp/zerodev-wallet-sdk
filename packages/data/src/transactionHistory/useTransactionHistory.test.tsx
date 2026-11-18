@@ -500,6 +500,39 @@ describe('useTransactionHistory', () => {
       expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
     })
 
+    it('resolves false on an aborted signal and stops polling', async () => {
+      firstPagesFrom([])
+      const { result } = await loadThenFakeTimers()
+      const controller = new AbortController()
+
+      const waiting = result.current.waitForTransaction(HASH, {
+        signal: controller.signal,
+      })
+      await act(() => vi.advanceTimersByTimeAsync(2_000))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+      controller.abort()
+
+      await expect(waiting).resolves.toBe(false)
+      await act(() => vi.advanceTimersByTimeAsync(60_000))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps other waits polling when one signal aborts', async () => {
+      firstPagesFrom([], [], [{ txHash: OTHER }])
+      const { result } = await loadThenFakeTimers()
+      const controller = new AbortController()
+
+      const aborted = result.current.waitForTransaction(HASH, {
+        signal: controller.signal,
+      })
+      const other = result.current.waitForTransaction(OTHER)
+      controller.abort()
+      await act(() => vi.advanceTimersByTimeAsync(2_000 + 3_000))
+
+      await expect(aborted).resolves.toBe(false)
+      await expect(other).resolves.toBe(true)
+    })
+
     it('resolves overlapping waits', async () => {
       firstPagesFrom([], [], [{ txHash: HASH }, { txHash: OTHER }])
       const { result } = await loadThenFakeTimers()

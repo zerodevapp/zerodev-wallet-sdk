@@ -1,10 +1,12 @@
 import {
   type DataApiChainId,
   type DataApiEnvironment,
+  isQuotaExhaustedError,
   useTransactionHistory,
 } from '@zerodev/wallet-data'
-import { useMemo } from 'react'
-import type { HistoryFeed, TxHistoryEntry } from '../types'
+import { useEffect, useMemo, useState } from 'react'
+import { equalsIgnoreCase } from '../../shared/utils/common'
+import type { HistoryFeed, PendingTransaction, TxHistoryEntry } from '../types'
 import { toTxHistoryEntry } from '../utils/toTxHistoryEntry'
 import { TxHistoryView } from './TxHistoryView'
 
@@ -17,6 +19,11 @@ export interface TxHistoryProps {
   onClose: () => void
   className?: string
   size?: 'sm' | 'md' | 'lg'
+  /** On-chain hash of a transaction the app just sent (not a UserOperation
+   * hash or a `wallet_sendCalls` id). The widget shows a placeholder and
+   * polls until the list has it; polling runs only while the widget is
+   * mounted. */
+  pendingTxHash?: string
 }
 
 /**
@@ -29,6 +36,7 @@ export function TxHistory({
   onClose,
   className,
   size,
+  pendingTxHash,
 }: TxHistoryProps) {
   const history = useTransactionHistory(dataApi)
 
@@ -40,7 +48,12 @@ export function TxHistory({
     [history.data],
   )
 
-  const feed = toFeed(history, entries)
+  const pending = usePendingTransaction(
+    history.waitForTransaction,
+    entries,
+    pendingTxHash,
+  )
+  const feed = toFeed(history, entries, pending)
 
   return (
     <TxHistoryView
@@ -52,9 +65,36 @@ export function TxHistory({
   )
 }
 
+/** Found is read from the loaded entries rather than from the wait's
+ * result, so a manual refresh after the wait gave up still finds it. */
+function usePendingTransaction(
+  waitForTransaction: ReturnType<
+    typeof useTransactionHistory
+  >['waitForTransaction'],
+  entries: TxHistoryEntry[],
+  txHash: string | undefined,
+): PendingTransaction | undefined {
+  const [stoppedHash, setStoppedHash] = useState<string>()
+  useEffect(() => {
+    if (!txHash) return
+    const controller = new AbortController()
+    waitForTransaction(txHash, { signal: controller.signal }).then(() => {
+      if (!controller.signal.aborted) setStoppedHash(txHash)
+    })
+    return () => controller.abort()
+  }, [txHash, waitForTransaction])
+
+  if (!txHash) return undefined
+  if (entries.some((entry) => equalsIgnoreCase(entry.txHash, txHash))) {
+    return { txHash, state: 'found' }
+  }
+  return { txHash, state: stoppedHash === txHash ? 'stopped' : 'polling' }
+}
+
 function toFeed(
   history: ReturnType<typeof useTransactionHistory>,
   entries: TxHistoryEntry[],
+  pending: PendingTransaction | undefined,
 ): HistoryFeed {
   if (history.status === 'pending') return { status: 'loading' }
   // TanStack reports a failed fetchNextPage or refetch as status 'error' but
@@ -88,5 +128,8 @@ function toFeed(
     },
     ...(history.isRefetchError && { refreshError: history.error }),
     ...(updatedAt !== undefined && { updatedAt }),
+    // A spent budget ends polling; the refresh line says why.
+    ...(pending &&
+      !isQuotaExhaustedError(history.error) && { pendingTransaction: pending }),
   }
 }
