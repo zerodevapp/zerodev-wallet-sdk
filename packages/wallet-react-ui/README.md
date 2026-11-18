@@ -12,13 +12,13 @@ screen for passkey / email / Google. UI styling comes from
 
 ```bash
 pnpm add @zerodev/wallet-react-ui \
-  @zerodev/wallet-core @zerodev/wallet-react \
-  wagmi viem @wagmi/core @tanstack/react-query zustand
+  @zerodev/wallet-core @zerodev/wallet-react @zerodev/wallet-data \
+  wagmi viem @wagmi/core @tanstack/react-query zustand zod
 ```
 
-> `@zerodev/wallet-core`, `@zerodev/wallet-react`, `wagmi`, `viem`,
-> `@wagmi/core`, `@tanstack/react-query`, and `zustand` are **peer
-> dependencies** — install them alongside this package.
+> `@zerodev/wallet-core`, `@zerodev/wallet-react`, `@zerodev/wallet-data`,
+> `wagmi`, `viem`, `@wagmi/core`, `@tanstack/react-query`, `zustand`, and
+> `zod` are **peer dependencies** — install them alongside this package.
 
 ## Setup
 
@@ -277,10 +277,17 @@ const handle = useSolanaWallet()              // signing: signMessage, signTrans
 | `useWalletInfo` | Identity of the connected wallet per namespace, call-compatible with AppKit's. |
 | `SignUp.SolanaWalletConnect` | Sign-up row for a Solana wallet on another device over WalletConnect. |
 | `isCancellationError`, `AuthFlowDismissedError` | Tell a user's cancellation (prompt declined, sheet closed) from a failure. |
+| `<TxHistory />` | Transaction history for the connected ZeroDev wallet, fetched from the Data API, with a details page per transaction. Props: `dataApi` (`{ baseUrl, environment?, chainIds? }`), `onClose`, `size`, `className`. Shows its loading state until the wallet connects. A line above the list shows how old the first page is and offers Refresh, which fetches the first page past the Data API cache and spends one lookup from the wallet's monthly budget. The button locks for 10 seconds after a click, and is hidden once the budget is spent or the session has expired. |
+| `<TxHistoryView />` | The full screen on its own: list, details step, and top nav for a `HistoryFeed` you supply. `<TxHistory />` is this view over the Data API hook. Props: `feed`, `onClose`, `size`, `className`. |
+| `<History />` | The list view on its own. Renders a `HistoryFeed` (`loading`, `error`, or `ready` with Load more and Refresh). Props: `feed`, `onSelectEntry`. |
+| `<TransactionDetails />` | The details view on its own for one Data API transaction, headed by the same title as its row ("Sent USDC", "Swapped NFT → WETH"). Props: `transaction`. |
+| `toTxHistoryEntry` | Maps a Data API transaction history item to a `TxHistoryEntry` row, or `undefined` for an unparsed item without a timestamp. The row describes what came in on a two-sided transaction, shows an allowance as "Unlimited" when it is the max uint and as the bare unit when it is zero, and appends a count to an NFT held in quantity. |
 
 ### Types
 
-`AuthMethod`, `AuthStep`, `EmailAuthMethod`, `WalletId`,
+`AuthMethod`, `AuthStep`, `EmailAuthMethod`, `HistoryFeed`, `HistoryProps`,
+`TransactionDetailsProps`, `TxHistoryEntry`, `TxHistoryProps`, `TxHistoryViewProps`,
+`WalletId`,
 `ZeroDevKitConnectorParams`.
 
 ## Development

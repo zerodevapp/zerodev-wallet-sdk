@@ -32,14 +32,14 @@ export function groupByDay(
   entries: TxHistoryEntry[],
   now: number = Date.now(),
 ): DayGroup[] {
-  const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp)
+  const sorted = [...entries].sort((a, b) => b.timestampMs - a.timestampMs)
   const groups: DayGroup[] = []
   let currentKey: string | null = null
   for (const entry of sorted) {
-    const key = dayKey(entry.timestamp)
+    const key = dayKey(entry.timestampMs)
     if (key !== currentKey) {
       currentKey = key
-      groups.push({ label: dayLabel(entry.timestamp, now), entries: [] })
+      groups.push({ label: dayLabel(entry.timestampMs, now), entries: [] })
     }
     groups[groups.length - 1]?.entries.push(entry)
   }
