@@ -45,5 +45,5 @@ storybook.requires.ts
 
 e2e/.cache/
 
-# Temporary: Zerion onboarding diagnostics (ZERION_ONBOARD_TRACE=1)
-zerion-onboarding-diagnostics/
+# Temporary: Zerion context diagnostics (ZERION_TRACE=1)
+zerion-diagnostics/

@@ -28,6 +28,12 @@ export default defineConfig({
     timeout: 30_000,
   },
   use: {
+    // Playwright's default for both is 0, meaning no limit, so an element that
+    // never becomes actionable consumes the whole test budget and reports only
+    // a timeout. An extension wallet puts modals over its own controls, which
+    // is exactly that case. These turn it into an error naming the element.
+    actionTimeout: 15_000,
+    navigationTimeout: 45_000,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // Local backend uses a self-signed TLS cert. Opt in via env so CI /
