@@ -44,6 +44,3 @@ storybook.requires.ts
 .expo
 
 e2e/.cache/
-
-# Temporary: Zerion context diagnostics (ZERION_TRACE=1)
-zerion-diagnostics/
