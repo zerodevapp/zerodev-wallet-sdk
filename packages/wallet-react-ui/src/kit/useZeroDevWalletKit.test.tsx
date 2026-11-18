@@ -806,6 +806,28 @@ describe('useZeroDevWalletKit', () => {
       expect(result.current.solana.isConnected).toBe(true)
     })
 
+    it('disconnects an SDK session named like the Solana wallet through wagmi', async () => {
+      // `metaMask()`: its own session (a phone over the SDK relay), nothing
+      // the MetaMask extension's Solana side shares.
+      const sdk: FakeConnector = {
+        uid: 'mmsdk',
+        id: 'metaMaskSDK',
+        name: 'MetaMask',
+        type: 'metaMask',
+        emitter: fakeEmitter(),
+      }
+      const { wallet } = solanaWallet('MetaMask')
+      connectEvm(sdk)
+      const { result } = render()
+      await act(async () => {
+        await result.current.connect({ namespace: 'solana', wallet })
+        await result.current.disconnect({ namespace: 'eip155' })
+      })
+      expect(core.disconnect).toHaveBeenCalledTimes(1)
+      expect(core.disconnect.mock.calls[0]?.[1].connector.uid).toBe('mmsdk')
+      expect(result.current.solana.isConnected).toBe(true)
+    })
+
     it('disconnects every EVM connection', async () => {
       connectEvm(rabby)
       connectEvm(metamask)
