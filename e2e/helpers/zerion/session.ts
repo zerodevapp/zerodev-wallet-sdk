@@ -15,6 +15,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { type BrowserContext, chromium, type Page } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
 import { zerionCheckActivity } from '../../mocks/definitions/zerion/checkActivity.js'
@@ -200,6 +201,47 @@ export async function ensureOnboardedProfile(
   })
 }
 
+/**
+ * Writes the onboarding context's trace and a snapshot of every open page.
+ *
+ * Lands under `playwright-report/`, which is the directory CI uploads, so the
+ * evidence survives the job. Best-effort throughout: a diagnostic that throws
+ * would replace the failure it was added to explain.
+ */
+async function saveOnboardingDiagnostics(
+  context: BrowserContext,
+): Promise<void> {
+  // Its own directory, not a subdirectory of `playwright-report`: the HTML
+  // reporter rewrites that folder when the run ends and takes anything else in
+  // it with them. CI uploads this path separately.
+  const dir = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../../zerion-onboarding-diagnostics',
+  )
+  try {
+    mkdirSync(dir, { recursive: true })
+    await context.tracing.stop({ path: path.join(dir, 'onboarding-trace.zip') })
+
+    for (const [i, page] of context.pages().entries()) {
+      await page
+        .screenshot({ path: path.join(dir, `page-${i}.png`), fullPage: true })
+        .catch(() => {})
+      writeFileSync(
+        path.join(dir, `page-${i}.url.txt`),
+        `${page.url()}\n\n${await page.content().catch(() => '<unavailable>')}`,
+      )
+    }
+  } catch (error) {
+    // Never rethrown — a diagnostic must not replace the failure it explains.
+    // But never silent either: a collector that fails quietly buys a CI run and
+    // returns nothing.
+    console.error(
+      `[zerion] onboarding diagnostics failed to write to ${dir}:`,
+      error instanceof Error ? error.message : error,
+    )
+  }
+}
+
 async function buildOnboardedProfile(
   headless: boolean,
   credentials: typeof TEST_WALLET,
@@ -215,6 +257,18 @@ async function buildOnboardedProfile(
       headless,
     })
 
+    // Onboarding runs in a context this helper launches, not the one Playwright
+    // manages, so `--trace on` has never covered it: a failure here produces a
+    // bare fixture timeout with no page, no screenshot and no trace. Kept off
+    // unless asked for, because it costs time on every run.
+    const diagnosing = process.env.ZERION_ONBOARD_TRACE === '1'
+    if (diagnosing) {
+      // Printed so a run that collects nothing can be told apart from a run
+      // where the flag never reached the worker.
+      console.error('[zerion] onboarding starting, diagnostics on')
+      await context.tracing.start({ screenshots: true, snapshots: true })
+    }
+
     try {
       const page = await openOnboardingTab(context, extensionId)
       const mocked = await routeMocks(page, zerionCheckActivity)
@@ -226,6 +280,7 @@ async function buildOnboardedProfile(
         )
       }
     } finally {
+      if (diagnosing) await saveOnboardingDiagnostics(context)
       // Closing also flushes. Snapshotting a live profile captures a
       // half-written leveldb, so the copy only happens once the browser is
       // gone. On a failed onboard this still has to run, or the outer

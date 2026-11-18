@@ -62,6 +62,10 @@ export default defineConfig({
           {
             name: 'chromium-zerion',
             testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
+            // A cold Zerion onboarding is 20s locally and has never finished
+            // inside the 120s default on a runner. The budget is the worker
+            // fixture's, so it has to be raised here rather than per test.
+            timeout: 300_000,
             use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
           },
         ]
