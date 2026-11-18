@@ -1,4 +1,5 @@
 import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
+import { useConnections } from 'wagmi'
 import { useAuth } from '../../hooks/useAuth'
 import { useSignUpContext } from './context'
 import {
@@ -62,10 +63,17 @@ function InstalledWalletsEvm({
   const { startWalletConnection } = useAuth()
   const { authPending, guardAgreement } = useSignUpContext()
   const rows = useInstalledEvmRows(excludeWalletIds).slice(0, maxWallets)
+  // A wallet already connected reads as connected and cannot be connected
+  // again, as in the multichain list: a sheet opened over a live session
+  // (to add the other side, say) must not re-run its connect.
+  const connections = useConnections()
+  const connectedUids = new Set(connections.map((c) => c.connector.uid))
+  const isConnected = (row: InstalledEvmRow) =>
+    connectedUids.has(row.connector.uid)
 
   // Hand off to the `wallet-connecting` step, which owns the connect() call.
   const startConnect = (row: InstalledEvmRow) => {
-    if (authPending) return
+    if (authPending || isConnected(row)) return
     if (!guardAgreement()) return
     startWalletConnection({
       connectorUid: row.connector.uid,
@@ -85,9 +93,11 @@ function InstalledWalletsEvm({
               <img src={row.icon} alt="" className="zd:w-6 zd:h-6" />
             ) : null
           }
-          subtitle={<Badge text="INSTALLED" />}
+          subtitle={
+            <Badge text={isConnected(row) ? 'CONNECTED' : 'INSTALLED'} />
+          }
           trailing={<ListItemChevron />}
-          disabled={authPending}
+          disabled={authPending || isConnected(row)}
           onClick={() => startConnect(row)}
         />
       ))}

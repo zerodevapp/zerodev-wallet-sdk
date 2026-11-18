@@ -77,7 +77,9 @@ vi.mock('../../components/WalletSheet', () => ({
 }))
 
 let connectors: FakeConnector[] = []
+let connections: { connector: FakeConnector }[] = []
 vi.mock('wagmi', () => ({
+  useConnections: () => connections,
   useConnectors: () => connectors,
 }))
 
@@ -92,9 +94,27 @@ const announced = (id: string, name = id): FakeConnector => ({
 beforeEach(() => {
   vi.clearAllMocks()
   connectors = []
+  connections = []
 })
 
 describe('SignUp.InstalledWallets', () => {
+  it('shows a connected wallet as CONNECTED and does not connect it again', () => {
+    const metamask = announced('io.metamask')
+    connectors = [metamask, announced('com.unknown.wallet', 'Unknown')]
+    connections = [{ connector: metamask }]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets />
+      </SignUp>,
+    )
+    expect(screen.getByText('CONNECTED')).toBeTruthy()
+    expect(screen.getAllByText('INSTALLED')).toHaveLength(1)
+    fireEvent.click(screen.getByText('MetaMask'))
+    expect(startWalletConnection).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('Unknown'))
+    expect(startWalletConnection).toHaveBeenCalledTimes(1)
+  })
+
   it('connects rows directly even when WalletConnect is configured', () => {
     connectors = [
       announced('io.metamask'),

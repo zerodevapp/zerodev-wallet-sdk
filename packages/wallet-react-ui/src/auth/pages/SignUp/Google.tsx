@@ -7,7 +7,8 @@ import { useReportPending, useSignUpContext } from './context'
 /** "Google" OAuth row. */
 export function SignUpGoogle() {
   const { goToStep } = useAuth()
-  const { authPending, guardAgreement, setError } = useSignUpContext()
+  const { authPending, embeddedSignedIn, guardAgreement, setError } =
+    useSignUpContext()
 
   const { mutateAsync: authenticateOAuth, isPending } = useAuthenticateOAuth({
     mutation: {
@@ -17,6 +18,10 @@ export function SignUpGoogle() {
     },
   })
   useReportPending(isPending)
+
+  // Signed in already: offering this login again would run a second
+  // authentication over the live session (hooks above stay unconditional).
+  if (embeddedSignedIn) return null
 
   const handleClick = async () => {
     if (authPending) return

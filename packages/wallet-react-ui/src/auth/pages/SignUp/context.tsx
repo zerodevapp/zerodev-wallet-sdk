@@ -10,6 +10,10 @@ export type SignUpContextValue = {
   /** Which email verification flow the Email unit runs. Set on the root
    * (`<SignUp emailAuthMethod=…>`); already resolved to its default here. */
   emailAuthMethod: EmailAuthMethod
+  /** True while the embedded wallet is signed in. The passkey, Google and
+   * email units render nothing then: they would start a second login over
+   * the live session. */
+  embeddedSignedIn: boolean
   /** True when the terms checkbox is required but unchecked. For passive
    * disabled styling; use `guardAgreement` before starting an attempt. */
   needsAgreement: boolean

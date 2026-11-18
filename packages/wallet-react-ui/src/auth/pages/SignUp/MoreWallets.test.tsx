@@ -106,6 +106,7 @@ const evmSheet = () =>
 
 let connectors: FakeConnector[] = []
 vi.mock('wagmi', () => ({
+  useConnections: () => [],
   useConnectors: () => connectors,
 }))
 

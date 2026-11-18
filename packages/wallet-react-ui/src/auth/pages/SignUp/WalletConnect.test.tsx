@@ -65,6 +65,7 @@ vi.mock('../../hooks/useAuth', () => ({
 
 let connectors: unknown[] = []
 vi.mock('wagmi', () => ({
+  useConnections: () => [],
   useConnectors: () => connectors,
   useConnect: () => ({ connect: vi.fn(), isPending: false }),
 }))

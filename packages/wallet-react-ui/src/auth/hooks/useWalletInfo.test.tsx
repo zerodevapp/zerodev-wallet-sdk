@@ -16,6 +16,7 @@ type MockAccount = {
 
 const account: MockAccount = { connector: undefined, isConnected: false }
 vi.mock('wagmi', () => ({
+  useConnections: () => [],
   useAccount: () => account,
   // No kit connector in these tests: the Solana branch resolves to undefined.
   useConfig: () => ({ connectors: [] }),
