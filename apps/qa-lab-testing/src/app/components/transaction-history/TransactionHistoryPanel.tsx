@@ -16,6 +16,11 @@ import { cn } from "../../lib/utils";
 
 const ENVIRONMENTS: readonly DataApiEnvironment[] = ["mainnet", "testnet"];
 
+type WaitState =
+  | { status: "idle" }
+  | { status: "waiting"; hash: string }
+  | { status: "done"; hash: string; found: boolean; ms: number };
+
 function ErrorDetails({ error }: { error: Error }) {
   const requestError = error instanceof DataApiError ? error : undefined;
 
@@ -88,6 +93,21 @@ function ConfiguredTransactionHistoryPanel({
   const pages = history.data?.pages ?? [];
   const items = pages.flatMap((page) => page.items);
   const error = history.error;
+  const [txHash, setTxHash] = useState("");
+  const [wait, setWait] = useState<WaitState>({ status: "idle" });
+
+  async function waitForTxHash() {
+    const hash = txHash.trim();
+    const startedAt = performance.now();
+    setWait({ status: "waiting", hash });
+    const found = await history.waitForTransaction(hash);
+    setWait({
+      status: "done",
+      hash,
+      found,
+      ms: Math.round(performance.now() - startedAt),
+    });
+  }
 
   return (
     <div className="space-y-4" data-testid="transaction-history-surface">
@@ -219,6 +239,15 @@ function ConfiguredTransactionHistoryPanel({
           </button>
           <button
             type="button"
+            onClick={() => void history.refresh()}
+            disabled={history.isFetching}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid="transaction-history-refresh"
+          >
+            Refresh (fresh)
+          </button>
+          <button
+            type="button"
             onClick={() => void history.fetchNextPage()}
             disabled={!history.hasNextPage || history.isFetchingNextPage}
             className="inline-flex h-9 items-center rounded-lg border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -227,6 +256,51 @@ function ConfiguredTransactionHistoryPanel({
             {history.isFetchingNextPage ? "Loading next page…" : "Load next page"}
           </button>
         </div>
+
+        <form
+          className="mt-4 flex flex-wrap items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void waitForTxHash();
+          }}
+        >
+          <input
+            value={txHash}
+            onChange={(event) => setTxHash(event.target.value)}
+            placeholder="0x… transaction hash"
+            spellCheck={false}
+            className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--border-warm)] bg-white px-3 font-mono text-xs text-[var(--ink)]"
+            data-testid="transaction-history-wait-hash"
+          />
+          <button
+            type="submit"
+            disabled={txHash.trim() === "" || wait.status === "waiting"}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--border-warm)] bg-white px-3 text-xs font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-not-allowed disabled:opacity-50"
+            data-testid="transaction-history-wait"
+          >
+            {wait.status === "waiting" && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            )}
+            Wait for tx
+          </button>
+          {wait.status !== "idle" && (
+            <span
+              className="font-mono text-xs text-[var(--muted)]"
+              data-testid="transaction-history-wait-result"
+              data-status={
+                wait.status === "waiting"
+                  ? "waiting"
+                  : wait.found
+                    ? "found"
+                    : "not-found"
+              }
+            >
+              {wait.status === "waiting"
+                ? "waiting…"
+                : `${wait.found ? "found" : "not found"} after ${wait.ms} ms`}
+            </span>
+          )}
+        </form>
       </div>
 
       {history.isPending && (
@@ -270,7 +344,8 @@ function ConfiguredTransactionHistoryPanel({
               Page {index + 1} · {page.items.length} items
             </h3>
             <span className="font-mono text-[10px] text-[var(--muted)]">
-              next: {page.next ? "present" : "none"}
+              next: {page.next ? "present" : "none"} · fetchedAt:{" "}
+              {page.cache?.fetchedAt ?? "—"}
             </span>
           </div>
           <pre className="max-h-[32rem] overflow-auto p-4 text-[11px] leading-5 text-gray-700">
