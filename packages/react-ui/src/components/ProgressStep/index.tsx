@@ -51,39 +51,45 @@ export function ProgressStep({
           />
         )}
       </div>
-      <div className="zd:flex zd:min-w-0 zd:flex-1 zd:items-center zd:gap-1">
-        <Text
-          className={cn(
-            'zd:whitespace-nowrap',
-            failed
-              ? 'zd:text-error-primary'
-              : // Mute the label until the step is done so a final row with
-                // an inert open circle doesn't read at full intensity while
-                // earlier steps are still in flight.
-                done
-                ? 'zd:text-neutral-primary'
-                : 'zd:text-neutral-tertiary',
+      {/* Label and trailing slot share one row so the slot centres on the
+        label line; the connector below the marker doesn't shift it down. */}
+      <div className="zd:flex zd:min-w-0 zd:flex-1 zd:items-center zd:gap-3">
+        <div className="zd:flex zd:min-w-0 zd:flex-1 zd:items-center zd:gap-1">
+          <Text
+            className={cn(
+              // A long label ("Confirmed on Arbitrum Sepolia") wraps rather
+              // than running under the trailing slot.
+              'zd:min-w-0',
+              failed
+                ? 'zd:text-error-primary'
+                : // Mute the label until the step is done so a final row with
+                  // an inert open circle doesn't read at full intensity while
+                  // earlier steps are still in flight.
+                  done
+                  ? 'zd:text-neutral-primary'
+                  : 'zd:text-neutral-tertiary',
+            )}
+          >
+            {label}
+          </Text>
+          {info && (
+            <Tooltip content={info}>
+              <button
+                type="button"
+                aria-label="More info"
+                className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-help zd:outline-none zd:bg-transparent"
+              >
+                <Icon
+                  name="infoOutline"
+                  className="zd:w-3.5 zd:h-3.5 zd:text-neutral-tertiary"
+                  aria-hidden
+                />
+              </button>
+            </Tooltip>
           )}
-        >
-          {label}
-        </Text>
-        {info && (
-          <Tooltip content={info}>
-            <button
-              type="button"
-              aria-label="More info"
-              className="zd:inline-flex zd:items-center zd:justify-center zd:cursor-help zd:outline-none zd:bg-transparent"
-            >
-              <Icon
-                name="infoOutline"
-                className="zd:w-3.5 zd:h-3.5 zd:text-neutral-tertiary"
-                aria-hidden
-              />
-            </button>
-          </Tooltip>
-        )}
+        </div>
+        <div className="zd:flex zd:shrink-0 zd:items-center">{right}</div>
       </div>
-      <div className="zd:flex zd:shrink-0 zd:items-center">{right}</div>
     </div>
   )
 }
