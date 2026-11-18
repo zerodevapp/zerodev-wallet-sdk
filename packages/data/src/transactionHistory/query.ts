@@ -1,0 +1,103 @@
+import { NotAuthenticatedError } from '@zerodev/wallet-react'
+import {
+  DataApiError,
+  DataApiNetworkError,
+  InvalidDataApiBaseUrlError,
+  InvalidDataApiResponseError,
+} from '../errors.js'
+
+const MAX_RETRY_DELAY_MS = 30_000
+
+/**
+ * The Data API refused the request because the monthly lookup budget is spent.
+ * The budget resets at the start of the next UTC month, so neither a retry nor
+ * a "try again" button can succeed before then. Retry-After is capped at an
+ * hour and does not say when.
+ */
+export function isQuotaExhaustedError(error: unknown): error is DataApiError {
+  return (
+    error instanceof DataApiError &&
+    error.status === 429 &&
+    typeof error.body === 'object' &&
+    error.body !== null &&
+    'reason' in error.body &&
+    error.body.reason === 'quota_exhausted'
+  )
+}
+
+/**
+ * Retry policy for read-only transaction-history queries.
+ *
+ * TanStack owns retries so every attempt executes the action again and gets a
+ * fresh timestamp and stamp. The policy by failure class is:
+ *
+ * - Local auth/config/response-contract errors: no retry; repeating cannot
+ *   connect an account, repair a URL, or reconcile an incompatible response.
+ * - 400/401: no retry; the request or authorization must change first.
+ * - 429 with body reason `quota_exhausted`: no retry; the monthly lookup
+ *   budget is spent until the next UTC month, whatever Retry-After says.
+ * - 429 or 503: one retry only when Retry-After tells us when it can succeed
+ *   and that is at most 30 s away. A longer wait is not shortened, because a
+ *   retry before the server's time gets another 429 and, for an upstream
+ *   throttle, spends a counted lookup. A 503 is the Data API reporting that
+ *   its identity backend is briefly unreachable, and it names the wait itself.
+ * - 502 and network failures: two retries, for three total attempts.
+ * - Cancellation and all other HTTP statuses: no retry.
+ */
+export function transactionHistoryRetry(
+  failureCount: number,
+  error: unknown,
+): boolean {
+  if (
+    error instanceof NotAuthenticatedError ||
+    error instanceof InvalidDataApiBaseUrlError ||
+    error instanceof InvalidDataApiResponseError
+  ) {
+    return false
+  }
+
+  if (isQuotaExhaustedError(error)) return false
+
+  if (error instanceof DataApiError) {
+    if (error.status === 400 || error.status === 401) return false
+
+    if (error.status === 429 || error.status === 503) {
+      return (
+        error.retryAfterMs !== undefined &&
+        error.retryAfterMs <= MAX_RETRY_DELAY_MS &&
+        failureCount < 1
+      )
+    }
+
+    if (error.status === 502) return failureCount < 2
+    return false
+  }
+
+  if (error instanceof Error && error.name === 'AbortError') return false
+  if (error instanceof DataApiNetworkError) return failureCount < 2
+  return false
+}
+
+/**
+ * Delay paired with `transactionHistoryRetry`:
+ *
+ * - 429 and 503 wait exactly the server's validated Retry-After; the retry
+ *   predicate has already refused anything over 30 s.
+ * - Network and 502 retries use 1s, then 2s exponential backoff, capped at
+ *   30s if the retry budget is expanded in the future.
+ * - Non-retryable errors never consume this value.
+ */
+export function transactionHistoryRetryDelay(
+  attemptIndex: number,
+  error: unknown,
+): number {
+  if (
+    error instanceof DataApiError &&
+    (error.status === 429 || error.status === 503) &&
+    error.retryAfterMs !== undefined
+  ) {
+    return error.retryAfterMs
+  }
+
+  return Math.min(1_000 * 2 ** attemptIndex, MAX_RETRY_DELAY_MS)
+}

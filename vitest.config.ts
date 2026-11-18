@@ -12,6 +12,14 @@ export default defineConfig({
         __dirname,
         'packages/react/src/index.ts',
       ),
+      '@zerodev/wallet-data/fixtures': path.resolve(
+        __dirname,
+        'packages/data/src/fixtures.ts',
+      ),
+      '@zerodev/wallet-data': path.resolve(
+        __dirname,
+        'packages/data/src/index.ts',
+      ),
       '@zerodev/react-ui': path.resolve(
         __dirname,
         'packages/react-ui/src/index.ts',

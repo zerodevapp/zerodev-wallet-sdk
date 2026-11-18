@@ -1,0 +1,36 @@
+export type {
+  DataApiChainId,
+  DataApiErrorResponse,
+  GetTransactionHistoryQuery,
+  TransactionHistoryChain,
+  TransactionHistoryCollection,
+  TransactionHistoryFee,
+  TransactionHistoryFees,
+  TransactionHistoryItem,
+  TransactionHistoryNft,
+  TransactionHistoryOperation,
+  TransactionHistoryQuantity,
+  TransactionHistoryResponse,
+  TransactionHistoryStatus,
+  TransactionHistoryToken,
+  TransactionHistoryTransaction,
+  UnparsedTransactionHistoryItem,
+} from '@zerodev/data-api-contract'
+export { DATA_API_CHAIN_IDS } from '@zerodev/data-api-contract'
+export type { DataApiEnvironment } from '@zerodev/data-api-stamp'
+export {
+  DataApiError,
+  DataApiNetworkError,
+  InvalidDataApiBaseUrlError,
+  InvalidDataApiResponseError,
+} from './errors.js'
+export { getTransactionHistory } from './transactionHistory/getTransactionHistory.js'
+export {
+  isQuotaExhaustedError,
+  transactionHistoryRetry,
+  transactionHistoryRetryDelay,
+} from './transactionHistory/query.js'
+export {
+  transactionHistoryQueryKey,
+  useTransactionHistory,
+} from './transactionHistory/useTransactionHistory.js'
