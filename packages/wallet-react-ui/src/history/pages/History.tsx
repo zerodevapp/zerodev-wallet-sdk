@@ -16,7 +16,7 @@ export interface HistoryProps {
 
 export function History({ feed, onSelectEntry }: HistoryProps) {
   return (
-    <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:pt-2 zd:pb-4">
+    <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:pt-4 zd:pb-4">
       <Wrapper
         variant="ghost"
         className="zd:flex zd:w-full zd:flex-1 zd:min-h-0 zd:flex-col zd:gap-1 zd:overflow-y-auto zd:rounded-2xl zd:p-2"
