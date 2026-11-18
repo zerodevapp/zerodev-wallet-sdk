@@ -28,7 +28,8 @@ The details page is headed by the row's title, so a sent and a received
 transaction no longer look alike. A row keeps its token unit visible while a
 long amount truncates (`TxHistoryEntry.unit`). USD values under a cent read as
 "<$0.01". A 401 error no longer offers "Try again", since only a new sign-in
-fixes an expired session.
+fixes an expired session. A spent monthly Data API budget reads "Transaction history is
+unavailable until next month" and offers no retry either.
 
 Rows show the asset's image with the operation as a badge, falling back to the
 operation glyph (`TxHistoryEntry.imageUri`). A token
