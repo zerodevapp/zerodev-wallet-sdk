@@ -19,8 +19,10 @@ import { type BrowserContext, chromium, type Page } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
 import { zerionCheckActivity } from '../../mocks/definitions/zerion/checkActivity.js'
 import { routeMocks } from '../../mocks/routeMocks.js'
+import { withWalletCacheLock } from '../e2e-cache.js'
 import { TEST_WALLET } from '../wallet-credentials.js'
 import {
+  CACHE_ROOT,
   EXTENSION_DIR,
   ensureZerionExtension,
   PROFILE_SNAPSHOT_DIR,
@@ -166,22 +168,44 @@ export async function ensureOnboardedProfile(
   // The account the phrase derives, stored beside the snapshot so editing
   // TEST_WALLET re-onboards instead of silently reusing the previous wallet.
   const account = mnemonicToAccount(credentials.secretRecoveryPhrase).address
-
-  await ensureZerionExtension()
-
   const fingerprint = credentialsFingerprint()
 
-  if (existsSync(PROFILE_SNAPSHOT_DIR)) {
+  const ready = (): boolean => {
+    if (!existsSync(PROFILE_SNAPSHOT_DIR)) return false
     const stamp = readProfileStamp()
-    if (
+    return (
       stamp?.credentials === fingerprint &&
       stamp.extensionPath === extensionPath()
-    ) {
-      return PROFILE_SNAPSHOT_DIR
-    }
-    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+    )
   }
 
+  if (ready()) {
+    await ensureZerionExtension()
+    return PROFILE_SNAPSHOT_DIR
+  }
+
+  // Held across the whole onboarding, not just the copy: every worker calls
+  // this (the fixture is worker-scoped), and an onboarding is minutes of work
+  // that must happen once. The lock is reentrant, so the nested
+  // `ensureZerionExtension` below does not wait on this one.
+  return withWalletCacheLock(CACHE_ROOT, async () => {
+    await ensureZerionExtension()
+
+    // Re-checked under the lock: whoever waited here is normally looking at a
+    // profile someone else just onboarded.
+    if (ready()) return PROFILE_SNAPSHOT_DIR
+    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+
+    return buildOnboardedProfile(headless, credentials, account, fingerprint)
+  })
+}
+
+async function buildOnboardedProfile(
+  headless: boolean,
+  credentials: typeof TEST_WALLET,
+  account: string,
+  fingerprint: string,
+): Promise<string> {
   const scratch = mkdtempSync(path.join(tmpdir(), 'zerion-onboarding-'))
   const staging = `${PROFILE_SNAPSHOT_DIR}.partial`
 
