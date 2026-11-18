@@ -175,6 +175,38 @@ describe('getTransactionHistory', () => {
     expect(`${url.pathname}${url.search}`).toBe(requestTarget)
   })
 
+  it('sends and signs fresh=true after chainIds on a first page', async () => {
+    await getTransactionHistory(config, {
+      baseUrl: 'https://data.example',
+      chainIds: ['ethereum'],
+      fresh: true,
+    })
+
+    expect(stamper.stamp).toHaveBeenCalledWith(
+      '{"aud":"zd-data-api","environment":"mainnet","method":"GET","projectId":"project-alpha","requestTarget":"/v1/me/transaction-history?chainIds=ethereum&fresh=true","ts":1787688000000,"walletAddress":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}',
+    )
+    const [url] = fetchMock.mock.calls[0] ?? []
+    expect(url.search).toBe('?chainIds=ethereum&fresh=true')
+  })
+
+  it.each([{ fresh: false }, {}])(
+    'omits fresh given %o',
+    async (parameters) => {
+      await getTransactionHistory(config, {
+        baseUrl: 'https://data.example',
+        ...parameters,
+      })
+
+      const [url] = fetchMock.mock.calls[0] ?? []
+      expect(url.searchParams.has('fresh')).toBe(false)
+      expect(
+        JSON.parse(stamper.stamp.mock.calls[0]?.[0] ?? '{}'),
+      ).toMatchObject({
+        requestTarget: '/v1/me/transaction-history',
+      })
+    },
+  )
+
   it('rejects an empty chainIds filter before signing or fetching', async () => {
     await expect(
       getTransactionHistory(config, {

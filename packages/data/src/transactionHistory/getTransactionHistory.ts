@@ -41,6 +41,7 @@ export async function getTransactionHistory(
   const query: Record<string, string> = {
     ...(chainIds === undefined ? {} : { chainIds: chainIds.join(',') }),
     ...(parameters.next === undefined ? {} : { next: parameters.next }),
+    ...(parameters.fresh === true ? { fresh: 'true' } : {}),
   }
   const body = await requestDataApiGet({
     baseUrl: parameters.baseUrl,
@@ -64,9 +65,18 @@ export declare namespace getTransactionHistory {
     chainIds?: readonly DataApiChainId[]
     connector?: Connector
     environment?: DataApiEnvironment
-    next?: string
     signal?: AbortSignal
-  }
+  } & (
+    | {
+        next?: undefined
+        /**
+         * Skip the server cache for the first page. Spends one lookup from the
+         * monthly budget. Requires a Data API that supports `fresh`.
+         */
+        fresh?: boolean
+      }
+    | { next: string; fresh?: false }
+  )
   type ReturnType = TransactionHistoryResponse
   type ErrorType = Error
 }

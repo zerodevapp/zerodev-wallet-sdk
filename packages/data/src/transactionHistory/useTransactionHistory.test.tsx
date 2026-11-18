@@ -1,7 +1,11 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  focusManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const h = vi.hoisted(() => ({
   getTransactionHistory: vi.fn(),
@@ -38,6 +42,16 @@ function wrapper(
   }
 }
 
+type Parameters = { next?: string; fresh?: boolean }
+
+function requests(): Parameters[] {
+  return h.getTransactionHistory.mock.calls.map(([, parameters]) => parameters)
+}
+
+function firstPageRequests(): Parameters[] {
+  return requests().filter((parameters) => parameters.next === undefined)
+}
+
 function renderedStaleTime(query?: { staleTime: number }) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -50,6 +64,11 @@ function renderedStaleTime(query?: { staleTime: number }) {
 }
 
 describe('useTransactionHistory', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    focusManager.setFocused(undefined)
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     h.useConfig.mockReturnValue(config)
@@ -261,5 +280,236 @@ describe('useTransactionHistory', () => {
         chainIds: ['ethereum'],
       },
     ])
+  })
+
+  it('never asks for fresh on load, next page, focus, remount or after staleTime', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const first = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true))
+    await act(async () => {
+      await first.result.current.fetchNextPage()
+    })
+    vi.useFakeTimers({ now: Date.now() })
+
+    await act(async () => {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+
+    await act(() => vi.advanceTimersByTimeAsync(30_001))
+    await act(async () => {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(h.getTransactionHistory).toHaveBeenCalledTimes(4)
+
+    first.unmount()
+    await act(() => vi.advanceTimersByTimeAsync(30_001))
+    renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await act(() => vi.advanceTimersByTimeAsync(0))
+
+    expect(h.getTransactionHistory).toHaveBeenCalledTimes(6)
+    expect(firstPageRequests()).toHaveLength(3)
+    for (const parameters of firstPageRequests()) {
+      expect(parameters.fresh).toBe(false)
+    }
+    for (const parameters of requests()) {
+      expect(parameters.fresh).not.toBe(true)
+    }
+  })
+
+  it('refreshes every loaded page under the same key, page 1 fresh', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const { result } = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await act(async () => {
+      await result.current.fetchNextPage()
+    })
+
+    let refreshed:
+      | Awaited<ReturnType<typeof result.current.refresh>>
+      | undefined
+    await act(async () => {
+      refreshed = await result.current.refresh()
+    })
+
+    expect(requests().slice(2)).toEqual([
+      expect.objectContaining({ fresh: true }),
+      expect.objectContaining({ next: 'cursor-2' }),
+    ])
+    expect(requests()[2]?.next).toBeUndefined()
+    expect(requests()[3]).not.toHaveProperty('fresh')
+    expect(refreshed?.data?.pages).toHaveLength(2)
+    expect(client.getQueryCache().getAll()).toHaveLength(1)
+  })
+
+  it("does not send fresh for another instance's refetch during a refresh", async () => {
+    h.getTransactionHistory.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      return { items: [] }
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const a = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    const b = renderHook(() => useTransactionHistory({ baseUrl }), {
+      wrapper: wrapper(client),
+    })
+    await waitFor(() => expect(a.result.current.isSuccess).toBe(true))
+    h.getTransactionHistory.mockClear()
+
+    let refreshing: Promise<unknown> | undefined
+    act(() => {
+      refreshing = a.result.current.refresh()
+    })
+    await waitFor(() => expect(h.getTransactionHistory).toHaveBeenCalled())
+    await act(async () => {
+      await b.result.current.refetch()
+      await refreshing
+    })
+
+    expect(requests().map((parameters) => parameters.fresh)).toEqual([
+      true,
+      false,
+    ])
+  })
+
+  describe('waitForTransaction', () => {
+    const HASH =
+      '0xAbCdEf0000000000000000000000000000000000000000000000000000000001'
+    const OTHER =
+      '0x2222222222222222222222222222222222222222222222222222222222222222'
+
+    async function loadThenFakeTimers() {
+      const rendered = renderHook(() => useTransactionHistory({ baseUrl }), {
+        wrapper: wrapper(),
+      })
+      await waitFor(() => expect(rendered.result.current.isSuccess).toBe(true))
+      vi.useFakeTimers()
+      return rendered
+    }
+
+    function firstPagesFrom(...pages: { txHash: string }[][]) {
+      let call = 0
+      h.getTransactionHistory.mockImplementation(
+        async (_config: unknown, parameters: Parameters) => {
+          if (parameters.next !== undefined) return { items: [] }
+          const items = pages[Math.min(call, pages.length - 1)] ?? []
+          call++
+          return { items }
+        },
+      )
+    }
+
+    it('resolves true from a loaded later page without a request', async () => {
+      h.getTransactionHistory.mockImplementation(
+        async (_config: unknown, parameters: Parameters) =>
+          parameters.next === undefined
+            ? { items: [{ txHash: OTHER }], next: 'cursor-2' }
+            : { items: [{ txHash: HASH }] },
+      )
+      const { result } = await loadThenFakeTimers()
+      vi.useRealTimers()
+      await act(async () => {
+        await result.current.fetchNextPage()
+      })
+
+      await expect(
+        result.current.waitForTransaction(HASH.toLowerCase()),
+      ).resolves.toBe(true)
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+    })
+
+    it('polls with fresh until the hash appears', async () => {
+      firstPagesFrom([], [], [], [{ txHash: HASH }])
+      const { result } = await loadThenFakeTimers()
+
+      const waiting = result.current.waitForTransaction(HASH)
+      await act(() => vi.advanceTimersByTimeAsync(2_000 + 3_000 + 5_000))
+
+      await expect(waiting).resolves.toBe(true)
+      expect(firstPageRequests().slice(1)).toEqual([
+        expect.objectContaining({ fresh: true }),
+        expect.objectContaining({ fresh: true }),
+        expect.objectContaining({ fresh: true }),
+      ])
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(4)
+    })
+
+    it('resolves false after six polls', async () => {
+      firstPagesFrom([])
+      const { result } = await loadThenFakeTimers()
+
+      const waiting = result.current.waitForTransaction(HASH)
+      await act(() => vi.advanceTimersByTimeAsync(50_999))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(6)
+      await act(() => vi.advanceTimersByTimeAsync(1))
+
+      await expect(waiting).resolves.toBe(false)
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(7)
+      await act(() => vi.advanceTimersByTimeAsync(60_000))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(7)
+    })
+
+    it('stops on a spent monthly budget', async () => {
+      firstPagesFrom([])
+      const { result } = await loadThenFakeTimers()
+      h.getTransactionHistory.mockRejectedValue(
+        new DataApiError({
+          status: 429,
+          body: { error: 'rate_limited', reason: 'quota_exhausted' },
+          url: `${baseUrl}/v1/me/transaction-history`,
+          retryAfterMs: 3_600_000,
+        }),
+      )
+
+      const waiting = result.current.waitForTransaction(HASH)
+      await act(() => vi.advanceTimersByTimeAsync(2_000))
+
+      await expect(waiting).resolves.toBe(false)
+      await act(() => vi.advanceTimersByTimeAsync(60_000))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+    })
+
+    it('resolves false on unmount and stops polling', async () => {
+      firstPagesFrom([])
+      const { result, unmount } = await loadThenFakeTimers()
+
+      const waiting = result.current.waitForTransaction(HASH)
+      await act(() => vi.advanceTimersByTimeAsync(2_000))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+      unmount()
+
+      await expect(waiting).resolves.toBe(false)
+      await act(() => vi.advanceTimersByTimeAsync(60_000))
+      expect(h.getTransactionHistory).toHaveBeenCalledTimes(2)
+    })
+
+    it('resolves overlapping waits', async () => {
+      firstPagesFrom([], [], [{ txHash: HASH }, { txHash: OTHER }])
+      const { result } = await loadThenFakeTimers()
+
+      const first = result.current.waitForTransaction(HASH)
+      await act(() => vi.advanceTimersByTimeAsync(1_000))
+      const second = result.current.waitForTransaction(OTHER)
+      await act(() => vi.advanceTimersByTimeAsync(5_000))
+
+      await expect(Promise.all([first, second])).resolves.toEqual([true, true])
+    })
   })
 })
