@@ -1,11 +1,13 @@
 import { Button, cn, Icon, Text, Wrapper } from '@zerodev/react-ui'
 import { DataApiError, isQuotaExhaustedError } from '@zerodev/wallet-data'
 import { Fragment, useEffect, useState } from 'react'
+import { equalsIgnoreCase, shortenHex } from '../../shared/utils/common'
 import {
+  TX_HISTORY_STATUS_COLOR,
   TxHistoryItem,
   TxHistoryItemSkeleton,
 } from '../components/TxHistoryItem'
-import type { HistoryFeed, TxHistoryEntry } from '../types'
+import type { HistoryFeed, PendingTransaction, TxHistoryEntry } from '../types'
 import { formatAge } from '../utils/format'
 import { groupByDay } from '../utils/groupByDay'
 
@@ -16,6 +18,8 @@ export interface HistoryProps {
 }
 
 export function History({ feed, onSelectEntry }: HistoryProps) {
+  const pending = feed.status === 'ready' ? feed.pendingTransaction : undefined
+  const unlisted = pending?.state === 'found' ? undefined : pending
   return (
     <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:pt-4 zd:pb-4">
       {feed.status === 'ready' && <RefreshBar feed={feed} />}
@@ -27,7 +31,10 @@ export function History({ feed, onSelectEntry }: HistoryProps) {
         {feed.status === 'error' && (
           <ErrorState error={feed.error} onRetry={feed.retry} />
         )}
-        {feed.status === 'ready' && feed.entries.length === 0 && <EmptyState />}
+        {unlisted && <PendingRow {...unlisted} />}
+        {feed.status === 'ready' && feed.entries.length === 0 && !unlisted && (
+          <EmptyState />
+        )}
         {feed.status === 'ready' && feed.entries.length > 0 && (
           <>
             {groupByDay(feed.entries).map((group) => (
@@ -39,6 +46,10 @@ export function History({ feed, onSelectEntry }: HistoryProps) {
                   <Row
                     key={entry.id}
                     entry={entry}
+                    highlighted={
+                      pending?.state === 'found' &&
+                      equalsIgnoreCase(entry.txHash, pending.txHash)
+                    }
                     {...(onSelectEntry && { onSelect: onSelectEntry })}
                   />
                 ))}
@@ -57,14 +68,27 @@ export function History({ feed, onSelectEntry }: HistoryProps) {
   )
 }
 
+const FOUND_HIGHLIGHT_MS = 3_000
+
 function Row({
   entry,
+  highlighted,
   onSelect,
 }: {
   entry: TxHistoryEntry
+  highlighted: boolean
   onSelect?: (entry: TxHistoryEntry) => void
 }) {
-  const item = <TxHistoryItem {...entry} />
+  const flash = useFlash(highlighted, FOUND_HIGHLIGHT_MS)
+  const item = (
+    <TxHistoryItem
+      {...entry}
+      className={cn(
+        'zd:rounded-2xl zd:transition-colors zd:duration-700',
+        flash && 'zd:bg-brand-primary/10',
+      )}
+    />
+  )
   if (!onSelect || !entry.transaction) return item
   return (
     <button
@@ -74,6 +98,57 @@ function Row({
     >
       {item}
     </button>
+  )
+}
+
+function useFlash(on: boolean, ms: number): boolean {
+  const [flash, setFlash] = useState(false)
+  useEffect(() => {
+    if (!on) return
+    setFlash(true)
+    const timer = setTimeout(() => setFlash(false), ms)
+    return () => clearTimeout(timer)
+  }, [on, ms])
+  return flash
+}
+
+/** Stands in for a sent transaction the list doesn't show yet. Not
+ * clickable: there is no transaction to open. */
+function PendingRow({ txHash, state }: PendingTransaction) {
+  const polling = state === 'polling'
+  return (
+    <output data-testid="tx-history-pending" className="zd:block">
+      <div className="zd:flex zd:w-full zd:items-center zd:gap-2 zd:p-2">
+        <div className="zd:flex zd:size-11 zd:shrink-0 zd:items-center zd:justify-center zd:rounded-xl zd:bg-bright-primary">
+          <Icon name="hourglass" aria-hidden className="zd:size-5" />
+        </div>
+        <div className="zd:flex zd:min-w-0 zd:flex-1 zd:flex-col zd:gap-2">
+          <Text className="zd:truncate zd:text-body1">
+            {polling ? 'Waiting for transaction' : 'Not in history yet'}
+          </Text>
+          <div className="zd:flex zd:w-full zd:items-center zd:justify-between zd:gap-2">
+            <Text className="zd:truncate zd:font-mono zd:text-body3">
+              {shortenHex(txHash)}
+            </Text>
+            <Text
+              className={cn(
+                'zd:shrink-0 zd:text-body3',
+                polling
+                  ? TX_HISTORY_STATUS_COLOR.Pending
+                  : 'zd:text-neutral-tertiary',
+              )}
+            >
+              {polling ? 'Pending' : 'Check later'}
+            </Text>
+          </div>
+        </div>
+      </div>
+      {!polling && (
+        <Text className="zd:pb-2 zd:pl-15 zd:text-body3 zd:text-neutral-tertiary">
+          It can take a few minutes. Tap Refresh to check again.
+        </Text>
+      )}
+    </output>
   )
 }
 
