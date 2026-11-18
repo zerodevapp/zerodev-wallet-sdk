@@ -345,6 +345,36 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(store.getState().solana.status).toBe('disconnected')
   })
 
+  it('merges the two sides of one wallet that spells its name differently, by icon', () => {
+    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}` as const
+    connectors = [{ ...announced('app.mock', 'Mock Wallet'), icon: logo }]
+    solanaWallets = [{ ...solanaWallet('Mock').wallet, icon: logo }]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    // One row, carrying both badges, named after the EVM side.
+    expect(screen.getByText('Mock Wallet')).toBeTruthy()
+    expect(screen.queryByText('Mock')).toBeNull()
+    expect(screen.getByText('EVM')).toBeTruthy()
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+  })
+
+  it('merges Trust, which announces as "Trust Wallet" and registers as "Trust"', () => {
+    connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
+    solanaWallets = [solanaWallet('Trust').wallet]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('Trust Wallet')).toBeTruthy()
+    expect(screen.queryByText('Trust')).toBeNull()
+    expect(screen.getByText('EVM')).toBeTruthy()
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+  })
+
   it('keeps the EVM-only behaviour by default', () => {
     connectors = [announced('app.phantom', 'Phantom')]
     solanaWallets = [solanaWallet('Phantom').wallet]

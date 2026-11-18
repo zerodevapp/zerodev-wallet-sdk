@@ -1,7 +1,7 @@
 import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useLayoutEffect, useState } from 'react'
 import { useConnections, useConnectors } from 'wagmi'
-import { equalsIgnoreCase } from '../../../shared/utils/common'
+import { isSameWallet } from '../../../solana/evmAdoptionGuard'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import { useAuth } from '../../hooks/useAuth'
@@ -165,9 +165,7 @@ function SignUpWalletMultichain({
     useSolanaConnect()
   const [choosing, setChoosing] = useState(false)
 
-  const solana = solanaWallets.find((w) =>
-    equalsIgnoreCase(w.name, wallet.name),
-  )
+  const solana = solanaWallets.find((w) => isSameWallet(w, wallet))
   if (!solana) {
     return withEvm ? (
       <SignUpWalletEvm wallet={wallet} />

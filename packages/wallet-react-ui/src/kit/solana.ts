@@ -93,7 +93,7 @@ async function connectSolanaWallet(
     await connect()
     return
   }
-  await withoutEvmAdoption(config, wallet.name, connect)
+  await withoutEvmAdoption(config, wallet, connect)
 }
 
 export function connectSolana(
@@ -115,10 +115,10 @@ export async function disconnectSolana({
   // The dormant EVM side exists only for an installed wallet; a
   // WalletConnect session named like an extension must not revoke it.
   const connection = store.getState().solana.connection
-  const dormantWalletName =
-    connection?.source === 'standard' ? connection.wallet.name : undefined
+  const dormantWallet =
+    connection?.source === 'standard' ? connection.wallet : undefined
   await store.getState().solana.disconnect()
-  if (dormantWalletName) await revokeDormantEvmSide(config, dormantWalletName)
+  if (dormantWallet) await revokeDormantEvmSide(config, dormantWallet)
 }
 
 /**

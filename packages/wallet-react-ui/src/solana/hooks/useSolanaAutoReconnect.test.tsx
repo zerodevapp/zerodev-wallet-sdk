@@ -67,7 +67,7 @@ describe('useSolanaAutoReconnect', () => {
     expect(guard.mount).toHaveBeenCalledTimes(1)
     expect(guard.mount).toHaveBeenCalledWith(
       wagmi.config,
-      'MetaMask',
+      expect.objectContaining({ name: 'MetaMask' }),
       atLoad.value,
     )
   })
