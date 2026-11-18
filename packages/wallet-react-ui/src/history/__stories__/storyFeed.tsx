@@ -9,6 +9,8 @@ export interface ScenarioFeedOptions {
   failWith?: Error
   /** Fail the first attempt at loading the second page; the next one succeeds. */
   failOnNext?: Error
+  /** Fail every refresh; the loaded entries stay. */
+  failOnRefresh?: Error
   delayMs?: number
 }
 
@@ -21,6 +23,9 @@ type FeedState =
       loadingMore: boolean
       loadMoreError?: Error
       armedFailure?: Error
+      refreshing: boolean
+      refreshError?: Error
+      updatedAt: number
     }
 
 type FeedAction =
@@ -28,12 +33,20 @@ type FeedAction =
   | { type: 'loaded'; armedFailure: Error | undefined }
   | { type: 'loadMore'; pageCount: number }
   | { type: 'loadMoreSettled' }
+  | { type: 'refresh' }
+  | { type: 'refreshSettled'; error: Error | undefined }
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000)
+}
 
 function ready(pageIndex: number, armedFailure: Error | undefined): FeedState {
   return {
     status: 'ready',
     pageIndex,
     loadingMore: false,
+    refreshing: false,
+    updatedAt: nowSeconds(),
     ...(armedFailure && { armedFailure }),
   }
 }
@@ -44,26 +57,30 @@ function reducer(state: FeedState, action: FeedAction): FeedState {
       return state.status === 'error' ? { status: 'loading' } : state
     case 'loaded':
       return state.status === 'loading' ? ready(0, action.armedFailure) : state
-    case 'loadMore':
+    case 'loadMore': {
       if (state.status !== 'ready' || state.loadingMore) return state
       if (state.pageIndex >= action.pageCount - 1) return state
-      return {
-        status: 'ready',
-        pageIndex: state.pageIndex,
-        loadingMore: true,
-        ...(state.armedFailure && { armedFailure: state.armedFailure }),
-      }
+      const { loadMoreError: _, ...rest } = state
+      return { ...rest, loadingMore: true }
+    }
     case 'loadMoreSettled': {
       if (state.status !== 'ready' || !state.loadingMore) return state
       if (state.armedFailure && state.pageIndex === 0) {
-        return {
-          status: 'ready',
-          pageIndex: 0,
-          loadingMore: false,
-          loadMoreError: state.armedFailure,
-        }
+        const { armedFailure, ...rest } = state
+        return { ...rest, loadingMore: false, loadMoreError: armedFailure }
       }
-      return ready(state.pageIndex + 1, state.armedFailure)
+      const { loadMoreError: _, ...rest } = state
+      return { ...rest, pageIndex: state.pageIndex + 1, loadingMore: false }
+    }
+    case 'refresh':
+      if (state.status !== 'ready' || state.refreshing) return state
+      return { ...state, refreshing: true }
+    case 'refreshSettled': {
+      if (state.status !== 'ready' || !state.refreshing) return state
+      const { refreshError: _, ...rest } = state
+      return action.error
+        ? { ...rest, refreshing: false, refreshError: action.error }
+        : { ...rest, refreshing: false, updatedAt: nowSeconds() }
     }
   }
 }
@@ -73,6 +90,7 @@ export function useScenarioFeed({
   pages,
   failWith,
   failOnNext,
+  failOnRefresh,
   delayMs = 800,
 }: ScenarioFeedOptions): HistoryFeed {
   const [state, dispatch] = useReducer(
@@ -87,7 +105,9 @@ export function useScenarioFeed({
       ? 'loading'
       : state.status === 'ready' && state.loadingMore
         ? 'loadingMore'
-        : undefined
+        : state.status === 'ready' && state.refreshing
+          ? 'refreshing'
+          : undefined
   useEffect(() => {
     if (!inFlight) return
     const timer = setTimeout(
@@ -95,12 +115,14 @@ export function useScenarioFeed({
         dispatch(
           inFlight === 'loading'
             ? { type: 'loaded', armedFailure: failOnNext }
-            : { type: 'loadMoreSettled' },
+            : inFlight === 'loadingMore'
+              ? { type: 'loadMoreSettled' }
+              : { type: 'refreshSettled', error: failOnRefresh },
         ),
       delayMs,
     )
     return () => clearTimeout(timer)
-  }, [inFlight, delayMs, failOnNext])
+  }, [inFlight, delayMs, failOnNext, failOnRefresh])
 
   const pageIndex = state.status === 'ready' ? state.pageIndex : 0
   const entries = useMemo(
@@ -127,5 +149,9 @@ export function useScenarioFeed({
     loadingMore: state.loadingMore,
     loadMore: () => dispatch({ type: 'loadMore', pageCount: pages.length }),
     ...(state.loadMoreError && { loadMoreError: state.loadMoreError }),
+    refreshing: state.refreshing,
+    refresh: () => dispatch({ type: 'refresh' }),
+    ...(state.refreshError && { refreshError: state.refreshError }),
+    updatedAt: state.updatedAt,
   }
 }

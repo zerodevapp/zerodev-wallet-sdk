@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { DataApiError } from '@zerodev/wallet-data'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { deployTx, sendTx, swapTx, unparsedWithTimestamp } from '../fixtures'
@@ -6,7 +6,10 @@ import type { HistoryFeed, TxHistoryEntry } from '../types'
 import { toTxHistoryEntry } from '../utils/toTxHistoryEntry'
 import { History } from './History'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 const entries = [sendTx, swapTx, deployTx, unparsedWithTimestamp].flatMap(
   (item) => toTxHistoryEntry(item) ?? [],
@@ -19,6 +22,8 @@ function ready(overrides: Partial<Extract<HistoryFeed, { status: 'ready' }>>) {
     hasMore: false,
     loadingMore: false,
     loadMore: () => {},
+    refreshing: false,
+    refresh: () => {},
     ...overrides,
   } as const satisfies HistoryFeed
 }
@@ -144,12 +149,112 @@ describe('History', () => {
 
   it('keeps rows without a transaction out of the button set', () => {
     render(<History feed={ready({})} onSelectEntry={() => {}} />)
-    expect(screen.getAllByRole('button')).toHaveLength(3)
+    const rows = screen
+      .getAllByRole('button')
+      .filter((button) => button.textContent !== 'Refresh')
+    expect(rows).toHaveLength(3)
     expect(screen.getByText('Unknown transaction').closest('button')).toBeNull()
   })
 
   it('renders no row buttons without onSelectEntry', () => {
     render(<History feed={ready({})} />)
-    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.map((button) => button.textContent)).toEqual(['Refresh'])
+  })
+
+  describe('refresh', () => {
+    it('shows no refresh line before the first page loads', () => {
+      render(<History feed={{ status: 'loading' }} />)
+      expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull()
+    })
+
+    it('offers Refresh on an empty list', () => {
+      render(<History feed={ready({ entries: [] })} />)
+      expect(screen.getByText('No transactions yet')).toBeDefined()
+      expect(screen.getByRole('button', { name: 'Refresh' })).toBeDefined()
+    })
+
+    it('labels the age of the first page and ticks every 30 s', () => {
+      vi.useFakeTimers({ now: new Date('2026-11-18T12:00:00Z') })
+      const updatedAt = Date.parse('2026-11-18T11:59:10Z') / 1000
+      render(<History feed={ready({ updatedAt })} />)
+      expect(screen.getByText('Updated just now')).toBeDefined()
+      act(() => vi.advanceTimersByTime(30_000))
+      expect(screen.getByText('Updated 1 min ago')).toBeDefined()
+    })
+
+    it('shows no age without updatedAt', () => {
+      render(<History feed={ready({})} />)
+      expect(screen.queryByText(/^Updated/)).toBeNull()
+      expect(screen.getByRole('button', { name: 'Refresh' })).toBeDefined()
+    })
+
+    it('locks Refresh for 10 s after a click', () => {
+      vi.useFakeTimers()
+      const refresh = vi.fn()
+      render(<History feed={ready({ refresh })} />)
+      const button = screen.getByRole('button', {
+        name: 'Refresh',
+      }) as HTMLButtonElement
+      fireEvent.click(button)
+      fireEvent.click(button)
+      expect(refresh).toHaveBeenCalledOnce()
+      expect(button.disabled).toBe(true)
+      act(() => vi.advanceTimersByTime(9_999))
+      expect(button.disabled).toBe(true)
+      act(() => vi.advanceTimersByTime(1))
+      expect(button.disabled).toBe(false)
+    })
+
+    it('shows Updating… and disables Refresh while refreshing', () => {
+      render(<History feed={ready({ refreshing: true, updatedAt: 0 })} />)
+      expect(screen.getByText('Updating…')).toBeDefined()
+      const button = screen.getByRole('button', { name: 'Refresh' })
+      expect((button as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('keeps the rows and offers Retry when a refresh fails', () => {
+      const refresh = vi.fn()
+      const refreshError = new DataApiError({
+        status: 429,
+        body: null,
+        url: 'x',
+      })
+      render(<History feed={ready({ refresh, refreshError })} />)
+      expect(screen.getByText('Sent USDC')).toBeDefined()
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Too many requests. Try again in a moment.',
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+      expect(refresh).toHaveBeenCalledOnce()
+    })
+
+    it('hides the button after a 401, since only a new sign-in helps', () => {
+      const refreshError = new DataApiError({
+        status: 401,
+        body: null,
+        url: 'x',
+      })
+      render(<History feed={ready({ refreshError })} />)
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Your session expired. Sign in again.',
+      )
+      expect(screen.queryByRole('button', { name: /Refresh|Retry/ })).toBeNull()
+    })
+
+    it('hides the button once the monthly budget is spent', () => {
+      const refreshError = new DataApiError({
+        status: 429,
+        body: { error: 'throttled', reason: 'quota_exhausted' },
+        url: 'x',
+        retryAfterMs: 3_600_000,
+      })
+      render(<History feed={ready({ refreshError })} />)
+      expect(screen.getByRole('alert').textContent).toContain(
+        'unavailable until next month',
+      )
+      expect(screen.queryByRole('button', { name: /Refresh|Retry/ })).toBeNull()
+      expect(screen.getByText('Sent USDC')).toBeDefined()
+    })
   })
 })

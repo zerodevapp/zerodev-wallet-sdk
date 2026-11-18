@@ -20,3 +20,12 @@ export function formatUsd(amount: number): string {
 export function formatDateTime(timestampMs: number): string {
   return dateTime.format(new Date(timestampMs))
 }
+
+/** A negative age, from clock skew or a render clock that lags a refresh,
+ * reads as "just now". */
+export function formatAge(ageMs: number): string {
+  const minutes = Math.floor(Math.max(0, ageMs) / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  return `${Math.floor(minutes / 60)} h ago`
+}

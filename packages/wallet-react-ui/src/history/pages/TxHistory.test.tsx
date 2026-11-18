@@ -18,18 +18,24 @@ interface QueryStub {
   hasNextPage?: boolean
   isFetchingNextPage?: boolean
   isFetchNextPageError?: boolean
+  isRefetching?: boolean
+  isRefetchError?: boolean
 }
 
 const refetch = vi.fn()
 const fetchNextPage = vi.fn()
+const refresh = vi.fn()
 
 function mockQuery(query: QueryStub) {
   vi.mocked(useTransactionHistory).mockReturnValue({
     refetch,
     fetchNextPage,
+    refresh,
     hasNextPage: false,
     isFetchingNextPage: false,
     isFetchNextPageError: false,
+    isRefetching: false,
+    isRefetchError: false,
     ...query,
   } as unknown as HistoryQuery)
 }
@@ -123,6 +129,56 @@ describe('TxHistory', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
     expect(fetchNextPage).toHaveBeenCalledOnce()
     expect(refetch).not.toHaveBeenCalled()
+  })
+
+  it('refreshes through refresh, not refetch', () => {
+    mockQuery(successQuery())
+    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(refresh).toHaveBeenCalledOnce()
+    expect(refetch).not.toHaveBeenCalled()
+  })
+
+  it('labels the list with the age of page 1 from cache.fetchedAt', () => {
+    vi.useFakeTimers({ now: new Date('2026-11-18T12:00:00Z') })
+    const fetchedAt = Date.parse('2026-11-18T11:58:00Z') / 1000
+    mockQuery(
+      successQuery({
+        data: {
+          pages: [{ items: [sendTx], cache: { fetchedAt } }],
+          pageParams: [null],
+        },
+      }),
+    )
+    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
+    expect(screen.getByText('Updated 2 min ago')).toBeDefined()
+    vi.useRealTimers()
+  })
+
+  it('shows Updating… and disables Refresh while a refetch runs', () => {
+    mockQuery(successQuery({ isRefetching: true }))
+    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
+    expect(screen.getByText('Updating…')).toBeDefined()
+    const button = screen.getByRole('button', { name: 'Refresh' })
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('keeps the rows and shows the error inline when a refresh fails', () => {
+    mockQuery(
+      successQuery({
+        status: 'error',
+        error: new Error('Refresh failed'),
+        isRefetchError: true,
+      }),
+    )
+    render(<TxHistory dataApi={dataApi} onClose={() => {}} />)
+    expect(screen.getByText('Sent USDC')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toBe(
+      "Couldn't load transactions. Try again.",
+    )
+    expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
   it('disables Load more while the next page is fetching', () => {

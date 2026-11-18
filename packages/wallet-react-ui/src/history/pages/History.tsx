@@ -1,11 +1,12 @@
-import { Button, Text, Wrapper } from '@zerodev/react-ui'
+import { Button, cn, Icon, Text, Wrapper } from '@zerodev/react-ui'
 import { DataApiError, isQuotaExhaustedError } from '@zerodev/wallet-data'
-import { Fragment } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import {
   TxHistoryItem,
   TxHistoryItemSkeleton,
 } from '../components/TxHistoryItem'
 import type { HistoryFeed, TxHistoryEntry } from '../types'
+import { formatAge } from '../utils/format'
 import { groupByDay } from '../utils/groupByDay'
 
 export interface HistoryProps {
@@ -17,6 +18,7 @@ export interface HistoryProps {
 export function History({ feed, onSelectEntry }: HistoryProps) {
   return (
     <div className="zd:flex zd:h-full zd:w-full zd:flex-col zd:pt-4 zd:pb-4">
+      {feed.status === 'ready' && <RefreshBar feed={feed} />}
       <Wrapper
         variant="ghost"
         className="zd:flex zd:w-full zd:flex-1 zd:min-h-0 zd:flex-col zd:gap-1 zd:overflow-y-auto zd:rounded-2xl zd:p-2"
@@ -162,4 +164,68 @@ function LoadMore({
       />
     </div>
   )
+}
+
+/** Each refresh spends one of the wallet's monthly Data API lookups, so a
+ * click locks the button for a while. */
+const REFRESH_COOLDOWN_MS = 10_000
+const AGE_TICK_MS = 30_000
+
+function RefreshBar({
+  feed,
+}: {
+  feed: Extract<HistoryFeed, { status: 'ready' }>
+}) {
+  const now = useNow(AGE_TICK_MS)
+  const [coolingDown, setCoolingDown] = useState(false)
+  useEffect(() => {
+    if (!coolingDown) return
+    const timer = setTimeout(() => setCoolingDown(false), REFRESH_COOLDOWN_MS)
+    return () => clearTimeout(timer)
+  }, [coolingDown])
+
+  const { refreshError, refreshing, updatedAt } = feed
+  return (
+    <div className="zd:flex zd:h-7 zd:items-center zd:justify-between zd:gap-2 zd:pb-1 zd:pl-2">
+      {refreshError && !refreshing ? (
+        <Text role="alert" className="zd:text-body3 zd:text-error-primary">
+          {errorMessage(refreshError)}
+        </Text>
+      ) : (
+        <Text className="zd:text-body3 zd:text-neutral-tertiary">
+          {refreshing
+            ? 'Updating…'
+            : updatedAt !== undefined &&
+              `Updated ${formatAge(now - updatedAt * 1000)}`}
+        </Text>
+      )}
+      {!(refreshError && !canRetry(refreshError)) && (
+        <button
+          type="button"
+          disabled={refreshing || coolingDown}
+          onClick={() => {
+            setCoolingDown(true)
+            feed.refresh()
+          }}
+          className="zd:inline-flex zd:shrink-0 zd:cursor-pointer zd:items-center zd:gap-1 zd:rounded-xl zd:px-2 zd:py-1 zd:font-sans zd:text-body3 zd:text-neutral-primary zd:hover:bg-neutral-secondary zd:disabled:cursor-default zd:disabled:text-neutral-tertiary zd:disabled:hover:bg-transparent"
+        >
+          <Icon
+            name="refresh"
+            aria-hidden
+            className={cn('zd:h-3.5 zd:w-3.5', refreshing && 'zd:animate-spin')}
+          />
+          {refreshError ? 'Retry' : 'Refresh'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(timer)
+  }, [intervalMs])
+  return now
 }

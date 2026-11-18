@@ -67,4 +67,29 @@ describe('useScenarioFeed', () => {
     act(() => vi.advanceTimersByTime(800))
     expect(ready(result.current).entries).toHaveLength(2)
   })
+
+  it('refreshes in place and stamps a new updatedAt', () => {
+    vi.setSystemTime(new Date('2026-11-18T12:00:00Z'))
+    const { result } = renderHook(() => useScenarioFeed({ pages }))
+    const loadedAt = Date.parse('2026-11-18T12:00:00Z') / 1000
+    expect(ready(result.current).updatedAt).toBe(loadedAt)
+
+    vi.setSystemTime(new Date('2026-11-18T12:05:00Z'))
+    act(() => ready(result.current).refresh())
+    expect(ready(result.current).refreshing).toBe(true)
+    act(() => vi.advanceTimersByTime(800))
+    expect(ready(result.current).refreshing).toBe(false)
+    expect(ready(result.current).updatedAt).toBe(loadedAt + 300)
+  })
+
+  it('keeps the entries when a refresh fails', () => {
+    const error = new Error('refresh failed')
+    const { result } = renderHook(() =>
+      useScenarioFeed({ pages, failOnRefresh: error }),
+    )
+    act(() => ready(result.current).refresh())
+    act(() => vi.advanceTimersByTime(800))
+    expect(ready(result.current).refreshError).toBe(error)
+    expect(ready(result.current).entries).toHaveLength(1)
+  })
 })

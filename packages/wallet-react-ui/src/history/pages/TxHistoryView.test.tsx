@@ -15,6 +15,8 @@ function ready(items: TransactionHistoryTransaction[]): HistoryFeed {
     hasMore: false,
     loadingMore: false,
     loadMore: () => {},
+    refreshing: false,
+    refresh: () => {},
   }
 }
 

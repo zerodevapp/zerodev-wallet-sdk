@@ -35,4 +35,11 @@ export type HistoryFeed =
       loadMore: () => void
       /** Set when fetching the next page failed; the loaded entries stay. */
       loadMoreError?: Error
+      /** Unix seconds at which the server fetched the first page. Absent
+       * when the response carries no `cache`. */
+      updatedAt?: number
+      refreshing: boolean
+      refresh: () => void
+      /** Set when the last refresh failed; the loaded entries stay. */
+      refreshError?: Error
     }

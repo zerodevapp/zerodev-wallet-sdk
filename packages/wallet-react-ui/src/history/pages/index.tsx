@@ -57,7 +57,13 @@ function toFeed(
   entries: TxHistoryEntry[],
 ): HistoryFeed {
   if (history.status === 'pending') return { status: 'loading' }
-  if (history.status === 'error' && !history.isFetchNextPageError) {
+  // TanStack reports a failed fetchNextPage or refetch as status 'error' but
+  // keeps the loaded pages, so the list stays and the error shows inline.
+  if (
+    history.status === 'error' &&
+    !history.isFetchNextPageError &&
+    !history.isRefetchError
+  ) {
     return {
       status: 'error',
       error: history.error,
@@ -66,16 +72,21 @@ function toFeed(
       },
     }
   }
-  // TanStack reports a failed fetchNextPage as status 'error' but keeps the
-  // loaded pages, so the list stays and the error shows inline.
+  const updatedAt = history.data.pages[0]?.cache?.fetchedAt
   return {
     status: 'ready',
     entries,
-    hasMore: history.status === 'error' || history.hasNextPage,
+    hasMore: history.isFetchNextPageError || history.hasNextPage,
     loadingMore: history.isFetchingNextPage,
     loadMore: () => {
       history.fetchNextPage()
     },
-    ...(history.status === 'error' && { loadMoreError: history.error }),
+    ...(history.isFetchNextPageError && { loadMoreError: history.error }),
+    refreshing: history.isRefetching,
+    refresh: () => {
+      history.refresh()
+    },
+    ...(history.isRefetchError && { refreshError: history.error }),
+    ...(updatedAt !== undefined && { updatedAt }),
   }
 }

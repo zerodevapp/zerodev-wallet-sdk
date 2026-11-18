@@ -10,6 +10,15 @@ that `TxHistory` renders over its fetch, `toTxHistoryEntry`, and the
 carry `loadMoreError`, so the list stays rendered when loading the next page
 fails.
 
+A line above the list shows how old the first page is ("Updated 2 min ago",
+from the response's `cache.fetchedAt`) and offers Refresh, which fetches the
+first page past the Data API cache. Each refresh spends one lookup from the
+wallet's monthly budget, so the button locks for 10 seconds after a click and
+is hidden once the budget is spent or the session has expired. A failed refresh or background refetch
+keeps the list and shows the error in that line instead of replacing the list.
+A ready `HistoryFeed` requires `refreshing` and `refresh`, and can carry
+`updatedAt` and `refreshError`.
+
 **Breaking:** `TxHistory` no longer accepts `entries` or `onSelectEntry`. It
 requires a `dataApi` prop (`{ baseUrl, environment?, chainIds? }`) and owns the
 fetch and the details step. The `TxHistoryStep` type is removed.

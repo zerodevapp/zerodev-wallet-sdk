@@ -20,6 +20,8 @@ function ready(items: readonly TransactionHistoryItem[]): HistoryFeed {
     hasMore: false,
     loadingMore: false,
     loadMore: () => {},
+    refreshing: false,
+    refresh: () => {},
   }
 }
 
@@ -111,7 +113,9 @@ export const LongHistory: Story = {
     await canvas.findByRole('button', { name: 'Load more' }, { timeout: 3000 })
     const rows = canvas
       .getAllByRole('button')
-      .filter((button) => button.textContent !== 'Load more')
+      .filter(
+        (button) => !['Load more', 'Refresh'].includes(button.textContent),
+      )
     await expect(rows).toHaveLength(50)
   },
 }
@@ -124,5 +128,34 @@ export const LoadMoreError: Story = {
     await expect(
       await canvas.findByRole('alert', undefined, { timeout: 3000 }),
     ).toHaveTextContent('Too many requests. Try again in a moment.')
+  },
+}
+
+export const Refresh: Story = {
+  render: () => <ScenarioHistory pages={[SCENARIOS.allOperations]} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: 'Refresh' }))
+    await expect(canvas.getByText('Updating…')).toBeInTheDocument()
+    await expect(
+      await canvas.findByText('Updated just now', undefined, { timeout: 3000 }),
+    ).toBeInTheDocument()
+  },
+}
+
+export const RefreshError: Story = {
+  render: () => (
+    <ScenarioHistory
+      pages={[SCENARIOS.allOperations]}
+      failOnRefresh={apiError(502)}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: 'Refresh' }))
+    await expect(
+      await canvas.findByRole('alert', undefined, { timeout: 3000 }),
+    ).toHaveTextContent("Couldn't load transactions. Try again.")
+    await expect(canvas.getByText('Sent USDC')).toBeInTheDocument()
   },
 }

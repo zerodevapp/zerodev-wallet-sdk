@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateTime, formatUsd } from './format'
+import { formatAge, formatDateTime, formatUsd } from './format'
 
 describe('formatUsd', () => {
   it('formats dollars with cents and grouping', () => {
@@ -18,5 +18,18 @@ describe('formatDateTime', () => {
   it('formats a local date and time', () => {
     const timestamp = new Date(2026, 8, 21, 15, 4).getTime()
     expect(formatDateTime(timestamp)).toBe('Sep 21, 2026, 3:04 PM')
+  })
+})
+
+describe('formatAge', () => {
+  it.each([
+    [-5_000, 'just now'],
+    [59_999, 'just now'],
+    [60_000, '1 min ago'],
+    [59 * 60_000, '59 min ago'],
+    [60 * 60_000, '1 h ago'],
+    [26 * 60 * 60_000, '26 h ago'],
+  ])('formats %i ms as %s', (ageMs, expected) => {
+    expect(formatAge(ageMs)).toBe(expected)
   })
 })
