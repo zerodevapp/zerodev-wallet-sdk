@@ -38,7 +38,7 @@ import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
 import { WalletPill } from "../components/WalletPill";
-import { SOLANA_ENABLED } from "../lib/flags";
+import { DEV_TOOLS_ENABLED, SOLANA_ENABLED } from "../lib/flags";
 import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
@@ -164,10 +164,11 @@ export default function DashboardPage() {
   // renders `ConnectWallet` with that side's units; the connect promise
   // follows the flow, so the overlay closes with it either way.
   const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | "full" | null>(null);
-  // Experiment: open the full wallet UI from the dashboard through the kit's
-  // Solana connect, the same call the landing page now makes on first render.
-  // The overlay below renders every sign-in unit for it, so a login on
-  // either namespace can be picked while the Solana request is pending.
+  // Dev tool: reopen the full sign-in sheet over the live session, to check
+  // what the kit offers once signed in. Through the kit's Solana connect,
+  // because wagmi's connect with the kit connector resolves silently while a
+  // session exists and never opens the sheet. The overlay below renders every
+  // unit for it, so either namespace can be picked while the request waits.
   const openWalletUi = async () => {
     setConnecting("open-wallet-ui");
     setConnectError(null);
@@ -436,18 +437,6 @@ export default function DashboardPage() {
             </button>
           </div>
         ))}
-      <div className="mt-2 flex justify-center">
-        <button
-          type="button"
-          onClick={openWalletUi}
-          disabled={connecting !== null}
-          data-testid="open-wallet-ui"
-          className="cursor-pointer rounded-xl border border-[var(--border-warm)] bg-white px-4 py-2 text-xs font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-default disabled:opacity-60"
-          title="Render the wallet UI through the kit's Solana connect"
-        >
-          {connecting === "open-wallet-ui" ? "Wallet UI open…" : "Open wallet UI (Solana connect)"}
-        </button>
-      </div>
       {!solanaConnected && (solanaWallets.length > 0 || solanaWalletConnect) && (
         <div
           data-testid="connect-solana"
@@ -515,6 +504,23 @@ export default function DashboardPage() {
             <span className="basis-full text-center text-xs text-red-600">{connectError.message}</span>
           )}
         </div>
+      )}
+      {DEV_TOOLS_ENABLED && (
+        // Dev tool, kept as quiet as the "Add a wallet" lines above it so it
+        // never competes with the real actions.
+        <p className="mt-2 text-center text-xs text-[var(--muted)]">
+          Dev ·{" "}
+          <button
+            type="button"
+            onClick={openWalletUi}
+            disabled={connecting !== null}
+            data-testid="open-wallet-ui"
+            className="cursor-pointer underline underline-offset-2 transition-colors hover:text-[var(--ink)] disabled:cursor-default disabled:opacity-60"
+            title="Reopen the sign-in sheet over the live session"
+          >
+            {connecting === "open-wallet-ui" ? "wallet UI open…" : "reopen wallet UI"}
+          </button>
+        </p>
       )}
     </div>
   );
