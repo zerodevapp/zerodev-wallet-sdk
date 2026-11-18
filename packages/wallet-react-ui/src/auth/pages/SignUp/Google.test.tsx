@@ -39,6 +39,13 @@ vi.mock('@zerodev/wallet-react', () => ({
   }),
 }))
 
+const { connections } = vi.hoisted(() => ({
+  connections: [] as { connector: { id: string } }[],
+}))
+vi.mock('wagmi', () => ({
+  useConnections: () => connections,
+}))
+
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep: vi.fn() }),
 }))
@@ -57,5 +64,31 @@ describe('SignUpGoogle terms gate', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByText('Google'))
     expect(authenticateOAuth).toHaveBeenCalledOnce()
+  })
+})
+
+describe('SignUpGoogle while the embedded wallet is signed in', () => {
+  afterEach(() => {
+    connections.length = 0
+  })
+
+  it('renders nothing, so the sheet cannot start a second login', () => {
+    connections.push({ connector: { id: 'zerodev-wallet' } })
+    render(
+      <SignUp>
+        <SignUp.Google />
+      </SignUp>,
+    )
+    expect(screen.queryByText('Google')).toBeNull()
+  })
+
+  it('renders with an external wallet connected', () => {
+    connections.push({ connector: { id: 'io.metamask' } })
+    render(
+      <SignUp>
+        <SignUp.Google />
+      </SignUp>,
+    )
+    expect(screen.queryByText('Google')).not.toBeNull()
   })
 })

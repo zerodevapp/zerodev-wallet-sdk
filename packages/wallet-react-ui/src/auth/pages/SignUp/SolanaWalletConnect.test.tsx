@@ -44,7 +44,11 @@ vi.mock('../../../shared/components/SignUpFooter', () => ({
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep: vi.fn(), startWalletConnection: vi.fn() }),
 }))
-vi.mock('wagmi', () => ({ useConnectors: () => [], useConfig: () => ({}) }))
+vi.mock('wagmi', () => ({
+  useConnections: () => [],
+  useConnectors: () => [],
+  useConfig: () => ({}),
+}))
 
 const walletConnect = vi.hoisted(() => ({ enabled: false }))
 vi.mock('../../../solana/hooks/useSolanaWalletConnect', () => ({
