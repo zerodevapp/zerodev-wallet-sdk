@@ -572,9 +572,14 @@ export default function DashboardPage() {
                   <SignUp.Google />
                   <SignUp.Email />
                   <SignUp.Divider label="or a wallet" />
-                  <SignUp.InstalledWallets />
+                  {/* The Solana units follow the demo's feature gate like the
+                      rest of the dashboard, so the dev tool cannot open a
+                      Solana connection the dashboard would then hide. */}
+                  <SignUp.InstalledWallets
+                    {...(SOLANA_ENABLED && { namespaces: ["eip155", "solana"] as const })}
+                  />
                   <SignUp.WalletConnect />
-                  <SignUp.SolanaWalletConnect />
+                  {SOLANA_ENABLED && <SignUp.SolanaWalletConnect />}
                 </SignUp>
               ) : connectRequested === "evm" ? (
                 <SignUp>
