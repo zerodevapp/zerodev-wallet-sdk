@@ -158,8 +158,8 @@ describe('Screen', () => {
         '.zd\\:overflow-y-auto',
       )
       if (!scrollBody) throw new Error('scroll container not rendered')
-      // At rest nothing is masked: sign-up's brand row sits inside the nav
-      // band and has to stay whole.
+      // At rest nothing is masked: content that starts at the padding edge
+      // would otherwise be dimmed before the user scrolls.
       expect(scrollBody.style.maskImage).toBeFalsy()
 
       scrollBody.scrollTop = 40
