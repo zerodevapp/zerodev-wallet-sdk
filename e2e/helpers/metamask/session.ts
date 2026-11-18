@@ -249,6 +249,8 @@ async function assertProfileIsOnboarded(
           `the onboarded snapshot does not reopen as a wallet — it landed on ${page.url()}`,
         )
       }
+
+      await expectSolanaAccountReady(page)
     } finally {
       await context.close()
     }

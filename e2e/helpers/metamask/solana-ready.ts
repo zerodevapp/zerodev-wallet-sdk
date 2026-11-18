@@ -20,6 +20,9 @@ const SNAP_TIMEOUT_MS = 60_000
 /** Gap between reopening the picker while waiting for the snap. */
 const RETRY_MS = 2_000
 
+/** How long the picker gets to render its list once clicked. */
+const PICKER_RENDER_MS = 5_000
+
 /**
  * Fails unless the wallet lists Solana among its networks.
  *
@@ -31,22 +34,32 @@ export async function expectSolanaAccountReady(page: Page): Promise<void> {
     'the MetaMask wallet UI never came up, so Solana support could not be checked',
   ).toBeVisible({ timeout: SNAP_TIMEOUT_MS })
 
+  const solanaEntries = page.getByText(/^Solana$/)
+
   // Reopened on every attempt: the picker renders its list on open, so a dialog
   // left standing keeps showing whatever the snap had registered at that moment.
+  //
+  // Counted rather than matched, because MetaMask ships the Solana snap enabled.
+  // The extension carries the word "Solana" whether or not an account exists, so
+  // an unscoped `isVisible` on the first match answers true off the wallet's own
+  // chrome, before the picker has rendered anything. An entry past the ones
+  // already on the page can only have come from the list this click opened.
   const listsSolana = async (): Promise<boolean> => {
+    const before = await solanaEntries.count()
+
     await page
       .getByText(/^All networks$/i)
       .first()
       .click({ timeout: SNAP_TIMEOUT_MS })
 
-    const shown = await page
-      .getByText(/^Solana$/)
-      .first()
-      .isVisible()
+    const listed = await solanaEntries
+      .nth(before)
+      .waitFor({ state: 'visible', timeout: PICKER_RENDER_MS })
+      .then(() => true)
       .catch(() => false)
 
     await page.keyboard.press('Escape')
-    return shown
+    return listed
   }
 
   await expect

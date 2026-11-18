@@ -80,6 +80,7 @@ export const test = base.extend<MetaMaskFixtures, MetaMaskWorkerFixtures>({
     const page = await context.newPage()
     await page.goto(extensionUrl(extensionId))
     await unlockIfLocked(page, TEST_WALLET.password)
+    await expectSolanaAccountReady(page)
     await use(page)
     if (!page.isClosed()) await page.close()
   },
