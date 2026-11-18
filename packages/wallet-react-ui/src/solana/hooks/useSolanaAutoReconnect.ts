@@ -61,7 +61,7 @@ export function useSolanaAutoReconnect(enabled = true): void {
     if (!enabled) return
     const last = readLastSolanaWallet()
     if (last?.source !== 'standard') return
-    return guardDormantEvmSide(config, last.name, restoredEvm)
+    return guardDormantEvmSide(config, last, restoredEvm)
   }, [enabled, config, restoredEvm])
   useEffect(() => {
     if (!enabled) return

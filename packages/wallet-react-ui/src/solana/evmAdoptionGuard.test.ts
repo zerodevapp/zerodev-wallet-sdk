@@ -4,6 +4,7 @@ import {
   allowEvmConnection,
   detachEvmConnection,
   guardDormantEvmSide,
+  isSameWallet,
   muteDormantEvmSide,
   readEvmConnectionsAtLoad,
   revokeDormantEvmSide,
@@ -781,5 +782,58 @@ describe('detachEvmConnection', () => {
     expect(config.state.current).toBeNull()
     expect(config.state.status).toBe('disconnected')
     expect(storage.has('recentConnectorId')).toBe(false)
+  })
+})
+
+describe('isSameWallet', () => {
+  const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
+  it('matches on the name, case-insensitively', () => {
+    expect(isSameWallet({ name: 'MetaMask' }, 'metamask')).toBe(true)
+    expect(isSameWallet({ name: 'MetaMask' }, { name: 'METAMASK' })).toBe(true)
+  })
+  it('matches two spellings of one wallet by their shared icon', () => {
+    expect(
+      isSameWallet(
+        { name: 'Mock Wallet', icon: logo },
+        { name: 'Mock', icon: logo },
+      ),
+    ).toBe(true)
+  })
+  it('does not match on an empty or placeholder icon', () => {
+    const empty = 'data:image/svg+xml;base64,'
+    expect(
+      isSameWallet(
+        { name: 'Phantom', icon: empty },
+        { name: 'Solflare', icon: empty },
+      ),
+    ).toBe(false)
+    expect(
+      isSameWallet({ name: 'Phantom' }, { name: 'Solflare', icon: logo }),
+    ).toBe(false)
+  })
+  it('pairs the two names the guide lists for one wallet', () => {
+    expect(isSameWallet({ name: 'Trust Wallet' }, 'Trust')).toBe(true)
+    expect(isSameWallet({ name: 'trust' }, { name: 'Trust Wallet' })).toBe(true)
+    expect(isSameWallet({ name: 'Trust' }, 'MetaMask')).toBe(false)
+  })
+  it('reads a bare string as the name alone', () => {
+    expect(isSameWallet({ name: 'Mock Wallet', icon: logo }, 'Mock')).toBe(
+      false,
+    )
+  })
+})
+
+describe('withoutEvmAdoption keyed on the icon', () => {
+  it('detaches the same extension adopted under another name', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
+    const evm = Object.assign(fakeConnector('Mock Wallet', 'app.mock'), {
+      icon: logo,
+    })
+    connectors.push(evm)
+    await withoutEvmAdoption(config, { name: 'Mock', icon: logo }, async () => {
+      adopt(evm)
+    })
+    expect(config.state.connections.size).toBe(0)
   })
 })

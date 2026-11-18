@@ -102,7 +102,7 @@ describe('solana store slice', () => {
       JSON.parse(
         window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
       ),
-    ).toEqual({ name: 'Phantom', source: 'standard' })
+    ).toMatchObject({ name: 'Phantom', source: 'standard' })
   })
 
   it('rejects a wallet that authorises no Solana account', async () => {
@@ -197,7 +197,7 @@ describe('solana store slice', () => {
       JSON.parse(
         window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
       ),
-    ).toEqual({ name: 'Phantom', source: 'standard' })
+    ).toMatchObject({ name: 'Phantom', source: 'standard' })
 
     const again = createStore()
     await again.getState().solana.restore([wallet])
@@ -228,7 +228,7 @@ describe('solana store slice', () => {
       JSON.parse(
         window.localStorage.getItem('zerodev:solana:lastWallet') ?? '',
       ),
-    ).toEqual({ name: 'Phantom', source: 'standard' })
+    ).toMatchObject({ name: 'Phantom', source: 'standard' })
   })
 
   it('settles the restore on every exit except a saved wallet that has not announced', async () => {
