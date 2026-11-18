@@ -163,7 +163,29 @@ export default function DashboardPage() {
   // without a wallet (passkey, Google, email, or Solana over WalletConnect)
   // renders `ConnectWallet` with that side's units; the connect promise
   // follows the flow, so the overlay closes with it either way.
-  const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | null>(null);
+  const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | "full" | null>(null);
+  // Experiment: open the full wallet UI from the dashboard through the kit's
+  // Solana connect, the same call the landing page now makes on first render.
+  // The overlay below renders every sign-in unit for it, so a login on
+  // either namespace can be picked while the Solana request is pending.
+  const openWalletUi = async () => {
+    setConnecting("open-wallet-ui");
+    setConnectError(null);
+    setConnectRequested("full");
+    try {
+      await kit.solana.connect();
+    } catch (err) {
+      if (!isCancellationError(err)) {
+        setConnectError({
+          network: "solana",
+          message: (err instanceof Error && err.message) || "Couldn't open the wallet UI.",
+        });
+      }
+    } finally {
+      setConnecting(null);
+      setConnectRequested(null);
+    }
+  };
   const connectWallet = async (
     params: KitConnectRequest,
     key: string,
@@ -414,6 +436,18 @@ export default function DashboardPage() {
             </button>
           </div>
         ))}
+      <div className="mt-2 flex justify-center">
+        <button
+          type="button"
+          onClick={openWalletUi}
+          disabled={connecting !== null}
+          data-testid="open-wallet-ui"
+          className="cursor-pointer rounded-xl border border-[var(--border-warm)] bg-white px-4 py-2 text-xs font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-warm)] disabled:cursor-default disabled:opacity-60"
+          title="Render the wallet UI through the kit's Solana connect"
+        >
+          {connecting === "open-wallet-ui" ? "Wallet UI open…" : "Open wallet UI (Solana connect)"}
+        </button>
+      </div>
       {!solanaConnected && (solanaWallets.length > 0 || solanaWalletConnect) && (
         <div
           data-testid="connect-solana"
@@ -525,7 +559,18 @@ export default function DashboardPage() {
             size="md"
             onClose={() => setConnectRequested(null)}
             renderSignUp={() =>
-              connectRequested === "evm" ? (
+              connectRequested === "full" ? (
+                <SignUp>
+                  <SignUp.Passkey />
+                  <SignUp.Divider />
+                  <SignUp.Google />
+                  <SignUp.Email />
+                  <SignUp.Divider label="or a wallet" />
+                  <SignUp.InstalledWallets />
+                  <SignUp.WalletConnect />
+                  <SignUp.SolanaWalletConnect />
+                </SignUp>
+              ) : connectRequested === "evm" ? (
                 <SignUp>
                   <SignUp.Passkey />
                   <SignUp.Divider />

@@ -31,6 +31,13 @@ vi.mock('../../hooks/useSolanaWalletConnectPairing', () => ({
 
 // Units pull in wagmi/wallet-react hooks — replace them with markers so the
 // tests exercise only the page logic (composition, registry, guard).
+const { connections } = vi.hoisted(() => ({
+  connections: [] as { connector: { id: string } }[],
+}))
+vi.mock('wagmi', () => ({
+  useConnections: () => connections,
+}))
+
 vi.mock('./Passkey', () => ({
   SignUpPasskey: () => <div data-testid="unit-passkey" />,
 }))
@@ -229,5 +236,20 @@ describe('SignUp shared state', () => {
     fireEvent.click(screen.getByText('Try again'))
     expect(screen.queryByText('Error occurred')).toBeNull()
     expect(content.closest('[class*="zd:hidden"]')).toBeNull()
+  })
+})
+
+describe('SignUp.Divider', () => {
+  it('hides itself structurally: first or last in the list, or after another divider', () => {
+    render(
+      <SignUp>
+        <SignUp.Divider label="only divider" />
+      </SignUp>,
+    )
+    const divider = screen.getByText('only divider').parentElement
+    expect(divider?.className).toContain('zd:first:hidden')
+    expect(divider?.className).toContain('zd:last:hidden')
+    expect(divider?.className).toContain('zd:[.zd-signup-divider+&]:hidden')
+    expect(divider?.className).toContain('zd-signup-divider')
   })
 })
