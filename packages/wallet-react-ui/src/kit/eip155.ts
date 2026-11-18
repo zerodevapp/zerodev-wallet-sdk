@@ -13,10 +13,10 @@ import { type Connector, useAccount, useConnectors } from 'wagmi'
 import { useWalletInfo } from '../auth/hooks/useWalletInfo.js'
 import { AuthFlowDismissedError } from '../auth/utils/isCancellationError.js'
 import { isZeroDevWalletConnect } from '../auth/utils/isZeroDevWalletConnect.js'
-import { equalsIgnoreCase } from '../shared/utils/common.js'
 import {
   allowEvmConnection,
   detachEvmConnection,
+  isSameWallet,
 } from '../solana/evmAdoptionGuard.js'
 import {
   type AdapterContext,
@@ -99,9 +99,9 @@ export async function disconnectEvm(
   // extension with the EVM side; a WalletConnect session named like one
   // (Phantom on a phone) has nothing to do with the Phantom extension.
   const solanaConnection = store.getState().solana.connection
-  const solanaWalletName =
+  const solanaWallet =
     keepSolana && solanaConnection?.source === 'standard'
-      ? solanaConnection.wallet.name
+      ? solanaConnection.wallet
       : undefined
   // Every connection is attempted even when one fails (a wallet that
   // refuses, a relay that is down): stopping at the first would leave the
@@ -110,10 +110,7 @@ export async function disconnectEvm(
   let failure: { error: unknown } | undefined
   for (const { connector } of [...config.state.connections.values()]) {
     try {
-      if (
-        solanaWalletName &&
-        equalsIgnoreCase(connector.name, solanaWalletName)
-      ) {
+      if (solanaWallet && isSameWallet(connector, solanaWallet)) {
         await detachEvmConnection(config, connector.uid)
       } else {
         await wagmiDisconnect(config, { connector })

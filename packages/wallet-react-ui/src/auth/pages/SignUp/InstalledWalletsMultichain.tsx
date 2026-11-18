@@ -2,6 +2,7 @@ import { ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useState } from 'react'
 import { useConnections } from 'wagmi'
 import { equalsIgnoreCase } from '../../../shared/utils/common'
+import { isSameWallet } from '../../../solana/evmAdoptionGuard'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import type { SolanaStandardWallet } from '../../../solana/types'
@@ -90,7 +91,7 @@ export function InstalledWalletsMultichain({
       }
       if (registeredNames.some((n) => equalsIgnoreCase(n, wallet.name)))
         continue
-      const merged = rows.find((r) => equalsIgnoreCase(r.name, wallet.name))
+      const merged = rows.find((r) => isSameWallet(r, wallet))
       if (merged) {
         merged.solana = wallet
         merged.icon ??= wallet.icon
