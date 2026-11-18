@@ -20,6 +20,7 @@ import {
 } from 'wagmi'
 import { getTransactionHistory } from './getTransactionHistory.js'
 import {
+  isQuotaExhaustedError,
   transactionHistoryRetry,
   transactionHistoryRetryDelay,
 } from './query.js'
@@ -82,9 +83,19 @@ export function useTransactionHistory<
     // TanStack's default of 0 refetches every loaded page on mount, focus and
     // reconnect.
     staleTime: query?.staleTime ?? 30_000,
+    // staleTime only holds a query that has data. After a first load that hit the
+    // monthly budget there is none, so without these every mount and focus would
+    // send another refused request until the next UTC month.
+    retryOnMount: query?.retryOnMount ?? notQuotaExhausted,
+    refetchOnWindowFocus: query?.refetchOnWindowFocus ?? notQuotaExhausted,
+    refetchOnReconnect: query?.refetchOnReconnect ?? notQuotaExhausted,
     retry: query?.retry ?? transactionHistoryRetry,
     retryDelay: query?.retryDelay ?? transactionHistoryRetryDelay,
   })
+}
+
+function notQuotaExhausted(query: { state: { error: unknown } }): boolean {
+  return !isQuotaExhaustedError(query.state.error)
 }
 
 export declare namespace useTransactionHistory {

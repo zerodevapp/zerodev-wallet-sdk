@@ -26,6 +26,7 @@ export {
 } from './errors.js'
 export { getTransactionHistory } from './transactionHistory/getTransactionHistory.js'
 export {
+  isQuotaExhaustedError,
   transactionHistoryRetry,
   transactionHistoryRetryDelay,
 } from './transactionHistory/query.js'
