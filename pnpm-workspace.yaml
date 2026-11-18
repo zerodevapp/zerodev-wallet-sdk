@@ -74,3 +74,11 @@ auditConfig:
     # see above) and at ^3 by @eslint/eslintrc in qa-lab-testing; both are dev
     # tooling. Remove once those upstreams move to minimatch >=11.0.1.
     - GHSA-g3hv-75wg-m249
+    # picomatch ReDoS through single-branch repeated extglobs (high); every
+    # release through 4.0.7 is affected and none is patched (verified
+    # 2026-11-18). Only dev tooling pulls it in: vite, lint-staged, and
+    # @changesets/cli via micromatch; `pnpm why picomatch --prod` finds no
+    # production path. Not reachable here: the attack needs an attacker-supplied
+    # glob such as +(*), and these tools only match globs we write. Remove once
+    # a patched picomatch ships and the lockfile picks it up.
+    - GHSA-fc5q-39xc-vjpf
