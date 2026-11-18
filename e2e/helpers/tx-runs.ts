@@ -1,7 +1,14 @@
 import { expect, type Locator, test } from '@playwright/test'
 
-/** A sponsored userOp on staging can take a while; the run itself settles fast. */
-const TX_SETTLE_TIMEOUT_MS = 60_000
+/**
+ * A sponsored userOp on staging can take a while, and the run stays `pending`
+ * for all of it. Pending is not a failure, only an explicit `error` is, so
+ * this is a cap on a stuck run rather than how long one is expected to take.
+ */
+const TX_SETTLE_TIMEOUT_MS = 150_000
+
+/** Headroom over the settle budget so the test's own timeout never cuts it short. */
+const TEST_BUDGET_HEADROOM_MS = 60_000
 
 /** Signing is a KMS round trip, with no chain to wait for. */
 const SIGN_SETTLE_TIMEOUT_MS = 30_000
@@ -24,15 +31,36 @@ const RATE_LIMITED = /rate limit|HTTP 429/i
  * `data-error` is read back and attached as an annotation before failing, so the
  * report says whether staging throttled us or the SDK actually broke — the two
  * belong to different owners, and a bare status assertion said neither.
+ *
+ * A run still `pending` is the third case and is not a failure: the submit is
+ * in flight. It gets the full budget, and if it never settles the message says
+ * which status it was stuck on rather than reporting a bare timeout.
  */
 async function settle(
   run: Locator,
   { noun, kind }: { noun: string; kind: string },
   timeout: number,
 ): Promise<void> {
-  await expect(run).toHaveAttribute('data-status', /^(success|error)$/, {
-    timeout,
-  })
+  // Raised here rather than in each spec: the budget belongs to how long a run
+  // may legitimately stay pending, which is this helper's business.
+  const needed = timeout + TEST_BUDGET_HEADROOM_MS
+  if (test.info().timeout < needed) test.setTimeout(needed)
+
+  try {
+    await expect(run).toHaveAttribute('data-status', /^(success|error)$/, {
+      timeout,
+    })
+  } catch {
+    // Named rather than left as a bare timeout: a run still `pending` has not
+    // failed, it is stuck or slow, and that is a different owner from a run
+    // that reported an error.
+    const status = (await run.getAttribute('data-status')) ?? 'none'
+    throw new Error(
+      `${noun} run never settled: still "${status}" after ${Math.round(
+        timeout / 1000,
+      )}s, having reported neither success nor error.`,
+    )
+  }
 
   if ((await run.getAttribute('data-status')) === 'error') {
     const detail =
