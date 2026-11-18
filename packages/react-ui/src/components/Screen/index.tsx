@@ -16,6 +16,11 @@ import {
 
 const CONTENT_PADDING_TOP = TOP_NAV_HEIGHT + 16
 const FOOTER_HEIGHT = 56
+// Scroll-container offsets (px at density 1) of the fade under TopNav: clear
+// of the title, then opaque 8px above where pages start their content (68 + 16).
+const NAV_FADE_START = 60
+const NAV_FADE_END = 76
+const NAV_FADE_MASK = `linear-gradient(to bottom, transparent calc(${NAV_FADE_START / 4} * var(--zd-spacing)), black calc(${NAV_FADE_END / 4} * var(--zd-spacing)))`
 
 // Container for card-scoped overlays (bottom sheets, dialogs, etc.). Consumers
 // portal into this element via `Radix Dialog.Portal container={...}` so the
@@ -56,6 +61,7 @@ export function Screen({
   // overlay state and portal into the card without hoisting it up here.
   const [overlayContainer, setOverlayContainer] =
     useState<HTMLDivElement | null>(null)
+  const [scrolled, setScrolled] = useState(false)
 
   return (
     <div
@@ -146,7 +152,16 @@ export function Screen({
             // eats a disproportionate share at smaller sizes and overflows.
             style={{
               paddingTop: `calc(${CONTENT_PADDING_TOP / 4} * var(--zd-spacing))`,
+              // TopNav has no band of its own, so scrolled content would show
+              // through behind the title. Fade it out under the nav instead,
+              // but only once scrolled: at rest, sign-up's brand row sits up
+              // inside the nav band by design and must stay whole.
+              ...(scrolled && {
+                maskImage: NAV_FADE_MASK,
+                WebkitMaskImage: NAV_FADE_MASK,
+              }),
             }}
+            onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
           >
             <ScreenOverlayContext.Provider value={overlayContainer}>
               {children}

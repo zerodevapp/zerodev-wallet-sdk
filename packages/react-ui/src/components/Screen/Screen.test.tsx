@@ -1,4 +1,4 @@
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -146,6 +146,29 @@ describe('Screen', () => {
       expect(scrollBody?.className).toContain('px-4')
       // No opaque offWhite card — content frosts the gradient directly
       expect(container.querySelector('.bg-offWhite\\/80')).toBeNull()
+    })
+
+    it('fades content under the nav only once it has scrolled', () => {
+      const { container } = render(
+        <Screen>
+          <div>Content</div>
+        </Screen>,
+      )
+      const scrollBody = container.querySelector<HTMLElement>(
+        '.zd\\:overflow-y-auto',
+      )
+      if (!scrollBody) throw new Error('scroll container not rendered')
+      // At rest nothing is masked: sign-up's brand row sits inside the nav
+      // band and has to stay whole.
+      expect(scrollBody.style.maskImage).toBeFalsy()
+
+      scrollBody.scrollTop = 40
+      fireEvent.scroll(scrollBody)
+      expect(scrollBody.style.maskImage).toContain('linear-gradient')
+
+      scrollBody.scrollTop = 0
+      fireEvent.scroll(scrollBody)
+      expect(scrollBody.style.maskImage).toBeFalsy()
     })
   })
 
