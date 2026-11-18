@@ -65,20 +65,16 @@ export default defineConfig({
       testMatch: /metamask.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
-    // Temporarily disabling the Zerion project unless ZERION_E2E is set.
-    ...(process.env.ZERION_E2E === '1'
-      ? [
-          {
-            name: 'chromium-zerion',
-            testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
-            // A cold Zerion onboarding is 20s locally and has never finished
-            // inside the 120s default on a runner. The budget is the worker
-            // fixture's, so it has to be raised here rather than per test.
-            timeout: 300_000,
-            use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
-          },
-        ]
-      : []),
+    // Project specific for running the Zerion extension tests.
+    {
+      name: 'chromium-zerion',
+      testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
+      // A cold Zerion onboarding is 20s locally and has never finished inside
+      // the 120s default on a runner. The budget is the worker fixture's, so
+      // it has to be raised here rather than per test.
+      timeout: 300_000,
+      use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
+    },
   ],
   // Spread rather than `webServer: CI ? undefined : {...}` — with
   // exactOptionalPropertyTypes, assigning undefined to an optional prop fails.

@@ -123,13 +123,9 @@ jobs:
           echo "QA lab failed to start"
           exit 1
 
-      # ZERION_E2E turns on the Zerion project, which was held back while
-      # Cloudflare challenged the wallet on a runner. The Zerion API is now
-      # mocked for every context the suite launches.
       - name: Run E2E tests
         run: pnpm exec playwright test --config e2e/playwright.config.ts
         env:
-          ZERION_E2E: '1'
           LAB_APP_URL: http://localhost:3000
           MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
           MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
