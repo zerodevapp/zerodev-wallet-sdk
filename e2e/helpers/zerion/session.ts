@@ -15,11 +15,10 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import * as path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { type BrowserContext, chromium, type Page } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
-import { zerionCheckActivity } from '../../mocks/definitions/zerion/checkActivity.js'
-import { routeMocks } from '../../mocks/routeMocks.js'
+import { zerionApi } from '../../mocks/definitions/zerion/api.js'
+import { type MockHandle, routeMocks } from '../../mocks/routeMocks.js'
 import { withWalletCacheLock } from '../e2e-cache.js'
 import { TEST_WALLET } from '../wallet-credentials.js'
 import {
@@ -43,6 +42,8 @@ export interface ZerionLaunch {
   context: BrowserContext
   /** Derived at runtime — it is a hash of the unpack path, not a constant. */
   extensionId: string
+  /** The Zerion API block, so a caller can assert that it served. */
+  mocks: MockHandle
 }
 
 export interface LaunchOptions {
@@ -75,6 +76,12 @@ export async function launchWithZerion({
     ],
   })
 
+  // Installed here, before anything navigates, because every Zerion context
+  // comes through this function and every one of them needs it: unprotected,
+  // Cloudflare challenges the wallet and parks a `<dialog>` over its controls.
+  // Context-scoped so it also covers the tabs Zerion opens itself.
+  const mocks = await routeMocks(context, zerionApi)
+
   const worker =
     context.serviceWorkers()[0] ??
     (await context.waitForEvent('serviceworker', {
@@ -88,7 +95,7 @@ export async function launchWithZerion({
     throw new Error(`could not read an extension id from ${worker.url()}`)
   }
 
-  return { context, extensionId }
+  return { context, extensionId, mocks }
 }
 
 /** A page on the extension's own origin, which is where the wallet UI lives. */
@@ -201,101 +208,6 @@ export async function ensureOnboardedProfile(
   })
 }
 
-/** Set to `1` to trace both wallet contexts this module launches. */
-const diagnosing = (): boolean => process.env.ZERION_TRACE === '1'
-
-/**
- * Its own directory, not a subdirectory of `playwright-report`: the HTML
- * reporter rewrites that folder when the run ends and takes anything else in it
- * with them. CI uploads this path separately.
- */
-const DIAGNOSTICS_DIR = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../../zerion-diagnostics',
-)
-
-/**
- * Starts a diagnostic trace chunk, tolerating tracing Playwright already owns.
- *
- * On a retry `trace: 'on-first-retry'` has already started tracing here, so
- * `start` throws. Chunks are what let both write a trace without either one
- * stopping the other's.
- */
-async function startDiagnosticTrace(context: BrowserContext): Promise<void> {
-  await context.tracing
-    .start({ screenshots: true, snapshots: true })
-    .catch(() => {})
-  await context.tracing.startChunk()
-}
-
-/**
- * Records every request the context makes, tagged page or service worker.
- *
- * `page.route` cannot intercept a service worker's requests, so which of the
- * two issued a request decides whether mocking can reach it at all. Requests
- * made before this attaches — during the launch itself — are not captured.
- */
-function recordRequests(context: BrowserContext): () => string {
-  const lines: string[] = []
-  context.on('request', (request) => {
-    lines.push(
-      [
-        request.resourceType(),
-        request.method(),
-        request.serviceWorker() ? 'service-worker' : 'page',
-        request.url(),
-      ].join('\t'),
-    )
-  })
-  return () => lines.join('\n')
-}
-
-/**
- * Writes a context's trace, a snapshot of every open page, and its request log.
- *
- * Best-effort throughout: a diagnostic that throws would replace the failure it
- * was added to explain.
- */
-async function saveDiagnostics(
-  context: BrowserContext,
-  label: string,
-  requests?: () => string,
-): Promise<void> {
-  try {
-    mkdirSync(DIAGNOSTICS_DIR, { recursive: true })
-    await context.tracing.stopChunk({
-      path: path.join(DIAGNOSTICS_DIR, `${label}-trace.zip`),
-    })
-    if (requests) {
-      writeFileSync(
-        path.join(DIAGNOSTICS_DIR, `${label}-requests.tsv`),
-        `resourceType\tmethod\torigin\turl\n${requests()}\n`,
-      )
-    }
-
-    for (const [i, page] of context.pages().entries()) {
-      await page
-        .screenshot({
-          path: path.join(DIAGNOSTICS_DIR, `${label}-page-${i}.png`),
-          fullPage: true,
-        })
-        .catch(() => {})
-      writeFileSync(
-        path.join(DIAGNOSTICS_DIR, `${label}-page-${i}.url.txt`),
-        `${page.url()}\n\n${await page.content().catch(() => '<unavailable>')}`,
-      )
-    }
-  } catch (error) {
-    // Never rethrown — a diagnostic must not replace the failure it explains.
-    // But never silent either: a collector that fails quietly buys a CI run and
-    // returns nothing.
-    console.error(
-      `[zerion] ${label} diagnostics failed to write to ${DIAGNOSTICS_DIR}:`,
-      error instanceof Error ? error.message : error,
-    )
-  }
-}
-
 async function buildOnboardedProfile(
   headless: boolean,
   credentials: typeof TEST_WALLET,
@@ -306,35 +218,21 @@ async function buildOnboardedProfile(
   const staging = `${PROFILE_SNAPSHOT_DIR}.partial`
 
   try {
-    const { context, extensionId } = await launchWithZerion({
+    const { context, extensionId, mocks } = await launchWithZerion({
       userDataDir: scratch,
       headless,
     })
 
-    // `trace: 'on-first-retry'` means the first attempt — the one that shows how
-    // the run got stuck — is never traced. This fills that gap. Kept off unless
-    // asked for, because it costs time on every run.
-    const traced = diagnosing()
-    const requests = traced ? recordRequests(context) : undefined
-    if (traced) {
-      // Printed so a run that collects nothing can be told apart from a run
-      // where the flag never reached the worker.
-      console.error('[zerion] onboarding starting, diagnostics on')
-      await startDiagnosticTrace(context)
-    }
-
     try {
       const page = await openOnboardingTab(context, extensionId)
-      const mocked = await routeMocks(page, zerionCheckActivity)
       await onboardWithRecoveryPhrase(page, credentials)
-      if (mocked.hits() === 0) {
+      if (mocks.hits() === 0) {
         throw new Error(
-          'onboarding completed without the check-activity mock serving, so ' +
-            'it reached the real Zerion API — the mock no longer matches.',
+          'onboarding completed without the Zerion API mock serving, so it ' +
+            'reached the real API — the mock no longer matches.',
         )
       }
     } finally {
-      if (traced) await saveDiagnostics(context, 'onboarding', requests)
       // Closing also flushes. Snapshotting a live profile captures a
       // half-written leveldb, so the copy only happens once the browser is
       // gone. On a failed onboard this still has to run, or the outer
@@ -386,17 +284,6 @@ async function assertProfileIsOnboarded(
       headless,
     })
 
-    // The unlock, not the onboarding, is where a runner gets stuck: Zerion puts
-    // a Cloudflare challenge over this screen on a challenged IP. Traced
-    // separately so the request log says whether the page or the extension's
-    // service worker asked for it, which decides whether `route` can reach it.
-    const traced = diagnosing()
-    const requests = traced ? recordRequests(context) : undefined
-    if (traced) {
-      console.error('[zerion] unlock probe starting, diagnostics on')
-      await startDiagnosticTrace(context)
-    }
-
     try {
       const page = await context.newPage()
       await page.goto(extensionUrl(extensionId))
@@ -414,7 +301,6 @@ async function assertProfileIsOnboarded(
         )
       }
     } finally {
-      if (traced) await saveDiagnostics(context, 'unlock', requests)
       await context.close()
     }
   } finally {

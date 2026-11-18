@@ -32,7 +32,10 @@ export default defineConfig({
     // never becomes actionable consumes the whole test budget and reports only
     // a timeout. An extension wallet puts modals over its own controls, which
     // is exactly that case. These turn it into an error naming the element.
-    actionTimeout: 15_000,
+    //
+    // Generous on purpose: the slowest legitimate action measured on a runner
+    // is a 2.1s first click on a cold page, so this only ever fires on a stall.
+    actionTimeout: 30_000,
     navigationTimeout: 45_000,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

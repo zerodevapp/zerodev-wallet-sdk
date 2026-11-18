@@ -123,15 +123,13 @@ jobs:
           echo "QA lab failed to start"
           exit 1
 
-      # TEMPORARY, revert before merge: one Zerion spec with both wallet
-      # contexts traced. Onboarding is clean on a runner; the unlock screen is
-      # where Cloudflare puts up a challenge, and the request log says whether
-      # the page or the extension's service worker asked for it.
+      # ZERION_E2E turns on the Zerion project, which was held back while
+      # Cloudflare challenged the wallet on a runner. The Zerion API is now
+      # mocked for every context the suite launches.
       - name: Run E2E tests
-        run: pnpm exec playwright test --config e2e/playwright.config.ts e2e/browser/zerion-wallet.spec.ts
+        run: pnpm exec playwright test --config e2e/playwright.config.ts
         env:
           ZERION_E2E: '1'
-          ZERION_TRACE: '1'
           LAB_APP_URL: http://localhost:3000
           MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
           MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
@@ -143,14 +141,4 @@ jobs:
         with:
           name: playwright-report-${{ github.job }}
           path: playwright-report/
-          retention-days: 14
-
-      # TEMPORARY, revert with the narrowed test step above.
-      - name: Upload Zerion diagnostics
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: zerion-diagnostics
-          path: zerion-diagnostics/
-          if-no-files-found: warn
           retention-days: 14
