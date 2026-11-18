@@ -1,3 +1,4 @@
+import type { WalletMode } from "@zerodev/wallet-react";
 import type { Chain } from "viem";
 import {
   ANVIL_CHAIN_ID,
@@ -26,12 +27,23 @@ export type EmailAuthMethodId = (typeof EMAIL_AUTH_METHODS)[number];
 
 export { CHAINS } from "./wallet-config";
 
+/** Connector account modes, in display order. */
+export const WALLET_MODES = [
+  "7702",
+  "4337",
+  "EOA",
+] as const satisfies readonly WalletMode[];
+
+const isWalletMode = (value: string | undefined): value is WalletMode =>
+  (WALLET_MODES as readonly string[]).includes(value ?? "");
+
 /** Where a chain's transport URL came from, for the diagnostics page. */
 export type TransportSource = "param" | "default" | "local" | "chain";
 
 export const PARAM = {
   preset: "preset",
   authFlavor: "authFlavor",
+  mode: "mode",
   /** Per-chain transport, e.g. `rpc.421614`. */
   rpcPrefix: "rpc.",
 } as const;
@@ -51,11 +63,14 @@ const RETIRED_PARAMS: Record<string, string> = {
 export const isConfigParam = (key: string) =>
   key === PARAM.preset ||
   key === PARAM.authFlavor ||
+  key === PARAM.mode ||
   key.startsWith(PARAM.rpcPrefix);
 
 export interface ResolvedWalletConfig {
   kmsProxyBaseUrl: string | undefined;
   aaHost: string | undefined;
+  /** Env-only private-preview endpoint; deliberately not URL-overridable. */
+  dataApiBaseUrl: string | undefined;
   chains: readonly [Chain, ...Chain[]];
   rpcUrls: Record<number, string | undefined>;
   /** Provenance per chain, so `/environment` can show where a transport came from. */
@@ -70,15 +85,21 @@ export interface ResolvedWalletConfig {
   /** The ZeroDev project the connector authenticates against. */
   projectId: string | undefined;
   emailAuthMethod: EmailAuthMethodId;
+  /** Connector account mode; `4337` exposes the Kernel address instead of the EOA. */
+  mode: WalletMode;
   /** Params that were present and applied — drives the "overridden" badge. */
   applied: string[];
   /** Params that were present but rejected. Never fail silently. */
   warnings: string[];
 }
 
+const envMode = process.env.NEXT_PUBLIC_WALLET_MODE;
+
 const ENV = {
   kms: process.env.NEXT_PUBLIC_KMS_PROXY_BASE_URL,
   aaHost: process.env.NEXT_PUBLIC_ZERODEV_AA_HOST,
+  dataApi: process.env.NEXT_PUBLIC_DATA_API_BASE_URL,
+  mode: isWalletMode(envMode) ? envMode : "7702",
 };
 
 const isHttpUrl = (value: string) => {
@@ -195,9 +216,23 @@ export function resolveWalletConfig(
     }
   }
 
+  let mode: WalletMode = ENV.mode;
+  const rawMode = get(PARAM.mode);
+  if (rawMode !== undefined) {
+    if (isWalletMode(rawMode)) {
+      mode = rawMode;
+      applied.push(PARAM.mode);
+    } else {
+      warnings.push(
+        `${PARAM.mode}: "${rawMode}" must be one of ${WALLET_MODES.join(" | ")} — using default.`,
+      );
+    }
+  }
+
   return {
     kmsProxyBaseUrl,
     aaHost,
+    dataApiBaseUrl: ENV.dataApi,
     chains,
     rpcUrls,
     rpcSources,
@@ -205,6 +240,7 @@ export function resolveWalletConfig(
     authFlavor,
     projectId,
     emailAuthMethod,
+    mode,
     applied,
     warnings,
   };
@@ -268,6 +304,7 @@ export function serializeOverrides(overrides: {
   rpcUrls?: Record<number, string>;
   preset?: AuthPresetId;
   authFlavor?: AuthFlavorId;
+  mode?: WalletMode;
 }): URLSearchParams {
   const params = new URLSearchParams();
 
@@ -284,6 +321,9 @@ export function serializeOverrides(overrides: {
   }
   if (overrides.authFlavor && overrides.authFlavor !== DEFAULT_AUTH_FLAVOR) {
     params.set(PARAM.authFlavor, overrides.authFlavor);
+  }
+  if (overrides.mode && overrides.mode !== ENV.mode) {
+    params.set(PARAM.mode, overrides.mode);
   }
 
   return params;

@@ -17,6 +17,7 @@
     "@zerodev/smart-routing-address-react-ui": "workspace:*",
     "@zerodev/wallet-react-ui": "workspace:*",
     "@zerodev/wallet-core": "workspace:*",
+    "@zerodev/wallet-data": "workspace:*",
     "@zerodev/wallet-react": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",

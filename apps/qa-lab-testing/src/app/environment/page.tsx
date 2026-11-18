@@ -78,6 +78,10 @@ export default async function EnvironmentPage({
       variable: "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
       result: isSet(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID),
     },
+    {
+      variable: "NEXT_PUBLIC_DATA_API_BASE_URL",
+      result: isSet(process.env.NEXT_PUBLIC_DATA_API_BASE_URL),
+    },
   ];
 
   return (
@@ -262,6 +266,14 @@ export default async function EnvironmentPage({
                   ? "project id set"
                   : "project id MISSING"}
               </Chip>
+            </ConfigRow>
+
+            <ConfigRow
+              id="mode"
+              label="wallet mode"
+              overridden={isOverridden(PARAM.mode)}
+            >
+              <Chip testId={`env-mode-${resolved.mode}`}>{resolved.mode}</Chip>
             </ConfigRow>
 
             <ConfigRow id="kms" label="kms proxy base url">
