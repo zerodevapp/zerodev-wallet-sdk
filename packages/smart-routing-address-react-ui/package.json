@@ -41,8 +41,8 @@
     "dev:css": "npx @tailwindcss/cli -i ./src/styles.css -o ./dist/styles.css --watch",
     "typecheck": "tsc --noEmit --project ./tsconfig.build.json",
     "clean": "rm -rf dist",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest run --root ../.. packages/smart-routing-address-react-ui",
+    "test:watch": "vitest --root ../.. packages/smart-routing-address-react-ui",
     "storybook": "storybook dev -p 6008",
     "build-storybook": "storybook build"
   },

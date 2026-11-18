@@ -45,8 +45,8 @@
     "clean": "rm -rf dist",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --root ../.. packages/react-ui",
+    "test:watch": "vitest --root ../.. packages/react-ui"
   },
   "keywords": [
     "react",

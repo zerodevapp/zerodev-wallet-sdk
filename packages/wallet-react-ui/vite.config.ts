@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   // Emit package-relative asset URLs (the StatusScreen state images) so they
@@ -35,17 +35,5 @@ export default defineConfig({
     },
     sourcemap: true,
     emptyOutDir: false,
-  },
-  test: {
-    globals: true,
-    environment: 'happy-dom',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    // `*.test-d.ts` files are type tests: tsc runs over them with the test
-    // tsconfig and a type error there fails the run, so a public signature
-    // that lets a call type-check and then throw is caught in CI.
-    typecheck: {
-      enabled: true,
-      tsconfig: './tsconfig.json',
-    },
   },
 })
