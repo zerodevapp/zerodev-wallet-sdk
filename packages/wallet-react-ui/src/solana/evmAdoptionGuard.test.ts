@@ -70,7 +70,8 @@ function fakeConfig() {
   }
   /** The EIP-6963 providers wagmi's discovery has announced; under `ssr`
    * their connectors may not exist yet. */
-  const providers: { info: { name: string; rdns: string } }[] = []
+  const providers: { info: { name: string; rdns: string; icon?: string } }[] =
+    []
   const config = {
     connectors,
     storage: {
@@ -203,6 +204,20 @@ describe('withoutEvmAdoption', () => {
     vi.advanceTimersByTime(2000)
     adopt(phantom)
     // After the grace period the guard is gone; a later connect stands.
+    expect(config.state.connections.size).toBe(1)
+  })
+
+  it('leaves a same-named session through another kind of connector alone', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    // A WalletConnect session to the wallet's phone app opened while the
+    // Solana prompt is up: not an adoption by the extension.
+    const remote = Object.assign(fakeConnector('MetaMask', 'walletConnect'), {
+      type: 'walletConnect',
+    })
+    connectors.push(remote)
+    await withoutEvmAdoption(config, 'MetaMask', async () => {
+      adopt(remote)
+    })
     expect(config.state.connections.size).toBe(1)
   })
 
@@ -535,6 +550,46 @@ describe('guardDormantEvmSide', () => {
 
     expect(config.state.connections.size).toBe(1)
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
+  })
+
+  it('reads the icon of a connector wagmi has not set up yet off its announcement (ssr)', async () => {
+    const { config, sweep, storage, providers, announce } = fakeConfig()
+    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
+    // The extension registers "Mock" on Solana and announces "Mock Wallet"
+    // on EVM; only the icon pairs the two. Under `ssr` the connector is
+    // made from the announcement after the guard mounts.
+    providers.push({
+      info: { name: 'Mock Wallet', rdns: 'app.mock', icon: logo },
+    })
+    const evm = Object.assign(fakeConnector('Mock Wallet', 'app.mock'), {
+      icon: logo,
+    })
+
+    guardDormantEvmSide(config, { name: 'Mock', icon: logo }, restored(evm))
+    await flush()
+    announce(evm)
+    sweep([evm])
+    await flush()
+
+    // The host's own EVM session: neither shimmed nor detached.
+    expect(config.state.connections.size).toBe(1)
+    expect(storage.has('app.mock.disconnected')).toBe(false)
+  })
+
+  it('leaves a same-named session through another kind of connector alone', async () => {
+    const { config, sweep, connectors } = fakeConfig()
+    // `metaMask()`: an SDK session, not the extension the Solana side shares.
+    const sdk = Object.assign(fakeConnector('MetaMask', 'metaMaskSDK'), {
+      type: 'metaMask',
+    })
+    connectors.push(sdk)
+
+    guardDormantEvmSide(config, 'MetaMask', restored())
+    await flush()
+    sweep([sdk])
+    await flush()
+
+    expect(config.state.connections.size).toBe(1)
   })
 
   it('awaits a pending record, as the kit connector hands it over', async () => {

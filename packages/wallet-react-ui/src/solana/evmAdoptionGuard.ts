@@ -80,6 +80,25 @@ function hasIconPayload(icon: string | undefined): icon is string {
   return comma !== -1 && icon.length - comma - 1 >= 64
 }
 
+/**
+ * Whether `connector` is an installed extension's EVM provider (an EIP-6963
+ * announcement, which wagmi surfaces as an injected-type connector with its
+ * rdns as id). Only that can share an extension with a Wallet Standard
+ * wallet: a WalletConnect session, an SDK connector (`metaMask()`,
+ * `coinbaseWallet()`) or the generic `injected()` connector named like one
+ * is a separate session with a disconnect of its own.
+ */
+export function isInstalledEvmConnector(connector: {
+  id: string
+  type: string
+}): boolean {
+  return (
+    connector.type === 'injected' &&
+    connector.id !== 'injected' &&
+    connector.id !== 'zerodev-wallet'
+  )
+}
+
 /** Connector uids the host is connecting on purpose right now. */
 const pendingExplicitEvmConnections = new Set<string>()
 
@@ -219,9 +238,7 @@ export async function detachEvmConnection(
 function dormantEvmConnectors(config: Config, wallet: WalletRef) {
   return config.connectors.filter(
     (c) =>
-      c.type === 'injected' &&
-      c.id !== 'injected' &&
-      c.id !== 'zerodev-wallet' &&
+      isInstalledEvmConnector(c) &&
       isSameWallet(c, wallet) &&
       !config.state.connections.has(c.uid),
   )
@@ -336,12 +353,28 @@ export function readEvmConnectionsAtLoad(
 }
 
 /**
+ * The icon of the EVM connector with `id`: off the connector when wagmi has
+ * set it up, else off the EIP-6963 announcement it will be made from. Under
+ * `ssr` the announcements are turned into connectors in wagmi's mount
+ * effect, after the persisted state is read back, so a connector can be
+ * looked up before it exists.
+ */
+function evmConnectorIcon(config: Config, id: string): string | undefined {
+  const connector = config.connectors.find((c) => c.id === id)
+  if (connector?.icon) return connector.icon
+  return config._internal.mipd
+    ?.getProviders()
+    .find(({ info }) => info.rdns === id)?.info.icon
+}
+
+/**
  * Whether `wallet` was connected on the EVM side when the page loaded, per
  * the record `readEvmConnectionsAtLoad` took. The record keeps a
- * connector's id and name only; its icon is read off the live connector of
- * that id, so the match uses the same key as everywhere else. No record
- * reads as not connected: the guard then stands in, which costs the host
- * nothing when the wallet is indeed dormant.
+ * connector's id and name only; its icon is read off the connector of that
+ * id (or its announcement, see `evmConnectorIcon`), so the match uses the
+ * same key as everywhere else. No record reads as not connected: the guard
+ * then stands in, which costs the host nothing when the wallet is indeed
+ * dormant.
  */
 async function wasConnectedAtLoad(
   config: Config,
@@ -352,10 +385,7 @@ async function wasConnectedAtLoad(
   return (
     list?.some((c) =>
       isSameWallet(
-        {
-          name: c.name,
-          icon: config.connectors.find((k) => k.id === c.id)?.icon,
-        },
+        { name: c.name, icon: evmConnectorIcon(config, c.id) },
         wallet,
       ),
     ) ?? false
@@ -450,9 +480,10 @@ export function guardDormantEvmSide(
     if (sweptConfigs.has(config)) return
     stopWatch = afterReconnectSettles(config, () => {
       sweptConfigs.add(config)
-      for (const [uid, connection] of config.state.connections) {
+      for (const [uid, { connector }] of config.state.connections) {
         if (isExplicitEvmConnection(config, uid)) continue
-        if (!isSameWallet(connection.connector, wallet)) continue
+        if (!isInstalledEvmConnector(connector)) continue
+        if (!isSameWallet(connector, wallet)) continue
         // The state-level drop is synchronous; only the storage writes
         // after it can fail, and a failed shim costs nothing here.
         detachEvmConnection(config, uid).catch(() => {})
@@ -523,9 +554,12 @@ export async function withoutEvmAdoption<T>(
       before.add(uid)
       return
     }
-    const connection = config.state.connections.get(uid)
-    if (!connection) return
-    if (!isSameWallet(connection.connector, wallet)) return
+    const connector = config.state.connections.get(uid)?.connector
+    if (!connector) return
+    // Only an extension adopts a site on its own; a session the host opened
+    // through another kind of connector meanwhile is its own.
+    if (!isInstalledEvmConnector(connector)) return
+    if (!isSameWallet(connector, wallet)) return
     detachFromWagmiState(config, uid)
   }
 

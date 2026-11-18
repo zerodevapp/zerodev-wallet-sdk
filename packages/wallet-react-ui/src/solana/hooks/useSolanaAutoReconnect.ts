@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useConfig } from 'wagmi'
 import { useKitStore } from '../../shared/hooks/useKitStore'
+import { equalsIgnoreCase } from '../../shared/utils/common'
 import { guardDormantEvmSide } from '../evmAdoptionGuard'
 import {
   readLastSolanaWallet,
@@ -50,19 +51,31 @@ export function useSolanaAutoReconnect(enabled = true): void {
   // state from the wallets instead).
   const [restoredEvm] = useState(() => store.getState().evmConnectionsAtLoad)
   // The EVM side a multichain wallet granted alongside the saved Solana
-  // session must not come back on its own. Mounted once per hook instance:
-  // the guard follows connectors that arrive later by itself (under `ssr`
-  // wagmi sets the EIP-6963 connectors up in its mount effect, after this
-  // one). Another instance, or a remount, is safe: the guard judges the
-  // reload sweep once per page load, so the host's later EVM connections
-  // are never measured against the load-time record. Only an installed
-  // wallet has an EVM side wagmi could adopt.
+  // session must not come back on its own. Only an installed wallet has an
+  // EVM side wagmi could adopt. The guard needs the wallet's icon as well as
+  // its name (`isSameWallet`); a record saved before icons were kept has
+  // none, and takes it from the wallet's registration once that is in.
+  const last = enabled ? readLastSolanaWallet() : undefined
+  const guardedName = last?.source === 'standard' ? last.name : undefined
+  const guardedIcon =
+    guardedName === undefined
+      ? undefined
+      : (last?.icon ??
+        wallets.find((w) => equalsIgnoreCase(w.name, guardedName))?.icon)
+  // Mounted once per hook instance, plus once more if the icon arrives
+  // after it: the guard follows connectors that arrive later by itself
+  // (under `ssr` wagmi sets the EIP-6963 connectors up in its mount effect,
+  // after this one). Another instance, or a remount, is safe: the guard
+  // judges the reload sweep once per page load, so the host's later EVM
+  // connections are never measured against the load-time record.
   useEffect(() => {
-    if (!enabled) return
-    const last = readLastSolanaWallet()
-    if (last?.source !== 'standard') return
-    return guardDormantEvmSide(config, last, restoredEvm)
-  }, [enabled, config, restoredEvm])
+    if (guardedName === undefined) return
+    return guardDormantEvmSide(
+      config,
+      { name: guardedName, icon: guardedIcon },
+      restoredEvm,
+    )
+  }, [config, restoredEvm, guardedName, guardedIcon])
   useEffect(() => {
     if (!enabled) return
     const { solana } = store.getState()

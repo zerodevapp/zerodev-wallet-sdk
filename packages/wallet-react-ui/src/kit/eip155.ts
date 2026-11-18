@@ -16,6 +16,7 @@ import { isZeroDevWalletConnect } from '../auth/utils/isZeroDevWalletConnect.js'
 import {
   allowEvmConnection,
   detachEvmConnection,
+  isInstalledEvmConnector,
   isSameWallet,
 } from '../solana/evmAdoptionGuard.js'
 import {
@@ -95,9 +96,10 @@ export async function disconnectEvm(
   { store, config }: AdapterContext,
   keepSolana: boolean,
 ): Promise<void> {
-  // Only an installed (Wallet Standard) Solana wallet can share a browser
-  // extension with the EVM side; a WalletConnect session named like one
-  // (Phantom on a phone) has nothing to do with the Phantom extension.
+  // Only an installed (Wallet Standard) Solana wallet and an installed EVM
+  // connector (`isInstalledEvmConnector`) can share a browser extension; a
+  // WalletConnect or SDK session named like one (Phantom on a phone) has
+  // nothing to do with the Phantom extension and gets its own disconnect.
   const solanaConnection = store.getState().solana.connection
   const solanaWallet =
     keepSolana && solanaConnection?.source === 'standard'
@@ -110,7 +112,11 @@ export async function disconnectEvm(
   let failure: { error: unknown } | undefined
   for (const { connector } of [...config.state.connections.values()]) {
     try {
-      if (solanaWallet && isSameWallet(connector, solanaWallet)) {
+      if (
+        solanaWallet &&
+        isInstalledEvmConnector(connector) &&
+        isSameWallet(connector, solanaWallet)
+      ) {
         await detachEvmConnection(config, connector.uid)
       } else {
         await wagmiDisconnect(config, { connector })

@@ -375,6 +375,39 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(screen.getByText('SOLANA')).toBeTruthy()
   })
 
+  it('merges a guide wallet whose registrations pair by the announced icon, not the guide one', () => {
+    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}` as const
+    // The row shows the guide's name and icon for MetaMask; the extension's
+    // Solana registration carries another name and the announced logo.
+    connectors = [{ ...announced('io.metamask', 'MetaMask'), icon: logo }]
+    solanaWallets = [{ ...solanaWallet('MM').wallet, icon: logo }]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('MetaMask')).toBeTruthy()
+    expect(screen.queryByText('MM')).toBeNull()
+    expect(screen.getByText('EVM')).toBeTruthy()
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+  })
+
+  it('leaves both sides of a pinned wallet to its own row, under either name', () => {
+    connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
+    solanaWallets = [solanaWallet('Trust').wallet]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="trust" namespaces={['eip155', 'solana']} />
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    // The pinned row, once, offering both chains; no second "Trust" row.
+    expect(screen.getAllByText('Trust Wallet')).toHaveLength(1)
+    expect(screen.queryByText('Trust')).toBeNull()
+    expect(screen.getAllByText('EVM')).toHaveLength(1)
+    expect(screen.getAllByText('SOLANA')).toHaveLength(1)
+  })
+
   it('keeps the EVM-only behaviour by default', () => {
     connectors = [announced('app.phantom', 'Phantom')]
     solanaWallets = [solanaWallet('Phantom').wallet]
