@@ -63,7 +63,8 @@ export function buildFixtureRows(nowSeconds: number): TxHistoryEntry[] {
 /**
  * A ready feed over the fixture rows that pages like the real one: Load more
  * shows its loading state for a moment, then reveals the next page, or the
- * inline error when `failNextPage` is set.
+ * inline error when `failNextPage` is set. Refresh spins for the same moment
+ * and stamps a new `updatedAt`.
  */
 export function useFixtureFeed({
   failNextPage,
@@ -74,9 +75,20 @@ export function useFixtureFeed({
   const [pages, setPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<Error>();
+  const [refreshing, setRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState(() =>
+    Math.floor(Date.now() / 1000),
+  );
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      clearTimeout(refreshTimer.current);
+    },
+    [],
+  );
 
   const loadMore = useCallback(() => {
     if (loadingMore) return;
@@ -92,6 +104,15 @@ export function useFixtureFeed({
     }, LOAD_DELAY_MS);
   }, [failNextPage, loadingMore]);
 
+  const refresh = useCallback(() => {
+    if (refreshing) return;
+    setRefreshing(true);
+    refreshTimer.current = setTimeout(() => {
+      setRefreshing(false);
+      setUpdatedAt(Math.floor(Date.now() / 1000));
+    }, LOAD_DELAY_MS);
+  }, [refreshing]);
+
   const shown = pages * FIXTURE_PAGE_SIZE;
   return {
     status: "ready",
@@ -100,5 +121,8 @@ export function useFixtureFeed({
     loadingMore,
     loadMore,
     ...(loadMoreError && { loadMoreError }),
+    refreshing,
+    refresh,
+    updatedAt,
   };
 }
