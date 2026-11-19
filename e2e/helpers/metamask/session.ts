@@ -18,8 +18,13 @@ import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { type BrowserContext, chromium } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
+import { withWalletCacheLock } from '../e2e-cache.js'
 import { TEST_WALLET } from '../wallet-credentials.js'
-import { ensureMetaMaskExtension, PROFILE_SNAPSHOT_DIR } from './extension.js'
+import {
+  CACHE_ROOT,
+  ensureMetaMaskExtension,
+  PROFILE_SNAPSHOT_DIR,
+} from './extension.js'
 import { onboardWithRecoveryPhrase } from './onboard.js'
 import { expectSolanaAccountReady } from './solana-ready.js'
 import { unlockIfLocked } from './unlock.js'
@@ -153,17 +158,39 @@ export async function ensureOnboardedProfile(
   // The account the phrase derives, stored beside the snapshot so editing
   // TEST_WALLET re-onboards instead of silently reusing the previous wallet.
   const account = mnemonicToAccount(credentials.secretRecoveryPhrase).address
-
-  await ensureMetaMaskExtension()
-
   const fingerprint = credentialsFingerprint()
 
-  if (existsSync(PROFILE_SNAPSHOT_DIR)) {
-    if (readProfileStamp()?.credentials === fingerprint) {
-      return PROFILE_SNAPSHOT_DIR
-    }
-    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+  const ready = (): boolean =>
+    existsSync(PROFILE_SNAPSHOT_DIR) &&
+    readProfileStamp()?.credentials === fingerprint
+
+  if (ready()) {
+    await ensureMetaMaskExtension()
+    return PROFILE_SNAPSHOT_DIR
   }
+
+  // Held across the whole onboarding, not just the copy: every worker calls
+  // this (the fixture is worker-scoped), and an onboarding is minutes of work
+  // that must happen once. The lock is reentrant, so the nested
+  // `ensureMetaMaskExtension` below does not wait on this one.
+  return withWalletCacheLock(CACHE_ROOT, async () => {
+    await ensureMetaMaskExtension()
+
+    // Re-checked under the lock: whoever waited here is normally looking at a
+    // profile someone else just onboarded.
+    if (ready()) return PROFILE_SNAPSHOT_DIR
+
+    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+    return buildOnboardedProfile(headless, credentials, account, fingerprint)
+  })
+}
+
+async function buildOnboardedProfile(
+  headless: boolean,
+  credentials: typeof TEST_WALLET,
+  account: string,
+  fingerprint: string,
+): Promise<string> {
   const scratch = mkdtempSync(path.join(tmpdir(), 'mm-onboarding-'))
   const staging = `${PROFILE_SNAPSHOT_DIR}.partial`
 

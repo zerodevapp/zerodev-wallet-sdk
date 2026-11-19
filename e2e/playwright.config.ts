@@ -28,6 +28,15 @@ export default defineConfig({
     timeout: 30_000,
   },
   use: {
+    // Playwright's default for both is 0, meaning no limit, so an element that
+    // never becomes actionable consumes the whole test budget and reports only
+    // a timeout. An extension wallet puts modals over its own controls, which
+    // is exactly that case. These turn it into an error naming the element.
+    //
+    // Generous on purpose: the slowest legitimate action measured on a runner
+    // is a 2.1s first click on a cold page, so this only ever fires on a stall.
+    actionTimeout: 30_000,
+    navigationTimeout: 45_000,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // Local backend uses a self-signed TLS cert. Opt in via env so CI /
@@ -56,16 +65,16 @@ export default defineConfig({
       testMatch: /metamask.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
     },
-    // Temporarily disabling the Zerion project unless ZERION_E2E is set.
-    ...(process.env.ZERION_E2E === '1'
-      ? [
-          {
-            name: 'chromium-zerion',
-            testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
-            use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
-          },
-        ]
-      : []),
+    // Project specific for running the Zerion extension tests.
+    {
+      name: 'chromium-zerion',
+      testMatch: /[\\/]zerion[^\\/]*\.spec\.ts$/,
+      // A cold Zerion onboarding is 20s locally and has never finished inside
+      // the 120s default on a runner. The budget is the worker fixture's, so
+      // it has to be raised here rather than per test.
+      timeout: 300_000,
+      use: { ...devices['Desktop Chrome'], baseURL: labBaseUrl },
+    },
   ],
   // Spread rather than `webServer: CI ? undefined : {...}` — with
   // exactOptionalPropertyTypes, assigning undefined to an optional prop fails.
