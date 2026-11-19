@@ -22,8 +22,6 @@ export type {
   GetUserWalletReturnType,
   GetWhoamiParameters,
   GetWhoamiReturnType,
-  LoginWithOTPParameters,
-  LoginWithOTPReturnType,
   LogoutParameters,
   LogoutReturnType,
   OAuthAuthenticator,
@@ -55,7 +53,6 @@ export {
   // Wallet actions
   getUserWallet,
   getWhoami,
-  loginWithOTP,
   logout,
   registerWithOTP,
   sign7702Authorization,

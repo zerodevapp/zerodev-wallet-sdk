@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
-import { loginWithOTP } from './loginWithOTP.js'
 import { registerWithOTP } from './registerWithOTP.js'
 import { verifyOTP } from './verifyOTP.js'
 
@@ -105,75 +104,6 @@ describe('registerWithOTP', () => {
         projectId: 'proj-456',
       }),
     ).rejects.toThrow('Network error')
-  })
-})
-
-describe('loginWithOTP', () => {
-  it('sends OTP login request with correct parameters', async () => {
-    const mockClient = createMockClient(async () => ({
-      session: 'session-jwt-token',
-    }))
-
-    const result = await loginWithOTP(mockClient, {
-      verificationToken: 'verification-jwt',
-      clientSignature: 'a1'.repeat(64),
-      projectId: 'proj-456',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith({
-      path: 'proj-456/auth/login/otp',
-      method: 'POST',
-      body: {
-        verificationToken: 'verification-jwt',
-        clientSignature: 'a1'.repeat(64),
-      },
-    })
-    expect(result).toEqual({ session: 'session-jwt-token' })
-  })
-
-  it('returns session token on successful login', async () => {
-    const expectedSession = 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...'
-    const mockClient = createMockClient(async () => ({
-      session: expectedSession,
-    }))
-
-    const result = await loginWithOTP(mockClient, {
-      verificationToken: 'verification-jwt',
-      clientSignature: 'a1'.repeat(64),
-      projectId: 'proj-456',
-    })
-
-    expect(result.session).toBe(expectedSession)
-  })
-
-  it('propagates request errors', async () => {
-    const mockClient = createMockClient(async () => {
-      throw new Error('Invalid verification token')
-    })
-
-    await expect(
-      loginWithOTP(mockClient, {
-        verificationToken: 'invalid-token',
-        clientSignature: 'a1'.repeat(64),
-        projectId: 'proj-456',
-      }),
-    ).rejects.toThrow('Invalid verification token')
-  })
-
-  it('uses project ID in the request path', async () => {
-    const mockClient = createMockClient(async () => ({ session: 'jwt' }))
-
-    await loginWithOTP(mockClient, {
-      verificationToken: 'token',
-      clientSignature: 'sig',
-      projectId: 'my-custom-project-id',
-    })
-
-    expect(mockClient.request).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: 'my-custom-project-id/auth/login/otp',
-      }),
-    )
   })
 })
 
