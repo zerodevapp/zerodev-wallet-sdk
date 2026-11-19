@@ -8,7 +8,7 @@ import {
 import { type Config, type ResolvedRegister, useConfig } from 'wagmi'
 import { authenticateOAuth } from '../authenticateOAuth.js'
 import { getSessionIdWeb } from '../getSessionIdWeb.js'
-import type { OAuthProvider } from '../utils/verifyGoogleLoginUrl.js'
+import type { OAuthProvider } from '../utils/verifyOAuthLoginUrl.js'
 
 type ConfigParameter<config extends Config = Config> = {
   config?: Config | config | undefined

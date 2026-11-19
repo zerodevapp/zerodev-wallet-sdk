@@ -9,8 +9,8 @@ import {
 import type { createZeroDevWalletStore } from './store.js'
 import {
   type OAuthProvider,
-  verifyGoogleLoginUrl,
-} from './utils/verifyGoogleLoginUrl.js'
+  verifyOAuthLoginUrl,
+} from './utils/verifyOAuthLoginUrl.js'
 
 /**
  * Pluggable callback for obtaining an OAuth session ID. The web hook supplies
@@ -76,7 +76,7 @@ export async function authenticateOAuth(
   returnUrl.searchParams.set('oauth_success', 'true')
   returnUrl.searchParams.set('oauth_provider', provider)
 
-  // Fetch the Google OAuth URL from the backend, then verify its `nonce`
+  // Fetch the OAuth URL from the backend, then verify its `nonce`
   // matches sha256(pub_key) before handing it to any adapter. Audit finding
   // TOB-KMS-1: the backend is not a trusted party, so the SDK must bind the
   // OIDC flow to its own pubkey rather than trust whatever URL it receives.
@@ -88,7 +88,7 @@ export async function authenticateOAuth(
     publicKey,
     returnTo: returnUrl.toString(),
   })
-  verifyGoogleLoginUrl(oauthUrl, publicKey)
+  verifyOAuthLoginUrl(provider, oauthUrl, publicKey)
 
   const sessionId = await getSessionId({ oauthUrl, provider })
 

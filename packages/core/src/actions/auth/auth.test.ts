@@ -574,8 +574,33 @@ describe('getOAuthLoginUrl', () => {
     expect(params.get('return_to')).toBe('https://app.example.com/cb?foo=bar')
   })
 
-  it('throws on unsupported provider', async () => {
-    const mockClient = createMockClient()
+  it('GETs /oauth/x/login-url with correct query string', async () => {
+    let captured: { path: string; method: string | undefined } | undefined
+    const mockClient = createMockClient(async (params) => {
+      captured = { path: params.path, method: params.method }
+      return 'https://x.com/i/oauth2/authorize?nonce=abc'
+    })
+
+    const result = await getOAuthLoginUrl(mockClient, {
+      provider: 'x',
+      projectId: 'proj-123',
+      publicKey: '0xABCDEF1234567890',
+      returnTo: 'https://app.example.com/cb?foo=bar',
+    })
+
+    expect(result).toBe('https://x.com/i/oauth2/authorize?nonce=abc')
+    expect(captured?.method).toBe('GET')
+    const [path, qs] = (captured?.path ?? '').split('?')
+    expect(path).toBe('oauth/x/login-url')
+    const params = new URLSearchParams(qs)
+    expect(params.get('project_id')).toBe('proj-123')
+    expect(params.get('pub_key')).toBe('abcdef1234567890')
+    expect(params.get('return_to')).toBe('https://app.example.com/cb?foo=bar')
+  })
+
+  it('rejects an unknown provider without calling the backend', async () => {
+    const request = vi.fn()
+    const mockClient = createMockClient(request)
     await expect(
       getOAuthLoginUrl(mockClient, {
         provider: 'facebook' as 'google',
@@ -584,6 +609,7 @@ describe('getOAuthLoginUrl', () => {
         returnTo: 'https://app.example.com',
       }),
     ).rejects.toThrow('Unsupported OAuth provider: facebook')
+    expect(request).not.toHaveBeenCalled()
   })
 
   it('propagates transport errors', async () => {
