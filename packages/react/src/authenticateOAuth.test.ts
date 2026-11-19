@@ -10,10 +10,12 @@ vi.mock('@wagmi/core/actions', () => ({
 // Mocked so tests don't run real URL verification — they only need to assert
 // that the URL returned by `wallet.client.getOAuthLoginUrl` is verified before
 // it reaches the adapter. The verification itself is covered in
-// `utils/verifyGoogleLoginUrl.test.ts`.
-vi.mock('./utils/verifyGoogleLoginUrl.js', () => ({
+// `utils/verifyOAuthLoginUrl.test.ts`.
+vi.mock('./utils/verifyOAuthLoginUrl.js', () => ({
   verifyGoogleLoginUrl: vi.fn(),
-  OAUTH_PROVIDERS: { GOOGLE: 'google' },
+  verifyXLoginUrl: vi.fn(),
+  verifyOAuthLoginUrl: vi.fn(),
+  OAUTH_PROVIDERS: { GOOGLE: 'google', X: 'x' },
 }))
 
 const MOCK_OAUTH_URL =
@@ -208,10 +210,10 @@ describe('authenticateOAuth', () => {
   // verification failure: the web hook's `getSessionId` IS `getSessionIdWeb`,
   // and this test asserts the adapter is never invoked when verification throws.
   it('verifies the URL before invoking the adapter', async () => {
-    const { verifyGoogleLoginUrl } = await import(
-      './utils/verifyGoogleLoginUrl.js'
+    const { verifyOAuthLoginUrl } = await import(
+      './utils/verifyOAuthLoginUrl.js'
     )
-    vi.mocked(verifyGoogleLoginUrl).mockImplementationOnce(() => {
+    vi.mocked(verifyOAuthLoginUrl).mockImplementationOnce(() => {
       throw new Error('login URL nonce does not match public key hash')
     })
 
@@ -230,7 +232,8 @@ describe('authenticateOAuth', () => {
       }),
     ).rejects.toThrow(/nonce does not match public key hash/)
 
-    expect(verifyGoogleLoginUrl).toHaveBeenCalledWith(
+    expect(verifyOAuthLoginUrl).toHaveBeenCalledWith(
+      'google',
       MOCK_OAUTH_URL,
       '03abcdef123',
     )

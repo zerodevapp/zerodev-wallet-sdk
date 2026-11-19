@@ -27,12 +27,14 @@ export type { ZeroDevProvider } from './provider.js'
 export type { ZeroDevWalletState } from './store.js'
 export { createZeroDevWalletStore } from './store.js'
 export { isClientError, shouldRetryRequest } from './utils/query.js'
-export type { OAuthProvider } from './utils/verifyGoogleLoginUrl.js'
+export type { OAuthProvider } from './utils/verifyOAuthLoginUrl.js'
 export {
   generateOAuthNonce,
   OAUTH_PROVIDERS,
   verifyGoogleLoginUrl,
-} from './utils/verifyGoogleLoginUrl.js'
+  verifyOAuthLoginUrl,
+  verifyXLoginUrl,
+} from './utils/verifyOAuthLoginUrl.js'
 export type {
   WalletMode,
   ZeroDevWalletConnectorParams,

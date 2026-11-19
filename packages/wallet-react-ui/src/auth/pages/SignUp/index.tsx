@@ -17,6 +17,7 @@ import {
 } from './SolanaWalletConnect'
 import { SignUpWallet } from './Wallet'
 import { SignUpWalletConnect } from './WalletConnect'
+import { SignUpX } from './X'
 
 type SignUpRootProps = {
   children: ReactNode
@@ -188,6 +189,7 @@ function SignUpDefault(props: Omit<SignUpRootProps, 'children'>) {
       <SignUpPasskey />
       <SignUpDivider />
       <SignUpGoogle />
+      <SignUpX />
       <SignUpEmail />
     </SignUpRoot>
   )
@@ -197,6 +199,7 @@ export const SignUp = Object.assign(SignUpRoot, {
   Default: SignUpDefault,
   Passkey: SignUpPasskey,
   Google: SignUpGoogle,
+  X: SignUpX,
   Email: SignUpEmail,
   Wallet: SignUpWallet,
   WalletConnect: SignUpWalletConnect,
