@@ -187,6 +187,67 @@ export function CardGlow() {
   )
 }
 
+// The dark card. The design keeps the gradient ring and sets the card on it
+// as 80% ink with a 30px backdrop blur (the neutral-primary token of the
+// dark branded variant), so the ring's orange and blue show through as the
+// card's glow. The blur is Screen's, on the clipped card element; this
+// layer only tints. The blurred "Amorphic" raster the design lays over the lower
+// card at 20% opacity reads as a soft off-white haze rising from the bottom
+// edge (about 18% at the edge, gone by a third of the height, measured on
+// the design's render); it is drawn as one radial gradient, as CardGlow
+// reconstructs the light blob instead of shipping the raster.
+export function DarkCardBase() {
+  const id = useId()
+  const layers: RadialLayer[] = [
+    {
+      // The haze, centred just below the bottom edge like the raster.
+      id: `${id}-haze`,
+      matrix: [420, 0, 0, 560, 200, 856],
+      fillOpacity: 1,
+      stops: [
+        { offset: 0, color: '#F7F5F0', opacity: 0.2 },
+        { offset: 0.45, color: '#F7F5F0', opacity: 0.12 },
+        { offset: 1, color: '#F7F5F0', opacity: 0 },
+      ],
+    },
+    {
+      // The raster's warm side, bottom-right.
+      id: `${id}-warm`,
+      matrix: [260, 0, 0, 320, 380, 830],
+      fillOpacity: 1,
+      stops: [
+        { offset: 0, color: '#FAC8AC', opacity: 0.12 },
+        { offset: 1, color: '#FAC8AC', opacity: 0 },
+      ],
+    },
+  ]
+  return (
+    <>
+      <div
+        aria-hidden
+        className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:pointer-events-none"
+      />
+      <div className="zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:pointer-events-none zd:overflow-hidden">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 400 800"
+          preserveAspectRatio="none"
+          role="presentation"
+        >
+          {layers.map((layer) => (
+            <EllipticalRadial
+              key={layer.id}
+              layer={layer}
+              rect={{ x: 0, y: 0, width: 400, height: 800 }}
+            />
+          ))}
+        </svg>
+      </div>
+    </>
+  )
+}
+
 // The wrapper's gradient BORDER. Renders full-frame behind the inner card; the
 // card sits on top with a 6px margin so this gradient shows as the border ring.
 // Uses normalized cx/cy/rx/ry radial gradients (scale-transform) over a #130E0B

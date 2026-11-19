@@ -9,6 +9,7 @@ import { cn } from '../../utils/common'
 import { TOP_NAV_HEIGHT } from '../TopNav'
 import {
   CardGlow,
+  DarkCardBase,
   MultiRadialBackground,
   WrapperBorder,
 } from './MultiRadialBackground'
@@ -45,8 +46,8 @@ export function Screen({
   size?: 'sm' | 'md' | 'lg' | undefined
   style?: CSSProperties | undefined
   topNav?: ReactNode
-  /** Pinned bottom band — mirrors `topNav`. Same edge-to-edge, blurred
-   * background treatment; scrolled content passes behind it. */
+  /** Pinned bottom band — mirrors `topNav`: edge-to-edge, transparent;
+   * scrolled content stops at its top edge. */
   footer?: ReactNode
   overlay?: ReactNode
 }) {
@@ -79,11 +80,21 @@ export function Screen({
       style={style}
     >
       {/* Gradient border layer — fills the frame; the card on top has a 6px
-          margin so this shows as the border ring. */}
-      <WrapperBorder />
+        margin so this shows as the border ring. Brand art: hidden under
+        the plain brand. */}
+      <div className="zd:contents zd:plain:hidden">
+        <WrapperBorder />
+      </div>
+      {/* The plain band in its place: the frame-ring token, shown through
+        the same 6px margin. */}
+      <div
+        aria-hidden
+        className="zd:hidden zd:plain:block zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-frame-ring zd:pointer-events-none"
+      />
       {/* Inner card sits on top with a 6px margin, exposing the border ring.
-          Its own gradient (base + CardGlow) fills the card so the colour stays
-          vivid and distinct from the border. */}
+        Its own gradient (base + CardGlow) fills the card so the colour stays
+        vivid and distinct from the border. Under the plain brand the ring
+        becomes a flat band and the glow a flat frosted surface. */}
       <div
         ref={setOverlayContainer}
         className={cn(
@@ -94,6 +105,12 @@ export function Screen({
           // Horizontal padding lives on the scroll container so TopNav and
           // footer can span edge-to-edge without escape offsets.
           'zd:flex zd:flex-1 zd:flex-col zd:m-1.5 zd:overflow-hidden zd:rounded-4xl zd:relative',
+          // The translucent cards (plain, and branded dark) frost the ring
+          // they sit on. The blur lives here, on the clipped element: its
+          // clip-path makes it a backdrop root, so a blur on a descendant
+          // would see only the card's own layers and leave the ring behind
+          // it sharp. Branded light paints an opaque base, so it needs none.
+          'zd:plain:backdrop-blur-[30px] zd:dark:backdrop-blur-[30px]',
           contentClassName,
         )}
         // clip-path clips backdrop-filter to the rounded corners; plain
@@ -101,8 +118,23 @@ export function Screen({
         // children bleeding past the radius). Must match rounded-4xl (32px).
         style={{ clipPath: 'inset(0 round 32px)' }}
       >
-        <MultiRadialBackground />
-        <CardGlow />
+        <div className="zd:contents zd:plain:hidden">
+          {/* A drawing per mode, picked by the `zd:dark:` variant; the
+            ring above is the same in both. */}
+          <div className="zd:contents zd:dark:hidden">
+            <MultiRadialBackground />
+            <CardGlow />
+          </div>
+          <div className="zd:hidden zd:dark:contents">
+            <DarkCardBase />
+          </div>
+        </div>
+        {/* The plain surface: the neutral background token over the card's
+          blur — the design's "blur effect" card. */}
+        <div
+          aria-hidden
+          className="zd:hidden zd:plain:block zd:absolute zd:inset-0 zd:z-0 zd:rounded-4xl zd:bg-neutral-primary zd:pointer-events-none"
+        />
         <div className="zd:relative zd:z-10 zd:flex zd:flex-1 zd:flex-col zd:min-h-0">
           {topNav}
           <div
@@ -124,7 +156,7 @@ export function Screen({
             <div
               // Flex sibling so scrolled content stops at the footer's top
               // edge; internal px-4 keeps the content at the 16px inset.
-              className="zd:flex zd:shrink-0 zd:items-center zd:justify-center zd:px-4 zd:pb-4 zd:backdrop-blur-[15px]"
+              className="zd:flex zd:shrink-0 zd:items-center zd:justify-center zd:px-4 zd:pb-4"
               style={{
                 height: `calc(${FOOTER_HEIGHT / 4} * var(--zd-spacing))`,
               }}
@@ -135,10 +167,10 @@ export function Screen({
         </div>
       </div>
       {/* Overlay is a sibling of the inner card, not a child — so it escapes
-          the card's clip-path + horizontal padding, and its own absolute
-          `inset-0` fills the outer 400×810 frame. That lets the backdrop dim
-          the TopNav band too and lets a bottom sheet anchor to the outer
-          frame's bottom, not the padded inner card. */}
+        the card's clip-path + horizontal padding, and its own absolute
+        `inset-0` fills the outer 400×810 frame. That lets the backdrop dim
+        the TopNav band too and lets a bottom sheet anchor to the outer
+        frame's bottom, not the padded inner card. */}
       {overlay}
     </div>
   )

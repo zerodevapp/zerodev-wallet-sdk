@@ -17,10 +17,10 @@ export function PoweredBy({
         className,
       )}
     >
-      <Text>Powered by</Text>
+      <Text className="zd:text-neutral-secondary">Powered by</Text>
       <ZeroDevLogo
         variant="lockup"
-        tone="black"
+        tone="auto"
         className="zd:h-4.5 zd:w-auto"
         style={style}
       />

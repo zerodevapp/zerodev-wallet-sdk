@@ -13,11 +13,21 @@
 
 import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { connector } from '../helpers/connector-bar.js'
 import {
   announceMockWallets,
   MOCK_WALLET,
   MOCK_WALLET_TWO,
 } from '../helpers/mock-injected-wallet.js'
+import {
+  MOCK_SOLANA_WALLET,
+  registerMockSolanaWallets,
+} from '../helpers/mock-solana-wallet.js'
+import {
+  expectSignUpSheet,
+  openSignIn,
+  openWalletPreset,
+} from '../helpers/ui-login.js'
 
 /** The relay round-trip, plus a cold Next dev compile on the first spec. */
 const PAIRING_TIMEOUT_MS = 60_000
@@ -68,17 +78,15 @@ test.beforeEach(async ({ page }) => {
   throw new Error(detail)
 })
 
-/**
- * Opens the lab on preset 2 and waits for the sign-up screen.
- *
- * The URL is what a spec can set, and it writes through to storage, so this
- * also leaves the lab on preset 2 for anything that navigates afterwards.
- */
-async function openPresetTwo(page: Page): Promise<void> {
-  await page.goto('/?preset=preset-2')
-  await expect(page.getByText('Continue to your wallet')).toBeVisible({
-    timeout: PAIRING_TIMEOUT_MS,
-  })
+/** Opens the lab on preset 2 and waits for the sign-up screen. */
+async function openPresetTwo(
+  page: Page,
+  /** Offers the Solana rows beside the EVM ones. */
+  withSolana = false,
+): Promise<void> {
+  await openWalletPreset(page, { solana: withSolana })
+  await openSignIn(page, withSolana ? 'solana' : 'eip155')
+  await expectSignUpSheet(page)
 }
 
 /**
@@ -143,19 +151,23 @@ test.describe('Preset 2 — external wallets', () => {
   // the config's 120s default leaves no headroom above that.
   test.describe.configure({ timeout: 180_000 })
 
-  test('pinned MetaMask row pairs by deep link and offers the download page', async ({
+  // OKX is the pinned row, and is installed in no project here, so clicking it
+  // takes the handoff branch: no EIP-6963 announcement means pair by deep link
+  // rather than connect. An installed wallet would connect instead and never
+  // reach this sheet.
+  test('pinned OKX row pairs by deep link and offers the download page', async ({
     page,
   }) => {
     await openPresetTwo(page)
 
-    await page.getByRole('button', { name: /^MetaMask/ }).click()
+    await page.getByRole('button', { name: /^OKX Wallet/ }).click()
 
-    const sheet = page.getByRole('dialog', { name: 'Connect MetaMask' })
+    const sheet = page.getByRole('dialog', { name: 'Connect OKX Wallet' })
     await expect(sheet).toBeVisible()
 
-    await expectQrEncoding(sheet, 'https://metamask.app.link/wc?uri=')
+    await expectQrEncoding(sheet, 'okex://main/wc?uri=')
 
-    await expectDownloadLink(sheet, 'MetaMask', 'https://metamask.io/download')
+    await expectDownloadLink(sheet, 'OKX Wallet', 'https://okx.com/download')
   })
 
   test('a wallet chosen from More wallets pairs the same way', async ({
@@ -200,6 +212,57 @@ test.describe('Preset 2 — external wallets', () => {
     await expectQrEncoding(sheet, '')
   })
 
+  test('TC-02 — the Solana WalletConnect row offers a usable pairing', async ({
+    page,
+  }) => {
+    await openPresetTwo(page, true)
+
+    // Both doors are titled "WalletConnect"; only the badge tells them apart.
+    const solanaRow = page
+      .getByRole('button', { name: /^WalletConnect/ })
+      .filter({ hasText: 'SOLANA' })
+    await expect(solanaRow).toHaveCount(1)
+    await solanaRow.click()
+
+    const sheet = page.getByRole('dialog', { name: 'WalletConnect' })
+    await expect(sheet).toBeVisible()
+
+    // Scanning starts in a Solana wallet's own scanner, so the payload is the
+    // bare URI rather than a vendor deep link.
+    await expectQrEncoding(sheet, '')
+  })
+
+  test('the connector flag alone opens the Solana door with no Solana wallet list', async ({
+    page,
+  }) => {
+    await registerMockSolanaWallets(page, [MOCK_SOLANA_WALLET])
+    await openWalletPreset(page, { solana: true, namespaces: ['eip155'] })
+    await openSignIn(page, 'eip155')
+    await expectSignUpSheet(page)
+
+    // The door the connector flag opens. Both rows are titled "WalletConnect"
+    // and only the badge separates them, so the count carries as much of the
+    // assertion as the badge does.
+    const walletConnectRows = page.getByRole('button', {
+      name: /^WalletConnect/,
+    })
+    await expect(walletConnectRows).toHaveCount(2)
+    await expect(walletConnectRows.filter({ hasText: 'SOLANA' })).toHaveCount(1)
+
+    // Discovered and still not offered. Reading the bar first is what makes the
+    // missing row attributable to the wallet list's default `['eip155']` rather
+    // than to a mock that never registered.
+    await expect(connector(page, 'solana')).toHaveAttribute(
+      'data-wallets',
+      MOCK_SOLANA_WALLET.name,
+    )
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(`^${MOCK_SOLANA_WALLET.name}`),
+      }),
+    ).toHaveCount(0)
+  })
+
   test('an EIP-6963 announcement is discovered and listed as installed', async ({
     page,
   }) => {
@@ -218,8 +281,8 @@ test.describe('Preset 2 — external wallets', () => {
 
     await expect(row).not.toContainText(MOCK_WALLET_TWO.name)
 
-    const metamask = page.getByRole('button', { name: /^MetaMask/ })
-    await expect(metamask).toBeVisible()
-    await expect(metamask).not.toContainText('INSTALLED')
+    const okx = page.getByRole('button', { name: /^OKX Wallet/ })
+    await expect(okx).toBeVisible()
+    await expect(okx).not.toContainText('INSTALLED')
   })
 })

@@ -2,11 +2,12 @@
 
 import {ZeroDevLogo} from '@zerodev/react-ui'
 import {ConnectWallet, SignUp, useAuth, useZeroDevWalletKit} from '@zerodev/wallet-react-ui'
-import {KeyRound, Layers, Loader2, Sparkles} from 'lucide-react'
-import {useRouter} from 'next/navigation'
-import {Suspense, useEffect, useState} from 'react'
+import {CircleDashed, KeyRound, Layers, Loader2, Moon, Sparkles, Sun} from 'lucide-react'
+import {useRouter, useSearchParams} from 'next/navigation'
+import {Suspense, useCallback, useEffect, useRef, useState} from 'react'
 import {useAccount, useConnect} from 'wagmi'
 import { AppHeader } from './components/AppHeader'
+import { cn } from './lib/utils'
 import { Playground } from './components/playground/Playground'
 import {
   DEFAULT_ITEMS,
@@ -37,8 +38,34 @@ export default function LandingPage() {
   )
 }
 
+// The four presets, `<brand>-<mode>`.
+type ThemeMode = 'light' | 'dark'
+type ThemeBrand = 'branded' | 'plain'
+type ThemeName = `${ThemeBrand}-${ThemeMode}`
+const THEME_NAMES: readonly ThemeName[] = [
+  'branded-light',
+  'plain-light',
+  'branded-dark',
+  'plain-dark',
+]
+
 function LandingPageInner() {
   const router = useRouter()
+  // `?theme=plain-light` picks the starting preset; the switches above the
+  // card move along the two axes of the grid, mode and brand.
+  const themeParam = useSearchParams().get('theme')
+  const [theme, setTheme] = useState<ThemeName>(
+    () => THEME_NAMES.find((name) => name === themeParam) ?? 'branded-light',
+  )
+  const [brand, mode] = theme.split('-') as [ThemeBrand, ThemeMode]
+  const setMode = (next: ThemeMode) => setTheme(`${brand}-${next}`)
+  const setBrand = (next: ThemeBrand) => setTheme(`${next}-${mode}`)
+  // The kit reads its theme from these two attributes on <html>.
+  useEffect(() => {
+    const [brand, mode] = theme.split('-')
+    document.documentElement.dataset.zdBrand = brand
+    document.documentElement.dataset.zdMode = mode
+  }, [theme])
 
   const [items, setItems] = useState<PlaygroundItem[]>(DEFAULT_ITEMS)
   const [settings, setSettings] = useState<PlaygroundSettings>(DEFAULT_SETTINGS)
@@ -70,12 +97,44 @@ function LandingPageInner() {
   // flight, or landing back here right after logout — show the loader instead
   // of a blank column. Keeps the login <-> dashboard transition smooth in
   // both directions.
+  // Once a card has rendered (its height is recorded below), a later
+  // `step === null` is a closed card waiting for wagmi to settle, not the
+  // initial probe: keep the page and hold the card's slot instead of
+  // flashing the full-page loader on the way to the Reconnect fallback.
+  const [cardHeight, setCardHeight] = useState<number | null>(null)
+  const cardShown = cardHeight !== null
   const showLoading =
-    isRedirecting || (!isConnected && authStep === null && !showReconnect)
+    isRedirecting ||
+    (!isConnected && authStep === null && !showReconnect && !cardShown)
+  // The slot shows something other than the card: the Reconnect fallback,
+  // or a spinner while the dismissed connect settles.
+  const holdSlot = showReconnect || (authStep === null && cardShown)
 
   const handleReconnect = () => {
     if (connectors[0]) connect({connector: connectors[0]})
   }
+
+  // The card slot keeps the height of the last rendered wallet card while
+  // the Reconnect fallback shows, so closing the card does not resize the
+  // column and shift the theme switch and footnote around it.
+  const holdSlotRef = useRef(holdSlot)
+  holdSlotRef.current = holdSlot
+  const slotObserver = useRef<ResizeObserver | null>(null)
+  // A callback ref: the slot mounts after the loading screen, so an effect
+  // keyed on state would miss it.
+  const cardSlotRef = useCallback((slot: HTMLDivElement | null) => {
+    slotObserver.current?.disconnect()
+    slotObserver.current = null
+    if (!slot) return
+    const observer = new ResizeObserver(([entry]) => {
+      // Only the card's own height counts, not the held one.
+      if (entry && !holdSlotRef.current) {
+        setCardHeight(entry.contentRect.height)
+      }
+    })
+    observer.observe(slot)
+    slotObserver.current = observer
+  }, [])
 
   useEffect(() => {
     localStorage.removeItem('zd:loggedOut')
@@ -152,8 +211,34 @@ function LandingPageInner() {
         </section>
 
         <div className="mx-auto flex w-full flex-col items-center lg:mx-0">
+          <div className="mb-4 flex items-center gap-2">
+            <PillSwitch
+              checked={mode === 'dark'}
+              onToggle={() => setMode(mode === 'dark' ? 'light' : 'dark')}
+              label="Dark mode"
+              offTitle="Light mode"
+              onTitle="Dark mode"
+              dark={mode === 'dark'}
+              offIcon={Sun}
+              onIcon={Moon}
+            />
+            <PillSwitch
+              checked={brand === 'plain'}
+              onToggle={() => setBrand(brand === 'plain' ? 'branded' : 'plain')}
+              label="Non-branded"
+              offTitle="Branded"
+              onTitle="Non-branded"
+              dark={mode === 'dark'}
+              offIcon={Sparkles}
+              onIcon={CircleDashed}
+            />
+          </div>
+          <div
+            ref={cardSlotRef}
+            className="flex w-full max-w-[360px] flex-col items-center justify-center"
+            style={holdSlot ? {height: cardHeight ?? 729} : undefined}
+          >
           {showReconnect ? (
-            <div className="flex h-[729px] w-[360px] items-center justify-center">
               <button
                 type="button"
                 onClick={handleReconnect}
@@ -161,14 +246,15 @@ function LandingPageInner() {
               >
                 Reconnect
               </button>
-            </div>
+          ) : holdSlot ? (
+              <Loader2 className="h-8 w-8 animate-spin text-[var(--muted)]" />
           ) : (
               // Live preview of the playground's composition. With no units
               // selected, renderSignUp is omitted and ConnectWallet falls back
               // to <SignUp.Default />.
               <ConnectWallet
                 size="md"
-                logo={<ZeroDevLogo variant="mark" tone="color" className="zd:h-8 zd:w-auto" />}
+                logo={<ZeroDevLogo variant="lockup" tone="auto" className="zd:h-8 zd:w-auto" />}
                 renderSignUp={
                   items.length === 0
                     ? undefined
@@ -184,6 +270,7 @@ function LandingPageInner() {
                 }
               />
           )}
+          </div>
 
           <p className="mt-3 max-w-[360px] text-center text-xs leading-5 text-[var(--muted)]">
             By signing up for ZeroDev Wallet Demo, you agree to our{' '}
@@ -253,6 +340,147 @@ function renderSignUpItem(item: PlaygroundItem) {
     case 'divider':
       return <SignUp.Divider key={item.key} />
   }
+}
+
+/**
+ * Sliding pill switch for one axis of the theme grid. The knob carries the
+ * active icon and slides to its side of the track; the other icon stays
+ * ghosted behind it so both options read at a glance. `dark` dresses the
+ * track for the dark mode, whichever axis it switches. One tooltip above
+ * the track names the option under the pointer and glides between the two
+ * halves as the pointer crosses; keyboard focus names the active one.
+ */
+function PillSwitch({
+  checked,
+  onToggle,
+  label,
+  offTitle,
+  onTitle,
+  dark,
+  offIcon: OffIcon,
+  onIcon: OnIcon,
+}: {
+  checked: boolean
+  onToggle: () => void
+  label: string
+  offTitle: string
+  onTitle: string
+  dark: boolean
+  offIcon: typeof Sun
+  onIcon: typeof Sun
+}) {
+  // The half under the pointer, or the active half under keyboard focus;
+  // null hides the tooltip. `side` keeps the last half so the label stays
+  // put while the tooltip fades out.
+  const [pointerSide, setPointerSide] = useState<'off' | 'on' | null>(null)
+  const [focusVisible, setFocusVisible] = useState(false)
+  const shownSide = pointerSide ?? (focusVisible ? (checked ? 'on' : 'off') : null)
+  const [side, setSide] = useState<'off' | 'on'>(checked ? 'on' : 'off')
+  if (shownSide && shownSide !== side) setSide(shownSide)
+  const shown = shownSide !== null
+  // Showing takes two commits: the position lands while the tooltip is
+  // still hidden, that style is flushed, and only then does it fade in. A
+  // transition runs from the last committed style, so the label appears
+  // where it belongs instead of sliding over from where it last was.
+  const tipRef = useRef<HTMLSpanElement>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    if (!shown) {
+      setVisible(false)
+      return
+    }
+    void tipRef.current?.offsetLeft
+    setVisible(true)
+  }, [shown])
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onToggle}
+      onPointerMove={(e) => {
+        // Over the tooltip itself the side stays: the label is hoverable
+        // (so it can be read under a magnifier) without gliding away.
+        if (tipRef.current?.contains(e.target as Node)) return
+        const r = e.currentTarget.getBoundingClientRect()
+        setPointerSide(e.clientX - r.left < r.width / 2 ? 'off' : 'on')
+      }}
+      onPointerLeave={() => setPointerSide(null)}
+      onFocus={(e) => setFocusVisible(e.currentTarget.matches(':focus-visible'))}
+      onBlur={() => setFocusVisible(false)}
+      className={cn(
+        'relative h-9 w-[68px] shrink-0 cursor-pointer rounded-full border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-warm)]',
+        dark
+          ? 'border-[#2a2420] bg-[#19110b]'
+          : 'border-[var(--border-warm)] bg-[var(--surface-warm)]',
+      )}
+    >
+      {/* Ghosted icons on the track, one per side. */}
+      <OffIcon
+        aria-hidden
+        className={cn(
+          'absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-opacity duration-300',
+          checked ? (dark ? 'text-[#f7f5f0] opacity-40' : 'text-[var(--muted)] opacity-50') : 'opacity-0',
+        )}
+      />
+      <OnIcon
+        aria-hidden
+        className={cn(
+          'absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-opacity duration-300',
+          checked ? 'opacity-0' : dark ? 'text-[#f7f5f0] opacity-40' : 'text-[var(--muted)] opacity-50',
+        )}
+      />
+      {/* The knob, carrying the active icon. */}
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-[3px] left-[3px] grid h-7 w-7 place-items-center rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[transform,background-color] duration-300 ease-[cubic-bezier(.2,.8,.2,1)]',
+          checked ? 'translate-x-[34px]' : 'translate-x-0',
+          dark ? 'bg-[#f7f5f0]' : 'bg-white',
+        )}
+      >
+        {checked ? (
+          <OnIcon
+            className={cn('h-4 w-4', dark ? 'text-[#19110b]' : 'text-[var(--accent-warm)]')}
+            strokeWidth={2.25}
+          />
+        ) : (
+          <OffIcon
+            className={cn('h-4 w-4', dark ? 'text-[#19110b]' : 'text-[var(--accent-warm)]')}
+            strokeWidth={2.25}
+          />
+        )}
+      </span>
+      {/* The tooltip, centred over the named half. Its left edge glides
+        between the halves; opacity and a short rise handle show and hide. */}
+      <span
+        ref={tipRef}
+        role="tooltip"
+        aria-hidden={!visible}
+        // Reading the label must not flip the switch.
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          'absolute bottom-full z-10 mb-3 -translate-x-1/2 cursor-default whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-[0_4px_12px_rgba(0,0,0,0.18)] duration-250 ease-[cubic-bezier(.2,.8,.2,1)]',
+          'after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-[5px] after:border-transparent',
+          // An invisible bridge over the gap to the track, so the pointer can
+          // travel from the switch onto the label without leaving the pill.
+          "before:absolute before:inset-x-0 before:top-full before:h-3 before:content-['']",
+          side === 'off' ? 'left-[17px]' : 'left-[51px]',
+          // The position glides only while the tooltip shows; hidden, it
+          // snaps, so the next show starts in place.
+          visible
+            ? 'pointer-events-auto translate-y-0 opacity-100 transition-[left,opacity,transform]'
+            : 'pointer-events-none translate-y-1 opacity-0 transition-[opacity,transform]',
+          // A page element, so it keeps the page's ink in both modes.
+          'bg-[var(--ink)] text-white after:border-t-[var(--ink)]',
+        )}
+      >
+        {side === 'off' ? offTitle : onTitle}
+      </span>
+    </button>
+  )
 }
 
 function DemoStep({

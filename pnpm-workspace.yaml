@@ -74,3 +74,10 @@ auditConfig:
     # see above) and at ^3 by @eslint/eslintrc in qa-lab-testing; both are dev
     # tooling. Remove once those upstreams move to minimatch >=11.0.1.
     - GHSA-g3hv-75wg-m249
+    # picomatch ReDoS through single-branch repeated extglobs (high,
+    # GHSA-fc5q-39xc-vjpf, published 2026-10-19). No patched release: the
+    # latest picomatch (4.0.7, 2026-08-24) is inside the vulnerable range.
+    # Development tooling only: @changesets/cli, lint-staged and vite match
+    # the repo's own glob patterns, never user input, so there is nothing to
+    # feed the regex. Remove this entry once picomatch ships a fix (>4.0.7).
+    - GHSA-fc5q-39xc-vjpf

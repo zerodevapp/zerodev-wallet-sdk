@@ -43,10 +43,6 @@ vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep: vi.fn() }),
 }))
 
-vi.mock('../../components/BlobAnimation', () => ({
-  BlobAnimation: () => null,
-}))
-
 describe('SignUpGoogle terms gate', () => {
   it('blocks the OAuth attempt until terms are accepted', () => {
     render(
