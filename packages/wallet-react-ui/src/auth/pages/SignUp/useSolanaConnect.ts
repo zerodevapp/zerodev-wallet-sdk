@@ -35,7 +35,7 @@ export function useSolanaConnect() {
     try {
       // Solana only: a multichain wallet (MetaMask) authorises its EVM side
       // in the same prompt, and wagmi would adopt it on its own.
-      await withoutEvmAdoption(wagmiConfig, wallet.name, () =>
+      await withoutEvmAdoption(wagmiConfig, wallet, () =>
         store.getState().solana.connect(wallet),
       )
       goToStep(null)

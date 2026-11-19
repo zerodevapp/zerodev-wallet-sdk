@@ -1,7 +1,7 @@
 import { Badge, ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useLayoutEffect, useState } from 'react'
 import { useConnections, useConnectors } from 'wagmi'
-import { equalsIgnoreCase } from '../../../shared/utils/common'
+import { isSameWallet } from '../../../solana/evmAdoptionGuard'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import { useAuth } from '../../hooks/useAuth'
@@ -165,8 +165,18 @@ function SignUpWalletMultichain({
     useSolanaConnect()
   const [choosing, setChoosing] = useState(false)
 
-  const solana = solanaWallets.find((w) =>
-    equalsIgnoreCase(w.name, wallet.name),
+  // Only an announced EVM provider joins the Solana side in the choice: a
+  // configured SDK connector or the pairing sheet is not "installed". A
+  // host that left EVM out of the namespaces gets no EVM side at all.
+  const announcedConnector = connectors.find((c) => announcesWallet(c, wallet))
+  const announced = withEvm ? announcedConnector : undefined
+  // The Solana registration is matched against the guide entry and against
+  // the live announcement: the extension's own name and icon are what its
+  // Wallet Standard registration shares, the guide's static ones may not be.
+  const solana = solanaWallets.find(
+    (w) =>
+      isSameWallet(w, wallet) ||
+      (!!announcedConnector && isSameWallet(w, announcedConnector)),
   )
   if (!solana) {
     return withEvm ? (
@@ -175,13 +185,6 @@ function SignUpWalletMultichain({
       <WalletDownloadRow wallet={wallet} />
     )
   }
-
-  // Only an announced EVM provider joins the Solana side in the choice: a
-  // configured SDK connector or the pairing sheet is not "installed". A
-  // host that left EVM out of the namespaces gets no EVM side at all.
-  const announced = withEvm
-    ? connectors.find((c) => announcesWallet(c, wallet))
-    : undefined
   const isEvmConnected =
     !!announced && connections.some((c) => c.connector.uid === announced.uid)
   const isSolanaConnected = connectedSolanaName === solana.name

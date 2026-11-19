@@ -171,6 +171,19 @@ beforeEach(() => {
 })
 
 describe('SignUp.Wallet with namespaces eip155 + solana', () => {
+  it('finds the Solana side by the announced icon when the names differ', () => {
+    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}` as const
+    connectors = [{ ...announced('io.metamask', 'MetaMask'), icon: logo }]
+    solanaWallets = [{ ...solanaWallet('MM').wallet, icon: logo }]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="metamask" namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('EVM')).toBeTruthy()
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+  })
+
   it('asks which chain to connect when the wallet is installed on both sides', async () => {
     connectors = [announced('io.metamask', 'MetaMask')]
     const metamask = solanaWallet('MetaMask')

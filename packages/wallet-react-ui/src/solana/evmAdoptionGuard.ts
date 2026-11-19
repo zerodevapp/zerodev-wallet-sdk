@@ -1,4 +1,5 @@
 import type { Config } from 'wagmi'
+import { WALLET_GUIDE } from '../auth/walletGuide'
 import { equalsIgnoreCase } from '../shared/utils/common'
 
 /** How long after the Solana connect settles to keep watching for a late
@@ -10,6 +11,93 @@ const GRACE_MS = 1500
  * ran to the end before the guard mounted. It otherwise begins within
  * microtasks of wagmi's mount. */
 const RECONNECT_START_MS = 1000
+
+/**
+ * One side of a multichain wallet, as the other side needs to recognise it:
+ * the display name, and the icon when the registration carries one. A bare
+ * string is the name alone (a saved record from before icons were kept).
+ */
+export type WalletRef = string | { name: string; icon?: string | undefined }
+
+const refOf = (ref: WalletRef) =>
+  typeof ref === 'string' ? { name: ref } : ref
+
+/**
+ * Whether `side` (an EIP-6963 connector or announcement, a Wallet Standard
+ * wallet, a sheet row) is the same extension as `ref`. The name is the first
+ * key, case-insensitively, because that is what a wallet calls itself on
+ * both registries. A wallet that spells its name differently on the two
+ * sides (ZER-1292) is caught by the second: both registrations ship the
+ * extension's logo, and two different wallets shipping byte-identical data
+ * URIs is not a case to design for. A name mismatch with no icon on either
+ * side still reads as two wallets unless the wallet guide pairs the two
+ * names (`solanaName`), the third key, which is how Trust ("Trust Wallet"
+ * on EVM, "Trust" on Solana) reads as one.
+ */
+export function isSameWallet(
+  side: { name: string; icon?: string | undefined },
+  ref: WalletRef,
+): boolean {
+  const target = refOf(ref)
+  if (
+    equalsIgnoreCase(
+      canonicalWalletName(side.name),
+      canonicalWalletName(target.name),
+    )
+  ) {
+    return true
+  }
+  return (
+    hasIconPayload(side.icon) &&
+    hasIconPayload(target.icon) &&
+    side.icon === target.icon
+  )
+}
+
+/**
+ * The guide's name for a wallet that spells itself differently on its two
+ * registries (`solanaName` on the guide entry), so "Trust" and "Trust
+ * Wallet" compare equal; any other name is its own key.
+ */
+function canonicalWalletName(name: string): string {
+  const entry = WALLET_GUIDE.find(
+    (w) =>
+      w.solanaName !== undefined &&
+      (equalsIgnoreCase(w.name, name) || equalsIgnoreCase(w.solanaName, name)),
+  )
+  return entry ? entry.name : name
+}
+
+/**
+ * An icon identifies a wallet only when it carries an image: a data URI
+ * whose payload is a few characters or none (an empty SVG, a mock's
+ * placeholder) is shared by anything that has no logo, and would merge
+ * unrelated wallets.
+ */
+function hasIconPayload(icon: string | undefined): icon is string {
+  if (!icon?.startsWith('data:')) return false
+  const comma = icon.indexOf(',')
+  return comma !== -1 && icon.length - comma - 1 >= 64
+}
+
+/**
+ * Whether `connector` is an installed extension's EVM provider (an EIP-6963
+ * announcement, which wagmi surfaces as an injected-type connector with its
+ * rdns as id). Only that can share an extension with a Wallet Standard
+ * wallet: a WalletConnect session, an SDK connector (`metaMask()`,
+ * `coinbaseWallet()`) or the generic `injected()` connector named like one
+ * is a separate session with a disconnect of its own.
+ */
+export function isInstalledEvmConnector(connector: {
+  id: string
+  type: string
+}): boolean {
+  return (
+    connector.type === 'injected' &&
+    connector.id !== 'injected' &&
+    connector.id !== 'zerodev-wallet'
+  )
+}
 
 /** Connector uids the host is connecting on purpose right now. */
 const pendingExplicitEvmConnections = new Set<string>()
@@ -143,23 +231,21 @@ export async function detachEvmConnection(
 }
 
 /**
- * The injected (EIP-6963) connectors wagmi has for `walletName` that hold no
+ * The injected (EIP-6963) connectors wagmi has for `wallet` that hold no
  * connection: the EVM side a multichain wallet authorised alongside Solana,
  * which nothing asked wagmi to use.
  */
-function dormantEvmConnectors(config: Config, walletName: string) {
+function dormantEvmConnectors(config: Config, wallet: WalletRef) {
   return config.connectors.filter(
     (c) =>
-      c.type === 'injected' &&
-      c.id !== 'injected' &&
-      c.id !== 'zerodev-wallet' &&
-      equalsIgnoreCase(c.name, walletName) &&
+      isInstalledEvmConnector(c) &&
+      isSameWallet(c, wallet) &&
       !config.state.connections.has(c.uid),
   )
 }
 
 /**
- * Keep wagmi's reload reconnect from adopting the EVM side of `walletName`
+ * Keep wagmi's reload reconnect from adopting the EVM side of `wallet`
  * while nothing is connected through it. wagmi reconnects every connector
  * whose `isAuthorized()` passes, and an injected connector passes as soon as
  * the wallet grants accounts, which a multichain wallet does for EVM in the
@@ -167,9 +253,9 @@ function dormantEvmConnectors(config: Config, walletName: string) {
  */
 async function shimDormantEvmSide(
   config: Config,
-  walletName: string,
+  wallet: WalletRef,
 ): Promise<void> {
-  const ids = new Set(dormantEvmConnectors(config, walletName).map((c) => c.id))
+  const ids = new Set(dormantEvmConnectors(config, wallet).map((c) => c.id))
   // Under `ssr`, wagmi turns the announced EIP-6963 providers into connectors
   // only in its mount effect, right before its reconnect sweep: at mount the
   // connector may not exist yet, but its id (the rdns) is known, and the
@@ -180,7 +266,7 @@ async function shimDormantEvmSide(
     [...config.state.connections.values()].map(({ connector }) => connector.id),
   )
   for (const { info } of config._internal.mipd?.getProviders() ?? []) {
-    if (!equalsIgnoreCase(info.name, walletName)) continue
+    if (!isSameWallet(info, wallet)) continue
     if (!connectedIds.has(info.rdns)) ids.add(info.rdns)
   }
   for (const id of ids) {
@@ -190,15 +276,15 @@ async function shimDormantEvmSide(
 
 /**
  * Take wagmi's self-connect listener off the dormant EVM connectors of
- * `walletName`. A reload re-arms it on every injected connector, and the
+ * `wallet`. A reload re-arms it on every injected connector, and the
  * connector's `accountsChanged` handler adopts the wallet as long as the
  * listener is there (and deletes the `disconnected` shim as it does). With it
  * gone the handler emits a plain `change` instead, which wagmi ignores for a
  * connector it holds no connection for. An explicit EVM connect does not
  * need the listener: wagmi's connect action attaches its own.
  */
-export function muteDormantEvmSide(config: Config, walletName: string): void {
-  for (const connector of dormantEvmConnectors(config, walletName)) {
+export function muteDormantEvmSide(config: Config, wallet: WalletRef): void {
+  for (const connector of dormantEvmConnectors(config, wallet)) {
     connector.emitter.off('connect', config._internal.events.connect)
   }
 }
@@ -267,17 +353,43 @@ export function readEvmConnectionsAtLoad(
 }
 
 /**
- * Whether `walletName` was connected on the EVM side when the page loaded,
- * per the record `readEvmConnectionsAtLoad` took. No record reads as not
- * connected: the guard then stands in, which costs the host nothing when
- * the wallet is indeed dormant.
+ * The icon of the EVM connector with `id`: off the connector when wagmi has
+ * set it up, else off the EIP-6963 announcement it will be made from. Under
+ * `ssr` the announcements are turned into connectors in wagmi's mount
+ * effect, after the persisted state is read back, so a connector can be
+ * looked up before it exists.
+ */
+function evmConnectorIcon(config: Config, id: string): string | undefined {
+  const connector = config.connectors.find((c) => c.id === id)
+  if (connector?.icon) return connector.icon
+  return config._internal.mipd
+    ?.getProviders()
+    .find(({ info }) => info.rdns === id)?.info.icon
+}
+
+/**
+ * Whether `wallet` was connected on the EVM side when the page loaded, per
+ * the record `readEvmConnectionsAtLoad` took. The record keeps a
+ * connector's id and name only; its icon is read off the connector of that
+ * id (or its announcement, see `evmConnectorIcon`), so the match uses the
+ * same key as everywhere else. No record reads as not connected: the guard
+ * then stands in, which costs the host nothing when the wallet is indeed
+ * dormant.
  */
 async function wasConnectedAtLoad(
-  walletName: string,
+  config: Config,
+  wallet: WalletRef,
   restored: EvmConnectionsAtLoad,
 ): Promise<boolean> {
   const list = await restored
-  return list?.some((c) => equalsIgnoreCase(c.name, walletName)) ?? false
+  return (
+    list?.some((c) =>
+      isSameWallet(
+        { name: c.name, icon: evmConnectorIcon(config, c.id) },
+        wallet,
+      ),
+    ) ?? false
+  )
 }
 
 /**
@@ -315,7 +427,7 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
 }
 
 /**
- * Keep the EVM side of `walletName`, a multichain wallet whose Solana
+ * Keep the EVM side of `wallet`, a multichain wallet whose Solana
  * session is being restored after a reload, from coming back on its own.
  * Mount with the saved Solana wallet's name; returns the cleanup.
  *
@@ -349,28 +461,29 @@ function afterReconnectSettles(config: Config, fn: () => void): () => void {
  */
 export function guardDormantEvmSide(
   config: Config,
-  walletName: string,
+  wallet: WalletRef,
   restored: EvmConnectionsAtLoad,
 ): () => void {
   let stopped = false
   let stopWatch: (() => void) | undefined
   let stopConnectors: (() => void) | undefined
   const guard = async () => {
-    if (await wasConnectedAtLoad(walletName, restored)) return
+    if (await wasConnectedAtLoad(config, wallet, restored)) return
     if (stopped) return
-    muteDormantEvmSide(config, walletName)
-    await shimDormantEvmSide(config, walletName)
+    muteDormantEvmSide(config, wallet)
+    await shimDormantEvmSide(config, wallet)
     if (stopped) return
     stopConnectors = config._internal.connectors.subscribe(() => {
-      muteDormantEvmSide(config, walletName)
-      shimDormantEvmSide(config, walletName).catch(() => {})
+      muteDormantEvmSide(config, wallet)
+      shimDormantEvmSide(config, wallet).catch(() => {})
     })
     if (sweptConfigs.has(config)) return
     stopWatch = afterReconnectSettles(config, () => {
       sweptConfigs.add(config)
-      for (const [uid, connection] of config.state.connections) {
+      for (const [uid, { connector }] of config.state.connections) {
         if (isExplicitEvmConnection(config, uid)) continue
-        if (!equalsIgnoreCase(connection.connector.name, walletName)) continue
+        if (!isInstalledEvmConnector(connector)) continue
+        if (!isSameWallet(connector, wallet)) continue
         // The state-level drop is synchronous; only the storage writes
         // after it can fail, and a failed shim costs nothing here.
         detachEvmConnection(config, uid).catch(() => {})
@@ -395,9 +508,9 @@ export function guardDormantEvmSide(
  */
 export async function revokeDormantEvmSide(
   config: Config,
-  walletName: string,
+  wallet: WalletRef,
 ): Promise<void> {
-  for (const connector of dormantEvmConnectors(config, walletName)) {
+  for (const connector of dormantEvmConnectors(config, wallet)) {
     try {
       await connector.disconnect()
     } catch {
@@ -427,7 +540,7 @@ export async function revokeDormantEvmSide(
  */
 export async function withoutEvmAdoption<T>(
   config: Config,
-  walletName: string,
+  wallet: WalletRef,
   run: () => Promise<T>,
 ): Promise<T> {
   const before = new Set(config.state.connections.keys())
@@ -441,9 +554,12 @@ export async function withoutEvmAdoption<T>(
       before.add(uid)
       return
     }
-    const connection = config.state.connections.get(uid)
-    if (!connection) return
-    if (!equalsIgnoreCase(connection.connector.name, walletName)) return
+    const connector = config.state.connections.get(uid)?.connector
+    if (!connector) return
+    // Only an extension adopts a site on its own; a session the host opened
+    // through another kind of connector meanwhile is its own.
+    if (!isInstalledEvmConnector(connector)) return
+    if (!isSameWallet(connector, wallet)) return
     detachFromWagmiState(config, uid)
   }
 
@@ -469,7 +585,7 @@ export async function withoutEvmAdoption<T>(
   } finally {
     sweep()
     // Only after a connect: a declined prompt grants nothing to hold back.
-    if (connected) await shimDormantEvmSide(config, walletName)
+    if (connected) await shimDormantEvmSide(config, wallet)
     setTimeout(() => {
       sweep()
       unsubscribe()

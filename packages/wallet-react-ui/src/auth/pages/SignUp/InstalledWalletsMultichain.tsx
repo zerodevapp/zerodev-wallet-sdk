@@ -2,6 +2,7 @@ import { ListItem, ListItemChevron } from '@zerodev/react-ui'
 import { useState } from 'react'
 import { useConnections } from 'wagmi'
 import { equalsIgnoreCase } from '../../../shared/utils/common'
+import { isSameWallet } from '../../../solana/evmAdoptionGuard'
 import { useSolanaAutoReconnect } from '../../../solana/hooks/useSolanaAutoReconnect'
 import { useSolanaWallets } from '../../../solana/hooks/useSolanaWallets'
 import type { SolanaStandardWallet } from '../../../solana/types'
@@ -66,13 +67,18 @@ export function InstalledWalletsMultichain({
 
   const installedEvmRows = useInstalledEvmRows(excludeWalletIds)
   const evmRows = withEvm ? installedEvmRows : []
-  // A wallet pinned through `SignUp.Wallet` is excluded by guide id on the
-  // EVM side; its Solana registration carries the guide name instead. The
-  // pinned row offers that side itself (`namespaces` on `SignUp.Wallet`).
-  const registeredNames = registeredWallets.flatMap((id) => {
-    const entry = WALLET_GUIDE.find((w) => w.id === id)
-    return entry ? [entry.name] : []
-  })
+  // A wallet pinned through `SignUp.Wallet`, or excluded by the host, is
+  // dropped by guide id on the EVM side; its Solana registration is matched
+  // like the two sides of one wallet are (name, paired name or icon), with
+  // the guide entry standing in for an id. The pinned row offers that side
+  // itself (`namespaces` on `SignUp.Wallet`).
+  const isExcludedSolana = (wallet: SolanaStandardWallet) =>
+    [...registeredWallets, ...excludeWalletIds].some((id) => {
+      const entry = WALLET_GUIDE.find((w) => w.id === id)
+      return entry
+        ? isSameWallet(wallet, entry)
+        : equalsIgnoreCase(id, wallet.name)
+    })
 
   const rows: Row[] = evmRows.map((evm) => ({
     key: evm.connector.uid,
@@ -85,12 +91,15 @@ export function InstalledWalletsMultichain({
 
   if (withSolana) {
     for (const wallet of solanaWallets) {
-      if (excludeWalletIds.some((id) => equalsIgnoreCase(id, wallet.name))) {
-        continue
-      }
-      if (registeredNames.some((n) => equalsIgnoreCase(n, wallet.name)))
-        continue
-      const merged = rows.find((r) => equalsIgnoreCase(r.name, wallet.name))
+      if (isExcludedSolana(wallet)) continue
+      // The row shows the guide's name and icon for a guide wallet; the
+      // live connector keeps the announced ones, which are what the Solana
+      // registration of the same extension matches.
+      const merged = rows.find(
+        (r) =>
+          isSameWallet(r, wallet) ||
+          (!!r.evm && isSameWallet(r.evm.connector, wallet)),
+      )
       if (merged) {
         merged.solana = wallet
         merged.icon ??= wallet.icon
