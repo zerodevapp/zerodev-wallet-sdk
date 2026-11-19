@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   base: './',
@@ -28,10 +28,5 @@ export default defineConfig({
     },
     sourcemap: true,
     emptyOutDir: false,
-  },
-  test: {
-    globals: true,
-    environment: 'happy-dom',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 })
