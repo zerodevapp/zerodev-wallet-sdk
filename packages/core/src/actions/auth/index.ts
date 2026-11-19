@@ -63,3 +63,8 @@ export {
   type RegisterWithPasskeyReturnType,
   registerWithPasskey,
 } from './registerWithPasskey.js'
+export {
+  type VerifyOTPParameters,
+  type VerifyOTPReturnType,
+  verifyOTP,
+} from './verifyOTP.js'

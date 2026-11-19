@@ -385,10 +385,10 @@ export async function createZeroDevWalletCore(
             const data = await client.loginWithStamp({
               targetPublicKey,
               projectId,
-              // Stamp-login is signed against the Turnkey parent org; the backend
-              // resolves the sub-org from the stamped credential. Signing the
-              // sub-org here makes the relayed payload's org mismatch the
-              // signature → Turnkey SIGNATURE_INVALID.
+              // A session-key login names the Turnkey parent org, which the
+              // backend resolves to the sub-org of the stamped credential; the
+              // org is signed into the stamp and sent in the body, and the two
+              // must match. Only an OTP login names the sub-org.
               organizationId: await resolveOrganizationId(),
               stampWith: 'apiKey',
             })
@@ -483,8 +483,8 @@ export async function createZeroDevWalletCore(
                   const loginData = await client.loginWithStamp({
                     projectId,
                     targetPublicKey,
-                    // Sign against the parent org (see refreshSession note) — the
-                    // backend derives the sub-org from the stamped credential.
+                    // Name the parent org (see the refreshSession note); the
+                    // backend resolves the sub-org from the stamped credential.
                     organizationId: await resolveOrganizationId(),
                   })
                   const session = createReplacementSession(
@@ -512,9 +512,9 @@ export async function createZeroDevWalletCore(
                 const loginData = await client.loginWithStamp({
                   targetPublicKey,
                   projectId,
-                  // Sign against the parent org, not the user's sub-org (see the
-                  // refreshSession note). The backend derives the sub-org from the
-                  // stamped passkey credential.
+                  // Name the parent org, not the user's sub-org (see the
+                  // refreshSession note); the backend resolves the sub-org from
+                  // the stamped passkey credential.
                   organizationId: await resolveOrganizationId(),
                   stampWith: 'passkey',
                 })

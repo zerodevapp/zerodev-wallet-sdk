@@ -55,10 +55,10 @@ export async function getAuthProxyConfigId(baseUrl: string): Promise<string> {
 }
 
 /**
- * Fetches the Turnkey parent (base) organization ID. Stamp-login payloads must
- * be signed against this org — the backend relays the stamp to Turnkey under
- * the parent org and derives the sub-org from the credential. Tests fetch it so
- * they work regardless of which base org the target backend is configured with.
+ * Fetches the Turnkey parent (base) organization ID. Passkey and session-key
+ * stamp logins name this org, and the backend resolves the sub-org from the
+ * credential. Tests fetch it so they work regardless of which base org the
+ * target backend is configured with.
  */
 export async function getParentOrgId(baseUrl: string): Promise<string> {
   const res = await fetch(`${baseUrl}/server-info/parent-org-id`)
