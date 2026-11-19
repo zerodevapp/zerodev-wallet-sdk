@@ -2,7 +2,6 @@ import type { LocalAccount } from 'viem/accounts'
 import { toViemAccount } from '../adapters/viem.js'
 import {
   type CreateTransportOptions,
-  createAuthProxyClient,
   createClient,
   type ZeroDevWalletClient,
   zeroDevWalletTransport,
@@ -16,7 +15,6 @@ import {
   type StorageAdapter,
 } from '../storage/manager.js'
 import { SessionType, type ZeroDevWalletSession } from '../types/session.js'
-import { buildClientSignature } from '../utils/buildClientSignature.js'
 import { withCrossTabLock } from '../utils/crossTabLock.js'
 import { encryptOtpAttempt } from '../utils/encryptOtpAttempt.js'
 import { createOrganizationIdResolver } from '../utils/resolveOrganizationId.js'
@@ -141,8 +139,6 @@ export async function createZeroDevWalletCore(
       ...(config.sdkVersion && { sdkVersion: config.sdkVersion }),
     }),
   })
-
-  let cachedAuthProxyConfigId: string | undefined
 
   // Resolve the Turnkey parent org that stamp-login is signed against: explicit
   // override → backend fetch (/server-info/parent-org-id, cached) → hardcoded
@@ -580,53 +576,55 @@ export async function createZeroDevWalletCore(
 
               try {
                 // HPKE-seal the OTP attempt to the enclave's per-session target
-                // key. The auth proxy never sees the plaintext OTP code.
+                // key, with the pending key as the session key the verification
+                // binds. Only Turnkey's enclave sees the plaintext OTP code.
                 const encryptedOtpBundle = await encryptOtpAttempt({
                   otpCode,
                   publicKey: targetPublicKey,
                   encryptionTargetBundle: otpEncryptionTargetBundle,
                 })
 
-                if (!cachedAuthProxyConfigId) {
-                  const { authProxyConfigId } =
-                    await client.getAuthProxyConfigId()
-                  cachedAuthProxyConfigId = authProxyConfigId
-                }
-                const authProxyClient = createAuthProxyClient({
-                  authProxyConfigId: cachedAuthProxyConfigId,
-                })
+                // The backend verifies on Turnkey and keeps the verification
+                // token. The alias it returns stands for the token only through
+                // the backend, in this project, so it is neither stored nor
+                // returned.
+                const { verificationToken: alias, ...registration } =
+                  await client.verifyOTP({
+                    otpId,
+                    encryptedOtpBundle,
+                    projectId,
+                  })
 
-                const { verificationToken } = await authProxyClient.verifyOtp({
-                  otpId,
-                  encryptedOtpBundle,
+                // A sub-org stamp login, like refreshSession: Turnkey fails two
+                // that overlap in one sub-org, so hold the cross-tab lock from
+                // the login through the commit.
+                return await withCrossTabLock(async () => {
+                  const data = await client.loginWithStamp({
+                    projectId,
+                    // Name the sub-org verify/otp returned: the backend then
+                    // skips the Turnkey lookup that fails when the email is in
+                    // more than one sub-org.
+                    organizationId: registration.subOrganizationId,
+                    targetPublicKey,
+                    // The pending key is both the key the token attests and
+                    // the session key, as in Turnkey's own OTP login.
+                    stamper: {
+                      stamp: (payload) =>
+                        client.apiKeyStamper.stampPending(payload),
+                    },
+                    sessionToken: alias,
+                  })
+                  if (!data.session) {
+                    throw new Error('Stamp login returned no session')
+                  }
+                  const session = createReplacementSession(
+                    data.session,
+                    targetPublicKey,
+                    'otp',
+                  )
+                  await commitReplacementSessionLocked(session, targetPublicKey)
+                  return { ...registration, session: data.session }
                 })
-
-                const clientSignature = await buildClientSignature({
-                  verificationToken,
-                  publicKey: targetPublicKey,
-                  stamper: {
-                    stamp: (payload) =>
-                      client.apiKeyStamper.stampPending(payload),
-                  },
-                })
-
-                const data = await client.loginWithOTP({
-                  verificationToken,
-                  clientSignature,
-                  projectId,
-                })
-
-                if (!data.session) {
-                  await client.apiKeyStamper.discardKeyRotation()
-                  return data
-                }
-                const session = createReplacementSession(
-                  data.session,
-                  targetPublicKey,
-                  'otp',
-                )
-                await commitReplacementSession(session, targetPublicKey)
-                return data
               } catch (error) {
                 await client.apiKeyStamper.discardKeyRotation()
                 throw error

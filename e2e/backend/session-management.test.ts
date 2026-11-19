@@ -12,10 +12,7 @@ import {
   type StorageAdapter,
 } from '../../packages/core/src/storage/manager.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
-import {
-  getAuthProxyConfigId,
-  getParentOrgId,
-} from '../helpers/backend-health.js'
+import { getParentOrgId } from '../helpers/backend-health.js'
 import { BACKEND_URL } from '../helpers/constants.js'
 import { completeOtpLogin } from '../helpers/otp-login.js'
 import { createTestClient } from '../helpers/test-client.js'
@@ -36,20 +33,15 @@ function createMemoryStorage(): StorageAdapter {
 
 describe('Session Management', () => {
   let projectId: string
-  let authProxyConfigId: string
   let parentOrgId: string
 
   beforeAll(async () => {
-    authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
     parentOrgId = await getParentOrgId(BACKEND_URL)
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
   })
 
   it('refreshes through Core, survives restoration, signs, and revokes the replacement key on logout', async () => {
-    const { stamper, session, sessionToken } = await completeOtpLogin(
-      projectId,
-      authProxyConfigId,
-    )
+    const { stamper, session, sessionToken } = await completeOtpLogin(projectId)
     const initialPublicKey = await stamper.getPublicKey()
     if (!initialPublicKey) throw new Error('Initial stamper has no public key')
 

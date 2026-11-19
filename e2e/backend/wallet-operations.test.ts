@@ -9,28 +9,21 @@
 import { recoverTransactionAddress } from 'viem'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { toViemAccount } from '../../packages/core/src/adapters/viem.js'
-import { getAuthProxyConfigId } from '../helpers/backend-health.js'
-import { BACKEND_URL } from '../helpers/constants.js'
 import { completeOtpLogin } from '../helpers/otp-login.js'
 
 const CHAIN_ID = 421614
 
 describe('Wallet Operations', () => {
   let projectId: string
-  let authProxyConfigId: string
 
   beforeAll(async () => {
     // Backend reachability, email service, and project-id env are enforced once
     // in global-setup.ts, which fails the whole run if any are unmet.
-    authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
   })
 
   it('should get user wallet addresses after login', async () => {
-    const { client, session, sessionToken } = await completeOtpLogin(
-      projectId,
-      authProxyConfigId,
-    )
+    const { client, session, sessionToken } = await completeOtpLogin(projectId)
 
     const wallet = await client.getUserWallet({
       organizationId: session.organizationId,
@@ -50,10 +43,7 @@ describe('Wallet Operations', () => {
   })
 
   it('should sign every supported payload after login', async () => {
-    const { client, session, sessionToken } = await completeOtpLogin(
-      projectId,
-      authProxyConfigId,
-    )
+    const { client, session, sessionToken } = await completeOtpLogin(projectId)
 
     const account = await toViemAccount({
       client,
