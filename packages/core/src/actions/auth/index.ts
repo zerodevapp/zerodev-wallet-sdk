@@ -20,10 +20,6 @@ export {
   type SessionKeyAuthenticator,
 } from './getAuthenticators.js'
 export {
-  type GetAuthProxyConfigIdReturnType,
-  getAuthProxyConfigId,
-} from './getAuthProxyConfigId.js'
-export {
   type GetOAuthLoginUrlParameters,
   type GetOAuthLoginUrlReturnType,
   getOAuthLoginUrl,
@@ -37,11 +33,6 @@ export {
   type GetWhoamiReturnType,
   getWhoami,
 } from './getWhoami.js'
-export {
-  type LoginWithOTPParameters,
-  type LoginWithOTPReturnType,
-  loginWithOTP,
-} from './loginWithOTP.js'
 export {
   type LoginWithStampParameters,
   type LoginWithStampReturnType,
