@@ -20,6 +20,11 @@ import {
 } from 'viem/chains'
 import { MockPanel } from './components/MockPanel'
 import {
+  THEME_NAMES,
+  type ThemeName,
+  ThemeSwitches,
+} from './components/ThemeSwitch'
+import {
   installMockFetch,
   loadPastDeposits,
   type MockErrorMode,
@@ -56,6 +61,14 @@ export default function Home() {
   // Run mode drives every safety-relevant behaviour below (mock fetch
   // install, default recipient, whether the widget renders at all).
   const [mode, setMode] = useState<DemoMode>('simulated')
+  // The kit's theme, moved along the two axes of the grid by the switches
+  // above the card; `?theme=plain-dark` picks the starting preset.
+  const [theme, setTheme] = useState<ThemeName>('branded-light')
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get('theme')
+    const preset = THEME_NAMES.find((name) => name === param)
+    if (preset) setTheme(preset)
+  }, [])
   // Whether the SRA widget is mounted. TopNav's `X` sets this to false;
   // the "+ Fund" button reopens it. Mirrors the auth demo's pattern of
   // dismissable card + explicit re-open trigger.
@@ -436,6 +449,7 @@ export default function Home() {
           </section>
 
           <aside className="justify-self-center min-[900px]:justify-self-end">
+            <ThemeSwitches theme={theme} onChange={setTheme} />
             {!sraOpen ? (
               // Widget dismissed via TopNav's X — surface an explicit
               // re-open trigger so the user can bring it back without a

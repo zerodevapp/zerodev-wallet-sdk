@@ -78,6 +78,6 @@ describe('ErrorRetryCard', () => {
     const root = screen.getByRole('alert')
     expect(root.className).toContain('custom-class')
     // Sanity: default background tint is still applied
-    expect(root.className).toContain('zd:bg-negative/10')
+    expect(root.className).toContain('zd:bg-error-subtle')
   })
 })

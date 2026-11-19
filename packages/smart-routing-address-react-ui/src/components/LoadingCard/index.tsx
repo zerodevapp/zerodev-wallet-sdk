@@ -18,10 +18,10 @@ export function LoadingCard({ text, className, ...rest }: LoadingCardProps) {
     >
       <Icon
         name="loading"
-        className="zd:w-4 zd:h-4 zd:animate-spin zd:text-orange"
+        className="zd:w-4 zd:h-4 zd:animate-spin zd:text-icon-brand-primary"
         data-testid="loading-card-icon"
       />
-      <Text className="zd:text-body1 zd:text-greyScale/50">{text}</Text>
+      <Text className="zd:text-body1 zd:text-neutral-tertiary">{text}</Text>
     </Wrapper>
   )
 }

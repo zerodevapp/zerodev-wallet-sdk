@@ -59,7 +59,7 @@ export function PendingDeposits({
         // Figma 20002:36058: tighter bottom padding than top so the last
         // row's own padding doesn't double up against the card edge.
         'zd:relative zd:flex zd:w-full zd:flex-col zd:gap-4 zd:overflow-hidden zd:rounded-2xl zd:px-4 zd:pt-4 zd:pb-2',
-        'zd:border-offWhite zd:border-[0.3px] zd:bg-white/20',
+        'zd:border-neutral-primary zd:border-[0.3px] zd:bg-bright-tertiary',
         'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
         className,
       )}
@@ -137,7 +137,7 @@ export function PendingDeposits({
                 <button
                   type="button"
                   onClick={() => onSelectDeposit(deposit)}
-                  className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:text-left zd:hover:bg-white/30"
+                  className="zd:w-full zd:cursor-pointer zd:rounded-2xl zd:text-left zd:hover:bg-bright-secondary"
                 >
                   {row}
                 </button>

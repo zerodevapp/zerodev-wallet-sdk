@@ -55,9 +55,12 @@ export function DataRow({
         'zd:relative zd:flex zd:w-full zd:items-center',
         isWarning
           ? // Warning: card treatment — 14px radius, border, backdrop blur,
-            // warning tint, universal inner shadow, tighter row padding.
+            // the brand-tertiary tint, universal inner shadow, tighter row
+            // padding. Brand tertiary, not warning subtle: the design binds
+            // the row's fill to Background/Brand/Tertiary, which is the same
+            // peach in light and a neutral tint in dark (the Fund frames).
             [
-              'zd:gap-2 zd:overflow-hidden zd:rounded-[14px] zd:border-[0.3px] zd:border-neutral-primary zd:bg-warning-subtle zd:px-4 zd:py-2 zd:backdrop-blur-[15px]',
+              'zd:gap-2 zd:overflow-hidden zd:rounded-[14px] zd:border-[0.3px] zd:border-neutral-primary zd:bg-brand-tertiary zd:px-4 zd:py-2 zd:backdrop-blur-[15px]',
               'zd:shadow-[inset_0_-4px_4px_0_rgba(255,255,255,0.1),inset_0_3px_4px_0_rgba(0,0,0,0.02)]',
             ]
           : // Default: plain inline row with a 4px gap between children and
