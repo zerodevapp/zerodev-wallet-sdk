@@ -3,6 +3,7 @@ import { SUPPORTED_TOKENS } from '@zerodev/smart-routing-address'
 import type { Chain } from 'viem'
 import {
   arbitrum,
+  arc,
   base,
   blast,
   bsc,
@@ -44,6 +45,7 @@ export const SUPPORTED_CHAINS: readonly Chain[] = [
   mainnet,
   optimism,
   arbitrum,
+  arc,
   polygon,
   plasma,
   base,
