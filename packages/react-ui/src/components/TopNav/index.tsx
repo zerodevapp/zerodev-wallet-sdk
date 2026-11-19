@@ -37,7 +37,8 @@ export function TopNav({
         // Spans the card edge-to-edge; internal px-4 aligns icons with
         // the scroll container's 16px inset.
         // No band of its own: the design's header is transparent, only the
-        // icon buttons carry the frosted tile. Content scrolls under it.
+        // icon buttons carry the frosted tile. Content scrolls under it and
+        // Screen fades it out there, so it never shows behind the title.
         'zd:absolute zd:top-0 zd:left-0 zd:right-0 zd:z-20 zd:flex zd:flex-row zd:items-center zd:justify-between zd:px-4 zd:pt-4',
         className,
       )}
