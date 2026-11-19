@@ -157,7 +157,13 @@ import { ConnectWallet, SignUp } from '@zerodev/wallet-react-ui'
 - Units: `SignUp.Passkey`, `SignUp.Google`, `SignUp.Email`, `SignUp.Wallet`,
   `SignUp.WalletConnect`, `SignUp.InstalledWallets`, `SignUp.MoreWallets`,
   `SignUp.Divider`. Order and presence are yours; while one method is in
-  flight, the others disable themselves.
+  flight, the others disable themselves. While the embedded wallet is signed
+  in, `Passkey`, `Google` and `Email` render nothing: they would start a
+  second login over the live session, and an installed wallet that is
+  already connected reads as CONNECTED and cannot be connected again. A
+  `Divider` hides itself when nothing
+  renders above or below it, or when it directly follows another divider, so
+  a composition keeps reading right whichever units are present.
 - `SignUp.Wallet` pins one external wallet as its own row. `walletId` is the
   `WalletId` union (e.g. `'metamask'`, `'coinbase'`, `'rabby'`); the row
   connects the wallet when a live connector claims it (browser extension or a

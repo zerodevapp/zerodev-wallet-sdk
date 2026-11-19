@@ -7,7 +7,8 @@ import { useReportPending, useSignUpContext } from './context'
 /** "Create a passkey" + "Log in with passkey" buttons. */
 export function SignUpPasskey() {
   const { goToStep } = useAuth()
-  const { authPending, guardAgreement, setError } = useSignUpContext()
+  const { authPending, embeddedSignedIn, guardAgreement, setError } =
+    useSignUpContext()
 
   const mutation = {
     onSuccess: () => {
@@ -25,6 +26,10 @@ export function SignUpPasskey() {
     mutation,
   })
   useReportPending(isRegisterPending || isLoginPending)
+
+  // Signed in already: offering this login again would run a second
+  // authentication over the live session (hooks above stay unconditional).
+  if (embeddedSignedIn) return null
 
   const guarded = (run: () => void) => () => {
     if (authPending) return

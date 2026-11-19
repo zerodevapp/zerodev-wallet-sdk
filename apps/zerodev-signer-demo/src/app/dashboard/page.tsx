@@ -38,7 +38,7 @@ import { ExportWalletModal } from "../components/ExportWalletModal";
 import { SendTransactionTest } from "../components/SendTransactionTest";
 import { SigningTest } from "../components/SigningTest";
 import { WalletPill } from "../components/WalletPill";
-import { SOLANA_ENABLED } from "../lib/flags";
+import { DEV_TOOLS_ENABLED, SOLANA_ENABLED } from "../lib/flags";
 import { submitToHubSpot } from "../lib/hubspot";
 import { cn } from "../lib/utils";
 
@@ -163,7 +163,30 @@ export default function DashboardPage() {
   // without a wallet (passkey, Google, email, or Solana over WalletConnect)
   // renders `ConnectWallet` with that side's units; the connect promise
   // follows the flow, so the overlay closes with it either way.
-  const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | null>(null);
+  const [connectRequested, setConnectRequested] = useState<"evm" | "solana" | "full" | null>(null);
+  // Dev tool: reopen the full sign-in sheet over the live session, to check
+  // what the kit offers once signed in. Through the kit's Solana connect,
+  // because wagmi's connect with the kit connector resolves silently while a
+  // session exists and never opens the sheet. The overlay below renders every
+  // unit for it, so either namespace can be picked while the request waits.
+  const openWalletUi = async () => {
+    setConnecting("open-wallet-ui");
+    setConnectError(null);
+    setConnectRequested("full");
+    try {
+      await kit.solana.connect();
+    } catch (err) {
+      if (!isCancellationError(err)) {
+        setConnectError({
+          network: "solana",
+          message: (err instanceof Error && err.message) || "Couldn't open the wallet UI.",
+        });
+      }
+    } finally {
+      setConnecting(null);
+      setConnectRequested(null);
+    }
+  };
   const connectWallet = async (
     params: KitConnectRequest,
     key: string,
@@ -482,6 +505,23 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+      {DEV_TOOLS_ENABLED && (
+        // Dev tool, kept as quiet as the "Add a wallet" lines above it so it
+        // never competes with the real actions.
+        <p className="mt-2 text-center text-xs text-[var(--muted)]">
+          Dev ·{" "}
+          <button
+            type="button"
+            onClick={openWalletUi}
+            disabled={connecting !== null}
+            data-testid="open-wallet-ui"
+            className="cursor-pointer underline underline-offset-2 transition-colors hover:text-[var(--ink)] disabled:cursor-default disabled:opacity-60"
+            title="Reopen the sign-in sheet over the live session"
+          >
+            {connecting === "open-wallet-ui" ? "wallet UI open…" : "reopen wallet UI"}
+          </button>
+        </p>
+      )}
     </div>
   );
 
@@ -525,7 +565,23 @@ export default function DashboardPage() {
             size="md"
             onClose={() => setConnectRequested(null)}
             renderSignUp={() =>
-              connectRequested === "evm" ? (
+              connectRequested === "full" ? (
+                <SignUp>
+                  <SignUp.Passkey />
+                  <SignUp.Divider />
+                  <SignUp.Google />
+                  <SignUp.Email />
+                  <SignUp.Divider label="or a wallet" />
+                  {/* The Solana units follow the demo's feature gate like the
+                      rest of the dashboard, so the dev tool cannot open a
+                      Solana connection the dashboard would then hide. */}
+                  <SignUp.InstalledWallets
+                    {...(SOLANA_ENABLED && { namespaces: ["eip155", "solana"] as const })}
+                  />
+                  <SignUp.WalletConnect />
+                  {SOLANA_ENABLED && <SignUp.SolanaWalletConnect />}
+                </SignUp>
+              ) : connectRequested === "evm" ? (
                 <SignUp>
                   <SignUp.Passkey />
                   <SignUp.Divider />
