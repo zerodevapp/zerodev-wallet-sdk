@@ -50,6 +50,7 @@ vi.mock('viem', async () => {
 
 vi.mock('@zerodev/wallet-core', () => ({
   KMS_SERVER_URL: 'https://kms.example.com',
+  normalizeTimestamp: (timestamp: number) => timestamp,
   createZeroDevWallet: vi.fn().mockResolvedValue({
     getSession: vi.fn().mockResolvedValue(null),
     toAccount: vi.fn().mockResolvedValue(mockEoaAccount),
@@ -307,6 +308,31 @@ describe('zeroDevWallet connector — mode branching', () => {
 
     const nextProvider = await connector.getProvider()
     expect(nextProvider).not.toBe(firstProvider)
+  })
+
+  it("logs out only this tab's account, leaving one another tab signed in to", async () => {
+    const connector = createConnector()
+    // @ts-expect-error - getStore is added in the connector's Properties.
+    const store = await connector.getStore()
+    const wallet = store.getState().wallet
+    if (!wallet) throw new Error('Expected initialized wallet')
+    store.getState().setSession({
+      id: 'session-x',
+      userId: 'user-x',
+      organizationId: 'org-x',
+      stamperType: 'apiKey',
+      token: 'jwt',
+      expiry: Date.now() + 60_000,
+      createdAt: Date.now(),
+    })
+    vi.mocked(wallet.logout).mockClear()
+
+    await connector.disconnect()
+
+    expect(wallet.logout).toHaveBeenCalledWith({
+      account: { organizationId: 'org-x', userId: 'user-x' },
+    })
+    expect(store.getState().session).toBeNull()
   })
 
   it('stops refresh but preserves retryable state when logout fails', async () => {

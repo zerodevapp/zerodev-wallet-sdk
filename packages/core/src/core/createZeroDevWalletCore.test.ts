@@ -1281,9 +1281,14 @@ describe('toAccount', () => {
     const account = await sdk.toAccount()
 
     expect(account).toEqual({ address: '0xViemAccount' })
+    // Account requests go through the client with the token and key of the
+    // session active when each is made.
     expect(h.toViemAccount).toHaveBeenCalledWith(
       expect.objectContaining({
-        client: h.client,
+        client: expect.objectContaining({
+          apiKeyStamper: h.client.apiKeyStamper,
+          signMessage: expect.any(Function),
+        }),
         organizationId: 'org-1',
         projectId: 'proj-1',
         getToken: expect.any(Function),

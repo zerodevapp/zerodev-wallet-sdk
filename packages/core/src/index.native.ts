@@ -100,6 +100,7 @@ export type {
 } from './stampers/types.js'
 export type { StorageAdapter, StorageManager } from './storage/manager.js'
 export type { StamperType, ZeroDevWalletSession } from './types/session.js'
+export { withCrossTabLock } from './utils/crossTabLock.js'
 export type { KeyFormat } from './utils/exportPrivateKey.js'
 export { exportPrivateKey } from './utils/exportPrivateKey.js'
 export { exportWallet } from './utils/exportWallet.js'

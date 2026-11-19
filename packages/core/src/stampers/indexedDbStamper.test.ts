@@ -132,7 +132,11 @@ describe('cross-tab lock', () => {
   it('initializes under the lock, so it cannot overwrite a key another tab is committing', async () => {
     const held = deferred()
     const request = vi.fn(
-      async (_name: string, task: () => Promise<unknown>) => {
+      async (
+        _name: string,
+        _options: LockOptions,
+        task: () => Promise<unknown>,
+      ) => {
         await held.promise
         return task()
       },
@@ -143,6 +147,7 @@ describe('cross-tab lock', () => {
     await Promise.resolve()
     expect(request).toHaveBeenCalledWith(
       '@zerodev/key_transition',
+      { mode: 'exclusive' },
       expect.any(Function),
     )
     expect(h.init).not.toHaveBeenCalled()
