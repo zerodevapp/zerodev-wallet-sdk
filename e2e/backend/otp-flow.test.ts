@@ -5,22 +5,17 @@
  * 1. Create temp email account
  * 2. Register with OTP (sends email)
  * 3. Extract OTP code from email
- * 4. Verify OTP with Auth Proxy
- * 5. Build client signature
- * 6. Login with OTP via backend
- * 7. Verify session works (whoami)
+ * 4. Verify OTP through the backend (verify/otp)
+ * 5. Stamp login with the verified session key and the token alias
+ * 6. Verify session works (whoami)
  *
  * Mirrors the Go E2E test at doorway-kms/testing/e2e/e2e_otp_test.go
  */
 
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
-import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
-import { getAuthProxyConfigId } from '../helpers/backend-health.js'
 import {
-  BACKEND_URL,
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
   OTP_CODE_LENGTH,
@@ -35,10 +30,8 @@ import { createTestStamper } from '../helpers/test-stamper.js'
 
 describe('OTP Authentication Flow', () => {
   let projectId: string
-  let authProxyConfigId: string
 
   beforeAll(async () => {
-    authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
   })
 
@@ -80,49 +73,45 @@ describe('OTP Authentication Flow', () => {
     console.log(`Extracted OTP code: ${otpCode}`)
 
     // Step 6: HPKE-seal the OTP attempt to the enclave's per-session target
-    // key, then verify with Auth Proxy.
+    // key, then verify through the backend, which registers the user and
+    // returns an alias of the verification token.
     const encryptedOtpBundle = await encryptOtpAttempt({
       otpCode,
       publicKey,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
     })
-    const authProxyClient = createAuthProxyClient({ authProxyConfigId })
-    const verifyResult = await authProxyClient.verifyOtp({
+    const verifyResult = await client.verifyOTP({
       otpId: registerResult.otpId,
       encryptedOtpBundle,
-    })
-    expect(verifyResult.verificationToken).toBeTruthy()
-    console.log('OTP verified with Auth Proxy')
-
-    // Step 7: Build client signature
-    const clientSignature = await buildClientSignature({
-      verificationToken: verifyResult.verificationToken,
-      publicKey,
-      stamper,
-    })
-    expect(clientSignature).toBeTruthy()
-    expect(clientSignature).toHaveLength(128) // 64 bytes = 128 hex chars
-    console.log('Client signature built')
-
-    // Step 8: Login with OTP via backend
-    const loginResult = await client.loginWithOTP({
-      verificationToken: verifyResult.verificationToken,
-      clientSignature,
       projectId,
     })
-    expect(loginResult.session).toBeTruthy()
-    console.log('OTP login successful')
+    expect(verifyResult.verificationToken).toBeTruthy()
+    expect(verifyResult.subOrganizationId).toBeTruthy()
+    expect(verifyResult.userId).toBeTruthy()
+    console.log('OTP verified through the backend')
 
-    // Step 9: Parse and validate session
+    // Step 7: Stamp login in the user's sub-org with the sealed key, which
+    // carries the alias and becomes the session key.
+    const loginResult = await client.loginWithStamp({
+      projectId,
+      organizationId: verifyResult.subOrganizationId,
+      targetPublicKey: publicKey,
+      sessionToken: verifyResult.verificationToken,
+    })
+    expect(loginResult.session).toBeTruthy()
+    console.log('OTP stamp login successful')
+
+    // Step 8: Parse and validate session
     const session = parseSession(loginResult.session)
     expect(session.userId).toBeTruthy()
     expect(session.organizationId).toBeTruthy()
     expect(session.sessionType).toBe('SESSION_TYPE_READ_WRITE')
+    expect(session.organizationId).toBe(verifyResult.subOrganizationId)
     console.log(
       `Session: userId=${session.userId}, orgId=${session.organizationId}`,
     )
 
-    // Step 10: Verify session works with whoami
+    // Step 9: Verify session works with whoami
     const whoami = await client.getWhoami({
       organizationId: session.organizationId,
       projectId,
@@ -159,11 +148,11 @@ describe('OTP Authentication Flow', () => {
       publicKey,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
     })
-    const authProxyClient = createAuthProxyClient({ authProxyConfigId })
     await expect(
-      authProxyClient.verifyOtp({
+      client.verifyOTP({
         otpId: registerResult.otpId,
         encryptedOtpBundle: wrongEncryptedBundle,
+        projectId,
       }),
     ).rejects.toThrow()
   })

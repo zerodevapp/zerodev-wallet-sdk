@@ -12,20 +12,15 @@
  * 1. Create temp email account
  * 2. Register with OTP
  * 3. Extract OTP code from the magic link URL in the email
- * 4. Verify OTP with Auth Proxy
- * 5. Build client signature
- * 6. Login with OTP via backend
- * 7. Verify session works (whoami)
+ * 4. Verify OTP through the backend (verify/otp)
+ * 5. Stamp login with the verified session key and the token alias
+ * 6. Verify session works (whoami)
  */
 
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
-import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
-import { getAuthProxyConfigId } from '../helpers/backend-health.js'
 import {
-  BACKEND_URL,
   EMAIL_POLL_INTERVAL_MS,
   EMAIL_POLL_TIMEOUT_MS,
 } from '../helpers/constants.js'
@@ -36,10 +31,8 @@ import { createTestStamper } from '../helpers/test-stamper.js'
 
 describe('Magic Link Authentication Flow', () => {
   let projectId: string
-  let authProxyConfigId: string
 
   beforeAll(async () => {
-    authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
     projectId = process.env.ZD_PROJECT_ID || ''
   })
 
@@ -81,40 +74,34 @@ describe('Magic Link Authentication Flow', () => {
     if (!otpCode) throw new Error('Magic-link project sent no code URL')
     console.log(`Extracted OTP code: ${otpCode}`)
 
-    // Step 6: HPKE-seal the OTP attempt and verify with Auth Proxy.
+    // Step 6: HPKE-seal the OTP attempt and verify through the backend, which
+    // returns an alias of the verification token.
     const encryptedOtpBundle = await encryptOtpAttempt({
       otpCode,
       publicKey,
       encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
     })
-    const authProxyClient = createAuthProxyClient({ authProxyConfigId })
-    const verifyResult = await authProxyClient.verifyOtp({
+    const verifyResult = await client.verifyOTP({
       otpId: registerResult.otpId,
       encryptedOtpBundle,
-    })
-    expect(verifyResult.verificationToken).toBeTruthy()
-    console.log('OTP verified with Auth Proxy')
-
-    // Step 7: Build client signature
-    const clientSignature = await buildClientSignature({
-      verificationToken: verifyResult.verificationToken,
-      publicKey,
-      stamper,
-    })
-    expect(clientSignature).toBeTruthy()
-    expect(clientSignature).toHaveLength(128)
-    console.log('Client signature built')
-
-    // Step 8: Login with OTP via backend
-    const loginResult = await client.loginWithOTP({
-      verificationToken: verifyResult.verificationToken,
-      clientSignature,
       projectId,
     })
-    expect(loginResult.session).toBeTruthy()
-    console.log('Magic link login successful')
+    expect(verifyResult.verificationToken).toBeTruthy()
+    expect(verifyResult.subOrganizationId).toBeTruthy()
+    console.log('OTP verified through the backend')
 
-    // Step 9: Validate session
+    // Step 7: Stamp login in the user's sub-org with the sealed key, which
+    // carries the alias and becomes the session key.
+    const loginResult = await client.loginWithStamp({
+      projectId,
+      organizationId: verifyResult.subOrganizationId,
+      targetPublicKey: publicKey,
+      sessionToken: verifyResult.verificationToken,
+    })
+    expect(loginResult.session).toBeTruthy()
+    console.log('Magic link stamp login successful')
+
+    // Step 8: Validate session
     const session = parseSession(loginResult.session)
     expect(session.userId).toBeTruthy()
     expect(session.organizationId).toBeTruthy()
@@ -123,7 +110,7 @@ describe('Magic Link Authentication Flow', () => {
       `Session: userId=${session.userId}, orgId=${session.organizationId}`,
     )
 
-    // Step 10: Verify session works with whoami
+    // Step 9: Verify session works with whoami
     const whoami = await client.getWhoami({
       organizationId: session.organizationId,
       projectId,

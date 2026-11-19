@@ -3,12 +3,10 @@
  *
  * Used by backend e2e tests that need an authenticated session as a setup
  * step (`session-management`, `wallet-operations`). Handles the full
- * register → email → encrypted-verify → login flow and returns the
+ * register → email → encrypted verify → stamp login flow and returns the
  * authenticated client + session.
  */
 
-import { createAuthProxyClient } from '../../packages/core/src/client/authProxy.js'
-import { buildClientSignature } from '../../packages/core/src/utils/buildClientSignature.js'
 import { encryptOtpAttempt } from '../../packages/core/src/utils/encryptOtpAttempt.js'
 import { parseSession } from '../../packages/core/src/utils/utils.js'
 import {
@@ -21,10 +19,7 @@ import { createNewAccount, searchForNewEmail } from './temp-email.js'
 import { createTestClient } from './test-client.js'
 import { createTestStamper } from './test-stamper.js'
 
-export async function completeOtpLogin(
-  projectId: string,
-  authProxyConfigId: string,
-) {
+export async function completeOtpLogin(projectId: string) {
   const emailAccount = await createNewAccount()
   const stamper = createTestStamper()
   const publicKey = await stamper.getPublicKey()
@@ -55,22 +50,21 @@ export async function completeOtpLogin(
     encryptionTargetBundle: registerResult.otpEncryptionTargetBundle,
   })
 
-  const authProxyClient = createAuthProxyClient({ authProxyConfigId })
-  const verifyResult = await authProxyClient.verifyOtp({
+  // The backend verifies on Turnkey and returns the registration with an alias
+  // of the verification token, which the session key's stamps carry.
+  const { verificationToken, subOrganizationId } = await client.verifyOTP({
     otpId: registerResult.otpId,
     encryptedOtpBundle,
-  })
-
-  const clientSignature = await buildClientSignature({
-    verificationToken: verifyResult.verificationToken,
-    publicKey,
-    stamper,
-  })
-
-  const loginResult = await client.loginWithOTP({
-    verificationToken: verifyResult.verificationToken,
-    clientSignature,
     projectId,
+  })
+
+  // The sealed key stamps the login and becomes the session key, as the SDK
+  // core does with its pending key.
+  const loginResult = await client.loginWithStamp({
+    projectId,
+    organizationId: subOrganizationId,
+    targetPublicKey: publicKey,
+    sessionToken: verificationToken,
   })
 
   const session = parseSession(loginResult.session)
