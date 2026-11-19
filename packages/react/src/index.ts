@@ -12,6 +12,7 @@ export {
   getZeroDevWallet,
 } from './actions.js'
 export type { GetOAuthSessionIdFn } from './authenticateOAuth.js'
+export { KERNEL_ACCOUNT_CONFIG } from './core/connector.js'
 export { NotAuthenticatedError } from './errors.js'
 export { useAuthenticators } from './hooks/useAuthenticators.js'
 export { useExportPrivateKey } from './hooks/useExportPrivateKey.js'
