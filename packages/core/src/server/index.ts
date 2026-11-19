@@ -5,6 +5,8 @@ export type {
   CreateServerWalletAddressReturnType,
   CreateServerWalletParameters,
   CreateServerWalletReturnType,
+  GetServerWalletsParameters,
+  GetServerWalletsReturnType,
   Sign7702AuthorizationParameters,
   Sign7702AuthorizationReturnType,
   SignMessageParameters,
