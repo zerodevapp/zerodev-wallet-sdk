@@ -1,17 +1,32 @@
 import { canonicalizeEx } from 'json-canonicalize'
 import type { Client } from '../../client/types.js'
-import type { Stamp } from '../../stampers/types.js'
+import type { Stamp, Stamper } from '../../stampers/types.js'
 import type { StamperType } from '../../types/session.js'
 
 export type LoginWithStampParameters = {
   /** The project ID for the request */
   projectId: string
-  /** The organization ID for the request */
+  /**
+   * The organization the login names: the Turnkey parent org, or the caller's
+   * own sub-org. It is signed into the stamp and sent in the body, and the two
+   * must match since the backend rebuilds the signed payload from the body.
+   */
   organizationId: string
   /** The encoded public key for the request */
   targetPublicKey: string
   /** The stamper type for the request */
   stampWith?: StamperType
+  /**
+   * Stamps the login with this stamper instead of the client's `stampWith`
+   * one, e.g. with the pending key through `apiKeyStamper.stampPending`.
+   */
+  stamper?: Pick<Stamper, 'stamp'>
+  /**
+   * The session token the stamp carries: the alias `verifyOTP` returned, which
+   * the backend swaps for the verification token before relaying the stamp to
+   * Turnkey. Only an API key stamp can carry one.
+   */
+  sessionToken?: string
 }
 
 export type LoginWithStampReturnType = {
@@ -21,6 +36,11 @@ export type LoginWithStampReturnType = {
 
 /**
  * Logs in a user with a stamp
+ *
+ * A passkey or API key login names the parent org, and the backend resolves
+ * the sub-org from the stamped credential. An OTP login names the sub-org
+ * `verifyOTP` returned, stamps with the key sealed into the OTP bundle, and
+ * carries the verification token's alias as `sessionToken`.
  *
  * @param client - The ZeroDev Wallet client
  * @param params - The parameters for login with a stamp
@@ -39,7 +59,14 @@ export async function loginWithStamp(
   client: Client,
   params: LoginWithStampParameters,
 ): Promise<LoginWithStampReturnType> {
-  const { projectId, targetPublicKey, organizationId, stampWith } = params
+  const {
+    projectId,
+    targetPublicKey,
+    organizationId,
+    stampWith,
+    stamper,
+    sessionToken,
+  } = params
 
   const timestampMs = Date.now()
   const timestampMsString = timestampMs.toString()
@@ -54,8 +81,8 @@ export async function loginWithStamp(
     type: 'ACTIVITY_TYPE_STAMP_LOGIN',
   })
   let stamp: Stamp
-  if (stampWith === 'apiKey') {
-    stamp = await client.apiKeyStamper.stamp(stampPayload)
+  if (stamper) {
+    stamp = await stamper.stamp(stampPayload)
   } else if (stampWith === 'passkey') {
     stamp = await client.passkeyStamper.stamp(stampPayload)
   } else {
@@ -65,14 +92,15 @@ export async function loginWithStamp(
   return client.request({
     path: `${projectId}/auth/login/stamp`,
     method: 'POST',
-    // The sub-org id is intentionally not sent: the backend derives it from
-    // the stamped credential. `organizationId` (the parent org) is only
-    // signed into `stampPayload` above so the stamp matches the body the
-    // backend relays to Turnkey — it is not part of the wire request.
     body: {
+      organizationId,
       targetPublicKey,
       timestamp: timestampIso,
-      stamp,
+      stamp: {
+        stampHeaderName: stamp.stampHeaderName,
+        stampHeaderValue: stamp.stampHeaderValue,
+        ...(sessionToken && { sessionToken }),
+      },
     },
   })
 }

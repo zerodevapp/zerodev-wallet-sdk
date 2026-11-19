@@ -37,6 +37,9 @@ export {
   registerWithOTP,
   registerWithPasskey,
   type SessionKeyAuthenticator,
+  type VerifyOTPParameters,
+  type VerifyOTPReturnType,
+  verifyOTP,
 } from './auth/index.js'
 
 // Wallet actions

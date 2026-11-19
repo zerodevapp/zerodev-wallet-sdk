@@ -306,17 +306,23 @@ afterEach(() => {
 })
 
 describe('what a login is able to ask for', () => {
-  it('sends only targetPublicKey, timestamp and stamp', async () => {
+  it('names the parent org, never a sub-org: the backend picks the wallet', async () => {
     const { kms, core } = await setup()
 
     await core.auth(loginWithPasskey)
 
     const login = kms.lastOf('login')
     expect(Object.keys(login?.body as object).sort()).toEqual([
+      'organizationId',
       'stamp',
       'targetPublicKey',
       'timestamp',
     ])
+    const body = login?.body as { organizationId: string }
+    expect(body.organizationId).toBe('parent-org')
+    for (const wallet of WALLETS) {
+      expect(body.organizationId).not.toBe(wallet.subOrgId)
+    }
   })
 })
 

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Client } from '../../client/types.js'
 import { loginWithOTP } from './loginWithOTP.js'
 import { registerWithOTP } from './registerWithOTP.js'
+import { verifyOTP } from './verifyOTP.js'
 
 // Create a mock client
 function createMockClient(
@@ -173,5 +174,63 @@ describe('loginWithOTP', () => {
         path: 'my-custom-project-id/auth/login/otp',
       }),
     )
+  })
+})
+
+describe('verifyOTP', () => {
+  const registration = {
+    verificationToken: 'alias-1',
+    subOrganizationId: 'suborg-1',
+    userId: 'user-1',
+    turnkeyUserId: 'tk-user-1',
+    walletAddresses: ['0xabc'],
+  }
+
+  it('posts the otp id and the sealed bundle to verify/otp', async () => {
+    const mockClient = createMockClient(async () => registration)
+
+    const result = await verifyOTP(mockClient, {
+      otpId: 'otp-123',
+      encryptedOtpBundle: 'sealed-bundle',
+      projectId: 'proj-456',
+    })
+
+    expect(mockClient.request).toHaveBeenCalledWith({
+      path: 'proj-456/auth/verify/otp',
+      method: 'POST',
+      body: {
+        otpId: 'otp-123',
+        encryptedOtpBundle: 'sealed-bundle',
+      },
+    })
+    expect(result).toEqual(registration)
+  })
+
+  it('does not stamp: the sealed bundle carries the session key', async () => {
+    const mockClient = createMockClient(async () => registration)
+
+    await verifyOTP(mockClient, {
+      otpId: 'otp-123',
+      encryptedOtpBundle: 'sealed-bundle',
+      projectId: 'proj-456',
+    })
+
+    const args = vi.mocked(mockClient.request).mock.calls[0][0]
+    expect(args).not.toHaveProperty('stamp')
+    expect(args).not.toHaveProperty('headers')
+  })
+
+  it('propagates request errors', async () => {
+    const mockClient = createMockClient(async () => {
+      throw new Error('Invalid OTP code')
+    })
+
+    await expect(
+      verifyOTP(mockClient, {
+        otpId: 'otp-123',
+        encryptedOtpBundle: 'sealed-bundle',
+        projectId: 'proj-456',
+      }),
+    ).rejects.toThrow('Invalid OTP code')
   })
 })

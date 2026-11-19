@@ -230,14 +230,14 @@ describe('loginWithStamp', () => {
     })
     expect(stampPayload.timestampMs).toBeDefined()
 
-    // Verify request was made correctly. The sub-org id is NOT sent — the
-    // backend derives it from the stamped credential; the org only lives in
-    // the signed stampPayload above.
+    // Verify request was made correctly. The org the stamp signs is also sent
+    // in the body: the backend rebuilds the signed payload from the body.
     expect(mockClient.request).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'proj-456/auth/login/stamp',
         method: 'POST',
         body: expect.objectContaining({
+          organizationId: 'org-123',
           targetPublicKey: '03abcdef1234567890',
           stamp: expect.objectContaining({
             stampHeaderName: 'X-Stamp',
@@ -248,6 +248,8 @@ describe('loginWithStamp', () => {
     )
     const sentBody = vi.mocked(mockClient.request).mock.calls[0][0].body
     expect(sentBody).not.toHaveProperty('subOrganizationId')
+    // No session token unless one is given: the stamp is a plain API key stamp.
+    expect(sentBody.stamp).not.toHaveProperty('sessionToken')
 
     expect(result).toEqual({ session: 'session-jwt' })
   })
@@ -317,6 +319,63 @@ describe('loginWithStamp', () => {
         targetPublicKey: '03abcdef',
       }),
     ).rejects.toThrow('Stamper unavailable')
+  })
+
+  it('carries the session token on the stamp when given', async () => {
+    const mockClient = createMockClient(async () => ({
+      session: 'session-jwt',
+    }))
+
+    await loginWithStamp(mockClient, {
+      projectId: 'proj-456',
+      organizationId: 'suborg-1',
+      targetPublicKey: '03abcdef',
+      sessionToken: 'alias-1',
+    })
+
+    const sentBody = vi.mocked(mockClient.request).mock.calls[0][0].body
+    expect(sentBody.organizationId).toBe('suborg-1')
+    expect(sentBody.stamp).toEqual({
+      stampHeaderName: 'X-Stamp',
+      stampHeaderValue: 'mock-stamp-value',
+      sessionToken: 'alias-1',
+    })
+  })
+
+  it('stamps with the given stamper instead of the client stampers', async () => {
+    const mockClient = createMockClient(async () => ({
+      session: 'session-jwt',
+    }))
+    const pending = vi.fn().mockResolvedValue({
+      stampHeaderName: 'X-Stamp',
+      stampHeaderValue: 'pending-stamp-value',
+    })
+
+    await loginWithStamp(mockClient, {
+      projectId: 'proj-456',
+      organizationId: 'suborg-1',
+      targetPublicKey: '03abcdef',
+      stampWith: 'apiKey',
+      stamper: { stamp: pending },
+      sessionToken: 'alias-1',
+    })
+
+    expect(pending).toHaveBeenCalledTimes(1)
+    expect(mockClient.apiKeyStamper.stamp).not.toHaveBeenCalled()
+    expect(mockClient.passkeyStamper.stamp).not.toHaveBeenCalled()
+    // The override signs the same payload the client stampers would.
+    const payload = JSON.parse(pending.mock.calls[0][0] as string)
+    expect(payload).toMatchObject({
+      organizationId: 'suborg-1',
+      parameters: { publicKey: '03abcdef' },
+      type: 'ACTIVITY_TYPE_STAMP_LOGIN',
+    })
+    const sentBody = vi.mocked(mockClient.request).mock.calls[0][0].body
+    expect(sentBody.stamp).toEqual({
+      stampHeaderName: 'X-Stamp',
+      stampHeaderValue: 'pending-stamp-value',
+      sessionToken: 'alias-1',
+    })
   })
 })
 
