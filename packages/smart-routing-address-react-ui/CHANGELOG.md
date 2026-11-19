@@ -1,5 +1,22 @@
 # @zerodev/smart-routing-address-react-ui
 
+## 0.0.8
+
+### Patch Changes
+
+- f8bc82e: Updates `@zerodev/smart-routing-address` to 1.0.3 and adds the Arc network (chain id 5042) to the supported chains, so USDC on Arc is offered as a deposit source.
+- 7e57555: The deposit screens colour themselves through the semantic tokens instead of the palette, so they follow the four themes: plain and branded, light and dark. Status text, the copy-address button, the token discs, skeletons and the QR tile all read from tokens; the layout and components are unchanged. In branded light a few colours snap to their nearest token value, as the wallet screens did: the copy-address button goes from 90% to full ink, the fee breakdown's secondary figures from 70% to 80% ink, row labels from 60% to 50%, and skeletons from 15% to 10%. `DataRow`'s warning card takes the brand-tertiary tint the design binds, the same peach in light and a neutral tint in dark.
+- b4196f6: Add the semantic colour token layer behind the upcoming themes: a Tailwind `@theme` block in `@zerodev/react-ui` declaring every background, text, icon and border token of the design system with the current (branded light) values, which Tailwind turns into `--zd-*` custom properties on `:root` and `zd:bg-*` / `zd:text-*` / `zd:text-icon-*` / `zd:border-*` utilities, all shipped in the compiled stylesheets so an app without a Tailwind build can use them. No component reads them yet, so nothing changes visually.
+- Updated dependencies [472ecab]
+- Updated dependencies [6ca76ab]
+- Updated dependencies [3a264e2]
+- Updated dependencies [12ef03e]
+- Updated dependencies [33148ac]
+- Updated dependencies [7e57555]
+- Updated dependencies [8ef260c]
+- Updated dependencies [b4196f6]
+  - @zerodev/react-ui@0.1.0
+
 ## 0.0.7
 
 ### Patch Changes

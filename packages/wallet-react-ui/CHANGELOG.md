@@ -1,5 +1,29 @@
 # @zerodev/wallet-react-ui
 
+## 0.1.0
+
+### Minor Changes
+
+- 472ecab: feat: external Solana wallet login beside the EVM side. Installed Wallet Standard wallets (`SignUp.InstalledWallets` and `SignUp.Wallet` with a `solana` namespace; a wallet installed for both chains asks which to connect) and a WalletConnect `solana` session (`zeroDevWalletConnect({ solana: true })`, `SignUp.SolanaWalletConnect`) connect into the kit's own Solana slot; `useSolanaWallet` relays signing to the wallet. `useZeroDevWalletKit` reads and drives both namespaces through one adapter interface, with `connect` / `disconnect` that know the cross-namespace rules, `isReconnecting` for the restore window, and `AuthFlowDismissedError` as a cancellation. `useWalletInfo('solana')` names the Solana wallet.
+- 8ef260c: Theme switching. The theme is two attributes on `<html>` (or any ancestor): `data-zd-mode` (`light`, `dark`, or `system` to follow `prefers-color-scheme`) and `data-zd-brand` (`branded` or `plain`). The stylesheet carries a `:where()` block per brand keyed on them, and any `--zd-*` custom property can be overridden from the host's stylesheet. No React API is involved: there is no `theme` prop, and no theme exports. Tooltips and dropdowns portal into the shared root under `document.body`, which inherits the theme from `<html>` like everything else. `ZeroDevLogo` gains `tone="auto"`, which follows the theme, and `PoweredBy` uses it. The dark variants ship once the design states their remaining values; until then a dark mode keeps the light values.
+
+  The `@import` of the token stylesheet now precedes `@config` in every package stylesheet: Vite inlines imports before Tailwind runs and drops one that follows another statement, which left Storybook without any token.
+
+### Patch Changes
+
+- 3a264e2: The dark themes. The stylesheet states every plain dark value, so `data-zd-brand="plain"` with `data-zd-mode="dark"` (or `system` under a dark colour scheme) now applies; the dark surface tints follow the wallet screens in the design file. Branded dark is held back until the card's art has a dark design and keeps the light values for now. The bottom sheet sits on the card base in every theme, so it masks what it covers in dark too, and the QR code draws its own white quiet zone, so a scan never depends on the theme around it. The plain brand drops the decorative layers: the gradient border ring becomes a flat band (`bg-frame-ring`), the card glow a flat frosted surface, the sheet gradient goes, and every surface gets a 1px border, keyed on `data-zd-brand` like the colours. The animated blob above the sign-up heading is removed from every theme, branded light included, along with its 540KB video asset. The sign-up subtitle and the "Powered by" label read in the secondary text colour, as the screens specify.
+- a785dc4: Screens and components colour themselves through the semantic tokens instead of palette classes, so the upcoming themes can restyle them. Where the previous value had no token, the nearest design-system token applies: the sign-up divider, wallet-sheet tiles and skeletons move to the 10% ink tint, the QR card border to 30% ink, off-white tiles to the 80% neutral surface, and the raw-request panels to the bright surface. Small labels that sat at 60% ink or Tailwind's gray-500 (the wallet sheet's inactive tab, the pending-request count, the raw-data and method captions) take the secondary text token rather than tertiary: tertiary is 50% ink, about 3.6:1 on the light card, under the 4.5:1 small text needs.
+- b4196f6: Add the semantic colour token layer behind the upcoming themes: a Tailwind `@theme` block in `@zerodev/react-ui` declaring every background, text, icon and border token of the design system with the current (branded light) values, which Tailwind turns into `--zd-*` custom properties on `:root` and `zd:bg-*` / `zd:text-*` / `zd:text-icon-*` / `zd:border-*` utilities, all shipped in the compiled stylesheets so an app without a Tailwind build can use them. No component reads them yet, so nothing changes visually.
+- Updated dependencies [472ecab]
+- Updated dependencies [6ca76ab]
+- Updated dependencies [3a264e2]
+- Updated dependencies [12ef03e]
+- Updated dependencies [33148ac]
+- Updated dependencies [7e57555]
+- Updated dependencies [8ef260c]
+- Updated dependencies [b4196f6]
+  - @zerodev/react-ui@0.1.0
+
 ## 0.0.15
 
 ### Patch Changes
