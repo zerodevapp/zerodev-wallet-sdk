@@ -32,14 +32,11 @@ const h = vi.hoisted(() => ({
     registerWithPasskey: vi.fn(),
     loginWithStamp: vi.fn(),
     registerWithOTP: vi.fn(),
-    loginWithOTP: vi.fn(),
-    getAuthProxyConfigId: vi.fn(),
+    verifyOTP: vi.fn(),
     getAuthenticators: vi.fn(),
     logout: vi.fn(),
   },
-  authProxyClient: { verifyOtp: vi.fn() },
   encryptOtpAttempt: vi.fn(),
-  buildClientSignature: vi.fn(),
   toViemAccount: vi.fn(),
   transport: { name: 'mock-transport' },
 }))
@@ -52,22 +49,14 @@ vi.mock('../client/index.js', () => ({
       return h.client
     },
   ),
-  createAuthProxyClient: vi.fn(() => h.authProxyClient),
   zeroDevWalletTransport: vi.fn(() => h.transport),
 }))
 vi.mock('../adapters/viem.js', () => ({ toViemAccount: h.toViemAccount }))
 vi.mock('../utils/encryptOtpAttempt.js', () => ({
   encryptOtpAttempt: h.encryptOtpAttempt,
 }))
-vi.mock('../utils/buildClientSignature.js', () => ({
-  buildClientSignature: h.buildClientSignature,
-}))
 
-import {
-  createAuthProxyClient,
-  createClient,
-  zeroDevWalletTransport,
-} from '../client/index.js'
+import { createClient, zeroDevWalletTransport } from '../client/index.js'
 
 const BASE_TIME_MS = 1_700_000_000_000 // fixed "now" so session ids/expiry are deterministic
 
@@ -83,6 +72,14 @@ const VALID_JWT = createJwt({
   user_id: 'user-1',
   organization_id: 'org-1',
 })
+// What verify/otp returns: the registration with an alias of the token.
+const VERIFY_RESULT = {
+  verificationToken: 'alias-1',
+  subOrganizationId: 'org-1',
+  userId: 'user-1',
+  turnkeyUserId: 'tk-user-1',
+  walletAddresses: ['0xwallet'],
+}
 
 // In-memory storage adapter (same shape used in manager.test.ts).
 function createMemoryAdapter() {
@@ -176,10 +173,7 @@ beforeEach(() => {
   })
   h.client.loginWithStamp.mockResolvedValue({ session: VALID_JWT })
   h.client.registerWithOTP.mockResolvedValue({ otpId: 'otp-1' })
-  h.client.loginWithOTP.mockResolvedValue({ session: VALID_JWT })
-  h.client.getAuthProxyConfigId.mockResolvedValue({
-    authProxyConfigId: 'cfg-1',
-  })
+  h.client.verifyOTP.mockResolvedValue(VERIFY_RESULT)
   h.client.getAuthenticators.mockResolvedValue({
     oauths: null,
     passkeys: null,
@@ -194,11 +188,7 @@ beforeEach(() => {
   })
   h.client.logout.mockResolvedValue({})
 
-  h.authProxyClient.verifyOtp.mockResolvedValue({
-    verificationToken: 'v-token',
-  })
   h.encryptOtpAttempt.mockResolvedValue('encrypted-otp-bundle')
-  h.buildClientSignature.mockResolvedValue('client-signature')
   h.toViemAccount.mockResolvedValue({ address: '0xViemAccount' })
 })
 
@@ -610,7 +600,7 @@ describe('auth — passkey login', () => {
 
 // auth: otp verify
 describe('auth — otp', () => {
-  it('threads the OTP through encrypt → auth-proxy verify → client signature → login', async () => {
+  it('threads the OTP through encrypt → backend verify → sub-org stamp login', async () => {
     const sdk = await createZeroDevWalletCore(baseConfig())
 
     const data = await sdk.auth({
@@ -627,33 +617,62 @@ describe('auth — otp', () => {
       publicKey: 'rotated-pub-key',
       encryptionTargetBundle: 'target-bundle',
     })
-    // Encrypted bundle goes to the auth proxy, keyed by the fetched config id.
-    expect(createAuthProxyClient).toHaveBeenCalledWith({
-      authProxyConfigId: 'cfg-1',
-    })
-    expect(h.authProxyClient.verifyOtp).toHaveBeenCalledWith({
+    // The sealed bundle goes to the backend, never to the auth proxy.
+    expect(h.client.verifyOTP).toHaveBeenCalledWith({
       otpId: 'otp-1',
       encryptedOtpBundle: 'encrypted-otp-bundle',
-    })
-    // verificationToken flows into both the signature and the backend login.
-    expect(h.buildClientSignature).toHaveBeenCalledWith(
-      expect.objectContaining({
-        verificationToken: 'v-token',
-        publicKey: 'rotated-pub-key',
-      }),
-    )
-    expect(h.client.loginWithOTP).toHaveBeenCalledWith({
-      verificationToken: 'v-token',
-      clientSignature: 'client-signature',
       projectId: 'proj-1',
     })
-    expect(data).toEqual({ session: VALID_JWT })
+    // The login names the sub-org verify returned, carries the alias, and is
+    // stamped with the pending key, which is also the session key.
+    expect(h.client.loginWithStamp).toHaveBeenCalledWith({
+      projectId: 'proj-1',
+      organizationId: 'org-1',
+      targetPublicKey: 'rotated-pub-key',
+      sessionToken: 'alias-1',
+      stamper: { stamp: expect.any(Function) },
+    })
+    const { stamper } = h.client.loginWithStamp.mock.calls[0][0]
+    await stamper.stamp('payload')
+    expect(h.apiKeyStamper.stampPending).toHaveBeenCalledWith('payload')
+    expect(h.apiKeyStamper.stamp).not.toHaveBeenCalled()
+    expect(h.client.getParentOrgId).not.toHaveBeenCalled()
+
+    // The registration comes back with the session; the alias never does.
+    expect(data).toEqual({
+      subOrganizationId: 'org-1',
+      userId: 'user-1',
+      turnkeyUserId: 'tk-user-1',
+      walletAddresses: ['0xwallet'],
+      session: VALID_JWT,
+    })
+    expect(data).not.toHaveProperty('verificationToken')
+    expect(JSON.stringify([...adapter.store.values()])).not.toContain('alias-1')
 
     expect(await sdk.getSession()).toMatchObject({
       id: `session_otp_${BASE_TIME_MS}`,
       stamperType: 'apiKey',
       token: VALID_JWT,
     })
+  })
+
+  it('verifies, then logs in and commits in that order', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+
+    await sdk.auth({
+      type: 'otp',
+      mode: 'verifyOtp',
+      otpId: 'otp-1',
+      otpCode: '123456',
+      otpEncryptionTargetBundle: 'target-bundle',
+    })
+
+    expect(invocationOrder(h.client.verifyOTP)).toBeLessThan(
+      invocationOrder(h.client.loginWithStamp),
+    )
+    expect(invocationOrder(h.client.loginWithStamp)).toBeLessThan(
+      invocationOrder(h.apiKeyStamper.commitKeyRotation),
+    )
   })
 
   it('sendOtp initiates OTP without touching keys or storage', async () => {
@@ -674,24 +693,6 @@ describe('auth — otp', () => {
     expect(data).toEqual({ otpId: 'otp-1' })
     expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
     expect(await sdk.getSession()).toBeUndefined()
-  })
-
-  it('caches the auth-proxy config id across verifications', async () => {
-    const sdk = await createZeroDevWalletCore(baseConfig())
-    const verify = () =>
-      sdk.auth({
-        type: 'otp',
-        mode: 'verifyOtp',
-        otpId: 'otp-1',
-        otpCode: '111111',
-        otpEncryptionTargetBundle: 'bundle',
-      })
-
-    await verify()
-    await verify()
-
-    expect(h.client.getAuthProxyConfigId).toHaveBeenCalledTimes(1)
-    expect(h.authProxyClient.verifyOtp).toHaveBeenCalledTimes(2)
   })
 
   it('throws when a public key cannot be generated', async () => {
@@ -717,7 +718,7 @@ describe('auth — otp', () => {
     const existingSession = await sdk.getSession()
 
     h.apiKeyStamper.resetKeyPair.mockClear()
-    h.authProxyClient.verifyOtp.mockRejectedValueOnce(new Error('invalid otp'))
+    h.client.verifyOTP.mockRejectedValueOnce(new Error('invalid otp'))
 
     await expect(
       sdk.auth({
@@ -729,8 +730,55 @@ describe('auth — otp', () => {
       }),
     ).rejects.toThrow('invalid otp')
 
+    expect(h.client.loginWithStamp).not.toHaveBeenCalled()
+    expect(h.apiKeyStamper.discardKeyRotation).toHaveBeenCalled()
     expect(await sdk.getSession()).toEqual(existingSession)
     expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
+  })
+
+  it('preserves the live key and session when the login fails after a verified OTP', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    await sdk.auth({ type: 'oauth', provider: 'google', sessionId: 'existing' })
+    const existingSession = await sdk.getSession()
+
+    h.apiKeyStamper.resetKeyPair.mockClear()
+    h.apiKeyStamper.commitKeyRotation.mockClear()
+    h.client.loginWithStamp.mockRejectedValueOnce(new Error('login failed'))
+
+    await expect(
+      sdk.auth({
+        type: 'otp',
+        mode: 'verifyOtp',
+        otpId: 'otp-1',
+        otpCode: '123456',
+        otpEncryptionTargetBundle: 'bundle',
+      }),
+    ).rejects.toThrow('login failed')
+
+    expect(h.apiKeyStamper.commitKeyRotation).not.toHaveBeenCalled()
+    expect(h.apiKeyStamper.discardKeyRotation).toHaveBeenCalled()
+    expect(await sdk.getSession()).toEqual(existingSession)
+    expect(h.apiKeyStamper.resetKeyPair).not.toHaveBeenCalled()
+  })
+
+  it('refuses a login response without a session instead of crashing', async () => {
+    const sdk = await createZeroDevWalletCore(baseConfig())
+    h.client.loginWithStamp.mockResolvedValueOnce({})
+
+    const error = await sdk
+      .auth({
+        type: 'otp',
+        mode: 'verifyOtp',
+        otpId: 'otp-1',
+        otpCode: '123456',
+        otpEncryptionTargetBundle: 'bundle',
+      })
+      .catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(TypeError)
+    expect(h.apiKeyStamper.discardKeyRotation).toHaveBeenCalled()
+    expect(await sdk.getSession()).toBeUndefined()
   })
 })
 
@@ -769,8 +817,14 @@ describe('auth — magicLink normalization', () => {
         encryptionTargetBundle: 'ml-bundle',
       }),
     )
-    expect(h.authProxyClient.verifyOtp).toHaveBeenCalledWith(
+    expect(h.client.verifyOTP).toHaveBeenCalledWith(
       expect.objectContaining({ otpId: 'otp-9' }),
+    )
+    expect(h.client.loginWithStamp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        sessionToken: 'alias-1',
+      }),
     )
     expect(await sdk.getSession()).toMatchObject({ token: VALID_JWT })
   })
