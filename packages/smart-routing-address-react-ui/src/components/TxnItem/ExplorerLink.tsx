@@ -27,7 +27,7 @@ export function ExplorerLink({ href, address, className }: ExplorerLinkProps) {
       // this anchor is layered over the row via absolute positioning).
       onClick={(e) => e.stopPropagation()}
       className={cn(
-        'zd:inline-flex zd:items-center zd:justify-center zd:rounded-md zd:p-1.5 zd:text-solarOrange zd:hover:bg-white/40',
+        'zd:inline-flex zd:items-center zd:justify-center zd:rounded-md zd:p-1.5 zd:text-icon-brand-primary zd:hover:bg-bright-secondary',
         className,
       )}
     >

@@ -44,9 +44,11 @@ describe('TxnItem', () => {
     expect(done.querySelector('.zd\\:animate-spin')).toBeNull()
   })
 
-  it('renders Delivered in green', () => {
+  it('renders Delivered in the success tone', () => {
     render(<TxnItem {...BASE} status="Delivered" />)
-    expect(screen.getByText('Delivered').className).toContain('positive')
+    expect(screen.getByText('Delivered').className).toContain(
+      'zd:text-success-primary',
+    )
   })
 
   it('renders the address as a link when href is provided', () => {

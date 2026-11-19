@@ -191,7 +191,7 @@ export function TransactionDetails({
             <img
               src={sourceTokenLogo}
               alt=""
-              className="zd:size-4 zd:rounded-full zd:border zd:border-offWhite zd:object-cover"
+              className="zd:size-4 zd:rounded-full zd:border zd:border-neutral-primary zd:object-cover"
             />
           )}
           <Text className="zd:text-body2">{sourceSymbol}</Text>
@@ -322,7 +322,7 @@ function NetworkValue({ name, logoUrl }: { name: string; logoUrl?: string }) {
 function TxLink({ label, href }: { label: string; href?: string | undefined }) {
   if (!href) {
     return (
-      <span className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-greyScale">
+      <span className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-neutral-primary">
         {label}
       </span>
     )
@@ -332,7 +332,7 @@ function TxLink({ label, href }: { label: string; href?: string | undefined }) {
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-greyScale zd:hover:text-solarOrange"
+      className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-neutral-primary zd:hover:text-brand-primary"
     >
       {label}
       {/* Inherits the link's ink color (Figma 20002:38055) — no orange. */}
@@ -355,7 +355,7 @@ function StatusText({
     <Text
       className={cn(
         'zd:text-body3',
-        tone === 'error' ? 'zd:text-negative' : 'zd:text-greyScale/50',
+        tone === 'error' ? 'zd:text-error-primary' : 'zd:text-neutral-tertiary',
       )}
     >
       {children}
@@ -367,7 +367,7 @@ function ProviderChip({ provider }: { provider: string }) {
   const iconUrl = PROVIDER_ICONS[provider]
   return (
     <span
-      className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-greyScale"
+      className="zd:inline-flex zd:items-center zd:gap-1 zd:text-body3 zd:text-neutral-primary"
       title={`Quoted via ${provider}`}
     >
       {provider}
@@ -389,7 +389,7 @@ function ProviderChipSkeleton() {
     <output
       aria-busy="true"
       aria-label="Loading provider"
-      className="zd:block zd:h-4 zd:w-16 zd:rounded-full zd:bg-greyScale/15 zd:animate-skel-pulse"
+      className="zd:block zd:h-4 zd:w-16 zd:rounded-full zd:bg-inverse-hover zd:animate-skel-pulse"
     />
   )
 }
