@@ -12,7 +12,6 @@ import {
   authenticateWithOAuth,
   type GetAuthenticatorsParameters,
   type GetAuthenticatorsReturnType,
-  type GetAuthProxyConfigIdReturnType,
   type GetOAuthLoginUrlParameters,
   type GetOAuthLoginUrlReturnType,
   type GetParentOrgIdReturnType,
@@ -21,16 +20,12 @@ import {
   type GetWhoamiParameters,
   type GetWhoamiReturnType,
   getAuthenticators,
-  getAuthProxyConfigId,
   getOAuthLoginUrl,
   getParentOrgId,
   getUserWallet,
   getWhoami,
-  type LoginWithOTPParameters,
-  type LoginWithOTPReturnType,
   type LogoutParameters,
   type LogoutReturnType,
-  loginWithOTP,
   logout,
   type RegisterWithOTPParameters,
   type RegisterWithOTPReturnType,
@@ -163,18 +158,6 @@ export type ZeroDevWalletActions = {
   verifyOTP: (params: VerifyOTPParameters) => Promise<VerifyOTPReturnType>
 
   /**
-   * Logs in a user with OTP (One-Time Password) authentication
-   */
-  loginWithOTP: (
-    params: LoginWithOTPParameters,
-  ) => Promise<LoginWithOTPReturnType>
-
-  /**
-   * Gets the auth proxy config ID from the backend
-   */
-  getAuthProxyConfigId: () => Promise<GetAuthProxyConfigIdReturnType>
-
-  /**
    * Gets the Turnkey parent (base) organization ID from the backend
    */
   getParentOrgId: () => Promise<GetParentOrgIdReturnType>
@@ -231,8 +214,6 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     loginWithStamp: (params) => loginWithStamp(client, params),
     registerWithOTP: (params) => registerWithOTP(client, params),
     verifyOTP: (params) => verifyOTP(client, params),
-    loginWithOTP: (params) => loginWithOTP(client, params),
-    getAuthProxyConfigId: () => getAuthProxyConfigId(client),
     getParentOrgId: () => getParentOrgId(client),
     getOAuthLoginUrl: (params) => getOAuthLoginUrl(client, params),
   }

@@ -1,18 +1,20 @@
 /**
  * Wraps the OTP code + client public key in a Turnkey-compatible HPKE bundle
- * for the `/v1/otp_verify_v2` auth-proxy endpoint.
+ * for the backend's `/auth/verify/otp` endpoint, which relays it to Turnkey's
+ * `VERIFY_OTP` activity.
  *
  * Bundle flow (RFC 9180 mode_base over Turnkey's TLS Fetcher enclave):
  *   1. The backend's /init/otp returns a signed envelope that contains an
  *      ephemeral HPKE public key (`targetPublic`) generated fresh by the
  *      enclave for this OTP attempt.
  *   2. We verify the envelope's ECDSA signature against a pinned production
- *      key (`TURNKEY_TLS_FETCHER_SIGN_PUBLIC_KEY`) so a compromised proxy
+ *      key (`TURNKEY_TLS_FETCHER_SIGN_PUBLIC_KEY`) so a compromised backend
  *      cannot substitute its own ephemeral key.
- *   3. We HPKE-seal `{otp_code, public_key}` to `targetPublic`. The auth proxy
+ *   3. We HPKE-seal `{otp_code, public_key}` to `targetPublic`. The backend
  *      forwards the ciphertext to the enclave; only the enclave can decrypt
- *      it. The enclave then issues a `verificationToken` bound to the public
- *      key embedded in the plaintext.
+ *      it. The enclave then issues a verification token bound to the public
+ *      key embedded in the plaintext, which the backend keeps (the client
+ *      gets an alias of it from `verifyOTP`).
  *
  * See: tkhq/go-sdk `examples/email_otp` and `pkg/enclave_encrypt`.
  */
@@ -58,8 +60,8 @@ export type EncryptOtpAttemptParams = {
 }
 
 /**
- * Returns a JSON string ready to be sent as `encryptedOtpBundle` on
- * `POST /v1/otp_verify_v2`.
+ * Returns a JSON string ready to be sent as `encryptedOtpBundle` to
+ * `verifyOTP`.
  */
 export async function encryptOtpAttempt({
   otpCode,

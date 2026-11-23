@@ -1,6 +1,6 @@
 # End-to-end suites
 
-Everything under `e2e/` needs the **deployed stack** — staging KMS, Auth Proxy,
+Everything under `e2e/` needs the **deployed stack** — staging KMS and
 Turnkey. Two suites, split by what drives them:
 
 | Suite | Command | Driver | Config |
