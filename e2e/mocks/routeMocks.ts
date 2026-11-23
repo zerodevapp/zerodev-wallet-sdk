@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test'
+import type { BrowserContext, Page, Route } from '@playwright/test'
 import { matchMock } from './installMockFetch.js'
 import { orderMocks } from './orderMocks.js'
 import { resolveMockResponse } from './resolveResponse.js'
@@ -9,17 +9,20 @@ import type {
 } from './types.js'
 
 /**
- * Serves `MockRequest[]` to a page through Playwright's own request
- * interception.
+ * Serves `MockRequest[]` to a page, or to a whole context, through Playwright's
+ * own request interception.
  *
  * Browser-level, so it sees what the page sends regardless of who sent it, and
- * needs no proxy, no CA and no second Playwright config.
+ * needs no proxy, no CA and no second Playwright config. A context install also
+ * covers pages opened later and any iframe they embed, which is what an
+ * extension wallet needs — it opens its own tabs. Neither reaches a service
+ * worker's requests.
  *
  * Matching is shared with the in-app `fetch` adapter (`installMockFetch`), so a
  * definition behaves the same whichever serves it.
  *
- * No teardown: routes belong to the page, and Playwright gives each test a fresh
- * one.
+ * No teardown: routes belong to the target, and Playwright gives each test a
+ * fresh page.
  */
 export type MockHandle = {
   /**
@@ -35,7 +38,7 @@ export type MockHandle = {
 const ALL_REQUESTS = '**/*'
 
 export async function routeMocks(
-  page: Page,
+  target: Page | BrowserContext,
   mocks: MockRequest[],
   options: { unmatched?: UnmatchedPolicy } = {},
 ): Promise<MockHandle> {
@@ -80,10 +83,10 @@ export async function routeMocks(
     })
   }
 
-  await page.route(ALL_REQUESTS, handler)
+  await target.route(ALL_REQUESTS, handler)
 
   return {
     hits: () => hits,
-    dispose: () => page.unroute(ALL_REQUESTS, handler),
+    dispose: () => target.unroute(ALL_REQUESTS, handler),
   }
 }

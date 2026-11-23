@@ -22,12 +22,13 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
 import * as path from 'node:path'
 import { promisify } from 'node:util'
-import { walletCacheDir } from '../e2e-cache.js'
+import { walletCacheDir, withWalletCacheLock } from '../e2e-cache.js'
 import { METAMASK_VERSION } from '../wallet-versions.js'
 
 const execFileAsync = promisify(execFile)
@@ -116,33 +117,53 @@ async function verifyDigest(zipPath: string, zipName: string): Promise<void> {
  * migrations on load and a profile written by another build is not a starting
  * state anybody chose.
  */
+const isInstalled = (): boolean =>
+  readStamp()?.version === METAMASK_VERSION &&
+  existsSync(path.join(EXTENSION_DIR, 'manifest.json'))
+
 export async function ensureMetaMaskExtension(): Promise<string> {
-  const stamp = readStamp()
-  if (stamp?.version === METAMASK_VERSION && existsSync(EXTENSION_DIR)) {
+  if (isInstalled()) return EXTENSION_DIR
+
+  return withWalletCacheLock(CACHE_ROOT, async () => {
+    // Re-checked under the lock: the usual outcome of waiting is that the
+    // holder already built it, and rebuilding would throw away a good profile.
+    if (isInstalled()) return EXTENSION_DIR
+
+    rmSync(EXTENSION_DIR, { recursive: true, force: true })
+    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+    rmSync(STAMP_FILE, { force: true })
+    mkdirSync(DOWNLOAD_DIR, { recursive: true })
+
+    const zipName = `metamask-chrome-${METAMASK_VERSION}.zip`
+    const zipPath = path.join(DOWNLOAD_DIR, zipName)
+
+    if (!existsSync(zipPath)) {
+      await download(`${RELEASE_BASE}/v${METAMASK_VERSION}/${zipName}`, zipPath)
+    }
+    await verifyDigest(zipPath, zipName)
+
+    // Unpacked beside the destination and moved into place, never extracted
+    // over it: the id Chrome derives comes from EXTENSION_DIR's path, so that
+    // path must only ever hold a finished extension.
+    const staging = `${EXTENSION_DIR}.partial`
+    rmSync(staging, { recursive: true, force: true })
+    mkdirSync(staging, { recursive: true })
+
+    try {
+      await execFileAsync('unzip', ['-q', '-o', zipPath, '-d', staging])
+
+      if (!existsSync(path.join(staging, 'manifest.json'))) {
+        throw new Error(`unzip produced no manifest.json in ${staging}`)
+      }
+
+      rmSync(EXTENSION_DIR, { recursive: true, force: true })
+      mkdirSync(path.dirname(EXTENSION_DIR), { recursive: true })
+      renameSync(staging, EXTENSION_DIR)
+    } finally {
+      rmSync(staging, { recursive: true, force: true })
+    }
+
+    writeFileSync(STAMP_FILE, JSON.stringify({ version: METAMASK_VERSION }))
     return EXTENSION_DIR
-  }
-
-  rmSync(EXTENSION_DIR, { recursive: true, force: true })
-  rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
-  rmSync(STAMP_FILE, { force: true })
-  mkdirSync(DOWNLOAD_DIR, { recursive: true })
-
-  const zipName = `metamask-chrome-${METAMASK_VERSION}.zip`
-  const zipPath = path.join(DOWNLOAD_DIR, zipName)
-
-  if (!existsSync(zipPath)) {
-    await download(`${RELEASE_BASE}/v${METAMASK_VERSION}/${zipName}`, zipPath)
-  }
-  await verifyDigest(zipPath, zipName)
-
-  mkdirSync(EXTENSION_DIR, { recursive: true })
-  await execFileAsync('unzip', ['-q', '-o', zipPath, '-d', EXTENSION_DIR])
-
-  const manifest = path.join(EXTENSION_DIR, 'manifest.json')
-  if (!existsSync(manifest)) {
-    throw new Error(`unzip produced no manifest.json in ${EXTENSION_DIR}`)
-  }
-
-  writeFileSync(STAMP_FILE, JSON.stringify({ version: METAMASK_VERSION }))
-  return EXTENSION_DIR
+  })
 }

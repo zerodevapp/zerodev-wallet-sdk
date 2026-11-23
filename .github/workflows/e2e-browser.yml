@@ -92,7 +92,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: e2e/.cache
-          key: e2e-fixtures-${{ runner.os }}-${{ hashFiles('e2e/helpers/wallet-versions.ts') }}
+          key: e2e-fixtures-${{ runner.os }}-${{ hashFiles('e2e/helpers/wallet-versions.ts', 'e2e/playwright.config.ts') }}
 
       - name: Build and start QA lab
         working-directory: apps/qa-lab-testing

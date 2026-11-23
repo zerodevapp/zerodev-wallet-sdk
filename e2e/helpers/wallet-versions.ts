@@ -2,9 +2,9 @@
  * Pinned wallet-extension versions for the browser e2e suite.
  *
  * **Deliberately a file containing nothing else.** CI keys its `e2e/.cache`
- * restore on a hash of this file, so a version bump invalidates the cache and
- * anything else, a comment or a new helper, does not. Put only version
- * constants here.
+ * restore on a hash of this file and `e2e/playwright.config.ts`, so a version
+ * bump invalidates the cache and a comment or a new helper here does not. Put
+ * only version constants here.
  *
  * Bumping a version starts the upgrade procedure. The next run re-downloads,
  * re-verifies the digest, and re-onboards, because the stamp beside the cached

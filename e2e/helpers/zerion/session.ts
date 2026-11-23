@@ -17,10 +17,12 @@ import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { type BrowserContext, chromium, type Page } from '@playwright/test'
 import { mnemonicToAccount } from 'viem/accounts'
-import { zerionCheckActivity } from '../../mocks/definitions/zerion/checkActivity.js'
-import { routeMocks } from '../../mocks/routeMocks.js'
+import { zerionApi } from '../../mocks/definitions/zerion/api.js'
+import { type MockHandle, routeMocks } from '../../mocks/routeMocks.js'
+import { withWalletCacheLock } from '../e2e-cache.js'
 import { TEST_WALLET } from '../wallet-credentials.js'
 import {
+  CACHE_ROOT,
   EXTENSION_DIR,
   ensureZerionExtension,
   PROFILE_SNAPSHOT_DIR,
@@ -40,6 +42,8 @@ export interface ZerionLaunch {
   context: BrowserContext
   /** Derived at runtime — it is a hash of the unpack path, not a constant. */
   extensionId: string
+  /** The Zerion API block, so a caller can assert that it served. */
+  mocks: MockHandle
 }
 
 export interface LaunchOptions {
@@ -72,6 +76,12 @@ export async function launchWithZerion({
     ],
   })
 
+  // Installed here, before anything navigates, because every Zerion context
+  // comes through this function and every one of them needs it: unprotected,
+  // Cloudflare challenges the wallet and parks a `<dialog>` over its controls.
+  // Context-scoped so it also covers the tabs Zerion opens itself.
+  const mocks = await routeMocks(context, zerionApi)
+
   const worker =
     context.serviceWorkers()[0] ??
     (await context.waitForEvent('serviceworker', {
@@ -85,7 +95,7 @@ export async function launchWithZerion({
     throw new Error(`could not read an extension id from ${worker.url()}`)
   }
 
-  return { context, extensionId }
+  return { context, extensionId, mocks }
 }
 
 /** A page on the extension's own origin, which is where the wallet UI lives. */
@@ -166,39 +176,60 @@ export async function ensureOnboardedProfile(
   // The account the phrase derives, stored beside the snapshot so editing
   // TEST_WALLET re-onboards instead of silently reusing the previous wallet.
   const account = mnemonicToAccount(credentials.secretRecoveryPhrase).address
-
-  await ensureZerionExtension()
-
   const fingerprint = credentialsFingerprint()
 
-  if (existsSync(PROFILE_SNAPSHOT_DIR)) {
+  const ready = (): boolean => {
+    if (!existsSync(PROFILE_SNAPSHOT_DIR)) return false
     const stamp = readProfileStamp()
-    if (
+    return (
       stamp?.credentials === fingerprint &&
       stamp.extensionPath === extensionPath()
-    ) {
-      return PROFILE_SNAPSHOT_DIR
-    }
-    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+    )
   }
 
+  if (ready()) {
+    await ensureZerionExtension()
+    return PROFILE_SNAPSHOT_DIR
+  }
+
+  // Held across the whole onboarding, not just the copy: every worker calls
+  // this (the fixture is worker-scoped), and an onboarding is minutes of work
+  // that must happen once. The lock is reentrant, so the nested
+  // `ensureZerionExtension` below does not wait on this one.
+  return withWalletCacheLock(CACHE_ROOT, async () => {
+    await ensureZerionExtension()
+
+    // Re-checked under the lock: whoever waited here is normally looking at a
+    // profile someone else just onboarded.
+    if (ready()) return PROFILE_SNAPSHOT_DIR
+    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+
+    return buildOnboardedProfile(headless, credentials, account, fingerprint)
+  })
+}
+
+async function buildOnboardedProfile(
+  headless: boolean,
+  credentials: typeof TEST_WALLET,
+  account: string,
+  fingerprint: string,
+): Promise<string> {
   const scratch = mkdtempSync(path.join(tmpdir(), 'zerion-onboarding-'))
   const staging = `${PROFILE_SNAPSHOT_DIR}.partial`
 
   try {
-    const { context, extensionId } = await launchWithZerion({
+    const { context, extensionId, mocks } = await launchWithZerion({
       userDataDir: scratch,
       headless,
     })
 
     try {
       const page = await openOnboardingTab(context, extensionId)
-      const mocked = await routeMocks(page, zerionCheckActivity)
       await onboardWithRecoveryPhrase(page, credentials)
-      if (mocked.hits() === 0) {
+      if (mocks.hits() === 0) {
         throw new Error(
-          'onboarding completed without the check-activity mock serving, so ' +
-            'it reached the real Zerion API — the mock no longer matches.',
+          'onboarding completed without the Zerion API mock serving, so it ' +
+            'reached the real API — the mock no longer matches.',
         )
       }
     } finally {
@@ -252,6 +283,7 @@ async function assertProfileIsOnboarded(
       userDataDir: probeDir,
       headless,
     })
+
     try {
       const page = await context.newPage()
       await page.goto(extensionUrl(extensionId))

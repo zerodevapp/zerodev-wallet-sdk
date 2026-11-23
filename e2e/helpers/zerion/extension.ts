@@ -26,7 +26,7 @@ import {
 } from 'node:fs'
 import * as path from 'node:path'
 import { promisify } from 'node:util'
-import { walletCacheDir } from '../e2e-cache.js'
+import { walletCacheDir, withWalletCacheLock } from '../e2e-cache.js'
 import { ZERION_VERSION, ZERION_ZIP_SHA256 } from '../wallet-versions.js'
 
 const execFileAsync = promisify(execFile)
@@ -105,7 +105,11 @@ function verifyDigest(zipPath: string, downloaded: boolean): void {
  * directory so `manifest.json` lands at the top level.
  */
 async function unpack(zipPath: string): Promise<void> {
-  const staging = `${EXTENSION_DIR}.partial`
+  // Per-process, not a shared `.partial`: a shared staging path lets one
+  // caller's `finally` delete the directory another is still unzipping into.
+  // The cache lock makes that unreachable today, so this is the belt to its
+  // braces — and it keeps the helper safe to call on its own.
+  const staging = `${EXTENSION_DIR}.partial-${process.pid}`
   rmSync(staging, { recursive: true, force: true })
   mkdirSync(staging, { recursive: true })
 
@@ -149,41 +153,49 @@ async function unpack(zipPath: string): Promise<void> {
  * `ZERION_ZIP_PATH` overrides the download with a local file, which is both the
  * offline path and the recovery path if GitHub is unreachable.
  */
-export async function ensureZerionExtension(): Promise<string> {
+const isInstalled = (): boolean => {
   const stamp = readStamp()
-  if (
+  return (
     stamp?.version === ZERION_VERSION &&
     stamp.sha256 === ZERION_ZIP_SHA256 &&
     existsSync(path.join(EXTENSION_DIR, 'manifest.json'))
-  ) {
-    return EXTENSION_DIR
-  }
-
-  rmSync(EXTENSION_DIR, { recursive: true, force: true })
-  rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
-  rmSync(STAMP_FILE, { force: true })
-  mkdirSync(DOWNLOAD_DIR, { recursive: true })
-
-  const override = process.env.ZERION_ZIP_PATH
-  const zipPath = override ?? path.join(DOWNLOAD_DIR, zipName(ZERION_VERSION))
-
-  if (override) {
-    if (!existsSync(override)) {
-      throw new Error(`ZERION_ZIP_PATH points at nothing: ${override}`)
-    }
-  } else if (!existsSync(zipPath)) {
-    await download(
-      `${RELEASE_BASE}/v${ZERION_VERSION}/${zipName(ZERION_VERSION)}`,
-      zipPath,
-    )
-  }
-
-  verifyDigest(zipPath, override === undefined)
-  await unpack(zipPath)
-
-  writeFileSync(
-    STAMP_FILE,
-    JSON.stringify({ version: ZERION_VERSION, sha256: ZERION_ZIP_SHA256 }),
   )
-  return EXTENSION_DIR
+}
+
+export async function ensureZerionExtension(): Promise<string> {
+  if (isInstalled()) return EXTENSION_DIR
+
+  return withWalletCacheLock(CACHE_ROOT, async () => {
+    // Re-checked under the lock: the usual outcome of waiting is that the
+    // holder already built it, and rebuilding would throw away a good profile.
+    if (isInstalled()) return EXTENSION_DIR
+
+    rmSync(EXTENSION_DIR, { recursive: true, force: true })
+    rmSync(PROFILE_SNAPSHOT_DIR, { recursive: true, force: true })
+    rmSync(STAMP_FILE, { force: true })
+    mkdirSync(DOWNLOAD_DIR, { recursive: true })
+
+    const override = process.env.ZERION_ZIP_PATH
+    const zipPath = override ?? path.join(DOWNLOAD_DIR, zipName(ZERION_VERSION))
+
+    if (override) {
+      if (!existsSync(override)) {
+        throw new Error(`ZERION_ZIP_PATH points at nothing: ${override}`)
+      }
+    } else if (!existsSync(zipPath)) {
+      await download(
+        `${RELEASE_BASE}/v${ZERION_VERSION}/${zipName(ZERION_VERSION)}`,
+        zipPath,
+      )
+    }
+
+    verifyDigest(zipPath, override === undefined)
+    await unpack(zipPath)
+
+    writeFileSync(
+      STAMP_FILE,
+      JSON.stringify({ version: ZERION_VERSION, sha256: ZERION_ZIP_SHA256 }),
+    )
+    return EXTENSION_DIR
+  })
 }

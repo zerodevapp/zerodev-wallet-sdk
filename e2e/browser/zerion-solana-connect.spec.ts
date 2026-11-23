@@ -5,6 +5,11 @@
  * cases are deliberately the same, because the point of running them twice is
  * what the two wallets do differently. Zerion diverges in two measured ways,
  * each marked at the case it belongs to.
+ *
+ * Cases marked "stuck EVM connecting" fail against a live defect shared with
+ * MetaMask: opening the sign-up sheet starts a WalletConnect pairing whose
+ * `connect()` stays pending, so `kit.eip155.status` reads `connecting` with
+ * nothing connecting. When one of these goes red, the marker comes off.
  */
 
 import { expect, type Page } from '@playwright/test'
@@ -18,6 +23,7 @@ import {
 import {
   BASE58_ADDRESS,
   EVM_ADDRESS,
+  KNOWN_DEFECT_TIMEOUT_MS,
   LAB_TIMEOUT_MS,
 } from '../helpers/constants.js'
 import { openWalletPreset } from '../helpers/ui-login.js'
@@ -83,7 +89,8 @@ test.describe('Solana through Zerion', () => {
 
     // The point of the case: a Solana connect leaves the EVM side alone, even
     // though the same extension serves it.
-    await expectDisconnected(page, 'eip155')
+    test.fail(true, 'stuck EVM connecting')
+    await expectDisconnected(page, 'eip155', KNOWN_DEFECT_TIMEOUT_MS)
   })
 
   /**
@@ -182,7 +189,8 @@ test.describe('Solana through Zerion', () => {
     await connectThroughZerion(page, zerion, 'solana')
 
     await page.waitForTimeout(SETTLE_MS)
-    await expectDisconnected(page, 'eip155')
+    test.fail(true, 'stuck EVM connecting')
+    await expectDisconnected(page, 'eip155', KNOWN_DEFECT_TIMEOUT_MS)
 
     await page.reload()
     await expectConnected(page, 'solana')

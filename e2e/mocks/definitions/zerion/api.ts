@@ -1,18 +1,21 @@
 /**
- * Zerion's API, which the onboarding walk cannot reach from CI.
+ * Zerion's API, which no Zerion context can reach from CI.
  *
  * `zpi.zerion.io` sits behind Cloudflare, which challenges GitHub-hosted
- * runners and answers 403 with an HTML interstitial. That breaks onboarding
- * twice over, so the whole host is served here rather than the one gating call:
+ * runners and answers `403` with `cf-mitigated: challenge` and an HTML
+ * interstitial. Zerion reacts by loading `app.zerion.io/turnstile.html` into a
+ * `<dialog>` over its own UI, and that dialog intercepts pointer events on
+ * whatever sits beneath it — Continue during onboarding, Unlock afterwards.
+ * It never resolves, because the challenge is never solved.
  *
- * - `check-activity` takes the derived addresses, and the screen carrying
- *   Continue never renders without an answer.
- * - Any other 403 paints Cloudflare's Turnstile widget as a `<dialog>` over the
- *   extension UI, which then intercepts the click on Continue even once that
- *   screen is up.
+ * So the whole host is served here rather than the one gating call.
+ * `check-activity` additionally has to answer rather than refuse: the screen
+ * carrying Continue never renders without it.
  *
  * Mocking only `check-activity` looks sufficient from a machine Cloudflare does
- * not challenge, because there every other call quietly succeeds.
+ * not challenge, because there every other call quietly succeeds. Measured on
+ * a runner: the challenge arrives on `wallet/get-meta/v1`, and every request in
+ * the chain that follows is page-originated, so `route` reaches all of it.
  */
 
 import type { MockRequest } from '../../types.js'
@@ -29,7 +32,7 @@ const refused = {
   errors: [{ title: 'not served to the e2e suite' }],
 }
 
-export const zerionCheckActivity: MockRequest[] = [
+export const zerionApi: MockRequest[] = [
   {
     url: /\/wallet\/check-activity\/v1$/,
     method: 'POST',
