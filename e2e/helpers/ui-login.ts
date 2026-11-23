@@ -51,6 +51,8 @@ export async function openWalletPreset(
   if (options.maxWallets !== undefined) {
     params.set('maxWallets', String(options.maxWallets))
   }
+  // Opt-in wagmi connector trace; lands in the Playwright trace's console.
+  if (process.env.E2E_WAGMI_DIAG === '1') params.set('diag', 'wagmi')
   await page.goto(`/?${params}`)
 }
 

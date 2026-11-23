@@ -4,6 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { WagmiProvider } from 'wagmi'
 import { pickConfigParams, resolveWalletConfig } from './lib/config-params'
+import {
+  WAGMI_DIAG_PARAM,
+  WAGMI_DIAG_VALUE,
+  installWagmiDiagnostics,
+} from './lib/wagmi-diagnostics'
 import { createWalletConfig } from './wagmi-config'
 
 type WalletConfig = ReturnType<typeof createWalletConfig>
@@ -81,6 +86,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
   const configKey = pickConfigParams(searchParams).toString()
   const { config, queryClient } = getConfigFor(configKey)
+  // Before WagmiProvider mounts, so its reconnect is traced from the start.
+  if (
+    typeof window !== 'undefined' &&
+    searchParams.get(WAGMI_DIAG_PARAM) === WAGMI_DIAG_VALUE
+  ) {
+    installWagmiDiagnostics(config)
+  }
 
   return (
     // `key` remounts the provider if config params ever change client-side.

@@ -124,8 +124,15 @@ jobs:
           exit 1
 
       - name: Run E2E tests
-        run: pnpm exec playwright test --config e2e/playwright.config.ts
+        # DROP BEFORE MERGE: diagnostic run for the Zerion EVM "connecting" flake.
+        run: >-
+          pnpm exec playwright test --config e2e/playwright.config.ts
+          --project=chromium-zerion --retries=0 --repeat-each=5
+          --trace=retain-on-failure
+          e2e/browser/zerion-solana-connect.spec.ts:65
+          e2e/browser/zerion-solana-connect.spec.ts:177
         env:
+          E2E_WAGMI_DIAG: '1'
           LAB_APP_URL: http://localhost:3000
           MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
           MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
