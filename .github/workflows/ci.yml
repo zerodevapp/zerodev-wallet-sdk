@@ -6,23 +6,51 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled, edited]
 
-# One run per PR
+# One run per PR. Only an event that can change the result cancels the run in
+# flight: a title edit or an unrelated label must not kill a real run. Keep the
+# action list in step with `should-run` below.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-# RUN CONDITION, on every job below: push, a PR targeting main or develop, or a
-# PR carrying the 'run-ci' label. The first two are what the old
-# `pull_request: branches:` filter did; the third is the opt-in.
+  cancel-in-progress: >-
+    ${{ github.event_name == 'pull_request'
+        && (github.event.action == 'opened'
+            || github.event.action == 'synchronize'
+            || github.event.action == 'reopened'
+            || (github.event.action == 'labeled'
+                && github.event.label.name == 'run-ci')
+            || github.event.changes.base.ref.from != '') }}
 
 jobs:
+  # RUN CONDITION for every job below. Eligible: a push, a PR targeting main or
+  # develop, or a PR carrying the 'run-ci' label. Relevant: a push, new commits,
+  # the 'run-ci' label being added, or the base branch changing. `edited` also
+  # fires on title and description edits, which must not re-run CI.
+  should-run:
+    name: Should CI run
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - id: decide
+        env:
+          RUN: >-
+            ${{ github.event_name == 'push'
+                || ((github.base_ref == 'main' || github.base_ref == 'develop'
+                     || contains(github.event.pull_request.labels.*.name, 'run-ci'))
+                    && (github.event.action == 'opened'
+                        || github.event.action == 'synchronize'
+                        || github.event.action == 'reopened'
+                        || (github.event.action == 'labeled'
+                            && github.event.label.name == 'run-ci')
+                        || (github.event.action == 'edited'
+                            && github.event.changes.base.ref.from != ''))) }}
+        run: echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
   lint-and-format:
     name: Lint and Format
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'push'
-      || github.base_ref == 'main' || github.base_ref == 'develop'
-      || contains(github.event.pull_request.labels.*.name, 'run-ci')
+    needs: [should-run]
+    if: needs.should-run.outputs.run == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,10 +78,8 @@ jobs:
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'push'
-      || github.base_ref == 'main' || github.base_ref == 'develop'
-      || contains(github.event.pull_request.labels.*.name, 'run-ci')
+    needs: [should-run]
+    if: needs.should-run.outputs.run == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -79,10 +105,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'push'
-      || github.base_ref == 'main' || github.base_ref == 'develop'
-      || contains(github.event.pull_request.labels.*.name, 'run-ci')
+    needs: [should-run]
+    if: needs.should-run.outputs.run == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -115,10 +139,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'push'
-      || github.base_ref == 'main' || github.base_ref == 'develop'
-      || contains(github.event.pull_request.labels.*.name, 'run-ci')
+    needs: [should-run]
+    if: needs.should-run.outputs.run == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -155,14 +177,12 @@ jobs:
     #   - PRs from forks — fork `pull_request` runs get no repository secrets.
     #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
     if: >-
-      (github.event_name == 'push'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
+      needs.should-run.outputs.run == 'true'
       &&
       (github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]'))
-    needs: [build]
+    needs: [should-run, build]
     uses: ./.github/workflows/e2e-backend.yml
     with:
       job_name: vitest, live KMS
@@ -176,14 +196,12 @@ jobs:
     name: Browser E2E Tests
     # Same guard as above.
     if: >-
-      (github.event_name == 'push'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
+      needs.should-run.outputs.run == 'true'
       &&
       (github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository
        && github.actor != 'dependabot[bot]'))
-    needs: [build]
+    needs: [should-run, build]
     uses: ./.github/workflows/e2e-browser.yml
     with:
       job_name: Playwright, chromium
@@ -197,10 +215,8 @@ jobs:
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'push'
-      || github.base_ref == 'main' || github.base_ref == 'develop'
-      || contains(github.event.pull_request.labels.*.name, 'run-ci')
+    needs: [should-run]
+    if: needs.should-run.outputs.run == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -223,10 +239,8 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'push'
-      || github.base_ref == 'main' || github.base_ref == 'develop'
-      || contains(github.event.pull_request.labels.*.name, 'run-ci')
+    needs: [should-run]
+    if: needs.should-run.outputs.run == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -246,6 +260,7 @@ jobs:
     name: All checks passed
     runs-on: ubuntu-latest
     needs:
+      - should-run
       - lint-and-format
       - typecheck
       - build
@@ -254,11 +269,11 @@ jobs:
       - backend-e2e-test
       - e2e-test
       - audit
+    # A failed should-run must fail the gate, not skip it.
     if: >-
       always() &&
-      (github.event_name == 'push'
-       || github.base_ref == 'main' || github.base_ref == 'develop'
-       || contains(github.event.pull_request.labels.*.name, 'run-ci'))
+      (needs.should-run.result != 'success'
+       || needs.should-run.outputs.run == 'true')
     steps:
       - name: Verify every job succeeded
         env:
