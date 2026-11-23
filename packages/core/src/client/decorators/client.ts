@@ -53,6 +53,9 @@ import {
   signTransaction,
   signTypedDataV4,
   signUserOperation,
+  type VerifyOTPParameters,
+  type VerifyOTPReturnType,
+  verifyOTP,
 } from '../../actions/index.js'
 import type { Client } from '../types.js'
 
@@ -154,6 +157,12 @@ export type ZeroDevWalletActions = {
   ) => Promise<RegisterWithOTPReturnType>
 
   /**
+   * Verifies an OTP (One-Time Password) through the backend, which returns
+   * the user's registration with an alias of the verification token
+   */
+  verifyOTP: (params: VerifyOTPParameters) => Promise<VerifyOTPReturnType>
+
+  /**
    * Logs in a user with OTP (One-Time Password) authentication
    */
   loginWithOTP: (
@@ -221,6 +230,7 @@ export function zeroDevWalletActions(client: Client): ZeroDevWalletActions {
     registerWithPasskey: (params) => registerWithPasskey(client, params),
     loginWithStamp: (params) => loginWithStamp(client, params),
     registerWithOTP: (params) => registerWithOTP(client, params),
+    verifyOTP: (params) => verifyOTP(client, params),
     loginWithOTP: (params) => loginWithOTP(client, params),
     getAuthProxyConfigId: () => getAuthProxyConfigId(client),
     getParentOrgId: () => getParentOrgId(client),

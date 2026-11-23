@@ -42,6 +42,8 @@ export type {
   SignTypedDataV4ReturnType,
   SignUserOperationParameters,
   SignUserOperationReturnType,
+  VerifyOTPParameters,
+  VerifyOTPReturnType,
 } from './actions/index.js'
 
 // Actions
@@ -61,6 +63,7 @@ export {
   signTransaction,
   signTypedDataV4,
   signUserOperation,
+  verifyOTP,
 } from './actions/index.js'
 export type { ToViemAccountParams } from './adapters/viem.js'
 // Adapters
