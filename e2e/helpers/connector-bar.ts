@@ -25,11 +25,10 @@ export async function expectConnected(
 export async function expectDisconnected(
   page: Page,
   namespace: Namespace,
+  timeout = LAB_TIMEOUT_MS,
 ): Promise<void> {
   const row = connector(page, namespace)
-  await expect(row).toHaveAttribute('data-status', 'disconnected', {
-    timeout: LAB_TIMEOUT_MS,
-  })
+  await expect(row).toHaveAttribute('data-status', 'disconnected', { timeout })
   await expect(row).toHaveAttribute('data-address', '')
 }
 

@@ -54,6 +54,13 @@ export async function openWalletPreset(
   // Opt-in wagmi connector trace; lands in the Playwright trace's console.
   if (process.env.E2E_WAGMI_DIAG === '1') params.set('diag', 'wagmi')
   await page.goto(`/?${params}`)
+  // A person never clicks inside wagmi's mount reconnect. Clicking there hides
+  // the stuck EVM `connecting`, because the reconnect's end overwrites it.
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-wagmi-settled',
+    'true',
+    { timeout: LAB_TIMEOUT_MS },
+  )
 }
 
 /** Waits for the sign-up sheet, whose heading is the same on every preset. */
