@@ -129,9 +129,6 @@ function stubKms(
       if (path.includes('/auth/init/otp')) {
         return json({ otpId: 'otp-1', otpEncryptionTargetBundle: 'bundle-1' })
       }
-      if (path.includes('server-info/auth-proxy-id')) {
-        return json({ authProxyConfigId: 'proxy-1' })
-      }
       if (path.includes('auth/logout')) return json({ ok: true })
       if (path.includes('authenticators')) {
         return json({

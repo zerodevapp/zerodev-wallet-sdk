@@ -15,8 +15,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { exportPrivateKey } from '../../packages/core/src/utils/exportPrivateKey.js'
 import { exportWallet } from '../../packages/core/src/utils/exportWallet.js'
-import { getAuthProxyConfigId } from '../helpers/backend-health.js'
-import { BACKEND_URL } from '../helpers/constants.js'
 import { completeOtpLogin } from '../helpers/otp-login.js'
 import {
   asExportWallet,
@@ -57,18 +55,13 @@ function assertExportBundle(exportBundle: string, organizationId: string) {
 
 describe('Wallet Export', () => {
   let projectId: string
-  let authProxyConfigId: string
 
   beforeAll(async () => {
-    authProxyConfigId = await getAuthProxyConfigId(BACKEND_URL)
     projectId = process.env.ZD_OTP_PROJECT_ID || ''
   })
 
   it('should export the secret recovery phrase (seed phrase)', async () => {
-    const { client, session } = await completeOtpLogin(
-      projectId,
-      authProxyConfigId,
-    )
+    const { client, session } = await completeOtpLogin(projectId)
 
     const targetPublicKey = generateTargetPublicKey()
     const wallet = asExportWallet(client, session)
@@ -88,10 +81,7 @@ describe('Wallet Export', () => {
   })
 
   it('should export a wallet account private key', async () => {
-    const { client, session, sessionToken } = await completeOtpLogin(
-      projectId,
-      authProxyConfigId,
-    )
+    const { client, session, sessionToken } = await completeOtpLogin(projectId)
 
     // Use a real wallet account address so toAccount() is never relied on.
     const userWallet = await client.getUserWallet({
