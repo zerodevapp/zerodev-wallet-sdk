@@ -4,319 +4,37 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+    branches: [main, develop]
 
-# One run per PR. Only an event that can change the result cancels the run in
-# flight: a title edit or an unrelated label must not kill a real run. Keep the
-# action list in step with `should-run` below.
+# A new commit on a PR cancels its run in flight. Each push to main or develop
+# gets its own group (its run id), so no push is ever cancelled; the live e2e
+# suites still queue one at a time on their own groups.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: >-
-    ${{ github.event_name == 'pull_request'
-        && (github.event.action == 'opened'
-            || github.event.action == 'synchronize'
-            || github.event.action == 'reopened'
-            || (github.event.action == 'labeled'
-                && github.event.label.name == 'run-ci')
-            || github.event.changes.base.ref.from != '') }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
-  # RUN CONDITION for every job below. Eligible: a push, a PR targeting main or
-  # develop, or a PR carrying the 'run-ci' label. Relevant: a push, new commits,
-  # the 'run-ci' label being added, or the base branch changing. `edited` also
-  # fires on title and description edits, which must not re-run CI.
-  should-run:
-    name: Should CI run
-    runs-on: ubuntu-latest
-    outputs:
-      run: ${{ steps.decide.outputs.run }}
-    steps:
-      - id: decide
-        env:
-          RUN: >-
-            ${{ github.event_name == 'push'
-                || ((github.base_ref == 'main' || github.base_ref == 'develop'
-                     || contains(github.event.pull_request.labels.*.name, 'run-ci'))
-                    && (github.event.action == 'opened'
-                        || github.event.action == 'synchronize'
-                        || github.event.action == 'reopened'
-                        || (github.event.action == 'labeled'
-                            && github.event.label.name == 'run-ci')
-                        || (github.event.action == 'edited'
-                            && github.event.changes.base.ref.from != ''))) }}
-        run: echo "run=$RUN" >> "$GITHUB_OUTPUT"
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci-jobs.yml
+    secrets: inherit
 
-  lint-and-format:
-    name: Lint and Format
-    runs-on: ubuntu-latest
-    needs: [should-run]
-    if: needs.should-run.outputs.run == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run Biome CI
-        run: pnpm run ci
-
-      # Fail fast if a publishable package lacks a repository field — npm's
-      # provenance check would otherwise reject the publish with E422.
-      - name: Check publishable packages
-        run: node scripts/check-publishable.mjs
-
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    needs: [should-run]
-    if: needs.should-run.outputs.run == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
-
-      - name: Run type check
-        run: pnpm typecheck
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [should-run]
-    if: needs.should-run.outputs.run == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
-
-      # Packaging smoke test: confirm each publishable package can be packed
-      # (catches missing dist / bad `files` / `exports` before release).
-      - name: Verify packaging (npm pack --dry-run)
-        run: |
-          for d in $(node scripts/check-publishable.mjs --list); do
-            echo "::group::npm pack $d"
-            ( cd "$d" && npm pack --dry-run --ignore-scripts )
-            echo "::endgroup::"
-          done
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: [should-run]
-    if: needs.should-run.outputs.run == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run tests
-        run: pnpm test:coverage
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          files: ./coverage/lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-
-  # Both live suites run from their own reusable workflow, which any repo in
-  # the org can call. `ci-gate` keys off the two job ids below, and each
-  # called workflow holds exactly one job, so a `skipped` here can only have
-  # come from the guard below it.
-  backend-e2e-test:
-    name: Backend E2E Tests
-    # Needs the staging secrets, so skip wherever they are unavailable:
-    #   - PRs from forks — fork `pull_request` runs get no repository secrets.
-    #   - Dependabot PRs — reads the separate Dependabot secrets store which does not exist.
-    if: >-
-      needs.should-run.outputs.run == 'true'
-      &&
-      (github.event_name == 'push' ||
-      (github.event.pull_request.head.repo.full_name == github.repository
-       && github.actor != 'dependabot[bot]'))
-    needs: [should-run, build]
-    uses: ./.github/workflows/e2e-backend.yml
-    with:
-      job_name: vitest, live KMS
-    secrets:
-      ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
-      ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
-      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
-      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
-
-  e2e-test:
-    name: Browser E2E Tests
-    # Same guard as above.
-    if: >-
-      needs.should-run.outputs.run == 'true'
-      &&
-      (github.event_name == 'push' ||
-      (github.event.pull_request.head.repo.full_name == github.repository
-       && github.actor != 'dependabot[bot]'))
-    needs: [should-run, build]
-    uses: ./.github/workflows/e2e-browser.yml
-    with:
-      job_name: Playwright, chromium
-    secrets:
-      ZD_PROJECT_ID: ${{ secrets.ZD_PROJECT_ID }}
-      ZD_OTP_PROJECT_ID: ${{ secrets.ZD_OTP_PROJECT_ID }}
-      MAILOSAUR_API_KEY: ${{ secrets.MAILOSAUR_API_KEY }}
-      MAILOSAUR_SERVER_ID: ${{ secrets.MAILOSAUR_SERVER_ID }}
-      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID }}
-
-  integration-test:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [should-run]
-    if: needs.should-run.outputs.run == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run integration tests
-        run: pnpm test:integration
-
-  audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-    needs: [should-run]
-    if: needs.should-run.outputs.run == 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-
-      - name: Run pnpm audit
-        run: pnpm audit --audit-level moderate
-
+  # The required check. It stays in this file because a job inside a called
+  # workflow reports as "<caller> / <job>", which would rename the check. It
+  # reads the inner gate's output rather than the call's result, because the
+  # result GitHub reports for a call with allowed skips inside is undocumented.
   ci-gate:
     name: All checks passed
     runs-on: ubuntu-latest
-    needs:
-      - should-run
-      - lint-and-format
-      - typecheck
-      - build
-      - test
-      - integration-test
-      - backend-e2e-test
-      - e2e-test
-      - audit
-    # A failed should-run must fail the gate, not skip it.
-    if: >-
-      always() &&
-      (needs.should-run.result != 'success'
-       || needs.should-run.outputs.run == 'true')
+    needs: [ci]
+    if: always()
     steps:
-      - name: Verify every job succeeded
+      - name: Verify the CI jobs succeeded
         env:
-          # Every job in `needs:` and its result, so this script never has to
-          # name them. Adding or removing a gated job is a one-line edit to
-          # `needs:` above and nothing else.
-          NEEDS: ${{ toJSON(needs) }}
-          # The ONLY per-job policy: jobs allowed to report `skipped`. Both are
-          # guarded off for PRs from forks, so a fork PR could never merge otherwise.
-          # Any other job that reports `skipped` fails the gate — a skip there
-          # means it silently did not run.
-          SKIPPABLE: backend-e2e-test e2e-test
+          PASSED: ${{ needs.ci.outputs.passed }}
+          RESULT: ${{ needs.ci.result }}
         run: |
-          fail=0
-
-          # `jq` is preinstalled on GitHub-hosted ubuntu runners.
-          while read -r job result; do
-            case "$result" in
-              success)
-                echo "ok       $job"
-                ;;
-              skipped)
-                case " $SKIPPABLE " in
-                  *" $job "*)
-                    echo "skipped  $job (allowed: guarded off for fork PRs)"
-                    ;;
-                  *)
-                    echo "::error::$job was skipped but is not allowed to skip"
-                    fail=1
-                    ;;
-                esac
-                ;;
-              *)
-                echo "::error::$job did not succeed (got '$result')"
-                fail=1
-                ;;
-            esac
-          done <<EOF
-          $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"')
-          EOF
-
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::CI gate failed — see the job results above."
+          if [ "$PASSED" != "true" ]; then
+            echo "::error::CI jobs did not pass (call ended '$RESULT')"
             exit 1
           fi
-          echo "All gated jobs passed."

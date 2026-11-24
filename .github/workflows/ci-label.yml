@@ -1,0 +1,26 @@
+name: CI (run-ci label)
+
+# Runs the CI jobs once on a stacked PR (base neither main nor develop) each
+# time the `run-ci` label is added. Pushes never re-run it, so a forgotten
+# label costs nothing; to test a new commit, remove the label and add it again.
+# PRs into main or develop get CI from `ci.yml` and never start this workflow.
+on:
+  pull_request:
+    types: [labeled]
+    branches-ignore: [main, develop]
+
+# Adding `run-ci` again cancels the PR's run in flight. Any other label gets a
+# group of its own, so it cannot cancel a real run.
+concurrency:
+  group: >-
+    ${{ github.event.label.name == 'run-ci'
+        && format('ci-label-{0}', github.event.pull_request.number)
+        || format('ci-label-ignored-{0}', github.run_id) }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    if: github.event.label.name == 'run-ci'
+    uses: ./.github/workflows/ci-jobs.yml
+    secrets: inherit
