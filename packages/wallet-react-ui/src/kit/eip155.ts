@@ -153,16 +153,20 @@ export function useEip155Adapter(ctx: AdapterContext): KitAdapter<'eip155'> {
     (evm.status === 'connecting' && evm.address !== undefined)
   // With nothing connected, that preload is still `connecting` to wagmi
   // until a scan or the proposal's expiry, minutes after the sheet closed
-  // (a Solana-only login closes it too). Once the sheet is closed and the
-  // kit runs no connect of its own, a pending preload is the only thing
-  // wagmi can be waiting on, and nobody asked for it: disconnected. Open,
-  // the sheet may be showing that QR, and wagmi's word stands. A connect
-  // the host starts on wagmi directly beside a stale preload reads as
-  // disconnected until it settles.
+  // (a Solana-only login closes it too). Once the sheet is closed, with no
+  // connect of the kit's own or of a sign-up wallet row pending
+  // (`evmConnects`), a pending preload is the only thing wagmi can be
+  // waiting on, and nobody asked for it: disconnected. Open, the sheet may
+  // be showing that QR, and wagmi's word stands. `authenticated` is closed
+  // too: the flow's terminal step renders nothing. A connect the host
+  // starts on wagmi directly beside a stale preload reads as disconnected
+  // until it settles.
   const preloadOnly = useStore(
     store,
     (s) =>
-      s.evmPairingPreloads > 0 && s.auth.step === null && s.evmConnects === 0,
+      s.evmPairingPreloads > 0 &&
+      (s.auth.step === null || s.auth.step === 'authenticated') &&
+      s.evmConnects === 0,
   )
   const status: KitAccountStatus = connected
     ? 'connected'

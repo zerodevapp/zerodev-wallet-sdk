@@ -152,14 +152,21 @@ export function WalletConnecting() {
     // Asked for by the user: a Solana connect through the same wallet
     // moments ago must not detach it as an adoption.
     const releaseExplicit = allowEvmConnection(config, connector)
+    // Counted for the kit's EVM status until the wallet answers, even once
+    // the sheet is closed: the request is the user's, unlike the pairing
+    // the sheet preloads (see `useEip155Adapter`).
+    const { beginEvmConnect, endEvmConnect } = store.getState()
+    beginEvmConnect()
     connect(config, { connector }).then(
       () => {
         releaseExplicit()
+        endEvmConnect()
         open.delete(connector.uid)
         close()
       },
       (err: unknown) => {
         releaseExplicit()
+        endEvmConnect()
         open.delete(connector.uid)
         // The abandoned prompt is often dismissed much later, by which point
         // the user has moved on. Act only while the flow is still waiting on

@@ -29,9 +29,10 @@ export type State = {
   evmPairingPreloads: number
   beginEvmPairingPreload: () => void
   endEvmPairingPreload: () => void
-  /** EVM connects the kit itself is running (`useZeroDevWalletKit`'s
-   * `connect`), so the adapter keeps reporting `connecting` for them while
-   * a preload is pending beside them. */
+  /** EVM connects somebody asked for and that are still open: the kit's
+   * own (`useZeroDevWalletKit`'s `connect`) and a sign-up wallet row's
+   * (`WalletConnecting`), so the adapter keeps reporting `connecting` for
+   * them while a preload is pending beside them. */
   evmConnects: number
   beginEvmConnect: () => void
   endEvmConnect: () => void

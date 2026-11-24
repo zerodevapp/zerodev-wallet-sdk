@@ -359,6 +359,22 @@ describe('useZeroDevWalletKit', () => {
       expect(result.current.eip155.status).toBe('connecting')
     })
 
+    it("reads disconnected at the flow's terminal authenticated step, which renders nothing", () => {
+      store.getState().auth.goToStep('sign-up')
+      store.getState().auth.goToStep('authenticated')
+      const { result } = render()
+      expect(result.current.eip155.status).toBe('disconnected')
+    })
+
+    it("reads connecting while a sign-up wallet row's request is open", () => {
+      store.getState().beginEvmConnect()
+      const { result, rerender } = render()
+      expect(result.current.eip155.status).toBe('connecting')
+      act(() => store.getState().endEvmConnect())
+      rerender()
+      expect(result.current.eip155.status).toBe('disconnected')
+    })
+
     it('reads connecting again once the pairing settles and something else connects', () => {
       const { result, rerender } = render()
       expect(result.current.eip155.status).toBe('disconnected')
