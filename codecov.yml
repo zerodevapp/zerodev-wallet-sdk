@@ -1,5 +1,5 @@
 # Coverage comes from the Vitest unit suite only (`pnpm test:coverage`, uploaded
-# by the `test` job in .github/workflows/ci.yml). Both statuses are
+# by the `test` job in .github/workflows/ci-jobs.yml). Both statuses are
 # informational: Codecov reports the delta on a PR but never fails a check.
 #
 # No `ignore:` list here on purpose — vitest.config.ts's coverage
