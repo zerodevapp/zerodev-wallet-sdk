@@ -4,6 +4,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createStore } from '../../store'
 import { WALLET_GUIDE } from '../walletGuide'
 import { useWalletConnectPairing } from './useWalletConnectPairing'
 
@@ -19,7 +20,21 @@ vi.mock('../utils/isMobile', () => ({
   isMobile: () => mobile.value,
 }))
 
+let store = createStore()
+vi.mock('../../shared/hooks/useKitStore', () => ({
+  useKitStore: () => store,
+}))
+
+/** wagmi's `connectAsync`: one pending promise per kick, settled by the
+ * test through `resolveConnect` / `rejectConnect` (latest kick). */
 const connect = vi.fn()
+let settleConnect: { resolve: () => void; reject: (err: Error) => void }
+const connectAsync = (...args: unknown[]) => {
+  connect(...args)
+  return new Promise<void>((resolve, reject) => {
+    settleConnect = { resolve, reject }
+  })
+}
 let connectors: unknown[] = []
 let connections: unknown[] = []
 let reconnecting = false
@@ -61,7 +76,7 @@ function fakeConfig() {
 let config = fakeConfig()
 vi.mock('wagmi', () => ({
   useConnectors: () => connectors,
-  useConnect: () => ({ connect }),
+  useConnect: () => ({ connectAsync }),
   useConnections: () => connections,
   useAccount: () => ({ isReconnecting: reconnecting }),
   useConfig: () => config,
@@ -124,6 +139,7 @@ function fakeWcConnector({ stamped = true } = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  store = createStore()
   connectors = []
   connections = []
   config = fakeConfig()
@@ -277,18 +293,47 @@ describe('useWalletConnectPairing', () => {
     expect(result.current.deepLinkFor(metamask)).toBeNull()
   })
 
-  it('surfaces connect errors and retry resets state and reconnects', () => {
+  it('surfaces connect errors and retry resets state and reconnects', async () => {
     const wc = fakeWcConnector()
     connectors = [wc]
     const { result } = renderHook(() => useWalletConnectPairing())
     act(() => wc.emit({ type: 'display_uri', data: 'wc:stale' }))
-    act(() => connect.mock.calls[0][1].onError(new Error('relay down')))
+    await act(async () => settleConnect.reject(new Error('relay down')))
     expect(result.current.error).toBe('relay down')
 
     act(() => result.current.retry())
     expect(result.current.error).toBeNull()
     expect(result.current.uri).toBeNull()
     expect(connect).toHaveBeenCalledTimes(2)
+  })
+
+  it('counts the preload in the kit store until the connect settles, even after unmount', async () => {
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { unmount } = renderHook(() => useWalletConnectPairing(), {
+      wrapper: StrictMode,
+    })
+    expect(store.getState().evmPairingPreloads).toBe(1)
+
+    // The sheet closed (a Solana-only login, a dismissal): wagmi is still
+    // waiting for a scan, so the count stays until that settles.
+    unmount()
+    expect(store.getState().evmPairingPreloads).toBe(1)
+    await act(async () => settleConnect.reject(new Error('Proposal expired')))
+    expect(store.getState().evmPairingPreloads).toBe(0)
+  })
+
+  it('releases the count on a successful pairing and counts a retry anew', async () => {
+    const wc = fakeWcConnector()
+    connectors = [wc]
+    const { result } = renderHook(() => useWalletConnectPairing())
+    await act(async () => settleConnect.resolve())
+    expect(store.getState().evmPairingPreloads).toBe(0)
+
+    act(() => result.current.retry())
+    expect(store.getState().evmPairingPreloads).toBe(1)
+    await act(async () => settleConnect.reject(new Error('relay down')))
+    expect(store.getState().evmPairingPreloads).toBe(0)
   })
 
   it('uses the factory-stamped connector, never a raw walletConnect one', () => {
@@ -356,7 +401,7 @@ describe('useWalletConnectPairing', () => {
     )
   })
 
-  it('deepLinkFor goes null once the pairing errors — e.g. proposal expiry', () => {
+  it('deepLinkFor goes null once the pairing errors — e.g. proposal expiry', async () => {
     const metamask = WALLET_GUIDE.find((w) => w.id === 'metamask')
     if (!metamask) throw new Error('metamask missing from WALLET_GUIDE')
     mobile.value = true
@@ -366,7 +411,7 @@ describe('useWalletConnectPairing', () => {
     act(() => wc.emit({ type: 'display_uri', data: 'wc:t@2?relay' }))
     expect(result.current.deepLinkFor(metamask)).not.toBeNull()
 
-    act(() => connect.mock.calls[0][1].onError(new Error('Proposal expired')))
+    await act(async () => settleConnect.reject(new Error('Proposal expired')))
     expect(result.current.deepLinkFor(metamask)).toBeNull()
   })
 })

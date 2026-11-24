@@ -7,6 +7,7 @@ import {
   useConnections,
   useConnectors,
 } from 'wagmi'
+import { useKitStore } from '../../shared/hooks/useKitStore'
 import { isMobile } from '../utils/isMobile'
 import { isZeroDevWalletConnect } from '../utils/isZeroDevWalletConnect'
 import { walletDeepLink } from '../utils/walletDeepLink'
@@ -44,13 +45,19 @@ export type WalletConnectPairing = {
 /**
  * Runs one WalletConnect pairing for the lifetime of the mounting component —
  * mount kicks it, unmount abandons it.
+ *
+ * Abandoned is not settled: wagmi's connect keeps waiting for a scan until
+ * the proposal expires (minutes), and wagmi reports `connecting` the whole
+ * time. The kit store counts the pending preload (`evmPairingPreloads`) so
+ * the EVM adapter can leave it out of the status the host reads.
  */
 export function useWalletConnectPairing(): WalletConnectPairing {
   const { goToStep } = useAuth()
+  const store = useKitStore()
   const config = useConfig()
   const connectors = useConnectors()
   const wcConnector = connectors.find(isZeroDevWalletConnect)
-  const { connect } = useConnect()
+  const { connectAsync } = useConnect()
   // A restored WC session means the connector is already live — kicking
   // connect() on it would throw ConnectorAlreadyConnectedError.
   const connections = useConnections()
@@ -68,9 +75,18 @@ export function useWalletConnectPairing(): WalletConnectPairing {
   const startConnect = (target: Connector) => {
     setError(null)
     setUri(null)
-    connect({ connector: target }, { onError: (err) => setError(err.message) })
+    // The promise form, not `connect` with callbacks: the mutation's
+    // callbacks are dropped once this component unmounts, and the store
+    // count has to be released however and whenever the connect settles.
+    const { beginEvmPairingPreload, endEvmPairingPreload } = store.getState()
+    beginEvmPairingPreload()
+    connectAsync({ connector: target })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : String(err)),
+      )
+      .finally(endEvmPairingPreload)
   }
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only pairing setup — startConnect closes over kick-time callbacks (connect, goToStep), which must not retrigger the subscription
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only pairing setup — startConnect closes over kick-time callbacks (connectAsync, goToStep), which must not retrigger the subscription
   useEffect(() => {
     if (!wcConnector || wcConnected) return
     const onMessage = ({ type, data }: { type: string; data?: unknown }) => {

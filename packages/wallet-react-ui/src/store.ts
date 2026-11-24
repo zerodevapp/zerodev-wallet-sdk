@@ -21,6 +21,20 @@ export type State = {
   setEvmConnectionsAtLoad: (
     connections: Promise<readonly EvmConnectionAtLoad[] | null>,
   ) => void
+  /** WalletConnect pairings the sign-up sheet preloaded (so a QR is ready
+   * the moment it is asked for) that have not settled yet. wagmi reports a
+   * pending connect as `connecting` whoever started it; the EVM adapter
+   * reads this to tell a preload nobody is looking at from a connect the
+   * host or the user asked for. See `useWalletConnectPairing`. */
+  evmPairingPreloads: number
+  beginEvmPairingPreload: () => void
+  endEvmPairingPreload: () => void
+  /** EVM connects the kit itself is running (`useZeroDevWalletKit`'s
+   * `connect`), so the adapter keeps reporting `connecting` for them while
+   * a preload is pending beside them. */
+  evmConnects: number
+  beginEvmConnect: () => void
+  endEvmConnect: () => void
   addPendingRequest: (request: PendingRequest) => void
   removePendingRequest: (id: string) => void
   clearPendingRequests: () => void
@@ -36,6 +50,16 @@ export const createStore = () =>
       evmConnectionsAtLoad: Promise.resolve(null),
       setEvmConnectionsAtLoad: (connections) =>
         set({ evmConnectionsAtLoad: connections }),
+      evmPairingPreloads: 0,
+      beginEvmPairingPreload: () =>
+        set((state) => ({ evmPairingPreloads: state.evmPairingPreloads + 1 })),
+      endEvmPairingPreload: () =>
+        set((state) => ({ evmPairingPreloads: state.evmPairingPreloads - 1 })),
+      evmConnects: 0,
+      beginEvmConnect: () =>
+        set((state) => ({ evmConnects: state.evmConnects + 1 })),
+      endEvmConnect: () =>
+        set((state) => ({ evmConnects: state.evmConnects - 1 })),
       addPendingRequest: (request) =>
         set((state) => ({
           pendingRequests: [...state.pendingRequests, request],

@@ -337,6 +337,72 @@ describe('useZeroDevWalletKit', () => {
     expect(result.current.eip155.status).toBe('connecting')
   })
 
+  describe('a preloaded WalletConnect pairing', () => {
+    // The sign-up sheet kicks a WalletConnect connect on mount so a QR is
+    // ready; wagmi reports it as `connecting` until a scan or the
+    // proposal's expiry, minutes after the sheet closed.
+    beforeEach(() => {
+      account.status = 'connecting'
+      store.getState().beginEvmPairingPreload()
+    })
+
+    it('reads disconnected once the sheet is closed', () => {
+      const { result } = render()
+      expect(result.current.eip155.status).toBe('disconnected')
+      expect(result.current.eip155.isConnected).toBe(false)
+      expect(result.current.isConnected).toBe(false)
+    })
+
+    it('reads connecting while the sheet is open', () => {
+      store.getState().auth.goToStep('sign-up')
+      const { result } = render()
+      expect(result.current.eip155.status).toBe('connecting')
+    })
+
+    it('reads connecting again once the pairing settles and something else connects', () => {
+      const { result, rerender } = render()
+      expect(result.current.eip155.status).toBe('disconnected')
+      act(() => store.getState().endEvmPairingPreload())
+      rerender()
+      expect(result.current.eip155.status).toBe('connecting')
+    })
+
+    it("reads connecting during the kit's own wallet connect beside it", async () => {
+      let finish = () => {}
+      core.connect.mockImplementationOnce(
+        () =>
+          new Promise<object>((resolve) => {
+            finish = () => resolve({})
+          }),
+      )
+      const { result, rerender } = render()
+      expect(result.current.eip155.status).toBe('disconnected')
+
+      let pending: Promise<void> = Promise.resolve()
+      act(() => {
+        pending = result.current.eip155.connect({ wallet: metamask as never })
+      })
+      rerender()
+      expect(result.current.eip155.status).toBe('connecting')
+
+      // Let the connect reach wagmi's connect (storage and reconnect first).
+      await act(async () => {})
+      await act(async () => {
+        finish()
+        await pending
+      })
+      rerender()
+      expect(result.current.eip155.status).toBe('disconnected')
+    })
+
+    it('never hides a live connection', () => {
+      connectEvm(metamask)
+      account.status = 'connecting'
+      const { result } = render()
+      expect(result.current.eip155.status).toBe('connected')
+    })
+  })
+
   it('reflects the wagmi connection as the EVM side', () => {
     connectEvm(metamask)
     const { result } = render()

@@ -265,6 +265,10 @@ const handle = useSolanaWallet()              // signing: signMessage, signTrans
 - `isReconnecting` is true on the server and the first client render while a
   saved session may still restore, like wagmi's `reconnecting` under
   `ssr: true`; `reconnectOnMount: false` opts a component out of restoring.
+- `eip155.status` is wagmi's, except that the WalletConnect pairing the
+  sign-up sheet preloads (so a QR is ready) does not count once the sheet is
+  closed: wagmi keeps that connect `connecting` until the proposal expires,
+  the kit reads it as `disconnected`.
 - `useWalletInfo('solana')` names the connected Solana wallet with its
   `source`: `wallet-standard` for an installed wallet, `walletconnect` for a
   session.
