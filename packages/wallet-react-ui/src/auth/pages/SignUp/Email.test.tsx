@@ -44,6 +44,13 @@ vi.mock('@zerodev/wallet-react', () => ({
   useSendMagicLink: () => ({ mutateAsync: sendMagicLink, isPending: false }),
 }))
 
+const { connections } = vi.hoisted(() => ({
+  connections: [] as { connector: { id: string } }[],
+}))
+vi.mock('wagmi', () => ({
+  useConnections: () => connections,
+}))
+
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
     goToStep: vi.fn(),
@@ -68,5 +75,31 @@ describe('SignUpEmail terms gate', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(sendMagicLink).toHaveBeenCalledOnce()
+  })
+})
+
+describe('SignUpEmail while the embedded wallet is signed in', () => {
+  afterEach(() => {
+    connections.length = 0
+  })
+
+  it('renders nothing, so the sheet cannot start a second login', () => {
+    connections.push({ connector: { id: 'zerodev-wallet' } })
+    render(
+      <SignUp>
+        <SignUp.Email />
+      </SignUp>,
+    )
+    expect(screen.queryByPlaceholderText('Enter your email')).toBeNull()
+  })
+
+  it('renders with an external wallet connected', () => {
+    connections.push({ connector: { id: 'io.metamask' } })
+    render(
+      <SignUp>
+        <SignUp.Email />
+      </SignUp>,
+    )
+    expect(screen.queryByPlaceholderText('Enter your email')).not.toBeNull()
   })
 })

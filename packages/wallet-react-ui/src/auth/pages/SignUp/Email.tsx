@@ -12,6 +12,7 @@ export function SignUpEmail() {
   const {
     authPending,
     emailAuthMethod,
+    embeddedSignedIn,
     needsAgreement,
     guardAgreement,
     setError,
@@ -24,6 +25,10 @@ export function SignUpEmail() {
     useSendMagicLink()
   const isEmailLoading = isSendOtpPending || isSendMagicLinkPending
   useReportPending(isEmailLoading)
+
+  // Signed in already: offering this login again would run a second
+  // authentication over the live session (hooks above stay unconditional).
+  if (embeddedSignedIn) return null
 
   const handleSubmit = async () => {
     if (!emailInput || authPending) return

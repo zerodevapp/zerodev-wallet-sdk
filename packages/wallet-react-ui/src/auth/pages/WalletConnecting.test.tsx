@@ -85,6 +85,7 @@ function makeFakeConfig() {
 }
 let fakeConfig = makeFakeConfig()
 vi.mock('wagmi', () => ({
+  useConnections: () => [],
   useConfig: () => fakeConfig,
   useConnectors: () => connectors,
 }))

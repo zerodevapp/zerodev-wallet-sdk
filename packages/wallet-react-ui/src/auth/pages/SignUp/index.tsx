@@ -1,5 +1,6 @@
 import { Button, Text } from '@zerodev/react-ui'
 import { type ReactNode, useCallback, useState } from 'react'
+import { useConnections } from 'wagmi'
 import { SignUpFooter } from '../../../shared/components/SignUpFooter'
 import { WalletSheet } from '../../components/WalletSheet'
 import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
@@ -72,6 +73,16 @@ function SignUpRoot({
   // links to arm synchronously), so it is not preloaded like the EVM one;
   // the sheet itself stays mounted so it animates closed.
   const [solanaSheetOpen, setSolanaSheetOpen] = useState(false)
+  // True while the embedded wallet (the `zerodev-wallet` connector: passkey,
+  // Google or email) holds a wagmi connection. The units that start one of
+  // those logins render nothing then, so a sheet opened while signed in (to
+  // add a Solana wallet, say) cannot offer a second login over the live
+  // session. Read once here and shared through the context, so those units
+  // and the divider between them agree on it.
+  const connections = useConnections()
+  const embeddedSignedIn = connections.some(
+    ({ connector }) => connector.id === 'zerodev-wallet',
+  )
 
   const requiresAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
   const needsAgreement = requiresAgreement && !agreedToTerms
@@ -87,6 +98,7 @@ function SignUpRoot({
       value={{
         authPending,
         emailAuthMethod,
+        embeddedSignedIn,
         setAuthPending,
         needsAgreement,
         guardAgreement,
@@ -171,7 +183,12 @@ function SignUpRoot({
 
 function SignUpDivider({ label = 'or' }: { label?: string }) {
   return (
-    <div className="zd:-mx-4 zd:my-2 zd:flex zd:items-center zd:gap-3">
+    // A divider separates what is above it from what is below it, so it
+    // hides when either side is empty: first or last in the list (a unit
+    // that rendered nothing leaves no element behind), or right after
+    // another divider, which happens once the units between two have gone.
+    // Structural, in CSS, so it holds for any composition a host writes.
+    <div className="zd-signup-divider zd:-mx-4 zd:my-2 zd:flex zd:items-center zd:gap-3 zd:first:hidden zd:last:hidden zd:[.zd-signup-divider+&]:hidden">
       <div className="zd:flex-1 zd:border-t zd:border-inverse-secondary" />
       <Text className="zd:text-body3">{label}</Text>
       <div className="zd:flex-1 zd:border-t zd:border-inverse-secondary" />

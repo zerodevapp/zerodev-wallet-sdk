@@ -38,6 +38,13 @@ vi.mock('@zerodev/wallet-react', () => ({
   useLoginPasskey: () => ({ mutate: loginPasskey, isPending: false }),
 }))
 
+const { connections } = vi.hoisted(() => ({
+  connections: [] as { connector: { id: string } }[],
+}))
+vi.mock('wagmi', () => ({
+  useConnections: () => connections,
+}))
+
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ goToStep: vi.fn() }),
 }))
@@ -58,5 +65,31 @@ describe('SignUpPasskey terms gate', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByText('Create a passkey'))
     expect(registerPasskey).toHaveBeenCalledOnce()
+  })
+})
+
+describe('SignUpPasskey while the embedded wallet is signed in', () => {
+  afterEach(() => {
+    connections.length = 0
+  })
+
+  it('renders nothing, so the sheet cannot start a second login', () => {
+    connections.push({ connector: { id: 'zerodev-wallet' } })
+    render(
+      <SignUp>
+        <SignUp.Passkey />
+      </SignUp>,
+    )
+    expect(screen.queryByText('Create a passkey')).toBeNull()
+  })
+
+  it('renders with an external wallet connected', () => {
+    connections.push({ connector: { id: 'io.metamask' } })
+    render(
+      <SignUp>
+        <SignUp.Passkey />
+      </SignUp>,
+    )
+    expect(screen.queryByText('Create a passkey')).not.toBeNull()
   })
 })
