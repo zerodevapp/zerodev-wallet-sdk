@@ -5,6 +5,9 @@ import {
   type CreateServerWalletReturnType,
   createServerWallet,
   createServerWalletAddress,
+  type GetServerWalletsParameters,
+  type GetServerWalletsReturnType,
+  getServerWallets,
   type Sign7702AuthorizationParameters,
   type Sign7702AuthorizationReturnType,
   type SignMessageParameters,
@@ -23,11 +26,17 @@ import type { Client } from '../types.js'
 
 /**
  * Everything an agent key can do against a wallet set. The KMS checks the
- * key's roles (`create`, `sign`) per route; the client binds all six and
+ * key's roles (`read`, `create`, `sign`) per route; the client binds all
+ * seven and
  * lets a 403 report a missing role. The sign actions are the ones the viem
  * adapter needs; a user operation is signed through the account's `signMessage`.
  */
 export type ServerWalletActions = {
+  /** Lists every address in the wallet set. Role: `read`. */
+  getServerWallets: (
+    params: GetServerWalletsParameters,
+  ) => Promise<GetServerWalletsReturnType>
+
   /** Creates a wallet in the wallet set. Role: `create`. */
   createServerWallet: (
     params: CreateServerWalletParameters,
@@ -61,6 +70,7 @@ export function serverWalletActions(
   client: Client<undefined, SigningStamper>,
 ): ServerWalletActions {
   return {
+    getServerWallets: (params) => getServerWallets(client, params),
     createServerWallet: (params) => createServerWallet(client, params),
     createServerWalletAddress: (params) =>
       createServerWalletAddress(client, params),

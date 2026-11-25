@@ -357,6 +357,9 @@ const { walletId, walletAddress } = await wallet.createWallet()
 // More addresses on the same wallet, one per BIP-32 index; the first is index 0.
 const second = await wallet.createAddress({ walletId, path: "m/44'/60'/0'/0/1" })
 
+// Every address in the set, for an agent key with the `read` role.
+const { walletAddresses } = await wallet.getWallets()
+
 // Any address of the set works here, walletAddress or second.walletAddress.
 const account = await wallet.toAccount({ address: walletAddress })
 const signature = await account.signMessage({ message: 'Hello World!' })
@@ -365,7 +368,7 @@ const signature = await account.signMessage({ message: 'Hello World!' })
 The account signs messages, transactions, typed data, and EIP-7702
 authorizations, so it works as a Kernel signer in 4337 and 7702 mode.
 `wallet.client` is the underlying `createServerWalletClient` client with the
-raw actions the account is built on: `createServerWallet`,
+raw actions the account is built on: `getServerWallets`, `createServerWallet`,
 `createServerWalletAddress`, `signMessage`, `signTransaction`,
 `signTypedDataV4`, `sign7702Authorization`.
 
