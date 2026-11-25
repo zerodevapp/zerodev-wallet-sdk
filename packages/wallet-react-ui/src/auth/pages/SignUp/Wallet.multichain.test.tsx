@@ -171,6 +171,18 @@ beforeEach(() => {
 })
 
 describe('SignUp.Wallet with namespaces eip155 + solana', () => {
+  it("finds the Solana side under the guide's paired name", () => {
+    connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
+    solanaWallets = [solanaWallet('Trust').wallet]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="trust" namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('EVM')).toBeTruthy()
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+  })
+
   it('asks which chain to connect when the wallet is installed on both sides', async () => {
     connectors = [announced('io.metamask', 'MetaMask')]
     const metamask = solanaWallet('MetaMask')

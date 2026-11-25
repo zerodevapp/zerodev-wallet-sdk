@@ -13,10 +13,11 @@ import { type Connector, useAccount, useConnectors } from 'wagmi'
 import { useWalletInfo } from '../auth/hooks/useWalletInfo.js'
 import { AuthFlowDismissedError } from '../auth/utils/isCancellationError.js'
 import { isZeroDevWalletConnect } from '../auth/utils/isZeroDevWalletConnect.js'
-import { equalsIgnoreCase } from '../shared/utils/common.js'
 import {
   allowEvmConnection,
   detachEvmConnection,
+  isInstalledEvmConnector,
+  isSameWallet,
 } from '../solana/evmAdoptionGuard.js'
 import {
   type AdapterContext,
@@ -95,13 +96,14 @@ export async function disconnectEvm(
   { store, config }: AdapterContext,
   keepSolana: boolean,
 ): Promise<void> {
-  // Only an installed (Wallet Standard) Solana wallet can share a browser
-  // extension with the EVM side; a WalletConnect session named like one
-  // (Phantom on a phone) has nothing to do with the Phantom extension.
+  // Only an installed (Wallet Standard) Solana wallet and an installed EVM
+  // connector (`isInstalledEvmConnector`) can share a browser extension; a
+  // WalletConnect or SDK session named like one (Phantom on a phone) has
+  // nothing to do with the Phantom extension and gets its own disconnect.
   const solanaConnection = store.getState().solana.connection
-  const solanaWalletName =
+  const solanaWallet =
     keepSolana && solanaConnection?.source === 'standard'
-      ? solanaConnection.wallet.name
+      ? solanaConnection.wallet
       : undefined
   // Every connection is attempted even when one fails (a wallet that
   // refuses, a relay that is down): stopping at the first would leave the
@@ -111,8 +113,9 @@ export async function disconnectEvm(
   for (const { connector } of [...config.state.connections.values()]) {
     try {
       if (
-        solanaWalletName &&
-        equalsIgnoreCase(connector.name, solanaWalletName)
+        solanaWallet &&
+        isInstalledEvmConnector(connector) &&
+        isSameWallet(connector, solanaWallet)
       ) {
         await detachEvmConnection(config, connector.uid)
       } else {

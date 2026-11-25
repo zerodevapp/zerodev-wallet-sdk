@@ -4,6 +4,7 @@ import {
   allowEvmConnection,
   detachEvmConnection,
   guardDormantEvmSide,
+  isSameWallet,
   muteDormantEvmSide,
   readEvmConnectionsAtLoad,
   revokeDormantEvmSide,
@@ -202,6 +203,20 @@ describe('withoutEvmAdoption', () => {
     vi.advanceTimersByTime(2000)
     adopt(phantom)
     // After the grace period the guard is gone; a later connect stands.
+    expect(config.state.connections.size).toBe(1)
+  })
+
+  it('leaves a same-named session through another kind of connector alone', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    // A WalletConnect session to the wallet's phone app opened while the
+    // Solana prompt is up: not an adoption by the extension.
+    const remote = Object.assign(fakeConnector('MetaMask', 'walletConnect'), {
+      type: 'walletConnect',
+    })
+    connectors.push(remote)
+    await withoutEvmAdoption(config, 'MetaMask', async () => {
+      adopt(remote)
+    })
     expect(config.state.connections.size).toBe(1)
   })
 
@@ -536,6 +551,22 @@ describe('guardDormantEvmSide', () => {
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
   })
 
+  it('leaves a same-named session through another kind of connector alone', async () => {
+    const { config, sweep, connectors } = fakeConfig()
+    // `metaMask()`: an SDK session, not the extension the Solana side shares.
+    const sdk = Object.assign(fakeConnector('MetaMask', 'metaMaskSDK'), {
+      type: 'metaMask',
+    })
+    connectors.push(sdk)
+
+    guardDormantEvmSide(config, 'MetaMask', restored())
+    await flush()
+    sweep([sdk])
+    await flush()
+
+    expect(config.state.connections.size).toBe(1)
+  })
+
   it('awaits a pending record, as the kit connector hands it over', async () => {
     const { config, sweep, storage, connectors } = fakeConfig()
     const metamask = fakeConnector('MetaMask')
@@ -781,5 +812,33 @@ describe('detachEvmConnection', () => {
     expect(config.state.current).toBeNull()
     expect(config.state.status).toBe('disconnected')
     expect(storage.has('recentConnectorId')).toBe(false)
+  })
+})
+
+describe('isSameWallet', () => {
+  it('matches on the name, case-insensitively', () => {
+    expect(isSameWallet({ name: 'MetaMask' }, 'metamask')).toBe(true)
+    expect(isSameWallet({ name: 'MetaMask' }, { name: 'METAMASK' })).toBe(true)
+    expect(isSameWallet('Phantom', 'Solflare')).toBe(false)
+  })
+  it('pairs the two names the guide lists for one wallet', () => {
+    expect(isSameWallet({ name: 'Trust Wallet' }, 'Trust')).toBe(true)
+    expect(isSameWallet({ name: 'trust' }, { name: 'Trust Wallet' })).toBe(true)
+    expect(isSameWallet({ name: 'Trust' }, 'MetaMask')).toBe(false)
+  })
+  it('reads two unpaired spellings as two wallets', () => {
+    expect(isSameWallet({ name: 'Mock Wallet' }, 'Mock')).toBe(false)
+  })
+})
+
+describe('withoutEvmAdoption keyed on the guide alias', () => {
+  it('detaches the same extension adopted under its other name', async () => {
+    const { config, adopt, connectors } = fakeConfig()
+    const evm = fakeConnector('Trust Wallet', 'com.trustwallet.app')
+    connectors.push(evm)
+    await withoutEvmAdoption(config, 'Trust', async () => {
+      adopt(evm)
+    })
+    expect(config.state.connections.size).toBe(0)
   })
 })

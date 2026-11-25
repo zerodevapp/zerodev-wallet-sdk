@@ -345,6 +345,48 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(store.getState().solana.status).toBe('disconnected')
   })
 
+  it('merges Trust, which announces as "Trust Wallet" and registers as "Trust"', () => {
+    connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
+    solanaWallets = [solanaWallet('Trust').wallet]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('Trust Wallet')).toBeTruthy()
+    expect(screen.queryByText('Trust')).toBeNull()
+    expect(screen.getByText('EVM')).toBeTruthy()
+    expect(screen.getByText('SOLANA')).toBeTruthy()
+  })
+
+  it('lists two wallets whose names differ and are not paired by the guide', () => {
+    connectors = [announced('app.mock', 'Mock Wallet')]
+    solanaWallets = [solanaWallet('Mock').wallet]
+    render(
+      <SignUp>
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    expect(screen.getByText('Mock Wallet')).toBeTruthy()
+    expect(screen.getByText('Mock')).toBeTruthy()
+  })
+
+  it('leaves both sides of a pinned wallet to its own row, under either name', () => {
+    connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
+    solanaWallets = [solanaWallet('Trust').wallet]
+    render(
+      <SignUp>
+        <SignUp.Wallet walletId="trust" namespaces={['eip155', 'solana']} />
+        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
+      </SignUp>,
+    )
+    // The pinned row, once, offering both chains; no second "Trust" row.
+    expect(screen.getAllByText('Trust Wallet')).toHaveLength(1)
+    expect(screen.queryByText('Trust')).toBeNull()
+    expect(screen.getAllByText('EVM')).toHaveLength(1)
+    expect(screen.getAllByText('SOLANA')).toHaveLength(1)
+  })
+
   it('keeps the EVM-only behaviour by default', () => {
     connectors = [announced('app.phantom', 'Phantom')]
     solanaWallets = [solanaWallet('Phantom').wallet]
