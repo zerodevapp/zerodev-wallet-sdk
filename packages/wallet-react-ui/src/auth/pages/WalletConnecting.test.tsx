@@ -209,6 +209,35 @@ describe('WalletConnecting', () => {
   })
 
   // EIP-1193 has no cancel, so leaving does not close the wallet's request.
+  it('counts its open request for the kit EVM status until the wallet answers, even after the user left', async () => {
+    const { unmount } = render(<WalletConnecting />)
+    expect(store.getState().evmConnects).toBe(1)
+
+    // Re-picking the wallet re-adopts the open request: still one.
+    fireEvent.click(screen.getByText('Choose another sign-in method'))
+    auth().startWalletConnection({
+      connectorUid: 'mm',
+      name: 'MetaMask',
+      icon: 'data:mm',
+    })
+    unmount()
+    render(<WalletConnecting />)
+    expect(connect).toHaveBeenCalledTimes(1)
+    expect(store.getState().evmConnects).toBe(1)
+
+    auth().goToStep(null)
+    expect(store.getState().evmConnects).toBe(1)
+    await approve()
+    expect(store.getState().evmConnects).toBe(0)
+  })
+
+  it('releases its count when the wallet rejects', async () => {
+    render(<WalletConnecting />)
+    expect(store.getState().evmConnects).toBe(1)
+    await rejectWith(new Error('User rejected the request.'))
+    expect(store.getState().evmConnects).toBe(0)
+  })
+
   it('closes the widget when the wallet is approved after the user left the screen', async () => {
     render(<WalletConnecting />)
     fireEvent.click(screen.getByText('Choose another sign-in method'))
