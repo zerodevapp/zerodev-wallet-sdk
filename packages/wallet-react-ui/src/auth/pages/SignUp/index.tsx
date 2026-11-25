@@ -1,8 +1,8 @@
 import { Button, Text } from '@zerodev/react-ui'
 import { type ReactNode, useCallback, useState } from 'react'
+import { useConnections } from 'wagmi'
 import { SignUpFooter } from '../../../shared/components/SignUpFooter'
 import { WalletSheet } from '../../components/WalletSheet'
-import { useEmbeddedSession } from '../../hooks/useEmbeddedSession'
 import { useWalletConnectPairing } from '../../hooks/useWalletConnectPairing'
 import type { EmailAuthMethod } from '../../types'
 import type { WalletGuideEntry } from '../../walletGuide'
@@ -73,9 +73,16 @@ function SignUpRoot({
   // links to arm synchronously), so it is not preloaded like the EVM one;
   // the sheet itself stays mounted so it animates closed.
   const [solanaSheetOpen, setSolanaSheetOpen] = useState(false)
-  // Read once here and shared through the context, so the embedded-login
-  // units and the divider between them agree on it.
-  const embeddedSignedIn = useEmbeddedSession()
+  // True while the embedded wallet (the `zerodev-wallet` connector: passkey,
+  // Google or email) holds a wagmi connection. The units that start one of
+  // those logins render nothing then, so a sheet opened while signed in (to
+  // add a Solana wallet, say) cannot offer a second login over the live
+  // session. Read once here and shared through the context, so those units
+  // and the divider between them agree on it.
+  const connections = useConnections()
+  const embeddedSignedIn = connections.some(
+    ({ connector }) => connector.id === 'zerodev-wallet',
+  )
 
   const requiresAgreement = !!(termsAndConditionsUrl || privacyPolicyUrl)
   const needsAgreement = requiresAgreement && !agreedToTerms
