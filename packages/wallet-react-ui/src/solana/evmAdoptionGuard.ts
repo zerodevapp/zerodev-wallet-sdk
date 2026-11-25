@@ -14,43 +14,28 @@ const RECONNECT_START_MS = 1000
 
 /**
  * One side of a multichain wallet, as the other side needs to recognise it:
- * the display name, and the icon when the registration carries one. A bare
- * string is the name alone (a saved record from before icons were kept).
+ * by its display name. A bare string is the name itself; an object is any
+ * registration, connector or saved record that carries one.
  */
-export type WalletRef = string | { name: string; icon?: string | undefined }
+export type WalletRef = string | { name: string }
 
-const refOf = (ref: WalletRef) =>
-  typeof ref === 'string' ? { name: ref } : ref
+const nameOf = (ref: WalletRef) => (typeof ref === 'string' ? ref : ref.name)
 
 /**
  * Whether `side` (an EIP-6963 connector or announcement, a Wallet Standard
- * wallet, a sheet row) is the same extension as `ref`. The name is the first
- * key, case-insensitively, because that is what a wallet calls itself on
- * both registries. A wallet that spells its name differently on the two
- * sides (ZER-1292) is caught by the second: both registrations ship the
- * extension's logo, and two different wallets shipping byte-identical data
- * URIs is not a case to design for. A name mismatch with no icon on either
- * side still reads as two wallets unless the wallet guide pairs the two
- * names (`solanaName`), the third key, which is how Trust ("Trust Wallet"
- * on EVM, "Trust" on Solana) reads as one.
+ * wallet, a sheet row) is the same extension as `ref`: the two names match,
+ * case-insensitively, because the name is what a wallet calls itself on both
+ * registries and the only identity the two registries share (EIP-6963 has an
+ * rdns, the Wallet Standard has none). A wallet that spells its name
+ * differently on the two sides (ZER-1292) is paired by the wallet guide
+ * (`solanaName`), which is how Trust ("Trust Wallet" on EVM, "Trust" on
+ * Solana) reads as one; AppKit keys its multichain merge the same way, by
+ * name with that one alias.
  */
-export function isSameWallet(
-  side: { name: string; icon?: string | undefined },
-  ref: WalletRef,
-): boolean {
-  const target = refOf(ref)
-  if (
-    equalsIgnoreCase(
-      canonicalWalletName(side.name),
-      canonicalWalletName(target.name),
-    )
-  ) {
-    return true
-  }
-  return (
-    hasIconPayload(side.icon) &&
-    hasIconPayload(target.icon) &&
-    side.icon === target.icon
+export function isSameWallet(side: WalletRef, ref: WalletRef): boolean {
+  return equalsIgnoreCase(
+    canonicalWalletName(nameOf(side)),
+    canonicalWalletName(nameOf(ref)),
   )
 }
 
@@ -66,18 +51,6 @@ function canonicalWalletName(name: string): string {
       (equalsIgnoreCase(w.name, name) || equalsIgnoreCase(w.solanaName, name)),
   )
   return entry ? entry.name : name
-}
-
-/**
- * An icon identifies a wallet only when it carries an image: a data URI
- * whose payload is a few characters or none (an empty SVG, a mock's
- * placeholder) is shared by anything that has no logo, and would merge
- * unrelated wallets.
- */
-function hasIconPayload(icon: string | undefined): icon is string {
-  if (!icon?.startsWith('data:')) return false
-  const comma = icon.indexOf(',')
-  return comma !== -1 && icon.length - comma - 1 >= 64
 }
 
 /**
@@ -353,43 +326,17 @@ export function readEvmConnectionsAtLoad(
 }
 
 /**
- * The icon of the EVM connector with `id`: off the connector when wagmi has
- * set it up, else off the EIP-6963 announcement it will be made from. Under
- * `ssr` the announcements are turned into connectors in wagmi's mount
- * effect, after the persisted state is read back, so a connector can be
- * looked up before it exists.
- */
-function evmConnectorIcon(config: Config, id: string): string | undefined {
-  const connector = config.connectors.find((c) => c.id === id)
-  if (connector?.icon) return connector.icon
-  return config._internal.mipd
-    ?.getProviders()
-    .find(({ info }) => info.rdns === id)?.info.icon
-}
-
-/**
  * Whether `wallet` was connected on the EVM side when the page loaded, per
- * the record `readEvmConnectionsAtLoad` took. The record keeps a
- * connector's id and name only; its icon is read off the connector of that
- * id (or its announcement, see `evmConnectorIcon`), so the match uses the
- * same key as everywhere else. No record reads as not connected: the guard
- * then stands in, which costs the host nothing when the wallet is indeed
- * dormant.
+ * the record `readEvmConnectionsAtLoad` took. No record reads as not
+ * connected: the guard then stands in, which costs the host nothing when
+ * the wallet is indeed dormant.
  */
 async function wasConnectedAtLoad(
-  config: Config,
   wallet: WalletRef,
   restored: EvmConnectionsAtLoad,
 ): Promise<boolean> {
   const list = await restored
-  return (
-    list?.some((c) =>
-      isSameWallet(
-        { name: c.name, icon: evmConnectorIcon(config, c.id) },
-        wallet,
-      ),
-    ) ?? false
-  )
+  return list?.some((c) => isSameWallet(c, wallet)) ?? false
 }
 
 /**
@@ -468,7 +415,7 @@ export function guardDormantEvmSide(
   let stopWatch: (() => void) | undefined
   let stopConnectors: (() => void) | undefined
   const guard = async () => {
-    if (await wasConnectedAtLoad(config, wallet, restored)) return
+    if (await wasConnectedAtLoad(wallet, restored)) return
     if (stopped) return
     muteDormantEvmSide(config, wallet)
     await shimDormantEvmSide(config, wallet)

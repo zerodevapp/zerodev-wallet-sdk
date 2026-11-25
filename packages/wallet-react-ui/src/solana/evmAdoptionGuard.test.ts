@@ -70,8 +70,7 @@ function fakeConfig() {
   }
   /** The EIP-6963 providers wagmi's discovery has announced; under `ssr`
    * their connectors may not exist yet. */
-  const providers: { info: { name: string; rdns: string; icon?: string } }[] =
-    []
+  const providers: { info: { name: string; rdns: string } }[] = []
   const config = {
     connectors,
     storage: {
@@ -552,30 +551,6 @@ describe('guardDormantEvmSide', () => {
     expect(storage.has(`${metamask.id}.disconnected`)).toBe(false)
   })
 
-  it('reads the icon of a connector wagmi has not set up yet off its announcement (ssr)', async () => {
-    const { config, sweep, storage, providers, announce } = fakeConfig()
-    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
-    // The extension registers "Mock" on Solana and announces "Mock Wallet"
-    // on EVM; only the icon pairs the two. Under `ssr` the connector is
-    // made from the announcement after the guard mounts.
-    providers.push({
-      info: { name: 'Mock Wallet', rdns: 'app.mock', icon: logo },
-    })
-    const evm = Object.assign(fakeConnector('Mock Wallet', 'app.mock'), {
-      icon: logo,
-    })
-
-    guardDormantEvmSide(config, { name: 'Mock', icon: logo }, restored(evm))
-    await flush()
-    announce(evm)
-    sweep([evm])
-    await flush()
-
-    // The host's own EVM session: neither shimmed nor detached.
-    expect(config.state.connections.size).toBe(1)
-    expect(storage.has('app.mock.disconnected')).toBe(false)
-  })
-
   it('leaves a same-named session through another kind of connector alone', async () => {
     const { config, sweep, connectors } = fakeConfig()
     // `metaMask()`: an SDK session, not the extension the Solana side shares.
@@ -841,52 +816,27 @@ describe('detachEvmConnection', () => {
 })
 
 describe('isSameWallet', () => {
-  const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
   it('matches on the name, case-insensitively', () => {
     expect(isSameWallet({ name: 'MetaMask' }, 'metamask')).toBe(true)
     expect(isSameWallet({ name: 'MetaMask' }, { name: 'METAMASK' })).toBe(true)
-  })
-  it('matches two spellings of one wallet by their shared icon', () => {
-    expect(
-      isSameWallet(
-        { name: 'Mock Wallet', icon: logo },
-        { name: 'Mock', icon: logo },
-      ),
-    ).toBe(true)
-  })
-  it('does not match on an empty or placeholder icon', () => {
-    const empty = 'data:image/svg+xml;base64,'
-    expect(
-      isSameWallet(
-        { name: 'Phantom', icon: empty },
-        { name: 'Solflare', icon: empty },
-      ),
-    ).toBe(false)
-    expect(
-      isSameWallet({ name: 'Phantom' }, { name: 'Solflare', icon: logo }),
-    ).toBe(false)
+    expect(isSameWallet('Phantom', 'Solflare')).toBe(false)
   })
   it('pairs the two names the guide lists for one wallet', () => {
     expect(isSameWallet({ name: 'Trust Wallet' }, 'Trust')).toBe(true)
     expect(isSameWallet({ name: 'trust' }, { name: 'Trust Wallet' })).toBe(true)
     expect(isSameWallet({ name: 'Trust' }, 'MetaMask')).toBe(false)
   })
-  it('reads a bare string as the name alone', () => {
-    expect(isSameWallet({ name: 'Mock Wallet', icon: logo }, 'Mock')).toBe(
-      false,
-    )
+  it('reads two unpaired spellings as two wallets', () => {
+    expect(isSameWallet({ name: 'Mock Wallet' }, 'Mock')).toBe(false)
   })
 })
 
-describe('withoutEvmAdoption keyed on the icon', () => {
-  it('detaches the same extension adopted under another name', async () => {
+describe('withoutEvmAdoption keyed on the guide alias', () => {
+  it('detaches the same extension adopted under its other name', async () => {
     const { config, adopt, connectors } = fakeConfig()
-    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
-    const evm = Object.assign(fakeConnector('Mock Wallet', 'app.mock'), {
-      icon: logo,
-    })
+    const evm = fakeConnector('Trust Wallet', 'com.trustwallet.app')
     connectors.push(evm)
-    await withoutEvmAdoption(config, { name: 'Mock', icon: logo }, async () => {
+    await withoutEvmAdoption(config, 'Trust', async () => {
       adopt(evm)
     })
     expect(config.state.connections.size).toBe(0)

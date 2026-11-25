@@ -165,19 +165,9 @@ function SignUpWalletMultichain({
     useSolanaConnect()
   const [choosing, setChoosing] = useState(false)
 
-  // Only an announced EVM provider joins the Solana side in the choice: a
-  // configured SDK connector or the pairing sheet is not "installed". A
-  // host that left EVM out of the namespaces gets no EVM side at all.
-  const announcedConnector = connectors.find((c) => announcesWallet(c, wallet))
-  const announced = withEvm ? announcedConnector : undefined
-  // The Solana registration is matched against the guide entry and against
-  // the live announcement: the extension's own name and icon are what its
-  // Wallet Standard registration shares, the guide's static ones may not be.
-  const solana = solanaWallets.find(
-    (w) =>
-      isSameWallet(w, wallet) ||
-      (!!announcedConnector && isSameWallet(w, announcedConnector)),
-  )
+  // By name, or the guide's paired name for a wallet that registers under
+  // another one on Solana (`solanaName`).
+  const solana = solanaWallets.find((w) => isSameWallet(w, wallet))
   if (!solana) {
     return withEvm ? (
       <SignUpWalletEvm wallet={wallet} />
@@ -185,6 +175,13 @@ function SignUpWalletMultichain({
       <WalletDownloadRow wallet={wallet} />
     )
   }
+
+  // Only an announced EVM provider joins the Solana side in the choice: a
+  // configured SDK connector or the pairing sheet is not "installed". A
+  // host that left EVM out of the namespaces gets no EVM side at all.
+  const announced = withEvm
+    ? connectors.find((c) => announcesWallet(c, wallet))
+    : undefined
   const isEvmConnected =
     !!announced && connections.some((c) => c.connector.uid === announced.uid)
   const isSolanaConnected = connectedSolanaName === solana.name

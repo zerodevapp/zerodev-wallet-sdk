@@ -171,13 +171,12 @@ beforeEach(() => {
 })
 
 describe('SignUp.Wallet with namespaces eip155 + solana', () => {
-  it('finds the Solana side by the announced icon when the names differ', () => {
-    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}` as const
-    connectors = [{ ...announced('io.metamask', 'MetaMask'), icon: logo }]
-    solanaWallets = [{ ...solanaWallet('MM').wallet, icon: logo }]
+  it("finds the Solana side under the guide's paired name", () => {
+    connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
+    solanaWallets = [solanaWallet('Trust').wallet]
     render(
       <SignUp>
-        <SignUp.Wallet walletId="metamask" namespaces={['eip155', 'solana']} />
+        <SignUp.Wallet walletId="trust" namespaces={['eip155', 'solana']} />
       </SignUp>,
     )
     expect(screen.getByText('EVM')).toBeTruthy()

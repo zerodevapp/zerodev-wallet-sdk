@@ -15,9 +15,6 @@ const LAST_WALLET_STORAGE_KEY = 'zerodev:solana:lastWallet'
 export type LastSolanaWallet = {
   name: string
   source: SolanaConnectionSource
-  /** The wallet's icon data URI, when the registration carried one, so the
-   * EVM side can be recognised by it as well as by the name. */
-  icon?: string | undefined
 }
 
 const sourceOf = (wallet: SolanaStandardWallet): SolanaConnectionSource =>
@@ -38,11 +35,7 @@ export function readLastSolanaWallet(): LastSolanaWallet | null {
       return { name: raw, source: 'standard' }
     }
     return parsed?.name
-      ? {
-          name: parsed.name,
-          source: parsed.source ?? 'standard',
-          ...(typeof parsed.icon === 'string' && { icon: parsed.icon }),
-        }
+      ? { name: parsed.name, source: parsed.source ?? 'standard' }
       : null
   } catch {
     return null
@@ -296,11 +289,7 @@ export const createSolanaStoreSlice: StateCreator<
           }
           const connection = toConnection(wallet, account)
           watch(wallet)
-          writeLastWallet({
-            name: wallet.name,
-            source: sourceOf(wallet),
-            ...(typeof wallet.icon === 'string' && { icon: wallet.icon }),
-          })
+          writeLastWallet({ name: wallet.name, source: sourceOf(wallet) })
           set((state) => ({
             solana: { ...state.solana, status: 'connected', connection },
           }))

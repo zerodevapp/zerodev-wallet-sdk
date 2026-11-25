@@ -41,10 +41,7 @@ vi.mock('../../shared/hooks/useKitStore', () => ({
     }),
   }),
 }))
-const solana = vi.hoisted(() => ({ wallets: [] as unknown[] }))
-vi.mock('./useSolanaWallets', () => ({
-  useSolanaWallets: () => solana.wallets,
-}))
+vi.mock('./useSolanaWallets', () => ({ useSolanaWallets: () => [] }))
 vi.mock('./useSolanaWalletConnect', () => ({
   useSolanaWalletConnect: () => ({
     enabled: false,
@@ -57,7 +54,6 @@ beforeEach(() => {
   guard.mount.mockReset().mockReturnValue(guard.cleanup)
   guard.cleanup.mockReset()
   wagmi.connectors.value = []
-  solana.wallets = []
   window.localStorage.setItem(
     'zerodev:solana:lastWallet',
     JSON.stringify({ name: 'MetaMask', source: 'standard' }),
@@ -71,7 +67,7 @@ describe('useSolanaAutoReconnect', () => {
     expect(guard.mount).toHaveBeenCalledTimes(1)
     expect(guard.mount).toHaveBeenCalledWith(
       wagmi.config,
-      expect.objectContaining({ name: 'MetaMask' }),
+      'MetaMask',
       atLoad.value,
     )
   })
@@ -87,33 +83,6 @@ describe('useSolanaAutoReconnect', () => {
 
     expect(guard.mount).toHaveBeenCalledTimes(1)
     expect(guard.cleanup).not.toHaveBeenCalled()
-  })
-
-  it('hands the guard the icon off the registration when the saved record has none', () => {
-    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}`
-    const { rerender } = renderHook(() => useSolanaAutoReconnect())
-    expect(guard.mount).toHaveBeenLastCalledWith(
-      wagmi.config,
-      { name: 'MetaMask', icon: undefined },
-      atLoad.value,
-    )
-
-    // A record from before icons were kept; the wallet registers with one.
-    solana.wallets = [{ name: 'MetaMask', icon: logo }]
-    rerender()
-
-    expect(guard.cleanup).toHaveBeenCalledTimes(1)
-    expect(guard.mount).toHaveBeenCalledTimes(2)
-    expect(guard.mount).toHaveBeenLastCalledWith(
-      wagmi.config,
-      { name: 'MetaMask', icon: logo },
-      atLoad.value,
-    )
-
-    // Another registration changes nothing the guard is keyed on.
-    solana.wallets = [...solana.wallets, { name: 'Phantom', icon: logo }]
-    rerender()
-    expect(guard.mount).toHaveBeenCalledTimes(2)
   })
 
   it('mounts no guard when the saved wallet is not an installed one', () => {

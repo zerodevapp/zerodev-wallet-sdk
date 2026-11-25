@@ -345,22 +345,6 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(store.getState().solana.status).toBe('disconnected')
   })
 
-  it('merges the two sides of one wallet that spells its name differently, by icon', () => {
-    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}` as const
-    connectors = [{ ...announced('app.mock', 'Mock Wallet'), icon: logo }]
-    solanaWallets = [{ ...solanaWallet('Mock').wallet, icon: logo }]
-    render(
-      <SignUp>
-        <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
-      </SignUp>,
-    )
-    // One row, carrying both badges, named after the EVM side.
-    expect(screen.getByText('Mock Wallet')).toBeTruthy()
-    expect(screen.queryByText('Mock')).toBeNull()
-    expect(screen.getByText('EVM')).toBeTruthy()
-    expect(screen.getByText('SOLANA')).toBeTruthy()
-  })
-
   it('merges Trust, which announces as "Trust Wallet" and registers as "Trust"', () => {
     connectors = [announced('com.trustwallet.app', 'Trust Wallet')]
     solanaWallets = [solanaWallet('Trust').wallet]
@@ -375,21 +359,16 @@ describe('SignUp.InstalledWallets with namespaces eip155 + solana', () => {
     expect(screen.getByText('SOLANA')).toBeTruthy()
   })
 
-  it('merges a guide wallet whose registrations pair by the announced icon, not the guide one', () => {
-    const logo = `data:image/svg+xml;base64,${'A'.repeat(96)}` as const
-    // The row shows the guide's name and icon for MetaMask; the extension's
-    // Solana registration carries another name and the announced logo.
-    connectors = [{ ...announced('io.metamask', 'MetaMask'), icon: logo }]
-    solanaWallets = [{ ...solanaWallet('MM').wallet, icon: logo }]
+  it('lists two wallets whose names differ and are not paired by the guide', () => {
+    connectors = [announced('app.mock', 'Mock Wallet')]
+    solanaWallets = [solanaWallet('Mock').wallet]
     render(
       <SignUp>
         <SignUp.InstalledWallets namespaces={['eip155', 'solana']} />
       </SignUp>,
     )
-    expect(screen.getByText('MetaMask')).toBeTruthy()
-    expect(screen.queryByText('MM')).toBeNull()
-    expect(screen.getByText('EVM')).toBeTruthy()
-    expect(screen.getByText('SOLANA')).toBeTruthy()
+    expect(screen.getByText('Mock Wallet')).toBeTruthy()
+    expect(screen.getByText('Mock')).toBeTruthy()
   })
 
   it('leaves both sides of a pinned wallet to its own row, under either name', () => {

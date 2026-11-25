@@ -69,9 +69,9 @@ export function InstalledWalletsMultichain({
   const evmRows = withEvm ? installedEvmRows : []
   // A wallet pinned through `SignUp.Wallet`, or excluded by the host, is
   // dropped by guide id on the EVM side; its Solana registration is matched
-  // like the two sides of one wallet are (name, paired name or icon), with
-  // the guide entry standing in for an id. The pinned row offers that side
-  // itself (`namespaces` on `SignUp.Wallet`).
+  // like the two sides of one wallet are (name, or the guide's paired name),
+  // with the guide entry standing in for an id. The pinned row offers that
+  // side itself (`namespaces` on `SignUp.Wallet`).
   const isExcludedSolana = (wallet: SolanaStandardWallet) =>
     [...registeredWallets, ...excludeWalletIds].some((id) => {
       const entry = WALLET_GUIDE.find((w) => w.id === id)
@@ -92,14 +92,7 @@ export function InstalledWalletsMultichain({
   if (withSolana) {
     for (const wallet of solanaWallets) {
       if (isExcludedSolana(wallet)) continue
-      // The row shows the guide's name and icon for a guide wallet; the
-      // live connector keeps the announced ones, which are what the Solana
-      // registration of the same extension matches.
-      const merged = rows.find(
-        (r) =>
-          isSameWallet(r, wallet) ||
-          (!!r.evm && isSameWallet(r.evm.connector, wallet)),
-      )
+      const merged = rows.find((r) => isSameWallet(r, wallet))
       if (merged) {
         merged.solana = wallet
         merged.icon ??= wallet.icon
