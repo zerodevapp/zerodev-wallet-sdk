@@ -1,5 +1,6 @@
 "use client";
 
+import { BatchTransferTest } from "./BatchTransferTest";
 import { ChainMethodsTest } from "./ChainMethodsTest";
 import { ContractBalances } from "./ContractBalances";
 import { DemoNftMintTest } from "./DemoNftMintTest";
@@ -31,7 +32,12 @@ const AREA_CASES: Record<string, React.ComponentType[]> = {
     SignTypedDataTest,
     SignTypedDataInvalidTest,
   ],
-  transactions: [SendEthTest, SendHighAmountTest, SendInvalidAddressTest],
+  transactions: [
+    SendEthTest,
+    BatchTransferTest,
+    SendHighAmountTest,
+    SendInvalidAddressTest,
+  ],
   contracts: [
     ContractBalances,
     DemoNftMintTest,
