@@ -1,6 +1,13 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Copy,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { useState } from "react";
 import {
   DATA_API_CHAIN_IDS,
@@ -343,10 +350,16 @@ function ConfiguredTransactionHistoryPanel({
             <h3 className="text-sm font-semibold text-[var(--ink)]">
               Page {index + 1} · {page.items.length} items
             </h3>
-            <span className="font-mono text-[10px] text-[var(--muted)]">
-              next: {page.next ? "present" : "none"} · fetchedAt:{" "}
-              {page.cache?.fetchedAt ?? "—"}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-[10px] text-[var(--muted)]">
+                next: {page.next ? "present" : "none"} · fetchedAt:{" "}
+                {page.cache?.fetchedAt ?? "—"}
+              </span>
+              <CopyJsonButton
+                value={page}
+                testId={`transaction-history-page-${index}-copy`}
+              />
+            </div>
           </div>
           <pre className="max-h-[32rem] overflow-auto p-4 text-[11px] leading-5 text-gray-700">
             {JSON.stringify(page, null, 2)}
@@ -354,6 +367,26 @@ function ConfiguredTransactionHistoryPanel({
         </section>
       ))}
     </div>
+  );
+}
+
+function CopyJsonButton({ value, testId }: { value: unknown; testId: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void handleCopy()}
+      className="inline-flex h-7 items-center gap-1.5 rounded-md border border-[var(--border-warm)] bg-white px-2 text-[11px] font-semibold text-[var(--ink)] hover:bg-[var(--surface-warm)]"
+      data-testid={testId}
+    >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copied" : "Copy JSON"}
+    </button>
   );
 }
 

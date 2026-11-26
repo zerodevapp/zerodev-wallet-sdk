@@ -2,7 +2,8 @@
 
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { type Address, erc20Abi, erc721Abi, formatUnits } from "viem";
-import { useAccount, useReadContracts } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { useAccount, usePublicClient, useReadContracts } from "wagmi";
 import { cn } from "../../lib/utils";
 import {
   addressOn,
@@ -19,6 +20,7 @@ function BalanceShell({
   symbol,
   onRefresh,
   isFetching,
+  detail,
 }: {
   contract: TestContract;
   address: Address | undefined;
@@ -26,6 +28,7 @@ function BalanceShell({
   symbol: string;
   onRefresh: () => void;
   isFetching: boolean;
+  detail?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
@@ -37,6 +40,11 @@ function BalanceShell({
         >
           {address ?? "not deployed here"}
         </p>
+        {detail && (
+          <p className="mt-0.5 break-all font-mono text-[11px] text-gray-600">
+            {detail}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-gray-900">
@@ -122,6 +130,7 @@ function Erc721BalanceRow({
 
   const count = data?.[0]?.result as bigint | undefined;
   const symbol = (data?.[1]?.result as string | undefined) ?? "NFTs";
+  const ids = useOwnedTokenIds(address, account, chainId, count);
 
   const value = count != null ? count.toString() : isError ? "error" : "—";
 
@@ -131,10 +140,69 @@ function Erc721BalanceRow({
       address={address}
       value={value}
       symbol={symbol}
-      onRefresh={() => refetch()}
-      isFetching={isFetching}
+      onRefresh={() => {
+        refetch();
+        ids.refetch();
+      }}
+      isFetching={isFetching || ids.isFetching}
+      detail={
+        count != null && count > BigInt(0) ? (
+          <span data-testid={`nft-ids-${contract.key}`}>
+            IDs:{" "}
+            {ids.data
+              ? ids.data.map((id) => `#${id}`).join(", ") || "none found"
+              : ids.isError
+                ? "error"
+                : "…"}
+          </span>
+        ) : undefined
+      }
     />
   );
+}
+
+const ID_BATCH = 50;
+const ID_SCAN_LIMIT = 2_000;
+
+/**
+ * The token ids `account` owns. The test ERC721 is not Enumerable, but its ids
+ * are minted from 0 upwards with no burn, so `ownerOf` over 0, 1, 2, ... until
+ * the first unminted id covers every token. Re-runs when the balance changes.
+ */
+function useOwnedTokenIds(
+  address: Address | undefined,
+  account: Address,
+  chainId: number | undefined,
+  balance: bigint | undefined,
+) {
+  const client = usePublicClient({ chainId });
+  return useQuery({
+    queryKey: ["owned-nft-ids", chainId, address, account, balance?.toString()],
+    enabled: Boolean(client && address && balance && balance > BigInt(0)),
+    queryFn: async () => {
+      if (!client || !address) return [];
+      const owned: bigint[] = [];
+      for (let start = 0; start < ID_SCAN_LIMIT; start += ID_BATCH) {
+        const batch = Array.from({ length: ID_BATCH }, (_, i) => BigInt(start + i));
+        const results = await client.multicall({
+          contracts: batch.map((id) => ({
+            address,
+            abi: erc721Abi,
+            functionName: "ownerOf" as const,
+            args: [id] as const,
+          })),
+          allowFailure: true,
+        });
+        for (const [i, r] of results.entries()) {
+          if (r.status === "failure") return owned; // first unminted id
+          if ((r.result as Address).toLowerCase() === account.toLowerCase()) {
+            owned.push(batch[i]);
+          }
+        }
+      }
+      return owned;
+    },
+  });
 }
 
 /**

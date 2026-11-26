@@ -140,6 +140,30 @@ export const TEST_HELLO_WORLD = {
 };
 
 /**
+ * ABI for RevertAfter — a call that passes gas estimation and reverts once
+ * mined. `revertAfter(deadline)` reverts when `block.timestamp > deadline`, so
+ * passing the latest block's timestamp succeeds in simulation (run against
+ * that block) and fails in the later block that mines it.
+ */
+export const revertAfterAbi = parseAbi([
+  "function revertAfter(uint256 deadline)",
+  "event Passed(address indexed caller, uint256 deadline, uint256 timestamp)",
+  "error DeadlinePassed(uint256 deadline, uint256 timestamp)",
+]);
+
+/** Produces a transaction that fails on chain (the history's "Failed" state). */
+export const TEST_REVERT_AFTER = {
+  key: "test-revert-after",
+  name: "RevertAfter",
+  kind: "custom" as const,
+  addresses: {
+    [arbitrumSepolia.id]: "0xBF750314623f3e4196f1b3Ed03ea9d996474d4B7" as Address,
+    [sepolia.id]: "0x3cC48D841C10AFe815b0EA61623e2FB05987e087" as Address,
+  },
+  abi: revertAfterAbi,
+};
+
+/**
  * The NFT `zerodev-signer-demo` mints against, kept so the lab exercises the
  * same target the demo did rather than only the lab's own ERC721.
  *
@@ -163,6 +187,7 @@ export const TEST_CONTRACTS: TestContract[] = [
   TEST_ERC20,
   TEST_ERC721,
   TEST_HELLO_WORLD,
+  TEST_REVERT_AFTER,
 ];
 
 export const getContractsByKind = (kind: TestContractKind): TestContract[] =>

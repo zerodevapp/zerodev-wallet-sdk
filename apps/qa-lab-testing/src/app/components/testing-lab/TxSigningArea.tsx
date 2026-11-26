@@ -1,11 +1,13 @@
 "use client";
 
+import { BatchTransferTest } from "./BatchTransferTest";
 import { ChainMethodsTest } from "./ChainMethodsTest";
 import { ContractBalances } from "./ContractBalances";
 import { DemoNftMintTest } from "./DemoNftMintTest";
 import { Erc20ContractTest } from "./Erc20ContractTest";
 import { Erc721ContractTest } from "./Erc721ContractTest";
 import { HelloWorldContractTest } from "./HelloWorldContractTest";
+import { RevertAfterTest } from "./RevertAfterTest";
 import { RpcReadTests } from "./RpcReadTests";
 import { SendEthTest } from "./SendEthTest";
 import { SendHighAmountTest } from "./SendHighAmountTest";
@@ -31,13 +33,19 @@ const AREA_CASES: Record<string, React.ComponentType[]> = {
     SignTypedDataTest,
     SignTypedDataInvalidTest,
   ],
-  transactions: [SendEthTest, SendHighAmountTest, SendInvalidAddressTest],
+  transactions: [
+    SendEthTest,
+    BatchTransferTest,
+    SendHighAmountTest,
+    SendInvalidAddressTest,
+  ],
   contracts: [
     ContractBalances,
     DemoNftMintTest,
     Erc20ContractTest,
     Erc721ContractTest,
     HelloWorldContractTest,
+    RevertAfterTest,
   ],
   rpc: [RpcReadTests, WatchAssetTest, ChainMethodsTest],
   session: [SessionExpiryTest],
