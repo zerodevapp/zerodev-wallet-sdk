@@ -187,7 +187,7 @@ ship it too.
 #### Changing the tokens
 
 Everything lives in `src/theme/tokens.css`. After any change, run
-`pnpm test -- src/theme` and `pnpm build:css`, then commit; nothing is
+`pnpm test` and `pnpm build:css`, then commit; nothing is
 generated.
 
 - **Change a value.** Edit the hex in the brand block(s). Values are
